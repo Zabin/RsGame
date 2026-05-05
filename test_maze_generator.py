@@ -1,177 +1,205 @@
 #!/usr/bin/env python3
 """
-test_maze_generator.py — Test maze generation and cross-biome connectivity.
+test_maze_generator.py — Test 3×3 grid maze generation.
 
 Validates that the maze:
-1. Spans all 9 zones
-2. Has entry/exit points in each zone
-3. Connects zones sequentially
-4. Includes branching dead ends
+1. Connects all 9 zones in a spanning tree
+2. Each zone has internal path structure
+3. Zone-to-zone connections exist
 """
 
 import pytest
-from maze_generator import MazeGenerator, NUM_ZONES, PLAYABLE_WIDTH, PLAYABLE_HEIGHT
+from maze_generator import GridMazeGenerator, GRID_ROWS, GRID_COLS, NUM_ZONES, PLAYABLE_HEIGHT, PLAYABLE_WIDTH
 
 
-class TestMazeGeneration:
-    """Test maze generator output."""
+class TestGridMazeGeneration:
+    """Test grid-based maze generator."""
 
-    def test_maze_dimensions(self):
-        """Maze should have correct total dimensions."""
-        gen = MazeGenerator()
+    def test_maze_generates_successfully(self):
+        """Maze should generate without errors."""
+        gen = GridMazeGenerator()
         maze = gen.generate()
+        assert maze is not None
+        assert len(maze) == NUM_ZONES
 
-        assert len(maze) == PLAYABLE_HEIGHT, f"Expected height {PLAYABLE_HEIGHT}, got {len(maze)}"
-        assert len(maze[0]) == gen.total_width, f"Expected width {gen.total_width}, got {len(maze[0])}"
+    def test_all_zones_have_maze(self):
+        """All 9 zones should have maze data."""
+        gen = GridMazeGenerator()
+        gen.generate()
 
-    def test_maze_is_not_empty(self):
-        """Maze should have paths (not all walls)."""
-        gen = MazeGenerator()
-        maze = gen.generate()
+        for row in range(GRID_ROWS):
+            for col in range(GRID_COLS):
+                assert (row, col) in gen.zone_mazes
+                assert gen.zone_mazes[(row, col)] is not None
 
-        path_count = sum(1 for row in maze for cell in row if cell)
-        assert path_count > 0, "Maze has no paths"
+    def test_zone_maze_dimensions(self):
+        """Each zone maze should have correct dimensions."""
+        gen = GridMazeGenerator()
+        gen.generate()
 
-    def test_maze_is_not_full(self):
-        """Maze should have walls (not all paths)."""
-        gen = MazeGenerator()
-        maze = gen.generate()
-
-        wall_count = sum(1 for row in maze for cell in row if not cell)
-        assert wall_count > 0, "Maze has no walls (all paths)"
+        for zone_pos in gen.zone_mazes:
+            maze = gen.zone_mazes[zone_pos]
+            assert len(maze) == PLAYABLE_HEIGHT
+            assert len(maze[0]) == PLAYABLE_WIDTH
 
     def test_all_zones_have_paths(self):
-        """Each zone should contain at least one path cell."""
-        gen = MazeGenerator()
-        maze = gen.generate()
+        """Each zone should have at least one path cell."""
+        gen = GridMazeGenerator()
+        gen.generate()
 
-        for zone_id in range(NUM_ZONES):
-            zone_maze = gen.extract_zone_path(zone_id)
-            path_count = sum(1 for row in zone_maze for cell in row if cell)
-            assert path_count > 0, f"Zone {zone_id} has no paths"
+        for zone_pos in gen.zone_mazes:
+            maze = gen.zone_mazes[zone_pos]
+            path_count = sum(1 for row in maze for cell in row if cell)
+            assert path_count > 0, f"Zone {zone_pos} has no paths"
 
-    def test_all_zones_have_left_entry(self):
-        """Each zone should be accessible from left edge."""
-        gen = MazeGenerator()
-        maze = gen.generate()
+    def test_all_zones_have_walls(self):
+        """Each zone should have some walls (not all paths)."""
+        gen = GridMazeGenerator()
+        gen.generate()
 
-        for zone_id in range(NUM_ZONES):
-            zone_maze = gen.extract_zone_path(zone_id)
-            # Check left edge (column 0) for any path
-            left_edge_paths = sum(1 for row in zone_maze if row[0])
-            assert left_edge_paths > 0, f"Zone {zone_id} has no path on left edge"
+        for zone_pos in gen.zone_mazes:
+            maze = gen.zone_mazes[zone_pos]
+            wall_count = sum(1 for row in maze for cell in row if not cell)
+            assert wall_count > 0, f"Zone {zone_pos} is all paths"
 
-    def test_all_zones_have_right_exit(self):
-        """Each zone should be accessible from right edge."""
-        gen = MazeGenerator()
-        maze = gen.generate()
+    def test_zone_to_zone_connections_exist(self):
+        """Spanning tree should create zone-to-zone connections."""
+        gen = GridMazeGenerator()
+        gen.generate()
 
-        for zone_id in range(NUM_ZONES):
-            zone_maze = gen.extract_zone_path(zone_id)
-            # Check right edge (last column) for any path
-            right_edge_paths = sum(1 for row in zone_maze if row[-1])
-            assert right_edge_paths > 0, f"Zone {zone_id} has no path on right edge"
+        # Should have 8 connections (for spanning tree of 9 nodes)
+        assert len(gen.connections) == 8, f"Expected 8 connections, got {len(gen.connections)}"
 
-    def test_zone_path_extraction(self):
-        """Zone path extraction should produce correct dimensions."""
-        gen = MazeGenerator()
-        maze = gen.generate()
+    def test_garden_is_connected(self):
+        """Garden (0,0) should be connected to at least one neighbor."""
+        gen = GridMazeGenerator()
+        gen.generate()
 
-        for zone_id in range(NUM_ZONES):
-            zone_maze = gen.extract_zone_path(zone_id)
-            assert len(zone_maze) == PLAYABLE_HEIGHT
-            assert len(zone_maze[0]) == PLAYABLE_WIDTH
+        garden_connections = [
+            direction for (zone, direction) in gen.connections if zone == (0, 0)
+        ]
+        assert len(garden_connections) > 0, "Garden has no outgoing connections"
 
-    def test_entry_exit_points_found(self):
-        """All zones should have identifiable entry/exit points."""
-        gen = MazeGenerator()
-        maze = gen.generate()
+    def test_all_zones_reachable(self):
+        """All zones should be reachable via spanning tree."""
+        gen = GridMazeGenerator()
+        gen.generate()
 
-        for zone_id in range(NUM_ZONES):
-            entry, exit_pt = gen.find_path_openings(zone_id)
-            assert entry is not None, f"Zone {zone_id} has no entry point"
-            assert exit_pt is not None, f"Zone {zone_id} has no exit point"
-            assert entry[0] >= 0 and entry[0] < PLAYABLE_WIDTH
-            assert exit_pt[0] >= 0 and exit_pt[0] < PLAYABLE_WIDTH
-            assert entry[1] >= 0 and entry[1] < PLAYABLE_HEIGHT
-            assert exit_pt[1] >= 0 and exit_pt[1] < PLAYABLE_HEIGHT
+        # Build adjacency from connections
+        reachable = set()
+        to_visit = [(0, 0)]  # Start from Garden
+
+        while to_visit:
+            zone = to_visit.pop(0)
+            if zone in reachable:
+                continue
+            reachable.add(zone)
+
+            # Find connections from this zone
+            for (from_zone, direction), to_zone in gen.connections.items():
+                if from_zone == zone and to_zone not in reachable:
+                    to_visit.append(to_zone)
+
+        assert len(reachable) == NUM_ZONES, f"Only {len(reachable)}/{NUM_ZONES} zones reachable"
+
+    def test_get_zone_maze_by_id(self):
+        """get_zone_maze should return correct zone by ID."""
+        gen = GridMazeGenerator()
+        gen.generate()
+
+        # Zone 0 = (0,0) = Garden
+        maze_0 = gen.get_zone_maze(0)
+        maze_0_0 = gen.zone_mazes[(0, 0)]
+        assert maze_0 == maze_0_0
+
+        # Zone 4 = (1,1) = Cave
+        maze_4 = gen.get_zone_maze(4)
+        maze_1_1 = gen.zone_mazes[(1, 1)]
+        assert maze_4 == maze_1_1
+
+        # Zone 8 = (2,2) = Sunset Sky
+        maze_8 = gen.get_zone_maze(8)
+        maze_2_2 = gen.zone_mazes[(2, 2)]
+        assert maze_8 == maze_2_2
 
 
-class TestMazeMandatoryProperties:
-    """Test that maze meets design requirements."""
+class TestMazeDeterminism:
+    """Test deterministic maze generation."""
 
-    def test_garden_starts_journey(self):
-        """Garden (zone 0) should have entry point on left edge."""
-        gen = MazeGenerator()
-        maze = gen.generate()
+    def test_same_seed_same_maze(self):
+        """Same seed should produce identical maze."""
+        gen1 = GridMazeGenerator()
+        gen1.generate(seed=42)
 
-        entry, _ = gen.find_path_openings(0)
-        # Garden entry should be accessible from left (x=0)
-        zone_maze = gen.extract_zone_path(0)
-        assert zone_maze[entry[1]][0], "Garden left edge not accessible"
+        gen2 = GridMazeGenerator()
+        gen2.generate(seed=42)
 
-    def test_sunset_sky_ends_journey(self):
-        """Sunset Sky (zone 8) should have exit point on right edge."""
-        gen = MazeGenerator()
-        maze = gen.generate()
+        # Compare all zones
+        for zone_pos in gen1.zone_mazes:
+            assert gen1.zone_mazes[zone_pos] == gen2.zone_mazes[zone_pos]
 
-        _, exit_pt = gen.find_path_openings(8)
-        zone_maze = gen.extract_zone_path(8)
-        assert zone_maze[exit_pt[1]][-1], "Sunset Sky right edge not accessible"
-
-    def test_maze_has_branching(self):
-        """Maze should include dead-end branches for complexity."""
-        gen = MazeGenerator()
-        maze = gen.generate()
-
-        # Count total paths in one zone
-        first_zone_maze = gen.extract_zone_path(0)
-        total_paths = sum(1 for row in first_zone_maze for cell in row if cell)
-
-        # If there was only a straight corridor (width=20, height<=17),
-        # we'd have at most ~34 path cells for a simple corridor
-        # With branching, we should have more
-        assert total_paths >= 10, f"Zone 0 seems to lack branching (only {total_paths} paths)"
-
-    def test_deterministic_generation(self):
-        """Same seed should produce same maze."""
-        gen1 = MazeGenerator()
-        maze1 = gen1.generate(seed=42)
-
-        gen2 = MazeGenerator()
-        maze2 = gen2.generate(seed=42)
-
-        assert maze1 == maze2, "Same seed produced different mazes"
-
-    def test_different_seeds_produce_different_mazes(self):
+    def test_different_seeds_different_mazes(self):
         """Different seeds should produce different mazes."""
-        gen1 = MazeGenerator()
-        maze1 = gen1.generate(seed=42)
+        gen1 = GridMazeGenerator()
+        gen1.generate(seed=42)
 
-        gen2 = MazeGenerator()
-        maze2 = gen2.generate(seed=99)
+        gen2 = GridMazeGenerator()
+        gen2.generate(seed=99)
 
-        # Mazes should be different (with high probability)
-        assert maze1 != maze2, "Different seeds produced identical mazes"
+        # At least some zones should differ
+        different = False
+        for zone_pos in gen1.zone_mazes:
+            if gen1.zone_mazes[zone_pos] != gen2.zone_mazes[zone_pos]:
+                different = True
+                break
+
+        assert different, "Different seeds produced identical mazes"
 
 
 class TestMazeProperties:
-    """Test mathematical properties of the maze."""
+    """Test mathematical properties of maze."""
 
-    def test_path_continuity_in_zone(self):
-        """Paths in a zone should form connected region (basic connectivity)."""
-        gen = MazeGenerator()
-        maze = gen.generate()
+    def test_spanning_tree_is_minimal(self):
+        """Spanning tree should have exactly 8 edges for 9 nodes."""
+        gen = GridMazeGenerator()
+        gen.generate()
 
-        # This is a simplified test - just check that if we have entry and exit,
-        # they're both in the same zone's path network
-        for zone_id in range(NUM_ZONES):
-            entry, exit_pt = gen.find_path_openings(zone_id)
-            zone_maze = gen.extract_zone_path(zone_id)
+        # A spanning tree of N nodes has exactly N-1 edges
+        assert len(gen.connections) == 9 - 1
 
-            # Both entry and exit should be paths
-            assert zone_maze[entry[1]][entry[0]], f"Zone {zone_id}: entry point is not a path"
-            assert zone_maze[exit_pt[1]][exit_pt[0]], f"Zone {zone_id}: exit point is not a path"
+    def test_no_cycles_in_spanning_tree(self):
+        """Spanning tree should not have cycles."""
+        gen = GridMazeGenerator()
+        gen.generate()
+
+        # Build graph and check for cycles
+        graph = {}
+        for (from_zone, direction), to_zone in gen.connections.items():
+            if from_zone not in graph:
+                graph[from_zone] = []
+            graph[from_zone].append(to_zone)
+
+        # Simple DFS to detect cycle
+        def has_cycle(node, visited, rec_stack):
+            visited.add(node)
+            rec_stack.add(node)
+
+            if node in graph:
+                for neighbor in graph[node]:
+                    if neighbor not in visited:
+                        if has_cycle(neighbor, visited, rec_stack):
+                            return True
+                    elif neighbor in rec_stack:
+                        return True
+
+            rec_stack.remove(node)
+            return False
+
+        visited = set()
+        rec_stack = set()
+        for node in graph:
+            if node not in visited:
+                assert not has_cycle(node, visited, rec_stack), "Cycle detected in spanning tree"
 
 
 if __name__ == "__main__":

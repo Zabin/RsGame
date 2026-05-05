@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """
-maze_preview.py — Visualize generated maze paths on screen previews.
+maze_preview.py — Visualize 3×3 grid maze paths on biome screens.
 
-Shows the procedurally-generated maze path overlaid on biome screens.
-Cyan line shows walkable path, magenta shows walls.
+Shows the procedurally-generated maze with zone-to-zone connections.
 """
 
 import argparse
@@ -17,31 +16,36 @@ except ImportError:
     sys.exit(1)
 
 from graphics_utils import get_screen_function
-from maze_generator import MazeGenerator
+from maze_generator import GridMazeGenerator, ZONE_NAMES
+from tilemaps import ALL_SCREENS
 
 
-def render_maze_overlay(zone_id: int, maze_gen: MazeGenerator, upscale: int = 2) -> Image.Image:
+def render_maze_overlay(zone_id: int, maze_gen: GridMazeGenerator, upscale: int = 2) -> Image.Image:
     """
     Render a zone with maze path overlay.
 
     Args:
         zone_id: Zone 0-8
-        maze_gen: MazeGenerator instance
+        maze_gen: GridMazeGenerator instance
         upscale: Scaling factor
 
     Returns:
         PIL Image with maze overlay
     """
-    from tilemaps import ALL_SCREENS
+    zone_row = zone_id // 3
+    zone_col = zone_id % 3
 
     # Get screen function and render
-    screen_name = ["garden", "forest", "meadow", "desert", "cave", "swamp", "snow_peak", "crystal_lake", "sunset_sky"][zone_id]
-    screen_fn = next(fn for name, fn in ALL_SCREENS if name == screen_name)
+    screen_name = [name for name, _ in ALL_SCREENS if name not in ["title", "intro", "save", "map", "victory"]][zone_id]
+    screen_fn = next((fn for name, fn in ALL_SCREENS if name == screen_name), None)
+
+    if not screen_fn:
+        return None
 
     try:
         tiles, attrs = screen_fn()
     except Exception as e:
-        print(f"ERROR rendering {screen_name}: {e}")
+        print(f"ERROR rendering zone {zone_id}: {e}")
         return None
 
     if not tiles or not attrs or len(tiles) != 360:
@@ -88,7 +92,7 @@ def render_maze_overlay(zone_id: int, maze_gen: MazeGenerator, upscale: int = 2)
             img.paste(tile_img, (screen_x, screen_y))
 
     # Get maze for this zone
-    zone_maze = maze_gen.extract_zone_path(zone_id)
+    zone_maze = maze_gen.zone_mazes[(zone_row, zone_col)]
 
     # Upscale
     if upscale != 1:
@@ -116,20 +120,16 @@ def render_maze_overlay(zone_id: int, maze_gen: MazeGenerator, upscale: int = 2)
                         fill=(0, 255, 255),
                         outline=(0, 200, 200),
                     )
-                else:
-                    # Wall: magenta X
-                    draw.line(
-                        [(center_x - 2, center_y - 2), (center_x + 2, center_y + 2)],
-                        fill=(255, 0, 255),
-                        width=1,
-                    )
+
+    # Draw zone label
+    draw.text((10, 10), f"Zone {zone_id}: {ZONE_NAMES[(zone_row, zone_col)]}", fill=(0, 0, 0))
 
     return img
 
 
 def main():
     """Main entry point for maze visualization."""
-    parser = argparse.ArgumentParser(description="Visualize maze paths through biomes")
+    parser = argparse.ArgumentParser(description="Visualize 3×3 grid maze paths through biomes")
     parser.add_argument("--all", action="store_true", help="Visualize all 9 zones")
     parser.add_argument("--zone", type=int, help="Visualize single zone by ID (0-8)")
     parser.add_argument("--seed", type=int, default=42, help="Maze random seed")
@@ -140,7 +140,7 @@ def main():
     args = parser.parse_args()
 
     # Generate maze
-    maze_gen = MazeGenerator()
+    maze_gen = GridMazeGenerator()
     maze_gen.generate(seed=args.seed)
 
     output_dir = Path(args.output)
@@ -148,13 +148,15 @@ def main():
 
     zone_names = ["garden", "forest", "meadow", "desert", "cave", "swamp", "snow_peak", "crystal_lake", "sunset_sky"]
 
-    print(f"🌀 Generating maze visualizations (seed={args.seed})...\n")
+    print(f"🌀 Generating 3×3 grid maze visualizations (seed={args.seed})...\n")
 
     if args.all:
         print(f"  Rendering all 9 zones...")
         for zone_id in range(9):
             zone_name = zone_names[zone_id]
-            print(f"    {zone_name:12}...", end=" ")
+            zone_row = zone_id // 3
+            zone_col = zone_id % 3
+            print(f"    Zone({zone_row},{zone_col}) {zone_name:12}...", end=" ")
             img = render_maze_overlay(zone_id, maze_gen, upscale=2)
             if img:
                 file = output_dir / f"{zone_id:02d}_{zone_name}.png"
@@ -166,7 +168,9 @@ def main():
     elif args.zone is not None:
         if 0 <= args.zone < 9:
             zone_name = zone_names[args.zone]
-            print(f"  Rendering {zone_name}...", end=" ")
+            zone_row = args.zone // 3
+            zone_col = args.zone % 3
+            print(f"  Rendering Zone({zone_row},{zone_col}) {zone_name}...", end=" ")
             img = render_maze_overlay(args.zone, maze_gen, upscale=2)
             if img:
                 file = output_dir / f"{args.zone:02d}_{zone_name}.png"
@@ -180,6 +184,8 @@ def main():
     else:
         parser.print_help()
 
+    print("\n📊 Zone Connectivity:")
+    maze_gen.print_grid_summary()
     print("✅ Done!")
 
 

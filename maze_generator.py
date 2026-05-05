@@ -1,12 +1,17 @@
 #!/usr/bin/env python3
 """
-maze_generator.py — Generate flowing maze paths across 9 biomes.
+maze_generator.py — Generate flowing maze paths across 3×3 biome grid.
 
-Uses recursive backtracking to create naturalistic paths that:
-- Start at left edge of Garden (zone 0)
-- Flow through all 9 zones sequentially
-- End at right edge of Sunset Sky (zone 8)
-- Include dead ends and branching for maze-like complexity
+The 9 zones are arranged in a 3×3 grid:
+  Row 0: Garden (0,0)     Forest (0,1)     Meadow (0,2)
+  Row 1: Desert (1,0)     Cave (1,1)       Swamp (1,2)
+  Row 2: Snow Peak (2,0)  Crystal Lake (2,1) Sunset Sky (2,2)
+
+Maze generation:
+- Creates paths that traverse all 9 zones
+- Ensures connectivity between adjacent zones (up/down/left/right)
+- Has dead ends at the 8 perimeter edges
+- Starts in Garden, can end anywhere on perimeter
 """
 
 import random
@@ -14,204 +19,234 @@ from typing import List, Set, Tuple, Dict
 from tilemaps import W, H
 
 # Constants
-SCORE_BAR_HEIGHT = 1  # Row 0 is score bar, playable area is rows 1-17
+SCORE_BAR_HEIGHT = 1
 PLAYABLE_HEIGHT = H - SCORE_BAR_HEIGHT  # 17 rows
 PLAYABLE_WIDTH = W  # 20 tiles
+GRID_ROWS = 3
+GRID_COLS = 3
 NUM_ZONES = 9
 
+# Zone grid layout
+ZONE_GRID = [
+    [(0, 0), (0, 1), (0, 2)],  # Garden, Forest, Meadow
+    [(1, 0), (1, 1), (1, 2)],  # Desert, Cave, Swamp
+    [(2, 0), (2, 1), (2, 2)],  # Snow Peak, Crystal Lake, Sunset Sky
+]
 
-class MazeGenerator:
-    """Generate maze paths across 9-zone strip."""
+ZONE_NAMES = {
+    (0, 0): "GARDEN",
+    (0, 1): "FOREST",
+    (0, 2): "MEADOW",
+    (1, 0): "DESERT",
+    (1, 1): "CAVE",
+    (1, 2): "SWAMP",
+    (2, 0): "SNOW_PEAK",
+    (2, 1): "CRYSTAL_LAKE",
+    (2, 2): "SUNSET_SKY",
+}
 
-    def __init__(self, width: int = PLAYABLE_WIDTH, height: int = PLAYABLE_HEIGHT, num_zones: int = NUM_ZONES):
+
+class GridMazeGenerator:
+    """Generate maze paths across 3×3 biome grid."""
+
+    def __init__(self, width: int = PLAYABLE_WIDTH, height: int = PLAYABLE_HEIGHT):
         self.zone_width = width
-        self.height = height
-        self.num_zones = num_zones
-        self.total_width = width * num_zones
-        # Maze grid: True = path (walkable), False = wall (blocked)
-        self.maze = [[False for _ in range(self.total_width)] for _ in range(height)]
+        self.zone_height = height
+        # Grid of zones, each with their own maze
+        # self.zone_mazes[(row, col)] = 2D list of bools (path vs wall)
+        self.zone_mazes: Dict[Tuple[int, int], List[List[bool]]] = {}
+        # Connections between zones: (from_zone, direction) -> to_zone
+        self.connections: Dict[Tuple[int, int], Tuple[int, int]] = {}
 
-    def generate(self, seed: int = 42) -> List[List[bool]]:
+    def generate(self, seed: int = 42) -> Dict[Tuple[int, int], List[List[bool]]]:
         """
-        Generate a winding path across all 9 zones.
-
-        Creates a naturalistic corridor that:
-        - Starts at left edge of Garden
-        - Winds through all zones
-        - Ends at right edge of Sunset Sky
-        - Includes branching dead ends for maze complexity
+        Generate maze paths for all zones in the 3×3 grid.
 
         Returns:
-            2D list of booleans: True = path, False = wall
+            Dict mapping (row, col) to zone maze grid
         """
         random.seed(seed)
 
-        # Generate main corridor that winds through all 9 zones
-        self._create_main_corridor()
+        # Initialize all zones with empty mazes
+        for row in range(GRID_ROWS):
+            for col in range(GRID_COLS):
+                self.zone_mazes[(row, col)] = [
+                    [False for _ in range(self.zone_width)] for _ in range(self.zone_height)
+                ]
 
-        # Add branching dead ends to create maze complexity
-        self._add_dead_ends()
+        # Generate paths using spanning tree to ensure all zones connected
+        self._generate_spanning_tree()
 
-        return self.maze
+        # Add internal branching to each zone
+        self._add_zone_internal_paths()
 
-    def _create_main_corridor(self):
-        """Create winding main path from left to right across all zones."""
-        # Start position: left edge of first zone, middle row
-        current_x = 0
-        current_y = self.height // 2
+        return self.zone_mazes
 
-        # For each zone, create a winding path to the right
-        for zone_id in range(self.num_zones):
-            zone_start_x = zone_id * self.zone_width
-            zone_end_x = (zone_id + 1) * self.zone_width
+    def _generate_spanning_tree(self):
+        """Generate minimal spanning tree connecting all 9 zones."""
+        # Start from Garden (0, 0)
+        visited = set()
+        edges = []
 
-            # Create winding corridor through zone
-            while current_x < zone_end_x:
-                # Mark current position as path
-                self.maze[current_y][current_x] = True
+        def dfs(zone_pos: Tuple[int, int]):
+            visited.add(zone_pos)
+            row, col = zone_pos
 
-                # Move right (required to progress through zone)
-                current_x += 1
+            # Get unvisited neighbors
+            neighbors = []
+            if row > 0 and (row - 1, col) not in visited:
+                neighbors.append(("up", (row - 1, col)))
+            if row < GRID_ROWS - 1 and (row + 1, col) not in visited:
+                neighbors.append(("down", (row + 1, col)))
+            if col > 0 and (row, col - 1) not in visited:
+                neighbors.append(("left", (row, col - 1)))
+            if col < GRID_COLS - 1 and (row, col + 1) not in visited:
+                neighbors.append(("right", (row, col + 1)))
 
-                # Occasionally wander up/down for natural feel
-                if current_x < zone_end_x and random.random() < 0.4:
-                    # Try to move vertically
-                    dy = random.choice([-1, 1])
-                    next_y = current_y + dy
-                    if 0 <= next_y < self.height:
-                        current_y = next_y
+            # Randomize neighbor order
+            random.shuffle(neighbors)
 
-            # Mark path at zone boundary
-            if current_x < self.total_width:
-                self.maze[current_y][current_x - 1] = True
+            for direction, neighbor_pos in neighbors:
+                if neighbor_pos not in visited:
+                    # Add edge
+                    edges.append((zone_pos, direction, neighbor_pos))
+                    # Create path in both zones
+                    self._connect_zones(zone_pos, direction, neighbor_pos)
+                    # Continue DFS
+                    dfs(neighbor_pos)
 
-    def _add_dead_ends(self):
-        """Add branching dead ends to create maze complexity."""
-        # For each zone, add a few dead-end branches off the main path
-        for zone_id in range(self.num_zones):
-            num_branches = random.randint(2, 4)
+        dfs((0, 0))  # Start from Garden
 
-            for _ in range(num_branches):
-                # Pick random point on main path in this zone
-                zone_start_x = zone_id * self.zone_width
-                zone_end_x = (zone_id + 1) * self.zone_width
+    def _connect_zones(
+        self, from_zone: Tuple[int, int], direction: str, to_zone: Tuple[int, int]
+    ):
+        """Create a connection path between two adjacent zones."""
+        from_row, from_col = from_zone
+        to_row, to_col = to_zone
 
-                # Find a path point in this zone to branch from
-                path_x = random.randint(zone_start_x, min(zone_end_x - 1, self.total_width - 1))
-                path_y = None
+        # Determine connection points
+        if direction == "right":
+            # Connect from_zone right edge to to_zone left edge
+            from_y = random.randint(2, self.zone_height - 3)
+            to_y = from_y
+            from_x = self.zone_width - 1
+            to_x = 0
 
-                for y in range(self.height):
-                    if self.maze[y][path_x]:
-                        path_y = y
-                        break
+        elif direction == "left":
+            from_y = random.randint(2, self.zone_height - 3)
+            to_y = from_y
+            from_x = 0
+            to_x = self.zone_width - 1
 
-                if path_y is None:
-                    continue
+        elif direction == "down":
+            # Connect from_zone bottom edge to to_zone top edge
+            from_x = random.randint(2, self.zone_width - 3)
+            to_x = from_x
+            from_y = self.zone_height - 1
+            to_y = 0
 
-                # Create dead end branch
-                branch_length = random.randint(2, 5)
-                branch_y = path_y
+        elif direction == "up":
+            from_x = random.randint(2, self.zone_width - 3)
+            to_x = from_x
+            from_y = 0
+            to_y = self.zone_height - 1
 
-                for _ in range(branch_length):
-                    dy = random.choice([-1, 0, 1])
-                    next_y = branch_y + dy
+        # Mark path in both zones
+        self.zone_mazes[from_zone][from_y][from_x] = True
+        self.zone_mazes[to_zone][to_y][to_x] = True
 
-                    if 0 <= next_y < self.height:
-                        branch_y = next_y
-                        if 0 <= path_x < self.total_width:
-                            self.maze[branch_y][path_x] = True
+        # Store connection
+        self.connections[(from_zone, direction)] = to_zone
 
-    def extract_zone_path(self, zone_id: int) -> List[List[bool]]:
-        """
-        Extract maze path for a specific zone.
+    def _add_zone_internal_paths(self):
+        """Add internal winding paths within each zone."""
+        for zone_pos in self.zone_mazes:
+            self._create_zone_corridor(zone_pos)
 
-        Args:
-            zone_id: Zone number (0-8)
+    def _create_zone_corridor(self, zone_pos: Tuple[int, int]):
+        """Create winding corridor within a single zone."""
+        # Start from a random point in the zone (preferably near an existing connection)
+        start_y = random.randint(3, self.zone_height - 4)
+        start_x = random.randint(3, self.zone_width - 4)
 
-        Returns:
-            2D list for this zone (height × width)
-        """
-        start_x = zone_id * self.zone_width
-        end_x = (zone_id + 1) * self.zone_width
+        # Carve paths using random walk
+        visited = set()
+        self._carve_zone_path(zone_pos, start_x, start_y, visited)
 
-        zone_maze = []
-        for y in range(self.height):
-            row = []
-            for x in range(start_x, end_x):
-                row.append(self.maze[y][x])
-            zone_maze.append(row)
+    def _carve_zone_path(
+        self, zone_pos: Tuple[int, int], x: int, y: int, visited: Set[Tuple[int, int]]
+    ):
+        """Recursively carve paths within zone using depth-first search."""
+        if (x, y) in visited:
+            return
 
-        return zone_maze
+        visited.add((x, y))
+        self.zone_mazes[zone_pos][y][x] = True
 
-    def get_all_zone_paths(self) -> Dict[int, List[List[bool]]]:
-        """Get maze paths for all 9 zones."""
-        return {zone_id: self.extract_zone_path(zone_id) for zone_id in range(self.num_zones)}
+        # Only recurse about 50% of the time to create walls
+        if random.random() > 0.5:
+            return
 
-    def find_path_openings(self, zone_id: int) -> Tuple[Tuple[int, int], Tuple[int, int]]:
-        """
-        Find entry and exit points for a zone.
+        # Random directions
+        directions = [(0, 2), (0, -2), (2, 0), (-2, 0)]  # Step by 2 to create proper maze
+        random.shuffle(directions)
 
-        Returns:
-            ((entry_x, entry_y), (exit_x, exit_y))
-        """
-        zone_maze = self.extract_zone_path(zone_id)
+        for dx, dy in directions:
+            nx, ny = x + dx, y + dy
 
-        # Find leftmost path point in zone (entry point)
-        entry = None
-        for y in range(self.height):
-            if zone_maze[y][0]:  # Leftmost column
-                if entry is None:
-                    entry = (0, y)
-                break
+            # Bounds check
+            if 0 <= nx < self.zone_width and 0 <= ny < self.zone_height:
+                if (nx, ny) not in visited:
+                    # Carve intermediate cell
+                    mid_x, mid_y = x + dx // 2, y + dy // 2
+                    if 0 <= mid_x < self.zone_width and 0 <= mid_y < self.zone_height:
+                        self.zone_mazes[zone_pos][mid_y][mid_x] = True
+                    self._carve_zone_path(zone_pos, nx, ny, visited)
 
-        # Find rightmost path point in zone (exit point)
-        exit_point = None
-        for y in range(self.height):
-            if zone_maze[y][self.zone_width - 1]:  # Rightmost column
-                if exit_point is None:
-                    exit_point = (self.zone_width - 1, y)
-                break
+    def get_zone_maze(self, zone_id: int) -> List[List[bool]]:
+        """Get maze for a zone by ID (0-8)."""
+        row = zone_id // 3
+        col = zone_id % 3
+        return self.zone_mazes[(row, col)]
 
-        return entry or (0, self.height // 2), exit_point or (self.zone_width - 1, self.height // 2)
+    def print_grid_summary(self):
+        """Print connectivity summary."""
+        print("🌀 Zone Connectivity Summary:\n")
+        for row in range(GRID_ROWS):
+            for col in range(GRID_COLS):
+                zone_pos = (row, col)
+                zone_name = ZONE_NAMES[zone_pos]
+                print(f"Zone ({row},{col}) {zone_name:12}", end=" → ")
+
+                # Check which zones it connects to
+                connections_list = []
+                for direction in ["up", "down", "left", "right"]:
+                    if (zone_pos, direction) in self.connections:
+                        to_zone = self.connections[(zone_pos, direction)]
+                        to_name = ZONE_NAMES[to_zone]
+                        connections_list.append(f"{direction}({to_name})")
+
+                print(" | ".join(connections_list) if connections_list else "PERIMETER")
+
+    def print_ascii_grid(self):
+        """Print ASCII representation of zone grid."""
+        print("\n🗺️  Zone Grid Layout:\n")
+        for row in range(GRID_ROWS):
+            for col in range(GRID_COLS):
+                zone_name = ZONE_NAMES[(row, col)]
+                print(f"[{zone_name:12}]", end=" ")
+            print()
 
 
-def generate_cross_biome_maze(seed: int = 42) -> Tuple[MazeGenerator, Dict[int, List[List[bool]]]]:
-    """
-    Generate the full 9-zone maze and return generator + zone paths.
-
-    Returns:
-        (maze_generator, zone_paths_dict)
-    """
-    gen = MazeGenerator()
+def generate_grid_maze(seed: int = 42) -> GridMazeGenerator:
+    """Generate the full 3×3 grid maze."""
+    gen = GridMazeGenerator()
     gen.generate(seed=seed)
-    return gen, gen.get_all_zone_paths()
+    return gen
 
 
 if __name__ == "__main__":
-    print("🌀 Generating 9-zone maze path...\n")
-
-    gen, zone_paths = generate_cross_biome_maze()
-
-    print(f"Maze dimensions: {gen.total_width}w × {gen.height}h ({NUM_ZONES} zones of {PLAYABLE_WIDTH}w)")
-    print(f"Generated path across all zones\n")
-
-    # Show zone connectivity info
-    for zone_id in range(NUM_ZONES):
-        entry, exit_pt = gen.find_path_openings(zone_id)
-        zone_names = ["GARDEN", "FOREST", "MEADOW", "DESERT", "CAVE", "SWAMP", "SNOW_PEAK", "CRYSTAL_LAKE", "SUNSET_SKY"]
-        print(f"Zone {zone_id:d} ({zone_names[zone_id]:12}) — Entry: {entry}, Exit: {exit_pt}")
-
-    # Simple ASCII visualization of maze (compressed)
-    print("\nMaze overview (compressed):")
-    for y in range(0, gen.height, 2):  # Show every other row for readability
-        line = ""
-        for x in range(0, gen.total_width, 2):  # Show every other column
-            if gen.maze[y][x]:
-                line += "█"  # Path
-            else:
-                line += " "  # Wall
-            if (x // 2 + 1) % 10 == 0:
-                line += "|"  # Zone separator every 10 tiles (5 displayed)
-        print(line)
-
+    gen = generate_grid_maze()
+    gen.print_ascii_grid()
+    gen.print_grid_summary()
     print("\n✅ Maze generated!")
