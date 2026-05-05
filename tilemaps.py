@@ -522,35 +522,47 @@ def crystal_lake_screen():
 
 
 def sunset_sky_screen():
-    t, a = _blank(TL_GRASS_PLAIN, 0)  # Palette 0: grass base
+    t, a = _blank(TL_GRASS_PLAIN, 0)  # Start with grass for road placement
     _score_bar(t, a, "SUNSET SKY")
     _fill_grass(t, a, 1, 18)
-    _apply_zone_roads(t, a, 8)  # Zone 8 = SUNSET (base layer)
+    _apply_zone_roads(t, a, 8)  # Zone 8 = SUNSET SKY
 
-    # Vibrant celebration flowers (pink, yellow, purple) — palettes 5, 6, 7
-    flowers = [
-        # Upper area — warm welcome
-        (2, 2, 5), (4, 2, 6), (6, 2, 7), (8, 2, 5), (10, 2, 6), (12, 2, 7), (14, 2, 5), (16, 2, 6), (18, 2, 7),
-        (3, 3, 7), (7, 3, 5), (11, 3, 6), (15, 3, 7),
-        # Mid-upper
-        (2, 5, 6), (8, 5, 7), (14, 5, 5),
-        # Near path above
-        (5, 7, 5), (10, 7, 6), (15, 7, 7),
-        # Near path below
-        (5, 11, 7), (10, 11, 5), (15, 11, 6),
-        # Mid-lower
-        (2, 14, 7), (8, 14, 6), (14, 14, 5),
-        # Lower area — home bound
-        (3, 16, 5), (7, 16, 6), (11, 16, 7), (15, 16, 5), (18, 16, 6),
+    # Apply sunset path (warm orange/pink/red tones)
+    from road_generator import RoadGenerator
+    gen = RoadGenerator()
+    gen.generate()
+    road_map = gen.get_zone_road(8)
+
+    for y in range(len(road_map)):
+        for x in range(len(road_map[0])):
+            if road_map[y][x]:
+                idx = (y + 1) * 20 + x
+                if t[idx] == TL_PATH:  # Already placed as brown dirt, replace with sunset colors
+                    _put(t, a, x, y + 1, TL_SUNSET_PATH, 7)
+
+    # Clouds floating across sky
+    clouds = [
+        (2, 2), (8, 2), (14, 2),
+        (4, 4), (10, 4), (16, 4),
+        (6, 7), (14, 8),
     ]
-    for x, y, p in flowers:
-        _put(t, a, x, y, TL_BG_FLOWER, p)
+    for cx, cy in clouds:
+        if cy < 18 and cx < 20:
+            idx = cy * 20 + cx
+            if t[idx] != TL_PATH:
+                _put(t, a, cx, cy, TL_CLOUD, 7)
 
-    # Minimal trees for framing
-    _put(t, a, 1, 4, TL_TREE_TOP, 3)
-    _put(t, a, 1, 5, TL_TREE_BOT, 3)
-    _put(t, a, 18, 13, TL_TREE_TOP, 3)
-    _put(t, a, 18, 14, TL_TREE_BOT, 3)
+    # Floating islands - scenic elements
+    islands = [
+        (2, 5), (18, 5),
+        (5, 11), (15, 11),
+        (10, 15),
+    ]
+    for ix, iy in islands:
+        if iy < 18 and ix < 20:
+            idx = iy * 20 + ix
+            if t[idx] != TL_PATH:
+                _put(t, a, ix, iy, TL_FLOATING_ISLAND, 7)
 
     _put(t, a, 18, 8, TL_ARROW, 2)
     return t, a
