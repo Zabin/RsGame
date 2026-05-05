@@ -28,23 +28,23 @@ class TestFrequency:
     def test_freq_c4_reasonable(self):
         """C4 (261.63 Hz) produces reasonable register value."""
         result = freq(261.63)
-        # Based on Game Boy formula: freq = (4194304 / (32 * hz)) - 1
-        # For C4: (4194304 / (32 * 261.63)) - 1 ≈ 500
-        assert 400 < result < 600
+        # Based on Game Boy formula: freq = 2048 - 131072/hz
+        # For C4: 2048 - 131072/261.63 ≈ 1547
+        assert 1500 < result < 1600
 
-    def test_freq_higher_pitch_lower_value(self):
-        """Higher frequencies produce lower register values."""
+    def test_freq_higher_pitch_higher_value(self):
+        """Higher frequencies produce higher register values."""
         c4 = freq(261.63)
         a4 = freq(440.0)
-        assert a4 < c4  # Higher pitch = lower register value
+        assert a4 > c4  # Higher pitch = higher register value (different formula)
 
-    def test_freq_monotonic(self):
-        """Frequency values are monotonically decreasing with Hz."""
+    def test_freq_monotonic_increasing(self):
+        """Frequency values increase monotonically with Hz."""
         c4 = freq(261.63)
         d4 = freq(293.66)
         e4 = freq(329.63)
-        # Higher Hz should give lower freq register
-        assert c4 > d4 > e4
+        # Higher Hz should give higher freq register
+        assert c4 < d4 < e4
 
 
 @pytest.mark.unit

@@ -80,15 +80,17 @@ class TestCollectibles:
     """Tests for collectible spawn tables."""
 
     def test_zone_collects_has_three_zones(self):
-        """ZONE_COLLECTS has entries for 3 zones."""
-        assert 0 in ZONE_COLLECTS
-        assert 1 in ZONE_COLLECTS
-        assert 2 in ZONE_COLLECTS
+        """ZONE_COLLECTS has entries for 3 zones (as list)."""
+        assert isinstance(ZONE_COLLECTS, list)
         assert len(ZONE_COLLECTS) == 3
+        # Each zone should have collectibles
+        for zone_collects in ZONE_COLLECTS:
+            assert isinstance(zone_collects, list)
+            assert len(zone_collects) > 0
 
     def test_collectibles_are_tuples(self):
         """Each collectible is (x, y, type) tuple."""
-        for zone, collects in ZONE_COLLECTS.items():
+        for zone_idx, collects in enumerate(ZONE_COLLECTS):
             for collect in collects:
                 assert isinstance(collect, tuple)
                 assert len(collect) == 3
@@ -99,37 +101,36 @@ class TestCollectibles:
 
     def test_collectible_positions_in_bounds(self):
         """Collectible X/Y positions are within screen bounds."""
-        for zone, collects in ZONE_COLLECTS.items():
+        for zone_idx, collects in enumerate(ZONE_COLLECTS):
             for x, y, typ in collects:
-                assert 0 <= x <= 159, f"Zone {zone}: X {x} out of bounds"
-                assert 16 <= y <= 143, f"Zone {zone}: Y {y} out of bounds (UI bar is 0-15)"
+                assert 0 <= x <= 159, f"Zone {zone_idx}: X {x} out of bounds"
+                assert 16 <= y <= 143, f"Zone {zone_idx}: Y {y} out of bounds"
 
     def test_collectible_types_valid(self):
         """Collectible types are 0 (star), 1 (flower), 2 (gift)."""
-        for zone, collects in ZONE_COLLECTS.items():
+        for zone_idx, collects in enumerate(ZONE_COLLECTS):
             for x, y, typ in collects:
-                assert typ in (0, 1, 2), f"Zone {zone}: Invalid type {typ}"
+                assert typ in (0, 1, 2), f"Zone {zone_idx}: Invalid type {typ}"
 
     def test_one_gift_per_zone(self):
         """Each zone has exactly one gift (type=2)."""
-        for zone, collects in ZONE_COLLECTS.items():
+        for zone_idx, collects in enumerate(ZONE_COLLECTS):
             gifts = [c for c in collects if c[2] == 2]
-            assert len(gifts) == 1, f"Zone {zone} has {len(gifts)} gifts, expected 1"
+            assert len(gifts) == 1, f"Zone {zone_idx} has {len(gifts)} gifts, expected 1"
 
     def test_collectibles_not_at_spawn(self):
         """Collectibles don't spawn at known player spawn positions."""
-        spawn_positions = {
-            0: (76, 72),  # Garden
-            1: (8, 72),  # Forest (left entry)
-            2: (40, 72),  # Meadow (?)
-        }
-        # Verify gifts aren't too close to spawn (10px threshold)
-        for zone, spawn_x, spawn_y in spawn_positions.items():
-            if zone in spawn_positions:
-                for x, y, typ in ZONE_COLLECTS[zone]:
-                    if typ == 2:  # Gift
-                        # At least shouldn't be exactly at spawn
-                        assert (x, y) != spawn_positions[zone]
+        spawn_positions = [
+            (76, 72),  # Garden zone 0
+            (8, 72),   # Forest zone 1 (left entry)
+            (40, 72),  # Meadow zone 2
+        ]
+        # Verify gifts aren't exactly at spawn
+        for zone_idx, collects in enumerate(ZONE_COLLECTS):
+            spawn_x, spawn_y = spawn_positions[zone_idx]
+            for x, y, typ in collects:
+                if typ == 2:  # Gift
+                    assert (x, y) != (spawn_x, spawn_y), f"Gift at spawn in zone {zone_idx}"
 
 
 @pytest.mark.unit
