@@ -61,7 +61,9 @@ TL_CRYSTAL      = 0x35   # crystal lake: faceted crystal
 TL_CRYSTAL_PATH = 0x36   # crystal lake: crystalline path
 TL_CLOUD        = 0x37   # sunset sky: cloud
 TL_FLOATING_ISLAND = 0x38 # sunset sky: floating island
-TL_SUNSET_PATH  = 0x39   # sunset sky: sunset-colored path
+TL_SUNSET_GROUND = 0x39   # sunset sky: warm horizon ground
+TL_SUNSET_TREE  = 0x3A   # sunset sky: silhouetted tree
+TL_SUNSET_PATH  = 0x3B   # sunset sky: sunset-colored path
 
 # Font: A-Z at 0x40-0x59, space=0x5A, then punctuation
 TL_FONT_A     = 0x40   # A..Z = 0x40..0x59
@@ -377,6 +379,28 @@ def floating_island(): return enc([
     [0,0,1,1,1,1,0,0],
 ])
 
+def sunset_ground(): return enc([
+    [3,3,1,1,1,1,3,3],  # warm sunset horizon ground
+    [3,1,1,2,2,1,1,3],
+    [1,1,2,2,2,2,1,1],
+    [1,2,2,1,1,2,2,1],
+    [2,2,1,1,1,1,2,2],
+    [2,1,1,2,2,1,1,2],
+    [1,1,2,2,2,2,1,1],
+    [1,1,1,1,1,1,1,1],
+])
+
+def sunset_tree(): return enc([
+    [0,0,0,3,3,0,0,0],  # sunset-silhouetted tree
+    [0,0,3,2,2,3,0,0],
+    [0,3,2,2,2,2,3,0],
+    [0,3,2,1,1,2,3,0],
+    [3,2,2,1,1,2,2,3],
+    [3,2,1,1,1,1,2,3],
+    [2,2,1,1,1,1,2,2],
+    [1,1,1,1,1,1,1,1],
+])
+
 def sunset_path(): return enc([
     [0,0,0,0,0,0,0,0],  # sunset-colored path
     [0,1,1,1,1,1,1,0],
@@ -498,6 +522,8 @@ def build_tile_data():
     put(TL_CRYSTAL_PATH, crystal_path())
     put(TL_CLOUD,        cloud())
     put(TL_FLOATING_ISLAND, floating_island())
+    put(TL_SUNSET_GROUND, sunset_ground())
+    put(TL_SUNSET_TREE,  sunset_tree())
     put(TL_SUNSET_PATH,  sunset_path())
     for n in range(10):
         put(TL_DIGIT_0 + n, digit_tile(n))

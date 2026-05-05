@@ -522,10 +522,16 @@ def crystal_lake_screen():
 
 
 def sunset_sky_screen():
-    t, a = _blank(TL_GRASS_PLAIN, 0)  # Start with grass for road placement
+    t, a = _blank(TL_SUNSET_GROUND, 7)  # Sunset horizon ground with palette 7
     _score_bar(t, a, "SUNSET SKY")
-    _fill_grass(t, a, 1, 18)
-    _apply_zone_roads(t, a, 8)  # Zone 8 = SUNSET SKY
+
+    # Fill sunset ground throughout
+    for y in range(1, 18):
+        for x in range(20):
+            tile_idx = y * 20 + x
+            if t[tile_idx] == TL_SUNSET_GROUND:
+                t[tile_idx] = TL_SUNSET_GROUND
+                a[tile_idx] = 7
 
     # Apply sunset path (warm orange/pink/red tones)
     from road_generator import RoadGenerator
@@ -536,32 +542,44 @@ def sunset_sky_screen():
     for y in range(len(road_map)):
         for x in range(len(road_map[0])):
             if road_map[y][x]:
-                idx = (y + 1) * 20 + x
-                if t[idx] == TL_PATH:  # Already placed as brown dirt, replace with sunset colors
-                    _put(t, a, x, y + 1, TL_SUNSET_PATH, 7)
+                _put(t, a, x, y + 1, TL_SUNSET_PATH, 7)
+
+    # Silhouetted trees frame the scene
+    trees = [
+        (2, 2), (3, 2),
+        (17, 2), (18, 2),
+        (1, 14), (2, 14),
+        (18, 14), (19, 14),
+    ]
+    for tx, ty in trees:
+        if ty < 18 and tx < 20:
+            idx = ty * 20 + tx
+            if t[idx] != TL_SUNSET_PATH:
+                _put(t, a, tx, ty, TL_SUNSET_TREE, 7)
 
     # Clouds floating across sky
     clouds = [
-        (2, 2), (8, 2), (14, 2),
-        (4, 4), (10, 4), (16, 4),
-        (6, 7), (14, 8),
+        (4, 3), (10, 3), (16, 3),
+        (2, 6), (12, 6),
+        (6, 10), (14, 10),
+        (3, 14), (15, 14),
     ]
     for cx, cy in clouds:
         if cy < 18 and cx < 20:
             idx = cy * 20 + cx
-            if t[idx] != TL_PATH:
+            if t[idx] != TL_SUNSET_PATH:
                 _put(t, a, cx, cy, TL_CLOUD, 7)
 
-    # Floating islands - scenic elements
+    # Floating islands - scenic landmarks
     islands = [
-        (2, 5), (18, 5),
-        (5, 11), (15, 11),
-        (10, 15),
+        (10, 4),
+        (4, 8), (16, 8),
+        (10, 12),
     ]
     for ix, iy in islands:
         if iy < 18 and ix < 20:
             idx = iy * 20 + ix
-            if t[idx] != TL_PATH:
+            if t[idx] != TL_SUNSET_PATH:
                 _put(t, a, ix, iy, TL_FLOATING_ISLAND, 7)
 
     _put(t, a, 18, 8, TL_ARROW, 2)

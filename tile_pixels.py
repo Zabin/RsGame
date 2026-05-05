@@ -418,6 +418,28 @@ FLOATING_ISLAND = [
     [0,0,1,1,1,1,0,0],
 ]
 
+SUNSET_GROUND = [
+    [3,3,1,1,1,1,3,3],  # warm sunset ground
+    [3,1,1,2,2,1,1,3],
+    [1,1,2,2,2,2,1,1],
+    [1,2,2,1,1,2,2,1],
+    [2,2,1,1,1,1,2,2],
+    [2,1,1,2,2,1,1,2],
+    [1,1,2,2,2,2,1,1],
+    [1,1,1,1,1,1,1,1],
+]
+
+SUNSET_TREE = [
+    [0,0,0,3,3,0,0,0],  # silhouetted tree
+    [0,0,3,2,2,3,0,0],
+    [0,3,2,2,2,2,3,0],
+    [0,3,2,1,1,2,3,0],
+    [3,2,2,1,1,2,2,3],
+    [3,2,1,1,1,1,2,3],
+    [2,2,1,1,1,1,2,2],
+    [1,1,1,1,1,1,1,1],
+]
+
 SUNSET_PATH = [
     [0,0,0,0,0,0,0,0],  # sunset path
     [0,1,1,1,1,1,1,0],
@@ -503,7 +525,9 @@ def _build_tile_map():
     TILE_PIXELS[getattr(tiles_module, 'TL_CRYSTAL_PATH', 0x36)] = CRYSTAL_PATH
     TILE_PIXELS[getattr(tiles_module, 'TL_CLOUD', 0x37)] = CLOUD
     TILE_PIXELS[getattr(tiles_module, 'TL_FLOATING_ISLAND', 0x38)] = FLOATING_ISLAND
-    TILE_PIXELS[getattr(tiles_module, 'TL_SUNSET_PATH', 0x39)] = SUNSET_PATH
+    TILE_PIXELS[getattr(tiles_module, 'TL_SUNSET_GROUND', 0x39)] = SUNSET_GROUND
+    TILE_PIXELS[getattr(tiles_module, 'TL_SUNSET_TREE', 0x3A)] = SUNSET_TREE
+    TILE_PIXELS[getattr(tiles_module, 'TL_SUNSET_PATH', 0x3B)] = SUNSET_PATH
 
     # Digits
     digit_start = getattr(tiles_module, 'TL_DIGIT_0', 0x23)
