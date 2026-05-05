@@ -7,6 +7,35 @@ from tiles import *
 
 W, H = 32, 18   # BG map dimensions in tiles
 
+# ── Cross-Biome Flow Reference ────────────────────────────────────────────
+# Master design blueprint: 9 zones in journey order.
+# Rules: path at row 9 in ALL zones, accent colors 5/6/7 (pink/yellow/purple)
+# appear in every zone. Walls/objects guide path. Minimal transitions.
+CROSS_BIOME_FLOW = {
+    "journey": "Garden→Forest→Meadow→Desert→Cave→Swamp→SnowPeak→CrystalLake→SunsetSky",
+    "path_row": 9,                  # constant across ALL zones
+    "accent_palettes": [5, 6, 7],   # pink/yellow/purple shared accent in every zone
+    "zones": [
+        {"id": 0, "name": "GARDEN",      "palette_family": [0,5,6,7], "theme": "welcoming home - flowers, grass, gentle rocks"},
+        {"id": 1, "name": "FOREST",      "palette_family": [0,3,5,7], "theme": "wild woodland - tree corridors, mushrooms, shade"},
+        {"id": 2, "name": "MEADOW",      "palette_family": [0,5,6,7], "theme": "open field - wide sky, scattered flowers, rocks"},
+        {"id": 3, "name": "DESERT",      "palette_family": [1,4,6],   "theme": "arid waste - sand, rock walls, sparse plants"},
+        {"id": 4, "name": "CAVE",        "palette_family": [4,7],     "theme": "underground - stone corridors, mineral accents"},
+        {"id": 5, "name": "SWAMP",       "palette_family": [0,3,5],   "theme": "murky wetland - dense flora, mushroom walls"},
+        {"id": 6, "name": "SNOW_PEAK",   "palette_family": [0,4,7],   "theme": "icy summit - white, crystal formations, sparse"},
+        {"id": 7, "name": "CRYSTAL_LAKE","palette_family": [0,6,7],   "theme": "ethereal water - light, reflective, peaceful"},
+        {"id": 8, "name": "SUNSET_SKY",  "palette_family": [5,6,7],   "theme": "warm return - golden light, home on horizon"},
+    ],
+    "design_rules": {
+        "walls": "Cluster rocks/trees to create corridors guiding player along path row",
+        "accents": "Pink(5) yellow(6) purple(7) flowers appear in EVERY zone as connecting thread",
+        "breathing_room": "25-30% plain grass - avoid cluttering every tile",
+        "clustering": "Group same tiles together - NOT scattered randomly",
+        "transitions": "Minimal - hard zone boundary, no gradual blending",
+        "landmarks": "1-3 distinct visual anchors per zone (tree group, rock cluster, flower bed)",
+    },
+}
+
 def _blank(t=TL_BG_BLANK, p=2):
     return bytearray([t] * (W * H)), bytearray([p] * (W * H))
 
@@ -54,16 +83,50 @@ def garden_screen():
     _score_bar(t, a, "GARDEN")
     _fill_grass(t, a, 1, 18)
     _horizontal_path(t, a, row=9)
-    deco = [
-        (3,  3,  TL_BG_FLOWER,  5), (6,  5,  TL_BG_FLOWER,  6),
-        (10, 4,  TL_BG_FLOWER,  7), (15, 3,  TL_BG_FLOWER,  5),
-        (4,  14, TL_ROCK_SMALL, 4), (12, 13, TL_BG_FLOWER,  6),
-        (16, 15, TL_BG_FLOWER,  7), (7,  14, TL_BG_FLOWER,  5),
-        (2,  5,  TL_ROCK,       4), (17, 13, TL_ROCK_SMALL, 4),
-        (13, 15, TL_BG_FLOWER,  6),
+
+    # Tree landmarks (top, bot pairs)
+    for tx, ty in [(3, 2), (15, 3), (25, 13)]:
+        _put(t, a, tx,   ty,   TL_TREE_TOP, 3)
+        _put(t, a, tx,   ty+1, TL_TREE_BOT, 3)
+
+    # Rock walls — clusters flanking path to guide player
+    for rx, ry in [
+        (1, 7), (2, 7), (2, 8),               # left wall above path entrance
+        (1, 11),(2, 11),(2, 12),               # left wall below path exit
+        (19, 7),(20, 7),(20, 8),               # mid wall above path
+        (27, 11),(28, 11),(28, 12),            # right wall below path
+        (10, 5),(11, 5),                        # upper cluster
+        (21, 13),(22, 13),                      # lower cluster
+    ]:
+        _put(t, a, rx, ry, TL_ROCK, 4)
+
+    for rx, ry in [(5,8),(13,8),(24,8),(7,11),(17,11),(29,7)]:
+        _put(t, a, rx, ry, TL_ROCK_SMALL, 4)
+
+    # Flower beds — pink(5) yellow(6) purple(7) in every zone
+    flowers = [
+        # Upper-left bed (pink cluster)
+        (5,2,5),(6,2,5),(5,3,5),(6,3,6),
+        # Upper-center (yellow+purple mix)
+        (12,2,6),(13,2,7),(12,3,6),
+        # Upper-right (purple cluster)
+        (22,2,7),(23,2,7),(22,3,6),
+        # Near path above — guidance accents
+        (7,6,5),(8,6,6),(16,6,7),(17,6,5),(26,6,6),
+        # Near path below — mirrored accents
+        (6,12,6),(7,12,7),(15,12,5),(16,12,6),(27,12,5),
+        # Lower-left bed
+        (4,14,5),(5,14,6),(4,15,7),
+        # Lower-center
+        (13,15,6),(14,15,5),(13,16,7),
+        # Lower-right bed
+        (23,15,7),(24,15,5),(23,16,6),
+        # Scattered singles for texture
+        (9,4,7),(19,5,6),(29,3,5),(10,16,5),(20,17,7),(30,14,6),
     ]
-    for x, y, tt, p in deco:
-        _put(t, a, x, y, tt, p)
+    for x, y, p in flowers:
+        _put(t, a, x, y, TL_BG_FLOWER, p)
+
     _put(t, a, 18, 8, TL_ARROW, 2)   # zone-exit hint
     return t, a
 
