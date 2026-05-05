@@ -193,11 +193,11 @@ def forest_screen():
             _put(t, a, x, 15, TL_TREE_TOP, 3)
             _put(t, a, x, 16, TL_TREE_BOT, 3)
     deco = [
-        (2,  5,  TL_MUSHROOM,  5), (5,  4,  TL_MUSHROOM,  5),
-        (8,  6,  TL_MUSHROOM,  5), (11, 5,  TL_MUSHROOM,  5),
-        (3,  13, TL_MUSHROOM,  5), (7,  13, TL_BG_FLOWER, 6),
-        (10, 14, TL_MUSHROOM,  5), (4,  14, TL_BG_FLOWER, 7),
-        (14, 4,  TL_BG_FLOWER, 5), (16, 12, TL_MUSHROOM,  5),
+        (2,  5,  TL_MUSHROOM, 3), (5,  4,  TL_MUSHROOM, 3),
+        (8,  6,  TL_MUSHROOM, 3), (11, 5,  TL_MUSHROOM, 3),
+        (3,  13, TL_MUSHROOM, 3), (7,  13, TL_BG_FLOWER, 5),
+        (10, 14, TL_MUSHROOM, 3), (4,  14, TL_BG_FLOWER, 7),
+        (14, 4,  TL_BG_FLOWER, 5), (16, 12, TL_MUSHROOM, 3),
     ]
     for x, y, tt, p in deco:
         _put(t, a, x, y, tt, p)
