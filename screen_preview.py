@@ -32,7 +32,7 @@ def render_screen(screen_name: str, upscale: int = 2) -> Optional[Image.Image]:
 
     Args:
         screen_name: Screen name (e.g., 'garden', 'forest')
-        upscale: Pixel scaling factor (2 = 512x576)
+        upscale: Pixel scaling factor (2 = 320x288)
 
     Returns:
         PIL Image or None if screen not found
@@ -47,13 +47,14 @@ def render_screen(screen_name: str, upscale: int = 2) -> Optional[Image.Image]:
         print(f"ERROR rendering {screen_name}: {e}")
         return None
 
-    if not tiles or not attrs or len(tiles) != 576 or len(attrs) != 576:
+    expected_size = 20 * 18  # 360 bytes (20 wide x 18 tall)
+    if not tiles or not attrs or len(tiles) != expected_size or len(attrs) != expected_size:
         return None
 
-    # Screen is 32x18 tiles, 8x8 pixels each
-    # Base size: 256x144 pixels
-    # Upscaled: 512x288 pixels
-    base_width, base_height = 256, 288
+    # Screen is 20x18 tiles, 8x8 pixels each
+    # Base size: 160x144 pixels (standard GBC screen)
+    # Upscaled: 320x288 pixels (2x)
+    base_width, base_height = 160, 144
     tile_size = 8
 
     # Create base image
@@ -61,8 +62,8 @@ def render_screen(screen_name: str, upscale: int = 2) -> Optional[Image.Image]:
 
     # Render each tile
     for y in range(18):
-        for x in range(32):
-            idx = y * 32 + x
+        for x in range(20):
+            idx = y * 20 + x
             tile_id = tiles[idx]
             pal_id = attrs[idx]
 
