@@ -98,83 +98,132 @@ def _apply_zone_roads(tiles, attrs, zone_id):
 
 # ── Zone screens ──────────────────────────────────────────────────────────
 def garden_screen():
+    """Starting garden: Vibrant, welcoming Pokémon-style garden with fountains and flower beds."""
     t, a = _blank(TL_GRASS_PLAIN, 0)
     _score_bar(t, a, "GARDEN")
     _fill_grass(t, a, 1, 18)
     _apply_zone_roads(t, a, 0)  # Zone 0 = Garden (base layer)
 
-    # Tree landmarks anchoring upper and lower zones
-    # Upper trees — frame the upper area
-    _put(t, a, 2,  2,  TL_TREE_TOP, 3)
-    _put(t, a, 2,  3,  TL_TREE_BOT, 3)
-    _put(t, a, 17, 2,  TL_TREE_TOP, 3)
-    _put(t, a, 17, 3,  TL_TREE_BOT, 3)
-    # Lower tree — anchor lower area
-    _put(t, a, 10, 15, TL_TREE_TOP, 3)
-    _put(t, a, 10, 16, TL_TREE_BOT, 3)
+    # ── EDGE BORDERS: Rock frame around perimeter ────────────────────────────────────
+    # Top border (row 1-2)
+    for x in range(W):
+        _put(t, a, x, 1, TL_ROCK, 4)
 
-    # Rock wall anchors — frame the path from above and below, create visual "gateway"
-    # Left side: upper and lower anchors
-    _put(t, a, 0, 7,  TL_ROCK, 4)
-    _put(t, a, 0, 8,  TL_ROCK, 4)
-    _put(t, a, 0, 11, TL_ROCK, 4)
-    _put(t, a, 0, 12, TL_ROCK, 4)
-    # Right side: upper and lower anchors
-    _put(t, a, 19, 7,  TL_ROCK, 4)
-    _put(t, a, 19, 8,  TL_ROCK, 4)
-    _put(t, a, 19, 11, TL_ROCK, 4)
-    _put(t, a, 19, 12, TL_ROCK, 4)
+    # Bottom border (row 16-17)
+    for x in range(W):
+        _put(t, a, x, 16, TL_ROCK, 4)
 
-    # Small rock clusters connecting upper area to path
-    # Left side flow down to path
-    _put(t, a, 3, 5,  TL_ROCK_SMALL, 4)
-    _put(t, a, 3, 6,  TL_ROCK_SMALL, 4)
-    _put(t, a, 3, 7,  TL_ROCK, 4)
-    # Right side flow down to path
-    _put(t, a, 16, 5,  TL_ROCK_SMALL, 4)
-    _put(t, a, 16, 6,  TL_ROCK_SMALL, 4)
-    _put(t, a, 16, 7,  TL_ROCK, 4)
+    # Left border (col 0)
+    for y in range(3, 16):
+        _put(t, a, 0, y, TL_ROCK, 4)
 
-    # Small rock clusters connecting path to lower area
-    # Left side flow from path
-    _put(t, a, 3, 12, TL_ROCK, 4)
-    _put(t, a, 3, 13, TL_ROCK_SMALL, 4)
-    # Right side flow from path
-    _put(t, a, 16, 12, TL_ROCK, 4)
-    _put(t, a, 16, 13, TL_ROCK_SMALL, 4)
+    # Right border (col 19)
+    for y in range(3, 16):
+        _put(t, a, 19, y, TL_ROCK, 4)
 
-    # Flower beds — create vertical pathways of pink/yellow/purple through the zone
-    flowers = [
-        # Upper-left corner cluster (above path)
-        (4,2,5),(5,2,5),(4,3,6),(5,3,6),
-        # Upper-right corner cluster (above path)
-        (14,2,7),(15,2,7),(14,3,6),(15,3,5),
-        # Upper-center accent (rows 4-5, above path)
-        (8,4,5),(9,4,6),(10,4,7),(9,5,5),
+    # ── GRASS TEXTURE: Structured patterns for visual flow ─────────────────────────
+    # Upper garden zone (rows 3-5): Clover/tuft pattern flowing from left
+    for x in range(1, 8):
+        if x % 2 == 0:
+            _put(t, a, x, 3, TL_GRASS_CLOVER, 0)
+        if (x + 1) % 3 == 0:
+            _put(t, a, x, 4, TL_GRASS_TUFT, 0)
 
-        # Path frame flowers — directly adjacent to path (rows 6-7 above, rows 11-12 below)
-        # Left side above path
-        (5,6,5),(6,7,6),(7,7,5),
-        # Right side above path
-        (12,6,7),(13,6,5),(13,7,6),
-        # Center above path
-        (10,6,6),(10,7,7),
+    # Upper garden zone: Pattern from right side
+    for x in range(12, 19):
+        if x % 2 == 1:
+            _put(t, a, x, 3, TL_GRASS_CLOVER, 0)
+        if (x + 1) % 3 == 1:
+            _put(t, a, x, 4, TL_GRASS_TUFT, 0)
 
-        # Left side below path
-        (5,12,6),(6,11,5),(7,11,6),
-        # Right side below path
-        (12,12,5),(13,12,6),(13,11,7),
-        # Center below path
-        (10,11,7),(10,12,5),
+    # Lower garden zone (rows 12-14): Clover arcs
+    for x in range(1, 8):
+        if (x + 2) % 3 == 0:
+            _put(t, a, x, 12, TL_GRASS_CLOVER, 0)
+            _put(t, a, x, 13, TL_GRASS_TUFT, 0)
 
-        # Lower-left corner cluster (below path)
-        (2,14,5),(3,14,6),(4,14,5),(2,15,7),
-        # Lower-right corner cluster (below path)
-        (15,14,7),(16,14,6),(17,14,5),(16,15,7),
-        # Lower-center cluster (below path)
-        (8,16,6),(9,16,5),(10,15,7),(11,16,6),
+    for x in range(12, 19):
+        if (x + 2) % 3 == 0:
+            _put(t, a, x, 12, TL_GRASS_CLOVER, 0)
+            _put(t, a, x, 13, TL_GRASS_TUFT, 0)
+
+    # ── VISUAL ANCHORS: Tree landmarks ────────────────────────────────────────────
+    # Upper-left tree (framing upper garden)
+    _put(t, a, 2, 3, TL_TREE_TOP, 3)
+    _put(t, a, 2, 4, TL_TREE_BOT, 3)
+
+    # Upper-right tree (framing upper garden)
+    _put(t, a, 17, 3, TL_TREE_TOP, 3)
+    _put(t, a, 17, 4, TL_TREE_BOT, 3)
+
+    # ── CENTRAL FLOWER GARDENS: Color-accented clusters ─────────────────────────────
+    # Upper-left garden cluster
+    upper_left_flowers = [
+        (4, 2, 5), (5, 2, 5), (6, 2, 6),      # Pink and yellow top row
+        (4, 3, 6), (5, 3, 7), (6, 3, 5),      # Mixed palette middle
     ]
-    for x, y, p in flowers:
+
+    # Upper-right garden cluster
+    upper_right_flowers = [
+        (13, 2, 7), (14, 2, 6), (15, 2, 5),   # Purple, yellow, pink
+        (13, 3, 5), (14, 3, 7), (15, 3, 6),   # Pink, purple, yellow
+    ]
+
+    # Upper-center garden cluster
+    upper_center_flowers = [
+        (8, 2, 6), (9, 2, 5), (10, 2, 7),     # Yellow, pink, purple
+        (8, 3, 5), (9, 3, 6), (10, 3, 5),     # Pink, yellow, pink
+    ]
+
+    # Lower-left garden cluster (below path)
+    lower_left_flowers = [
+        (3, 14, 5), (4, 14, 6), (5, 14, 7),   # Pink, yellow, purple
+        (3, 15, 7), (4, 15, 5), (5, 15, 6),   # Purple, pink, yellow
+    ]
+
+    # Lower-right garden cluster (below path)
+    lower_right_flowers = [
+        (14, 14, 7), (15, 14, 5), (16, 14, 6), # Purple, pink, yellow
+        (14, 15, 6), (15, 15, 7), (16, 15, 5), # Yellow, purple, pink
+    ]
+
+    # Lower-center garden cluster (below path)
+    lower_center_flowers = [
+        (8, 15, 6), (9, 15, 5), (10, 15, 7),  # Yellow, pink, purple
+        (8, 16, 5), (9, 16, 7), (10, 16, 6),  # Pink, purple, yellow
+    ]
+
+    # Apply all flower clusters
+    all_flowers = (upper_left_flowers + upper_right_flowers + upper_center_flowers +
+                   lower_left_flowers + lower_right_flowers + lower_center_flowers)
+
+    for x, y, p in all_flowers:
+        _put(t, a, x, y, TL_BG_FLOWER, p)
+
+    # ── FOUNTAIN FEATURE: Bottom left quadrant ────────────────────────────────────
+    # Fountain center (using rock as base - decorative accent)
+    _put(t, a, 2, 14, TL_ROCK, 4)
+    _put(t, a, 2, 13, TL_ROCK_SMALL, 4)
+    _put(t, a, 1, 14, TL_ROCK_SMALL, 4)
+    _put(t, a, 3, 13, TL_ROCK_SMALL, 4)
+    # Flowers around fountain for welcoming feel
+    _put(t, a, 1, 12, TL_BG_FLOWER, 5)  # Pink
+    _put(t, a, 3, 12, TL_BG_FLOWER, 6)  # Yellow
+
+    # ── PATH FRAMING: Accent flowers directly adjacent to main path ────────────────
+    # Just above path (row 8)
+    path_frame_upper = [
+        (5, 8, 5), (7, 8, 6), (9, 8, 5),
+        (11, 8, 7), (13, 8, 5), (15, 8, 6),
+    ]
+
+    # Just below path (row 11)
+    path_frame_lower = [
+        (5, 11, 6), (7, 11, 7), (9, 11, 5),
+        (11, 11, 6), (13, 11, 7), (15, 11, 5),
+    ]
+
+    for x, y, p in path_frame_upper + path_frame_lower:
         _put(t, a, x, y, TL_BG_FLOWER, p)
 
     _put(t, a, 18, 8, TL_ARROW, 2)   # zone-exit hint
