@@ -1,0 +1,134 @@
+[build-system]
+requires = ["setuptools>=65", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rsgame"
+version = "2.1.0"
+description = "Bunny Garden Adventure - A playable Game Boy Color game built in Python"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Claude AI Code Generation"}
+]
+keywords = ["gameboy", "gbc", "rom", "emulation", "game"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Topic :: Games/Entertainment",
+    "Topic :: Software Development :: Compilers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "black>=23.0",
+    "pylint>=2.17",
+    "isort>=5.12",
+    "pre-commit>=3.0",
+]
+emulation = [
+    "pyboy>=1.10",
+]
+
+[project.urls]
+Homepage = "https://github.com/zabin/RsGame"
+Documentation = "https://github.com/zabin/RsGame/blob/main/DEVELOPMENT.md"
+Repository = "https://github.com/zabin/RsGame.git"
+"Issue Tracker" = "https://github.com/zabin/RsGame/issues"
+
+[tool.black]
+line-length = 100
+target-version = ["py310", "py311", "py312"]
+extend-exclude = '''
+/(
+  # Directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  | __pycache__
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 100
+skip_gitignore = true
+known_first_party = ["gbc_lib", "tiles", "tilemaps", "music", "asm_game", "build_rom"]
+
+[tool.pylint.messages_control]
+disable = [
+    "C0114",  # missing-module-docstring
+    "C0115",  # missing-class-docstring
+    "C0116",  # missing-function-docstring
+    "C0103",  # invalid-name (for single-letter variables like 'a', 'b', 'x', 'y')
+    "W0212",  # protected-access (for test fixtures)
+    "R0903",  # too-few-public-methods
+    "R0913",  # too-many-arguments
+]
+
+[tool.pylint.format]
+max-line-length = 100
+
+[tool.pylint.design]
+max-locals = 20
+max-attributes = 10
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "test_rom.py"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "-v",
+    "--tb=short",
+    "--strict-markers",
+]
+markers = [
+    "unit: Unit tests (no emulator required)",
+    "integration: Integration tests (requires emulator/PyBoy)",
+    "slow: Slow tests (full ROM build or emulation)",
+    "emulation: PyBoy emulation tests",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]
+
+[tool.coverage.run]
+source = ["."]
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "setup.py",
+    "__pycache__/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
+precision = 2
+show_missing = true
+
+[tool.coverage.html]
+directory = "htmlcov"
