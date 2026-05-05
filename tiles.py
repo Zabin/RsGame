@@ -67,6 +67,9 @@ TL_SUNSET_PATH  = 0x3B   # sunset sky: sunset-colored path
 TL_MEADOW_GRASS = 0x3C   # meadow: open grassland
 TL_MEADOW_BLOOM = 0x3D   # meadow: wildflower bloom
 TL_MEADOW_PATH  = 0x3E   # meadow: grass path through meadow
+TL_FOREST_FLOOR = 0x3F   # forest: dark forest floor
+TL_FOREST_DENSE = 0x40   # forest: dense canopy
+TL_FOREST_PATH  = 0x41   # forest: woodland path
 
 # Font: A-Z at 0x40-0x59, space=0x5A, then punctuation
 TL_FONT_A     = 0x40   # A..Z = 0x40..0x59
@@ -449,6 +452,40 @@ def meadow_path(): return enc([
     [0,0,0,0,0,0,0,0],
 ])
 
+# Forest (palette 9: white/dark-green/mid-green/dark-brown - dense woodland)
+def forest_floor(): return enc([
+    [3,3,1,1,1,1,3,3],  # dark forest floor
+    [3,1,1,2,2,1,1,3],
+    [1,1,2,2,2,2,1,1],
+    [1,2,2,1,1,2,2,1],
+    [2,2,1,1,1,1,2,2],
+    [2,1,1,2,2,1,1,2],
+    [1,1,2,2,2,2,1,1],
+    [1,1,1,1,1,1,1,1],
+])
+
+def forest_dense(): return enc([
+    [2,2,1,3,3,1,2,2],  # dense canopy overhead
+    [2,1,1,3,3,1,1,2],
+    [1,1,3,3,3,3,1,1],
+    [1,3,3,2,2,3,3,1],
+    [3,3,2,2,2,2,3,3],
+    [3,2,2,3,3,2,2,3],
+    [2,2,3,3,3,3,2,2],
+    [2,1,1,1,1,1,1,2],
+])
+
+def forest_path(): return enc([
+    [0,0,0,0,0,0,0,0],  # woodland path
+    [0,1,1,1,1,1,1,0],
+    [0,1,0,2,2,0,1,0],
+    [0,1,2,3,3,2,1,0],
+    [0,1,2,3,3,2,1,0],
+    [0,1,0,2,2,0,1,0],
+    [0,1,1,1,1,1,1,0],
+    [0,0,0,0,0,0,0,0],
+])
+
 # Digits
 _DIG = [
     [[0,1,1,1,1,0,0,0],[1,2,2,2,2,1,0,0],[1,2,1,1,2,1,0,0],[1,2,1,1,2,1,0,0],
@@ -565,6 +602,9 @@ def build_tile_data():
     put(TL_MEADOW_GRASS, meadow_grass())
     put(TL_MEADOW_BLOOM, meadow_bloom())
     put(TL_MEADOW_PATH,  meadow_path())
+    put(TL_FOREST_FLOOR, forest_floor())
+    put(TL_FOREST_DENSE, forest_dense())
+    put(TL_FOREST_PATH,  forest_path())
     for n in range(10):
         put(TL_DIGIT_0 + n, digit_tile(n))
     for c, pix in _FONT.items():

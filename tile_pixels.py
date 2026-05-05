@@ -485,6 +485,40 @@ MEADOW_PATH = [
     [0,0,0,0,0,0,0,0],
 ]
 
+# Forest Biome Tiles
+FOREST_FLOOR = [
+    [3,3,1,1,1,1,3,3],  # dark forest floor
+    [3,1,1,2,2,1,1,3],
+    [1,1,2,2,2,2,1,1],
+    [1,2,2,1,1,2,2,1],
+    [2,2,1,1,1,1,2,2],
+    [2,1,1,2,2,1,1,2],
+    [1,1,2,2,2,2,1,1],
+    [1,1,1,1,1,1,1,1],
+]
+
+FOREST_DENSE = [
+    [2,2,1,3,3,1,2,2],  # dense canopy
+    [2,1,1,3,3,1,1,2],
+    [1,1,3,3,3,3,1,1],
+    [1,3,3,2,2,3,3,1],
+    [3,3,2,2,2,2,3,3],
+    [3,2,2,3,3,2,2,3],
+    [2,2,3,3,3,3,2,2],
+    [2,1,1,1,1,1,1,2],
+]
+
+FOREST_PATH = [
+    [0,0,0,0,0,0,0,0],  # woodland path
+    [0,1,1,1,1,1,1,0],
+    [0,1,0,2,2,0,1,0],
+    [0,1,2,3,3,2,1,0],
+    [0,1,2,3,3,2,1,0],
+    [0,1,0,2,2,0,1,0],
+    [0,1,1,1,1,1,1,0],
+    [0,0,0,0,0,0,0,0],
+]
+
 # Digits
 def digit_pixels(n: int):
     """Return 8x8 pixel array for digit 0-9"""
@@ -565,6 +599,9 @@ def _build_tile_map():
     TILE_PIXELS[getattr(tiles_module, 'TL_MEADOW_GRASS', 0x3C)] = MEADOW_GRASS
     TILE_PIXELS[getattr(tiles_module, 'TL_MEADOW_BLOOM', 0x3D)] = MEADOW_BLOOM
     TILE_PIXELS[getattr(tiles_module, 'TL_MEADOW_PATH', 0x3E)] = MEADOW_PATH
+    TILE_PIXELS[getattr(tiles_module, 'TL_FOREST_FLOOR', 0x3F)] = FOREST_FLOOR
+    TILE_PIXELS[getattr(tiles_module, 'TL_FOREST_DENSE', 0x40)] = FOREST_DENSE
+    TILE_PIXELS[getattr(tiles_module, 'TL_FOREST_PATH', 0x41)] = FOREST_PATH
 
     # Digits
     digit_start = getattr(tiles_module, 'TL_DIGIT_0', 0x23)

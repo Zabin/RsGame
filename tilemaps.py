@@ -239,26 +239,55 @@ def garden_screen():
     return t, a
 
 def forest_screen():
-    t, a = _blank(TL_GRASS_PLAIN, 0)
+    t, a = _blank(TL_FOREST_FLOOR, 9)  # Forest dark floor with palette 9
     _score_bar(t, a, "FOREST")
-    _fill_grass(t, a, 1, 18)
-    _apply_zone_roads(t, a, 1)  # Zone 1 = FOREST (base layer)
-    # Tree walls at top and bottom edges (every 3 columns)
-    for x in range(W):
-        if (x + 1) % 3 == 0:
-            _put(t, a, x, 1,  TL_TREE_TOP, 3)
-            _put(t, a, x, 2,  TL_TREE_BOT, 3)
-            _put(t, a, x, 15, TL_TREE_TOP, 3)
-            _put(t, a, x, 16, TL_TREE_BOT, 3)
-    deco = [
-        (2,  5,  TL_MUSHROOM, 3), (5,  4,  TL_MUSHROOM, 3),
-        (8,  6,  TL_MUSHROOM, 3), (11, 5,  TL_MUSHROOM, 3),
-        (3,  13, TL_MUSHROOM, 3), (7,  13, TL_BG_FLOWER, 5),
-        (10, 14, TL_MUSHROOM, 3), (4,  14, TL_BG_FLOWER, 7),
-        (14, 4,  TL_BG_FLOWER, 5), (16, 12, TL_MUSHROOM, 3),
+
+    # Fill forest floor throughout
+    for y in range(1, 18):
+        for x in range(20):
+            tile_idx = y * 20 + x
+            if t[tile_idx] == TL_FOREST_FLOOR:
+                t[tile_idx] = TL_FOREST_FLOOR
+                a[tile_idx] = 9
+
+    # Apply forest path (dark woodland path through center)
+    from road_generator import RoadGenerator
+    gen = RoadGenerator()
+    gen.generate()
+    road_map = gen.get_zone_road(1)  # Zone 1 = FOREST
+
+    for y in range(len(road_map)):
+        for x in range(len(road_map[0])):
+            if road_map[y][x]:
+                _put(t, a, x, y + 1, TL_FOREST_PATH, 9)
+
+    # Dense canopy patches - creates shadowed forest feel
+    canopy = [
+        (2, 2), (4, 2), (6, 2), (8, 2), (10, 2), (12, 2), (14, 2), (16, 2), (18, 2),
+        (1, 4), (5, 4), (9, 4), (13, 4), (17, 4),
+        (3, 7), (7, 7), (11, 7), (15, 7),
+        (2, 11), (6, 11), (10, 11), (14, 11), (18, 11),
+        (4, 14), (8, 14), (12, 14), (16, 14),
+        (3, 16), (9, 16), (15, 16),
     ]
-    for x, y, tt, p in deco:
-        _put(t, a, x, y, tt, p)
+    for cx, cy in canopy:
+        if cy < 18 and cx < 20:
+            idx = cy * 20 + cx
+            if t[idx] != TL_FOREST_PATH:
+                _put(t, a, cx, cy, TL_FOREST_DENSE, 9)
+
+    # Mushrooms scattered throughout - forest accent
+    mushrooms = [
+        (5, 5), (11, 6), (15, 8),
+        (2, 10), (10, 12), (17, 13),
+        (6, 15), (14, 15),
+    ]
+    for mx, my in mushrooms:
+        if my < 18 and mx < 20:
+            idx = my * 20 + mx
+            if t[idx] != TL_FOREST_PATH:
+                _put(t, a, mx, my, TL_MUSHROOM, 3)
+
     _put(t, a, 18, 8, TL_ARROW, 2)
     return t, a
 
