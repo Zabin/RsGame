@@ -1,0 +1,59 @@
+name: Lint & Format
+
+on:
+  push:
+    branches: [main, claude/**]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install black pylint isort
+
+      - name: Check formatting with Black
+        run: |
+          black --check --line-length 100 .
+
+      - name: Sort imports with isort
+        run: |
+          isort --check-only --profile=black --line-length=100 .
+
+      - name: Lint with Pylint
+        run: |
+          pylint --rcfile=pyproject.toml --fail-under=8.0 \
+            gbc_lib.py tiles.py tilemaps.py music.py asm_game.py build_rom.py tests/ \
+            || true
+        continue-on-error: true
+
+  format-check:
+    name: Format Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pre-commit
+
+      - name: Run pre-commit hooks
+        run: |
+          pre-commit run --all-files

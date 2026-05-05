@@ -1,0 +1,102 @@
+name: Build ROM
+
+on:
+  push:
+    branches: [main, claude/**]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    name: Build Game Boy Color ROM
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+
+      - name: Build ROM
+        run: |
+          python3 build_rom.py ./BunnyGarden_build.gbc
+
+      - name: Validate ROM size
+        run: |
+          SIZE=$(stat -c%s ./BunnyGarden_build.gbc)
+          if [ "$SIZE" -ne 32768 ]; then
+            echo "❌ ROM size mismatch: $SIZE bytes (expected 32768)"
+            exit 1
+          fi
+          echo "✅ ROM size correct: $SIZE bytes"
+
+      - name: Validate ROM header
+        run: |
+          python3 << 'EOF'
+          with open('BunnyGarden_build.gbc', 'rb') as f:
+              data = f.read()
+
+          # Check entry point
+          assert data[0x0100] == 0x00, "Entry point: NOP missing"
+          assert data[0x0101] == 0xC3, "Entry point: JP missing"
+          print("✅ Entry point valid")
+
+          # Check GBC header
+          assert any(data[0x0104:0x0134]), "Header title region empty"
+          print("✅ Header title region present")
+
+          # Check cart type
+          cart_type = data[0x0147]
+          assert cart_type in (0x03, 0x13), f"Invalid cart type: {cart_type:02X}"
+          print(f"✅ Cart type valid: {cart_type:02X}")
+
+          # Check ROM size field
+          assert data[0x0148] == 0x00, "ROM size field: should be 0x00 (32KB)"
+          print("✅ ROM size field correct")
+
+          print("\n✅ All header validations passed!")
+          EOF
+
+      - name: Check ROM sections
+        run: |
+          python3 << 'EOF'
+          with open('BunnyGarden_build.gbc', 'rb') as f:
+              data = f.read()
+
+          # Check game code section
+          code = data[0x0150:0x0800]
+          assert any(b != 0x00 for b in code), "Game code section is empty"
+          print("✅ Game code section populated")
+
+          # Check tile data section
+          tiles = data[0x0800:0x1800]
+          assert any(b != 0x00 for b in tiles), "Tile data section is empty"
+          print("✅ Tile data section populated")
+
+          # Check palette data
+          palettes = data[0x1800:0x1880]
+          assert any(b != 0x00 for b in palettes), "Palette data is empty"
+          print("✅ Palette data section populated")
+
+          print("\n✅ All ROM sections validated!")
+          EOF
+
+      - name: Upload ROM artifact
+        if: success()
+        uses: actions/upload-artifact@v3
+        with:
+          name: BunnyGarden.gbc
+          path: ./BunnyGarden_build.gbc
+          retention-days: 30
+
+      - name: Report success
+        if: success()
+        run: |
+          echo "✅ ROM built successfully and validated!"
+          echo "📦 Artifact: BunnyGarden.gbc (32KB)"
+          echo "🎮 Ready for testing in emulator"
