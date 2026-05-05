@@ -30,6 +30,7 @@ ENV/
 *.sav
 *.ram
 test_shots/
+previews/
 BunnyGarden.gbc
 BunnyGarden_CI.gbc
 
