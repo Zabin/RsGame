@@ -519,6 +519,40 @@ FOREST_PATH = [
     [0,0,0,0,0,0,0,0],
 ]
 
+# Desert Biome Tiles
+DESERT_SAND = [
+    [3,3,1,1,1,1,3,3],  # rippled sand
+    [3,1,1,2,2,1,1,3],
+    [1,1,2,2,2,2,1,1],
+    [1,2,2,1,1,2,2,1],
+    [2,2,1,1,1,1,2,2],
+    [2,1,1,2,2,1,1,2],
+    [1,1,2,2,2,2,1,1],
+    [1,1,1,1,1,1,1,1],
+]
+
+DESERT_ROCK = [
+    [0,0,2,2,2,2,0,0],  # rocky outcrop
+    [0,2,1,1,1,1,2,0],
+    [2,1,3,3,3,1,1,2],
+    [2,1,3,2,3,3,1,2],
+    [2,1,3,3,3,3,1,2],
+    [2,1,1,3,3,1,1,2],
+    [0,2,1,1,1,1,2,0],
+    [0,0,2,2,2,2,0,0],
+]
+
+DESERT_PATH = [
+    [0,0,0,0,0,0,0,0],  # sandy path
+    [0,1,1,1,1,1,1,0],
+    [0,1,0,2,2,0,1,0],
+    [0,1,2,3,3,2,1,0],
+    [0,1,2,3,3,2,1,0],
+    [0,1,0,2,2,0,1,0],
+    [0,1,1,1,1,1,1,0],
+    [0,0,0,0,0,0,0,0],
+]
+
 # Digits
 def digit_pixels(n: int):
     """Return 8x8 pixel array for digit 0-9"""
@@ -602,6 +636,9 @@ def _build_tile_map():
     TILE_PIXELS[getattr(tiles_module, 'TL_FOREST_FLOOR', 0x3F)] = FOREST_FLOOR
     TILE_PIXELS[getattr(tiles_module, 'TL_FOREST_DENSE', 0x40)] = FOREST_DENSE
     TILE_PIXELS[getattr(tiles_module, 'TL_FOREST_PATH', 0x41)] = FOREST_PATH
+    TILE_PIXELS[getattr(tiles_module, 'TL_DESERT_SAND', 0x42)] = DESERT_SAND
+    TILE_PIXELS[getattr(tiles_module, 'TL_DESERT_ROCK', 0x43)] = DESERT_ROCK
+    TILE_PIXELS[getattr(tiles_module, 'TL_DESERT_PATH', 0x44)] = DESERT_PATH
 
     # Digits
     digit_start = getattr(tiles_module, 'TL_DIGIT_0', 0x23)

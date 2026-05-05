@@ -42,6 +42,8 @@ SUNS_W     = _c(31,31,31); SUNS_O   = _c(31,24,12); SUNS_P  = _c(31,16,16); SUNS
 MEAD_W     = _c(31,31,31); MEAD_L   = _c(24,28,18); MEAD_M  = _c(16,22,10); MEAD_D  = _c(8,14,4)
 # Forest palette (white/dark-green/mid-green/dark-brown - dense woodland)
 FORE_W     = _c(31,31,31); FORE_L   = _c(12,18,8); FORE_M  = _c(8,12,4); FORE_D  = _c(12,8,4)
+# Desert palette (white/light-tan/mid-tan/dark-tan - sandy dunes)
+DESE_W     = _c(31,31,31); DESE_L   = _c(28,24,16); DESE_M  = _c(24,18,10); DESE_D  = _c(18,12,4)
 # Accent: pink, yellow, purple
 PNK_L      = _c(31,22,26); PNK_M   = _c(28,12,20); PNK_D   = _c(20, 4,12)
 YEL_L      = _c(31,30,14); YEL_M   = _c(31,26, 0); YEL_D   = _c(24,16, 0)
@@ -59,6 +61,7 @@ BG_PALETTES = [
     [SUNS_W, SUNS_O, SUNS_P,  SUNS_R ],   # 7 sunset sky
     [MEAD_W, MEAD_L, MEAD_M,  MEAD_D ],   # 8 meadow
     [FORE_W, FORE_L, FORE_M,  FORE_D ],   # 9 forest
+    [DESE_W, DESE_L, DESE_M,  DESE_D ],   # 10 desert
 ]
 OBJ_PALETTES = [
     [BLACK, BG_W,  PNK_L, PNK_D],   # 0 bunny

@@ -356,37 +356,41 @@ def meadow_screen():
 
 # ── Menu/story screens ────────────────────────────────────────────────────
 def desert_screen():
-    t, a = _blank(TL_GRASS_PLAIN, 1)  # Palette 1: dirt base
+    t, a = _blank(TL_DESERT_SAND, 10)  # Desert sandy dunes with palette 10
     _score_bar(t, a, "DESERT")
-    _fill_grass(t, a, 1, 18)
-    _apply_zone_roads(t, a, 3)  # Zone 3 = DESERT (base layer)
 
-    # Rock formations — desert shelter/shelter
-    # Left side columns
-    for y in range(4, 8):
-        _put(t, a, 2, y, TL_ROCK, 4)
-    for y in range(12, 16):
-        _put(t, a, 2, y, TL_ROCK, 4)
+    # Fill desert sand throughout
+    for y in range(1, 18):
+        for x in range(20):
+            tile_idx = y * 20 + x
+            if t[tile_idx] == TL_DESERT_SAND:
+                t[tile_idx] = TL_DESERT_SAND
+                a[tile_idx] = 10
 
-    # Right side columns
-    for y in range(3, 7):
-        _put(t, a, 17, y, TL_ROCK, 4)
-    for y in range(13, 17):
-        _put(t, a, 17, y, TL_ROCK, 4)
+    # Apply desert path (sandy path through center)
+    from road_generator import RoadGenerator
+    gen = RoadGenerator()
+    gen.generate()
+    road_map = gen.get_zone_road(3)  # Zone 3 = DESERT
 
-    # Central rock cluster (ascending toward peak)
-    for rx, ry in [(10, 2), (9, 3), (11, 3), (10, 4)]:
-        _put(t, a, rx, ry, TL_ROCK_SMALL, 4)
+    for y in range(len(road_map)):
+        for x in range(len(road_map[0])):
+            if road_map[y][x]:
+                _put(t, a, x, y + 1, TL_DESERT_PATH, 10)
 
-    # Sparse yellow flowers (oasis feel) — palette 6
-    flowers = [
-        (5, 3, 6), (6, 4, 6),
-        (14, 4, 6), (15, 3, 6),
-        (8, 14, 6), (9, 15, 6),
-        (11, 14, 6), (12, 15, 6),
+    # Rocky outcrops scattered throughout - desert features
+    rocks = [
+        (2, 3), (5, 3), (8, 3), (11, 3), (14, 3), (17, 3),
+        (1, 6), (7, 6), (13, 6), (19, 6),
+        (3, 10), (9, 10), (15, 10),
+        (2, 14), (8, 14), (14, 14), (18, 14),
+        (5, 16), (11, 16), (17, 16),
     ]
-    for x, y, p in flowers:
-        _put(t, a, x, y, TL_BG_FLOWER, p)
+    for rx, ry in rocks:
+        if ry < 18 and rx < 20:
+            idx = ry * 20 + rx
+            if t[idx] != TL_DESERT_PATH:
+                _put(t, a, rx, ry, TL_DESERT_ROCK, 10)
 
     _put(t, a, 18, 8, TL_ARROW, 2)
     return t, a

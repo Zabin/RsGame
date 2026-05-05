@@ -70,6 +70,9 @@ TL_MEADOW_PATH  = 0x3E   # meadow: grass path through meadow
 TL_FOREST_FLOOR = 0x3F   # forest: dark forest floor
 TL_FOREST_DENSE = 0x40   # forest: dense canopy
 TL_FOREST_PATH  = 0x41   # forest: woodland path
+TL_DESERT_SAND  = 0x42   # desert: sandy dunes
+TL_DESERT_ROCK  = 0x43   # desert: rocky outcrop
+TL_DESERT_PATH  = 0x44   # desert: sandy path
 
 # Font: A-Z at 0x40-0x59, space=0x5A, then punctuation
 TL_FONT_A     = 0x40   # A..Z = 0x40..0x59
@@ -486,6 +489,40 @@ def forest_path(): return enc([
     [0,0,0,0,0,0,0,0],
 ])
 
+# Desert (palette 10: white/light-tan/mid-tan/dark-tan - sandy dunes)
+def desert_sand(): return enc([
+    [3,3,1,1,1,1,3,3],  # rippled sand dunes
+    [3,1,1,2,2,1,1,3],
+    [1,1,2,2,2,2,1,1],
+    [1,2,2,1,1,2,2,1],
+    [2,2,1,1,1,1,2,2],
+    [2,1,1,2,2,1,1,2],
+    [1,1,2,2,2,2,1,1],
+    [1,1,1,1,1,1,1,1],
+])
+
+def desert_rock(): return enc([
+    [0,0,2,2,2,2,0,0],  # rocky outcrop
+    [0,2,1,1,1,1,2,0],
+    [2,1,3,3,3,1,1,2],
+    [2,1,3,2,3,3,1,2],
+    [2,1,3,3,3,3,1,2],
+    [2,1,1,3,3,1,1,2],
+    [0,2,1,1,1,1,2,0],
+    [0,0,2,2,2,2,0,0],
+])
+
+def desert_path(): return enc([
+    [0,0,0,0,0,0,0,0],  # sandy path
+    [0,1,1,1,1,1,1,0],
+    [0,1,0,2,2,0,1,0],
+    [0,1,2,3,3,2,1,0],
+    [0,1,2,3,3,2,1,0],
+    [0,1,0,2,2,0,1,0],
+    [0,1,1,1,1,1,1,0],
+    [0,0,0,0,0,0,0,0],
+])
+
 # Digits
 _DIG = [
     [[0,1,1,1,1,0,0,0],[1,2,2,2,2,1,0,0],[1,2,1,1,2,1,0,0],[1,2,1,1,2,1,0,0],
@@ -605,6 +642,9 @@ def build_tile_data():
     put(TL_FOREST_FLOOR, forest_floor())
     put(TL_FOREST_DENSE, forest_dense())
     put(TL_FOREST_PATH,  forest_path())
+    put(TL_DESERT_SAND,  desert_sand())
+    put(TL_DESERT_ROCK,  desert_rock())
+    put(TL_DESERT_PATH,  desert_path())
     for n in range(10):
         put(TL_DIGIT_0 + n, digit_tile(n))
     for c, pix in _FONT.items():
