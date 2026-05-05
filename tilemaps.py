@@ -263,22 +263,66 @@ def forest_screen():
     return t, a
 
 def meadow_screen():
-    t, a = _blank(TL_GRASS_PLAIN, 0)
+    t, a = _blank(TL_MEADOW_GRASS, 8)  # Meadow grassland with palette 8
     _score_bar(t, a, "MEADOW")
-    _fill_grass(t, a, 1, 18)
-    _apply_zone_roads(t, a, 2)  # Zone 2 = MEADOW (base layer)
-    flowers = [
-        (1,3,6),(3,4,5),(5,3,7),(7,4,6),(9,3,5),(11,4,7),
-        (2,6,5),(6,6,6),(9,7,7),(12,6,5),(4,12,6),(8,13,7),
-        (10,12,5),(13,13,6),(2,14,7),(5,15,5),(8,14,6),(11,15,7),
-        (14,4,5),(15,6,7),(17,3,6),(3,16,7),(13,16,5),
+
+    # Fill meadow grass terrain
+    for y in range(1, 18):
+        for x in range(20):
+            tile_idx = y * 20 + x
+            if t[tile_idx] == TL_MEADOW_GRASS:
+                t[tile_idx] = TL_MEADOW_GRASS
+                a[tile_idx] = 8
+
+    # Apply meadow path (grass path through center)
+    from road_generator import RoadGenerator
+    gen = RoadGenerator()
+    gen.generate()
+    road_map = gen.get_zone_road(2)  # Zone 2 = MEADOW
+
+    for y in range(len(road_map)):
+        for x in range(len(road_map[0])):
+            if road_map[y][x]:
+                _put(t, a, x, y + 1, TL_MEADOW_PATH, 8)
+
+    # Wildflower blooms scattered throughout - abundant and vibrant
+    blooms = [
+        (2, 3), (5, 3), (8, 3), (11, 3), (14, 3), (17, 3),
+        (3, 6), (9, 6), (15, 6),
+        (2, 10), (7, 10), (12, 10), (17, 10),
+        (4, 13), (10, 13), (16, 13),
+        (2, 16), (8, 16), (14, 16),
     ]
-    for x, y, p in flowers:
-        _put(t, a, x, y, TL_BG_FLOWER, p)
-    _apply_zone_roads(t, a, 2)  # Zone 2 = Meadow
-    _put(t, a, 6,  5,  TL_ROCK,       4)
-    _put(t, a, 13, 13, TL_ROCK_SMALL, 4)
-    _put(t, a, 17, 15, TL_ROCK_SMALL, 4)
+    for bx, by in blooms:
+        if by < 18 and bx < 20:
+            idx = by * 20 + bx
+            if t[idx] != TL_MEADOW_PATH:
+                _put(t, a, bx, by, TL_MEADOW_BLOOM, 8)
+
+    # Scattered trees for natural feel (using existing tree tiles)
+    trees = [
+        (1, 2), (19, 2),
+        (1, 15), (19, 15),
+    ]
+    for tx, ty in trees:
+        if ty < 18 and tx < 20:
+            idx = ty * 20 + tx
+            if t[idx] != TL_MEADOW_PATH:
+                _put(t, a, tx, ty, TL_TREE_TOP, 3)
+                if ty + 1 < 18:
+                    _put(t, a, tx, ty + 1, TL_TREE_BOT, 3)
+
+    # Rock accents for natural variation
+    rocks = [
+        (6, 5), (14, 11),
+    ]
+    for rx, ry in rocks:
+        if ry < 18 and rx < 20:
+            idx = ry * 20 + rx
+            if t[idx] != TL_MEADOW_PATH:
+                _put(t, a, rx, ry, TL_ROCK_SMALL, 4)
+
+    _put(t, a, 18, 8, TL_ARROW, 2)
     return t, a
 
 # ── Menu/story screens ────────────────────────────────────────────────────

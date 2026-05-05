@@ -451,6 +451,40 @@ SUNSET_PATH = [
     [0,0,0,0,0,0,0,0],
 ]
 
+# Meadow Biome Tiles
+MEADOW_GRASS = [
+    [2,2,1,1,1,1,2,2],  # open meadow
+    [2,1,1,3,3,1,1,2],
+    [1,1,3,3,3,3,1,1],
+    [1,3,3,1,1,3,3,1],
+    [3,3,1,1,1,1,3,3],
+    [3,1,1,3,3,1,1,3],
+    [1,1,3,3,3,3,1,1],
+    [1,1,1,1,1,1,1,1],
+]
+
+MEADOW_BLOOM = [
+    [0,0,2,2,2,2,0,0],  # wildflower blooms
+    [0,2,1,1,1,1,2,0],
+    [2,1,3,3,3,1,1,2],
+    [2,1,3,1,3,3,1,2],
+    [2,1,3,3,3,3,1,2],
+    [2,1,1,3,3,1,1,2],
+    [0,2,1,1,1,1,2,0],
+    [0,0,2,2,2,2,0,0],
+]
+
+MEADOW_PATH = [
+    [0,0,0,0,0,0,0,0],  # grass path
+    [0,1,1,1,1,1,1,0],
+    [0,1,0,2,2,0,1,0],
+    [0,1,2,3,3,2,1,0],
+    [0,1,2,3,3,2,1,0],
+    [0,1,0,2,2,0,1,0],
+    [0,1,1,1,1,1,1,0],
+    [0,0,0,0,0,0,0,0],
+]
+
 # Digits
 def digit_pixels(n: int):
     """Return 8x8 pixel array for digit 0-9"""
@@ -528,6 +562,9 @@ def _build_tile_map():
     TILE_PIXELS[getattr(tiles_module, 'TL_SUNSET_GROUND', 0x39)] = SUNSET_GROUND
     TILE_PIXELS[getattr(tiles_module, 'TL_SUNSET_TREE', 0x3A)] = SUNSET_TREE
     TILE_PIXELS[getattr(tiles_module, 'TL_SUNSET_PATH', 0x3B)] = SUNSET_PATH
+    TILE_PIXELS[getattr(tiles_module, 'TL_MEADOW_GRASS', 0x3C)] = MEADOW_GRASS
+    TILE_PIXELS[getattr(tiles_module, 'TL_MEADOW_BLOOM', 0x3D)] = MEADOW_BLOOM
+    TILE_PIXELS[getattr(tiles_module, 'TL_MEADOW_PATH', 0x3E)] = MEADOW_PATH
 
     # Digits
     digit_start = getattr(tiles_module, 'TL_DIGIT_0', 0x23)

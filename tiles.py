@@ -64,6 +64,9 @@ TL_FLOATING_ISLAND = 0x38 # sunset sky: floating island
 TL_SUNSET_GROUND = 0x39   # sunset sky: warm horizon ground
 TL_SUNSET_TREE  = 0x3A   # sunset sky: silhouetted tree
 TL_SUNSET_PATH  = 0x3B   # sunset sky: sunset-colored path
+TL_MEADOW_GRASS = 0x3C   # meadow: open grassland
+TL_MEADOW_BLOOM = 0x3D   # meadow: wildflower bloom
+TL_MEADOW_PATH  = 0x3E   # meadow: grass path through meadow
 
 # Font: A-Z at 0x40-0x59, space=0x5A, then punctuation
 TL_FONT_A     = 0x40   # A..Z = 0x40..0x59
@@ -412,6 +415,40 @@ def sunset_path(): return enc([
     [0,0,0,0,0,0,0,0],
 ])
 
+# Meadow (palette 8: white/light-green/mid-green/dark-green - open grassland)
+def meadow_grass(): return enc([
+    [2,2,1,1,1,1,2,2],  # open meadow grass
+    [2,1,1,3,3,1,1,2],
+    [1,1,3,3,3,3,1,1],
+    [1,3,3,1,1,3,3,1],
+    [3,3,1,1,1,1,3,3],
+    [3,1,1,3,3,1,1,3],
+    [1,1,3,3,3,3,1,1],
+    [1,1,1,1,1,1,1,1],
+])
+
+def meadow_bloom(): return enc([
+    [0,0,2,2,2,2,0,0],  # wildflower blooms
+    [0,2,1,1,1,1,2,0],
+    [2,1,3,3,3,1,1,2],
+    [2,1,3,1,3,3,1,2],
+    [2,1,3,3,3,3,1,2],
+    [2,1,1,3,3,1,1,2],
+    [0,2,1,1,1,1,2,0],
+    [0,0,2,2,2,2,0,0],
+])
+
+def meadow_path(): return enc([
+    [0,0,0,0,0,0,0,0],  # grass path
+    [0,1,1,1,1,1,1,0],
+    [0,1,0,2,2,0,1,0],
+    [0,1,2,3,3,2,1,0],
+    [0,1,2,3,3,2,1,0],
+    [0,1,0,2,2,0,1,0],
+    [0,1,1,1,1,1,1,0],
+    [0,0,0,0,0,0,0,0],
+])
+
 # Digits
 _DIG = [
     [[0,1,1,1,1,0,0,0],[1,2,2,2,2,1,0,0],[1,2,1,1,2,1,0,0],[1,2,1,1,2,1,0,0],
@@ -525,6 +562,9 @@ def build_tile_data():
     put(TL_SUNSET_GROUND, sunset_ground())
     put(TL_SUNSET_TREE,  sunset_tree())
     put(TL_SUNSET_PATH,  sunset_path())
+    put(TL_MEADOW_GRASS, meadow_grass())
+    put(TL_MEADOW_BLOOM, meadow_bloom())
+    put(TL_MEADOW_PATH,  meadow_path())
     for n in range(10):
         put(TL_DIGIT_0 + n, digit_tile(n))
     for c, pix in _FONT.items():
