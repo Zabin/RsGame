@@ -26,15 +26,28 @@ CENTER_X = PLAYABLE_WIDTH // 2  # 10
 CENTER_Y = (PLAYABLE_HEIGHT // 2) + SCORE_BAR_HEIGHT  # 9 (accounting for score bar)
 
 ZONE_NAMES = {
-    (0, 0): "GARDEN",
-    (0, 1): "FOREST",
-    (0, 2): "MEADOW",
-    (1, 0): "DESERT",
-    (1, 1): "CAVE",
-    (1, 2): "SWAMP",
-    (2, 0): "SNOW_PEAK",
-    (2, 1): "CRYSTAL_LAKE",
-    (2, 2): "SUNSET_SKY",
+    (0, 0): "SNOW_PEAK",
+    (0, 1): "CRYSTAL_LAKE",
+    (0, 2): "SUNSET_SKY",
+    (1, 0): "GARDEN",
+    (1, 1): "FOREST",
+    (1, 2): "MEADOW",
+    (2, 0): "DESERT",
+    (2, 1): "CAVE",
+    (2, 2): "SWAMP",
+}
+
+# Map from zone_id (journey order 0-8) to grid position (row, col)
+ZONE_ID_TO_GRID = {
+    0: (1, 0),  # GARDEN
+    1: (1, 1),  # FOREST
+    2: (1, 2),  # MEADOW
+    3: (2, 0),  # DESERT
+    4: (2, 1),  # CAVE
+    5: (2, 2),  # SWAMP
+    6: (0, 0),  # SNOW_PEAK
+    7: (0, 1),  # CRYSTAL_LAKE
+    8: (0, 2),  # SUNSET_SKY
 }
 
 
@@ -115,9 +128,8 @@ class RoadGenerator:
             zone_roads[center_y_in_zone][x] = True
 
     def get_zone_road(self, zone_id: int) -> List[List[bool]]:
-        """Get road map for zone by ID (0-8)."""
-        row = zone_id // 3
-        col = zone_id % 3
+        """Get road map for zone by ID (0-8 in journey order)."""
+        row, col = ZONE_ID_TO_GRID[zone_id]
         return self.zone_roads[(row, col)]
 
     def get_connection_point(

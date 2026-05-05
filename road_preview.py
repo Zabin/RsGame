@@ -16,7 +16,7 @@ except ImportError:
     sys.exit(1)
 
 from graphics_utils import get_screen_function
-from road_generator import RoadGenerator, ZONE_NAMES
+from road_generator import RoadGenerator, ZONE_NAMES, ZONE_ID_TO_GRID
 from tilemaps import ALL_SCREENS
 
 
@@ -25,15 +25,14 @@ def render_road_overlay(zone_id: int, road_gen: RoadGenerator, upscale: int = 2)
     Render a zone with road overlay.
 
     Args:
-        zone_id: Zone 0-8
+        zone_id: Zone 0-8 (journey order)
         road_gen: RoadGenerator instance
         upscale: Scaling factor
 
     Returns:
         PIL Image with road overlay
     """
-    zone_row = zone_id // 3
-    zone_col = zone_id % 3
+    zone_row, zone_col = ZONE_ID_TO_GRID[zone_id]
 
     # Get screen function and render
     screen_name = [name for name, _ in ALL_SCREENS if name not in ["title", "intro", "save", "map", "victory"]][zone_id]
@@ -152,8 +151,7 @@ def main():
         print(f"  Rendering all 9 zones...")
         for zone_id in range(9):
             zone_name = zone_names[zone_id]
-            zone_row = zone_id // 3
-            zone_col = zone_id % 3
+            zone_row, zone_col = ZONE_ID_TO_GRID[zone_id]
             print(f"    Zone({zone_row},{zone_col}) {zone_name:12}...", end=" ")
             img = render_road_overlay(zone_id, road_gen, upscale=2)
             if img:
@@ -166,8 +164,7 @@ def main():
     elif args.zone is not None:
         if 0 <= args.zone < 9:
             zone_name = zone_names[args.zone]
-            zone_row = args.zone // 3
-            zone_col = args.zone % 3
+            zone_row, zone_col = ZONE_ID_TO_GRID[args.zone]
             print(f"  Rendering Zone({zone_row},{zone_col}) {zone_name}...", end=" ")
             img = render_road_overlay(args.zone, road_gen, upscale=2)
             if img:

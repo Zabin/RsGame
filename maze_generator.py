@@ -34,15 +34,15 @@ ZONE_GRID = [
 ]
 
 ZONE_NAMES = {
-    (0, 0): "GARDEN",
-    (0, 1): "FOREST",
-    (0, 2): "MEADOW",
-    (1, 0): "DESERT",
-    (1, 1): "CAVE",
-    (1, 2): "SWAMP",
-    (2, 0): "SNOW_PEAK",
-    (2, 1): "CRYSTAL_LAKE",
-    (2, 2): "SUNSET_SKY",
+    (0, 0): "SNOW_PEAK",
+    (0, 1): "CRYSTAL_LAKE",
+    (0, 2): "SUNSET_SKY",
+    (1, 0): "GARDEN",
+    (1, 1): "FOREST",
+    (1, 2): "MEADOW",
+    (2, 0): "DESERT",
+    (2, 1): "CAVE",
+    (2, 2): "SWAMP",
 }
 
 
