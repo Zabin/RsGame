@@ -91,16 +91,27 @@ class RoadGenerator:
         return self.zone_roads
 
     def _create_plus_road(self, zone_pos: Tuple[int, int]):
-        """Create + shaped road in a single zone."""
+        """Create + shaped road in a single zone, trimmed at grid edges."""
+        zone_row, zone_col = zone_pos
         zone_roads = self.zone_roads[zone_pos]
+        center_y_in_zone = CENTER_Y - SCORE_BAR_HEIGHT
 
-        # Vertical road: center column (x = CENTER_X), all rows
-        for y in range(self.height):
+        # Vertical road: center column, but only in directions with adjacent zones
+        # Trim top if on top edge (row 0)
+        # Trim bottom if on bottom edge (row 2)
+        vertical_start = 0 if zone_row > 0 else 1  # Start at row 1 if top edge
+        vertical_end = self.height if zone_row < GRID_ROWS - 1 else self.height - 1  # End at height-1 if bottom edge
+
+        for y in range(vertical_start, vertical_end):
             zone_roads[y][CENTER_X] = True
 
-        # Horizontal road: center row (y = CENTER_Y - SCORE_BAR_HEIGHT), all columns
-        center_y_in_zone = CENTER_Y - SCORE_BAR_HEIGHT
-        for x in range(self.width):
+        # Horizontal road: center row, but only in directions with adjacent zones
+        # Trim left if on left edge (col 0)
+        # Trim right if on right edge (col 2)
+        horizontal_start = 0 if zone_col > 0 else 1  # Start at col 1 if left edge
+        horizontal_end = self.width if zone_col < GRID_COLS - 1 else self.width - 1  # End at width-1 if right edge
+
+        for x in range(horizontal_start, horizontal_end):
             zone_roads[center_y_in_zone][x] = True
 
     def get_zone_road(self, zone_id: int) -> List[List[bool]]:

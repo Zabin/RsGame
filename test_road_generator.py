@@ -55,20 +55,31 @@ class TestRoadGeneration:
             assert all(len(row) == PLAYABLE_WIDTH for row in roads)
 
     def test_each_zone_has_plus_shape(self):
-        """Each zone should have a + shaped road (vertical + horizontal)."""
+        """Each zone should have a + shaped road (vertical + horizontal, trimmed at edges)."""
         gen = RoadGenerator()
         gen.generate()
 
+        zone_row_col = {(0, 0): (0, 0), (0, 1): (0, 1), (0, 2): (0, 2),
+                        (1, 0): (1, 0), (1, 1): (1, 1), (1, 2): (1, 2),
+                        (2, 0): (2, 0), (2, 1): (2, 1), (2, 2): (2, 2)}
+
         for zone_pos in gen.zone_roads:
             roads = gen.zone_roads[zone_pos]
+            zone_row, zone_col = zone_pos
 
-            # Check vertical road (column CENTER_X)
-            vertical_count = sum(1 for y in range(PLAYABLE_HEIGHT) if roads[y][CENTER_X])
-            assert vertical_count == PLAYABLE_HEIGHT, f"Zone {zone_pos} missing vertical road"
+            # Check vertical road (column CENTER_X), trimmed at grid edges
+            vertical_start = 0 if zone_row > 0 else 1
+            vertical_end = PLAYABLE_HEIGHT if zone_row < GRID_ROWS - 1 else PLAYABLE_HEIGHT - 1
+            vertical_count = sum(1 for y in range(vertical_start, vertical_end) if roads[y][CENTER_X])
+            expected_vertical = vertical_end - vertical_start
+            assert vertical_count == expected_vertical, f"Zone {zone_pos} vertical road count {vertical_count}, expected {expected_vertical}"
 
-            # Check horizontal road (row CENTER_Y_IN_ZONE)
-            horizontal_count = sum(1 for x in range(PLAYABLE_WIDTH) if roads[CENTER_Y_IN_ZONE][x])
-            assert horizontal_count == PLAYABLE_WIDTH, f"Zone {zone_pos} missing horizontal road"
+            # Check horizontal road (row CENTER_Y_IN_ZONE), trimmed at grid edges
+            horizontal_start = 0 if zone_col > 0 else 1
+            horizontal_end = PLAYABLE_WIDTH if zone_col < GRID_COLS - 1 else PLAYABLE_WIDTH - 1
+            horizontal_count = sum(1 for x in range(horizontal_start, horizontal_end) if roads[CENTER_Y_IN_ZONE][x])
+            expected_horizontal = horizontal_end - horizontal_start
+            assert horizontal_count == expected_horizontal, f"Zone {zone_pos} horizontal road count {horizontal_count}, expected {expected_horizontal}"
 
     def test_road_intersects_at_center(self):
         """Roads should intersect at center of zone."""
@@ -80,26 +91,52 @@ class TestRoadGeneration:
             # Center point should be a road
             assert roads[CENTER_Y_IN_ZONE][CENTER_X], f"Zone {zone_pos} center not a road"
 
-    def test_all_zones_have_36_road_cells(self):
-        """Each zone should have exactly 36 road cells (20 + 17 - 1 center)."""
+    def test_zone_road_cell_counts(self):
+        """Each zone should have correct road cell count based on position."""
         gen = RoadGenerator()
         gen.generate()
+
+        # Expected counts based on trimming:
+        # Center zone (1,1): 36 cells (full +)
+        # Edge zones (not corner): 35 cells (trimmed on 1 side)
+        # Corner zones: 34 cells (trimmed on 2 sides)
+
+        corner_zones = [(0, 0), (0, 2), (2, 0), (2, 2)]
+        edge_zones = [(0, 1), (1, 0), (1, 2), (2, 1)]
+        center_zone = (1, 1)
 
         for zone_pos in gen.zone_roads:
             roads = gen.zone_roads[zone_pos]
             road_count = sum(1 for row in roads for cell in row if cell)
-            assert road_count == 36, f"Zone {zone_pos} has {road_count} road cells, expected 36"
+
+            if zone_pos == center_zone:
+                assert road_count == 36, f"Center zone {zone_pos} has {road_count} cells, expected 36"
+            elif zone_pos in corner_zones:
+                assert road_count == 34, f"Corner zone {zone_pos} has {road_count} cells, expected 34"
+            elif zone_pos in edge_zones:
+                assert road_count == 35, f"Edge zone {zone_pos} has {road_count} cells, expected 35"
 
     def test_all_zones_have_non_road_cells(self):
         """Each zone should have non-road cells (for obstacles, scenery)."""
         gen = RoadGenerator()
         gen.generate()
 
+        corner_zones = [(0, 0), (0, 2), (2, 0), (2, 2)]
+        edge_zones = [(0, 1), (1, 0), (1, 2), (2, 1)]
+        center_zone = (1, 1)
+
         for zone_pos in gen.zone_roads:
             roads = gen.zone_roads[zone_pos]
             non_road_count = sum(1 for row in roads for cell in row if not cell)
             assert non_road_count > 0, f"Zone {zone_pos} has no non-road cells"
-            assert non_road_count == 304, f"Zone {zone_pos} has {non_road_count} non-road cells, expected 304"
+
+            # Expected non-road counts (340 total - road count)
+            if zone_pos == center_zone:
+                assert non_road_count == 304, f"Center zone {zone_pos} has {non_road_count} non-road cells, expected 304"
+            elif zone_pos in corner_zones:
+                assert non_road_count == 306, f"Corner zone {zone_pos} has {non_road_count} non-road cells, expected 306"
+            elif zone_pos in edge_zones:
+                assert non_road_count == 305, f"Edge zone {zone_pos} has {non_road_count} non-road cells, expected 305"
 
 
 class TestZoneConnectivity:
@@ -169,43 +206,51 @@ class TestZoneConnectivity:
 class TestRoadProperties:
     """Test properties of the road network."""
 
-    def test_roads_are_symmetric(self):
-        """Same zone layouts should have identical road patterns."""
+    def test_roads_have_correct_structure(self):
+        """Roads should have correct + structure with proper trimming."""
         gen = RoadGenerator()
         gen.generate()
 
-        # All zones should have same road structure (just rotated/translated)
-        # Get road for first zone as reference
-        ref_roads = gen.zone_roads[(0, 0)]
-        center_y = CENTER_X - 1
+        # Verify road counts match zone positions
+        corner_zones = [(0, 0), (0, 2), (2, 0), (2, 2)]
+        edge_zones = [(0, 1), (1, 0), (1, 2), (2, 1)]
 
-        # Count roads in different sectors
         for zone_pos in gen.zone_roads:
             roads = gen.zone_roads[zone_pos]
-            assert sum(1 for row in roads for cell in row if cell) == 36
+            road_count = sum(1 for row in roads for cell in row if cell)
 
-    def test_roads_cover_all_edges(self):
-        """Roads should touch all 4 edges of each zone (or be perimeter)."""
+            if zone_pos == (1, 1):  # Center
+                assert road_count == 36
+            elif zone_pos in corner_zones:  # Corners
+                assert road_count == 34
+            elif zone_pos in edge_zones:  # Edges
+                assert road_count == 35
+
+    def test_roads_touch_connected_edges(self):
+        """Roads should touch edges that have adjacent zones, not perimeter edges."""
         gen = RoadGenerator()
         gen.generate()
 
         for zone_pos in gen.zone_roads:
+            zone_row, zone_col = zone_pos
             roads = gen.zone_roads[zone_pos]
 
-            # Check left edge
-            left_edge = any(roads[y][0] for y in range(PLAYABLE_HEIGHT))
-            # Check right edge
-            right_edge = any(roads[y][PLAYABLE_WIDTH - 1] for y in range(PLAYABLE_HEIGHT))
-            # Check top edge
-            top_edge = any(roads[0][x] for x in range(PLAYABLE_WIDTH))
-            # Check bottom edge
-            bottom_edge = any(roads[PLAYABLE_HEIGHT - 1][x] for x in range(PLAYABLE_WIDTH))
+            # Check edges only if adjacent zone exists (not perimeter)
+            if zone_col > 0:  # Has left neighbor
+                left_edge = any(roads[y][0] for y in range(PLAYABLE_HEIGHT))
+                assert left_edge, f"Zone {zone_pos} left edge not touched but has neighbor"
 
-            # All edges should be touched by roads
-            assert left_edge, f"Zone {zone_pos} left edge not touched"
-            assert right_edge, f"Zone {zone_pos} right edge not touched"
-            assert top_edge, f"Zone {zone_pos} top edge not touched"
-            assert bottom_edge, f"Zone {zone_pos} bottom edge not touched"
+            if zone_col < GRID_COLS - 1:  # Has right neighbor
+                right_edge = any(roads[y][PLAYABLE_WIDTH - 1] for y in range(PLAYABLE_HEIGHT))
+                assert right_edge, f"Zone {zone_pos} right edge not touched but has neighbor"
+
+            if zone_row > 0:  # Has top neighbor
+                top_edge = any(roads[0][x] for x in range(PLAYABLE_WIDTH))
+                assert top_edge, f"Zone {zone_pos} top edge not touched but has neighbor"
+
+            if zone_row < GRID_ROWS - 1:  # Has bottom neighbor
+                bottom_edge = any(roads[PLAYABLE_HEIGHT - 1][x] for x in range(PLAYABLE_WIDTH))
+                assert bottom_edge, f"Zone {zone_pos} bottom edge not touched but has neighbor"
 
 
 if __name__ == "__main__":
