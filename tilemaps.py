@@ -386,31 +386,70 @@ def swamp_screen():
 
 
 def snow_peak_screen():
-    t, a = _blank(TL_GRASS_PLAIN, 0)  # Palette 0: grass/snow base
+    t, a = _blank(TL_SNOW_GROUND, 5)  # Snow Peak base: custom snow ground, palette 5
     _score_bar(t, a, "SNOW PEAK")
-    _fill_grass(t, a, 1, 18)
-    _apply_zone_roads(t, a, 6)  # Zone 6 = SNOW (base layer)
 
-    # Sparse rock formations (mountain peaks)
-    rocks = [
-        (3, 3, TL_ROCK), (4, 4, TL_ROCK_SMALL),
-        (16, 3, TL_ROCK), (15, 4, TL_ROCK_SMALL),
-        (10, 2, TL_ROCK_SMALL),
-        (2, 14, TL_ROCK), (3, 15, TL_ROCK_SMALL),
-        (17, 14, TL_ROCK), (16, 15, TL_ROCK_SMALL),
-    ]
-    for rx, ry, rt in rocks:
-        _put(t, a, rx, ry, rt, 4)
+    # Fill snowy terrain with palette 5
+    for y in range(1, 18):
+        for x in range(20):
+            if t[y * 20 + x] == TL_SNOW_GROUND:
+                t[y * 20 + x] = TL_SNOW_GROUND
+                a[y * 20 + x] = 5
 
-    # Purple crystal formations (ice) — palette 7
-    crystals = [
-        (5, 5, 7), (15, 5, 7),
-        (10, 3, 7),
-        (5, 13, 7), (15, 13, 7),
-        (8, 8, 7), (12, 8, 7),
+    _apply_zone_roads(t, a, 6)  # Zone 6 = SNOW PEAK
+
+    # Rock borders (mountain ridges) - palette 4 for gray rocks
+    for x in range(20):
+        idx = 1 * 20 + x
+        if t[idx] != TL_PATH:
+            _put(t, a, x, 1, TL_ROCK, 4)
+        idx = 16 * 20 + x
+        if t[idx] != TL_PATH:
+            _put(t, a, x, 16, TL_ROCK, 4)
+
+    for y in range(2, 16):
+        idx = y * 20 + 0
+        if t[idx] != TL_PATH:
+            _put(t, a, 0, y, TL_ROCK, 4)
+        idx = y * 20 + 19
+        if t[idx] != TL_PATH:
+            _put(t, a, 19, y, TL_ROCK, 4)
+
+    # Pine tree clusters - palette 5 for snow context
+    pines = [
+        (3, 3), (4, 3),
+        (16, 3), (17, 3),
+        (2, 14), (3, 14),
+        (17, 14), (18, 14),
     ]
-    for x, y, p in crystals:
-        _put(t, a, x, y, TL_BG_FLOWER, p)
+    for px, py in pines:
+        if py < 18 and px < 20:
+            idx = py * 20 + px
+            if t[idx] != TL_PATH:
+                _put(t, a, px, py, TL_PINE_TREE, 5)
+
+    # Ice cliff formations - palette 5 for snowy ice
+    iceCliffs = [
+        (10, 2),
+        (5, 6), (15, 6),
+        (8, 11), (12, 11),
+    ]
+    for ix, iy in iceCliffs:
+        idx = iy * 20 + ix
+        if t[idx] != TL_PATH:
+            _put(t, a, ix, iy, TL_ICE_CLIFF, 5)
+
+    # Frozen water patches - palette 5 for snowy water
+    frozenWater = [
+        (2, 5), (3, 5),
+        (17, 5), (18, 5),
+        (5, 12), (6, 12),
+        (14, 12), (15, 12),
+    ]
+    for fw_x, fw_y in frozenWater:
+        idx = fw_y * 20 + fw_x
+        if t[idx] != TL_PATH:
+            _put(t, a, fw_x, fw_y, TL_FROZEN_WATER, 5)
 
     _put(t, a, 18, 8, TL_ARROW, 2)
     return t, a

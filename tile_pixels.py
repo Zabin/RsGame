@@ -294,6 +294,51 @@ ARROW_RIGHT = [
     [0,0,0,0,0,0,0,0],
 ]
 
+# Snow Peak Biome Tiles
+SNOW_GROUND = [
+    [3,3,1,1,1,1,3,3],  # rounded snow ground
+    [3,1,1,2,2,1,1,3],
+    [1,1,2,2,2,2,1,1],
+    [1,2,2,1,1,2,2,1],
+    [2,2,1,1,1,1,2,2],
+    [2,1,1,2,2,1,1,2],
+    [1,1,2,2,2,2,1,1],
+    [1,1,1,1,1,1,1,1],
+]
+
+ICE_CLIFF = [
+    [3,3,3,3,3,3,3,3],  # icy cliff edge
+    [3,1,1,2,2,1,1,3],
+    [3,1,2,1,1,2,1,3],
+    [3,2,1,1,1,1,2,3],
+    [2,1,1,2,2,1,1,2],
+    [2,1,2,1,1,2,1,2],
+    [1,2,1,1,1,1,2,1],
+    [1,1,1,1,1,1,1,1],
+]
+
+FROZEN_WATER = [
+    [2,2,1,1,2,2,1,1],  # frozen water with ice
+    [2,1,2,1,1,2,1,2],
+    [1,2,1,2,2,1,2,1],
+    [2,1,2,1,1,2,1,2],
+    [1,2,1,2,2,1,2,1],
+    [2,3,2,1,1,2,3,2],
+    [3,2,3,2,2,3,2,3],
+    [2,3,2,3,2,3,2,3],
+]
+
+PINE_TREE = [
+    [0,0,0,3,3,0,0,0],  # pine tree canopy
+    [0,0,3,2,2,3,0,0],
+    [0,3,2,2,2,2,3,0],
+    [0,3,2,1,1,2,3,0],
+    [3,2,2,1,1,2,2,3],
+    [3,2,1,1,1,1,2,3],
+    [2,2,1,1,1,1,2,2],
+    [1,1,1,1,1,1,1,1],
+]
+
 # Digits
 def digit_pixels(n: int):
     """Return 8x8 pixel array for digit 0-9"""
@@ -355,6 +400,12 @@ def _build_tile_map():
     TILE_PIXELS[getattr(tiles_module, 'TL_STAR_ICON_BG', 0x20)] = STAR_ICON_BG
     TILE_PIXELS[getattr(tiles_module, 'TL_BORDER_H', 0x21)] = BORDER_H
     TILE_PIXELS[getattr(tiles_module, 'TL_ARROW', 0x22)] = ARROW_RIGHT
+
+    # Biome-specific tiles
+    TILE_PIXELS[getattr(tiles_module, 'TL_SNOW_GROUND', 0x2E)] = SNOW_GROUND
+    TILE_PIXELS[getattr(tiles_module, 'TL_ICE_CLIFF', 0x2F)] = ICE_CLIFF
+    TILE_PIXELS[getattr(tiles_module, 'TL_FROZEN_WATER', 0x30)] = FROZEN_WATER
+    TILE_PIXELS[getattr(tiles_module, 'TL_PINE_TREE', 0x31)] = PINE_TREE
 
     # Digits
     digit_start = getattr(tiles_module, 'TL_DIGIT_0', 0x23)
