@@ -206,6 +206,199 @@ def meadow_screen():
     return t, a
 
 # ── Menu/story screens ────────────────────────────────────────────────────
+def desert_screen():
+    t, a = _blank(TL_GRASS_PLAIN, 1)  # Palette 1: dirt base
+    _score_bar(t, a, "DESERT")
+    _fill_grass(t, a, 1, 18)
+    _horizontal_path(t, a, row=9)
+
+    # Rock formations — desert shelter/shelter
+    # Left side columns
+    for y in range(4, 8):
+        _put(t, a, 2, y, TL_ROCK, 4)
+    for y in range(12, 16):
+        _put(t, a, 2, y, TL_ROCK, 4)
+
+    # Right side columns
+    for y in range(3, 7):
+        _put(t, a, 17, y, TL_ROCK, 4)
+    for y in range(13, 17):
+        _put(t, a, 17, y, TL_ROCK, 4)
+
+    # Central rock cluster (ascending toward peak)
+    for rx, ry in [(10, 2), (9, 3), (11, 3), (10, 4)]:
+        _put(t, a, rx, ry, TL_ROCK_SMALL, 4)
+
+    # Sparse yellow flowers (oasis feel) — palette 6
+    flowers = [
+        (5, 3, 6), (6, 4, 6),
+        (14, 4, 6), (15, 3, 6),
+        (8, 14, 6), (9, 15, 6),
+        (11, 14, 6), (12, 15, 6),
+    ]
+    for x, y, p in flowers:
+        _put(t, a, x, y, TL_BG_FLOWER, p)
+
+    _put(t, a, 18, 8, TL_ARROW, 2)
+    return t, a
+
+
+def cave_screen():
+    t, a = _blank(TL_GRASS_PLAIN, 4)  # Palette 4: gray/rock base
+    _score_bar(t, a, "CAVE")
+    _fill_grass(t, a, 1, 18)
+    _horizontal_path(t, a, row=9)
+
+    # Rock walls forming cave passage
+    for y in range(2, 6):
+        _put(t, a, 0, y, TL_ROCK, 4)
+    for y in range(12, 16):
+        _put(t, a, 0, y, TL_ROCK, 4)
+
+    for y in range(2, 6):
+        _put(t, a, 19, y, TL_ROCK, 4)
+    for y in range(12, 16):
+        _put(t, a, 19, y, TL_ROCK, 4)
+
+    # Rock clusters in center (mineral formations)
+    for rx, ry in [(5, 3), (6, 4), (14, 3), (15, 4), (10, 5), (10, 13)]:
+        _put(t, a, rx, ry, TL_ROCK_SMALL, 4)
+
+    # Purple crystal accents (glowing minerals) — palette 7
+    crystals = [
+        (3, 2, 7), (17, 2, 7),
+        (4, 13, 7), (16, 13, 7),
+        (10, 6, 7), (10, 12, 7),
+        (8, 8, 7), (12, 8, 7),
+    ]
+    for x, y, p in crystals:
+        _put(t, a, x, y, TL_BG_FLOWER, p)
+
+    _put(t, a, 18, 8, TL_ARROW, 2)
+    return t, a
+
+
+def swamp_screen():
+    t, a = _blank(TL_GRASS_PLAIN, 0)  # Palette 0: grass base
+    _score_bar(t, a, "SWAMP")
+    _fill_grass(t, a, 1, 18)
+    _horizontal_path(t, a, row=9)
+
+    # Dense tree walls (swamp forest)
+    for x in range(1, W, 2):
+        _put(t, a, x, 2, TL_TREE_TOP, 3)
+        _put(t, a, x, 3, TL_TREE_BOT, 3)
+        _put(t, a, x, 15, TL_TREE_TOP, 3)
+        _put(t, a, x, 16, TL_TREE_BOT, 3)
+
+    # Pink flowers (wetland blooms) — palette 5
+    flowers = [
+        (2, 5, 5), (4, 6, 5), (6, 5, 5),
+        (14, 5, 5), (16, 6, 5), (18, 5, 5),
+        (3, 12, 5), (5, 11, 5), (8, 12, 5),
+        (12, 11, 5), (15, 12, 5), (17, 11, 5),
+    ]
+    for x, y, p in flowers:
+        _put(t, a, x, y, TL_BG_FLOWER, p)
+
+    # Mushroom clusters (swamp fungi) — palette 5
+    for mx, my in [(10, 4), (10, 14)]:
+        _put(t, a, mx, my, TL_MUSHROOM, 5)
+
+    _put(t, a, 18, 8, TL_ARROW, 2)
+    return t, a
+
+
+def snow_peak_screen():
+    t, a = _blank(TL_GRASS_PLAIN, 0)  # Palette 0: grass/snow base
+    _score_bar(t, a, "SNOW PEAK")
+    _fill_grass(t, a, 1, 18)
+    _horizontal_path(t, a, row=9)
+
+    # Sparse rock formations (mountain peaks)
+    rocks = [
+        (3, 3, TL_ROCK), (4, 4, TL_ROCK_SMALL),
+        (16, 3, TL_ROCK), (15, 4, TL_ROCK_SMALL),
+        (10, 2, TL_ROCK_SMALL),
+        (2, 14, TL_ROCK), (3, 15, TL_ROCK_SMALL),
+        (17, 14, TL_ROCK), (16, 15, TL_ROCK_SMALL),
+    ]
+    for rx, ry, rt in rocks:
+        _put(t, a, rx, ry, rt, 4)
+
+    # Purple crystal formations (ice) — palette 7
+    crystals = [
+        (5, 5, 7), (15, 5, 7),
+        (10, 3, 7),
+        (5, 13, 7), (15, 13, 7),
+        (8, 8, 7), (12, 8, 7),
+    ]
+    for x, y, p in crystals:
+        _put(t, a, x, y, TL_BG_FLOWER, p)
+
+    _put(t, a, 18, 8, TL_ARROW, 2)
+    return t, a
+
+
+def crystal_lake_screen():
+    t, a = _blank(TL_GRASS_PLAIN, 0)  # Palette 0: grass base
+    _score_bar(t, a, "CRYSTAL LAKE")
+    _fill_grass(t, a, 1, 18)
+    _horizontal_path(t, a, row=9)
+
+    # Peaceful, minimal obstacles
+    # Light flower distribution (yellow and purple) — palettes 6, 7
+    flowers = [
+        (2, 3, 6), (5, 4, 7), (8, 3, 6), (11, 4, 7), (14, 3, 6), (17, 4, 7),
+        (3, 7, 7), (10, 6, 6), (17, 7, 7),
+        (4, 13, 6), (7, 12, 7), (10, 14, 6), (13, 12, 7), (16, 13, 6),
+        (2, 16, 7), (9, 15, 6), (16, 16, 7),
+    ]
+    for x, y, p in flowers:
+        _put(t, a, x, y, TL_BG_FLOWER, p)
+
+    # Small rock accent (reflective stones)
+    _put(t, a, 10, 10, TL_ROCK_SMALL, 4)
+
+    _put(t, a, 18, 8, TL_ARROW, 2)
+    return t, a
+
+
+def sunset_sky_screen():
+    t, a = _blank(TL_GRASS_PLAIN, 0)  # Palette 0: grass base
+    _score_bar(t, a, "SUNSET SKY")
+    _fill_grass(t, a, 1, 18)
+    _horizontal_path(t, a, row=9)
+
+    # Vibrant celebration flowers (pink, yellow, purple) — palettes 5, 6, 7
+    flowers = [
+        # Upper area — warm welcome
+        (2, 2, 5), (4, 2, 6), (6, 2, 7), (8, 2, 5), (10, 2, 6), (12, 2, 7), (14, 2, 5), (16, 2, 6), (18, 2, 7),
+        (3, 3, 7), (7, 3, 5), (11, 3, 6), (15, 3, 7),
+        # Mid-upper
+        (2, 5, 6), (8, 5, 7), (14, 5, 5),
+        # Near path above
+        (5, 7, 5), (10, 7, 6), (15, 7, 7),
+        # Near path below
+        (5, 11, 7), (10, 11, 5), (15, 11, 6),
+        # Mid-lower
+        (2, 14, 7), (8, 14, 6), (14, 14, 5),
+        # Lower area — home bound
+        (3, 16, 5), (7, 16, 6), (11, 16, 7), (15, 16, 5), (18, 16, 6),
+    ]
+    for x, y, p in flowers:
+        _put(t, a, x, y, TL_BG_FLOWER, p)
+
+    # Minimal trees for framing
+    _put(t, a, 1, 4, TL_TREE_TOP, 3)
+    _put(t, a, 1, 5, TL_TREE_BOT, 3)
+    _put(t, a, 18, 13, TL_TREE_TOP, 3)
+    _put(t, a, 18, 14, TL_TREE_BOT, 3)
+
+    _put(t, a, 18, 8, TL_ARROW, 2)
+    return t, a
+
+
 def title_screen():
     t, a = _blank(TL_BG_BLANK, 2)
     for s, y in [("BUNNY GARDEN", 4), ("ADVENTURE", 6),
@@ -272,16 +465,22 @@ def victory_screen():
         _put(t, a, x, y, TL_BG_FLOWER, p)
     return t, a
 
-# All 8 screens as (name, function) for build_rom to iterate
+# All 14 screens: 9 playable zones + 5 menu screens
 ALL_SCREENS = [
-    ("garden",  garden_screen),
-    ("forest",  forest_screen),
-    ("meadow",  meadow_screen),
-    ("title",   title_screen),
-    ("intro",   intro_screen),
-    ("save",    save_screen),
-    ("map",     map_screen),
-    ("victory", victory_screen),
+    ("garden",      garden_screen),
+    ("forest",      forest_screen),
+    ("meadow",      meadow_screen),
+    ("desert",      desert_screen),
+    ("cave",        cave_screen),
+    ("swamp",       swamp_screen),
+    ("snow_peak",   snow_peak_screen),
+    ("crystal_lake",crystal_lake_screen),
+    ("sunset_sky",  sunset_sky_screen),
+    ("title",       title_screen),
+    ("intro",       intro_screen),
+    ("save",        save_screen),
+    ("map",         map_screen),
+    ("victory",     victory_screen),
 ]
 
 # ── Collectibles per zone ─────────────────────────────────────────────────
@@ -303,4 +502,34 @@ ZONE_COLLECTS = [
     [(24, 40, 1), (56, 32, 0), (88, 40, 1), (120, 32, 0), (152, 40, 1),
      (40, 104, 0), (88, 104, 1), (136, 104, 0),
      (136, 64, 2)],            # gift: top-right area
+
+    # Zone 3 — Desert
+    [(32, 48, 0), (80, 40, 1), (128, 48, 0),
+     (56, 104, 1), (112, 104, 0),
+     (88, 72, 2)],             # gift: center area
+
+    # Zone 4 — Cave
+    [(40, 56, 1), (88, 40, 0), (136, 56, 1),
+     (56, 112, 0), (120, 112, 1),
+     (88, 80, 2)],             # gift: center area
+
+    # Zone 5 — Swamp
+    [(32, 40, 0), (72, 48, 1), (112, 40, 0), (152, 48, 1),
+     (48, 104, 1), (128, 104, 0),
+     (88, 64, 2)],             # gift: center area
+
+    # Zone 6 — Snow Peak
+    [(40, 56, 1), (88, 32, 0), (136, 56, 1),
+     (56, 112, 0), (120, 112, 1),
+     (88, 72, 2)],             # gift: center area
+
+    # Zone 7 — Crystal Lake
+    [(32, 40, 1), (72, 32, 0), (112, 40, 1), (152, 32, 0),
+     (48, 104, 0), (128, 104, 1),
+     (88, 64, 2)],             # gift: center area
+
+    # Zone 8 — Sunset Sky
+    [(24, 32, 0), (56, 40, 1), (88, 32, 0), (120, 40, 1), (152, 32, 0),
+     (40, 104, 1), (88, 104, 0), (136, 104, 1),
+     (88, 72, 2)],             # gift: center area
 ]
