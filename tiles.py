@@ -49,16 +49,17 @@ TL_BORDER_H     = 0x2A   # horizontal border bar
 TL_ARROW        = 0x2B   # right-pointing arrow (zone exit hint)
 TL_STAR_ICON_BG = 0x2D   # star icon in score bar
 
-# Biome-specific tiles (0x2E-0x36)
+# Biome-specific tiles (0x2E-0x37)
 TL_SNOW_GROUND  = 0x2E   # snow peak: rounded snow ground
 TL_ICE_CLIFF    = 0x2F   # snow peak: icy cliff edge
 TL_FROZEN_WATER = 0x30   # snow peak: frozen water
 TL_PINE_TREE    = 0x31   # snow peak: pine tree canopy
-TL_CRYSTAL_WATER = 0x32  # crystal lake: animated water
-TL_LILY_PAD     = 0x33   # crystal lake: lily pad
-TL_CRYSTAL      = 0x34   # crystal lake: faceted crystal
-TL_CLOUD        = 0x35   # sunset sky: cloud
-TL_FLOATING_ISLAND = 0x36 # sunset sky: floating island
+TL_SNOW_PATH    = 0x32   # snow peak: packed snow path
+TL_CRYSTAL_WATER = 0x33  # crystal lake: animated water
+TL_LILY_PAD     = 0x34   # crystal lake: lily pad
+TL_CRYSTAL      = 0x35   # crystal lake: faceted crystal
+TL_CLOUD        = 0x36   # sunset sky: cloud
+TL_FLOATING_ISLAND = 0x37 # sunset sky: floating island
 
 # Font: A-Z at 0x40-0x59, space=0x5A, then punctuation
 TL_FONT_A     = 0x40   # A..Z = 0x40..0x59
@@ -266,12 +267,23 @@ def arrow_right():   return enc([
 ])
 
 # Biome-specific tiles
-# Snow Peak (palette 0: white/light-blue/mid-blue/dark-blue)
+# Snow Peak (palette 5: white/light-blue/mid-blue/dark-blue)
 def snow_ground(): return enc([
     [3,3,1,1,1,1,3,3],[3,1,1,2,2,1,1,3],
     [1,1,2,2,2,2,1,1],[1,2,2,1,1,2,2,1],
     [2,2,1,1,1,1,2,2],[2,1,1,2,2,1,1,2],
     [1,1,2,2,2,2,1,1],[1,1,1,1,1,1,1,1],
+])
+
+def snow_path(): return enc([
+    [0,0,0,0,0,0,0,0],  # packed snow path (white/light-blue)
+    [0,1,1,1,1,1,1,0],
+    [0,1,0,0,0,0,1,0],
+    [0,1,0,2,2,0,1,0],  # mid-blue center
+    [0,1,0,2,2,0,1,0],
+    [0,1,0,0,0,0,1,0],
+    [0,1,1,1,1,1,1,0],
+    [0,0,0,0,0,0,0,0],
 ])
 
 def ice_cliff(): return enc([
@@ -398,6 +410,7 @@ def build_tile_data():
     put(TL_ICE_CLIFF,    ice_cliff())
     put(TL_FROZEN_WATER, frozen_water())
     put(TL_PINE_TREE,    pine_tree())
+    put(TL_SNOW_PATH,    snow_path())
     for n in range(10):
         put(TL_DIGIT_0 + n, digit_tile(n))
     for c, pix in _FONT.items():

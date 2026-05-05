@@ -339,6 +339,17 @@ PINE_TREE = [
     [1,1,1,1,1,1,1,1],
 ]
 
+SNOW_PATH = [
+    [0,0,0,0,0,0,0,0],  # packed snow path
+    [0,1,1,1,1,1,1,0],
+    [0,1,0,0,0,0,1,0],
+    [0,1,0,2,2,0,1,0],
+    [0,1,0,2,2,0,1,0],
+    [0,1,0,0,0,0,1,0],
+    [0,1,1,1,1,1,1,0],
+    [0,0,0,0,0,0,0,0],
+]
+
 # Digits
 def digit_pixels(n: int):
     """Return 8x8 pixel array for digit 0-9"""
@@ -406,6 +417,7 @@ def _build_tile_map():
     TILE_PIXELS[getattr(tiles_module, 'TL_ICE_CLIFF', 0x2F)] = ICE_CLIFF
     TILE_PIXELS[getattr(tiles_module, 'TL_FROZEN_WATER', 0x30)] = FROZEN_WATER
     TILE_PIXELS[getattr(tiles_module, 'TL_PINE_TREE', 0x31)] = PINE_TREE
+    TILE_PIXELS[getattr(tiles_module, 'TL_SNOW_PATH', 0x32)] = SNOW_PATH
 
     # Digits
     digit_start = getattr(tiles_module, 'TL_DIGIT_0', 0x23)

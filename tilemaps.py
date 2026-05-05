@@ -397,7 +397,7 @@ def snow_peak_screen():
                 t[tile_idx] = TL_SNOW_GROUND
                 a[tile_idx] = 5
 
-    # Apply icy road path (frozen water tiles create visible path)
+    # Apply snow path (distinct packed snow path through the terrain)
     from road_generator import RoadGenerator
     gen = RoadGenerator()
     gen.generate()
@@ -406,7 +406,7 @@ def snow_peak_screen():
     for y in range(len(road_map)):
         for x in range(len(road_map[0])):
             if road_map[y][x]:
-                _put(t, a, x, y + 1, TL_FROZEN_WATER, 5)  # Use frozen water as icy road
+                _put(t, a, x, y + 1, TL_SNOW_PATH, 5)  # Snow path with white/light-blue border
 
     # Rock borders (mountain ridges) - palette 4 for gray rocks
     for x in range(20):
