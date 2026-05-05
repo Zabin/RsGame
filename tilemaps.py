@@ -79,12 +79,29 @@ def _horizontal_path(tiles, attrs, row=9):
         _put(tiles, attrs, x, row,   TL_PATH_TOP, 1)
         _put(tiles, attrs, x, row+1, TL_PATH_BOT, 1)
 
+def _apply_zone_roads(tiles, attrs, zone_id):
+    """Apply + shaped roads from road generator to zone tilemap."""
+    from road_generator import RoadGenerator
+    gen = RoadGenerator()
+    gen.generate()
+    road_map = gen.get_zone_road(zone_id)
+
+    # Place road tiles where road map indicates True, but only on grass (don't overwrite decorations)
+    grass_tiles = {TL_GRASS_PLAIN, TL_GRASS_TUFT, TL_GRASS_CLOVER}
+    for y in range(len(road_map)):
+        for x in range(len(road_map[0])):
+            if road_map[y][x]:
+                tile_idx = (y + 1) * W + x  # y+1 to account for score bar
+                # Only replace grass tiles with road tiles
+                if tile_idx < len(tiles) and tiles[tile_idx] in grass_tiles:
+                    _put(tiles, attrs, x, y + 1, TL_PATH, 1)
+
 # ── Zone screens ──────────────────────────────────────────────────────────
 def garden_screen():
     t, a = _blank(TL_GRASS_PLAIN, 0)
     _score_bar(t, a, "GARDEN")
     _fill_grass(t, a, 1, 18)
-    _horizontal_path(t, a, row=9)
+    _apply_zone_roads(t, a, 0)  # Zone 0 = Garden (base layer)
 
     # Tree landmarks anchoring upper and lower zones
     # Upper trees — frame the upper area
@@ -167,6 +184,7 @@ def forest_screen():
     t, a = _blank(TL_GRASS_PLAIN, 0)
     _score_bar(t, a, "FOREST")
     _fill_grass(t, a, 1, 18)
+    _apply_zone_roads(t, a, 1)  # Zone 1 = FOREST (base layer)
     # Tree walls at top and bottom edges (every 3 columns)
     for x in range(W):
         if (x + 1) % 3 == 0:
@@ -174,7 +192,6 @@ def forest_screen():
             _put(t, a, x, 2,  TL_TREE_BOT, 3)
             _put(t, a, x, 15, TL_TREE_TOP, 3)
             _put(t, a, x, 16, TL_TREE_BOT, 3)
-    _horizontal_path(t, a, row=9)
     deco = [
         (2,  5,  TL_MUSHROOM,  5), (5,  4,  TL_MUSHROOM,  5),
         (8,  6,  TL_MUSHROOM,  5), (11, 5,  TL_MUSHROOM,  5),
@@ -191,6 +208,7 @@ def meadow_screen():
     t, a = _blank(TL_GRASS_PLAIN, 0)
     _score_bar(t, a, "MEADOW")
     _fill_grass(t, a, 1, 18)
+    _apply_zone_roads(t, a, 2)  # Zone 2 = MEADOW (base layer)
     flowers = [
         (1,3,6),(3,4,5),(5,3,7),(7,4,6),(9,3,5),(11,4,7),
         (2,6,5),(6,6,6),(9,7,7),(12,6,5),(4,12,6),(8,13,7),
@@ -199,7 +217,7 @@ def meadow_screen():
     ]
     for x, y, p in flowers:
         _put(t, a, x, y, TL_BG_FLOWER, p)
-    _horizontal_path(t, a, row=9)
+    _apply_zone_roads(t, a, 2)  # Zone 2 = Meadow
     _put(t, a, 6,  5,  TL_ROCK,       4)
     _put(t, a, 13, 13, TL_ROCK_SMALL, 4)
     _put(t, a, 17, 15, TL_ROCK_SMALL, 4)
@@ -210,7 +228,7 @@ def desert_screen():
     t, a = _blank(TL_GRASS_PLAIN, 1)  # Palette 1: dirt base
     _score_bar(t, a, "DESERT")
     _fill_grass(t, a, 1, 18)
-    _horizontal_path(t, a, row=9)
+    _apply_zone_roads(t, a, 3)  # Zone 3 = DESERT (base layer)
 
     # Rock formations — desert shelter/shelter
     # Left side columns
@@ -247,7 +265,7 @@ def cave_screen():
     t, a = _blank(TL_GRASS_PLAIN, 4)  # Palette 4: gray/rock base
     _score_bar(t, a, "CAVE")
     _fill_grass(t, a, 1, 18)
-    _horizontal_path(t, a, row=9)
+    _apply_zone_roads(t, a, 4)  # Zone 4 = CAVE (base layer)
 
     # Rock walls forming cave passage
     for y in range(2, 6):
@@ -282,7 +300,7 @@ def swamp_screen():
     t, a = _blank(TL_GRASS_PLAIN, 0)  # Palette 0: grass base
     _score_bar(t, a, "SWAMP")
     _fill_grass(t, a, 1, 18)
-    _horizontal_path(t, a, row=9)
+    _apply_zone_roads(t, a, 5)  # Zone 5 = SWAMP (base layer)
 
     # Dense tree walls (swamp forest)
     for x in range(1, W, 2):
@@ -313,7 +331,7 @@ def snow_peak_screen():
     t, a = _blank(TL_GRASS_PLAIN, 0)  # Palette 0: grass/snow base
     _score_bar(t, a, "SNOW PEAK")
     _fill_grass(t, a, 1, 18)
-    _horizontal_path(t, a, row=9)
+    _apply_zone_roads(t, a, 6)  # Zone 6 = SNOW (base layer)
 
     # Sparse rock formations (mountain peaks)
     rocks = [
@@ -344,7 +362,7 @@ def crystal_lake_screen():
     t, a = _blank(TL_GRASS_PLAIN, 0)  # Palette 0: grass base
     _score_bar(t, a, "CRYSTAL LAKE")
     _fill_grass(t, a, 1, 18)
-    _horizontal_path(t, a, row=9)
+    _apply_zone_roads(t, a, 7)  # Zone 7 = CRYSTAL (base layer)
 
     # Peaceful, minimal obstacles
     # Light flower distribution (yellow and purple) — palettes 6, 7
@@ -368,7 +386,7 @@ def sunset_sky_screen():
     t, a = _blank(TL_GRASS_PLAIN, 0)  # Palette 0: grass base
     _score_bar(t, a, "SUNSET SKY")
     _fill_grass(t, a, 1, 18)
-    _horizontal_path(t, a, row=9)
+    _apply_zone_roads(t, a, 8)  # Zone 8 = SUNSET (base layer)
 
     # Vibrant celebration flowers (pink, yellow, purple) — palettes 5, 6, 7
     flowers = [
