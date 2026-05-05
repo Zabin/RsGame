@@ -104,25 +104,31 @@ class RoadGenerator:
         return self.zone_roads
 
     def _create_plus_road(self, zone_pos: Tuple[int, int]):
-        """Create + shaped road in a single zone, trimmed at grid edges."""
+        """Create + shaped road in a single zone, with dead ends trimmed."""
         zone_row, zone_col = zone_pos
         zone_roads = self.zone_roads[zone_pos]
         center_y_in_zone = CENTER_Y - SCORE_BAR_HEIGHT
 
-        # Vertical road: center column, but only in directions with adjacent zones
-        # Trim top if on top edge (row 0)
-        # Trim bottom if on bottom edge (row 2)
-        vertical_start = 0 if zone_row > 0 else 1  # Start at row 1 if top edge
-        vertical_end = self.height if zone_row < GRID_ROWS - 1 else self.height - 1  # End at height-1 if bottom edge
+        # Vertical road: draw only if there's an adjacent zone in that direction
+        # If no "up" neighbor (on perimeter or corner), start road from row 1 instead of row 0
+        # If no "down" neighbor (on perimeter or corner), end road at row height-2 instead of height-1
+        has_up = "up" in self.connections[zone_pos]
+        has_down = "down" in self.connections[zone_pos]
+
+        vertical_start = 0 if has_up else 1
+        vertical_end = self.height if has_down else self.height - 1
 
         for y in range(vertical_start, vertical_end):
             zone_roads[y][CENTER_X] = True
 
-        # Horizontal road: center row, but only in directions with adjacent zones
-        # Trim left if on left edge (col 0)
-        # Trim right if on right edge (col 2)
-        horizontal_start = 0 if zone_col > 0 else 1  # Start at col 1 if left edge
-        horizontal_end = self.width if zone_col < GRID_COLS - 1 else self.width - 1  # End at width-1 if right edge
+        # Horizontal road: draw only if there's an adjacent zone in that direction
+        # If no "left" neighbor (on perimeter or corner), start road from col 1 instead of col 0
+        # If no "right" neighbor (on perimeter or corner), end road at col width-2 instead of width-1
+        has_left = "left" in self.connections[zone_pos]
+        has_right = "right" in self.connections[zone_pos]
+
+        horizontal_start = 0 if has_left else 1
+        horizontal_end = self.width if has_right else self.width - 1
 
         for x in range(horizontal_start, horizontal_end):
             zone_roads[center_y_in_zone][x] = True
