@@ -1,0 +1,154 @@
+{
+  "narratives": {
+    "Main Campaign": {
+      "version": "1.0",
+      "scenes": {
+        "intro": {
+          "name": "Introduction",
+          "start": "greet",
+          "nodes": {
+            "greet": {
+              "text": "Welcome to Bunny Garden! I'm excited to explore.",
+              "speaker": "Sage",
+              "audio": "chime",
+              "choices": [
+                {"label": "What is this place?", "next": "explain"},
+                {"label": "Let's go!", "next": "start_quest"}
+              ]
+            },
+            "explain": {
+              "text": "This garden holds many magical gifts. Help me collect them all!",
+              "speaker": "Sage",
+              "choices": [
+                {"label": "I'll help", "next": "start_quest"},
+                {"label": "Maybe later", "next": "greet"}
+              ]
+            },
+            "start_quest": {
+              "text": "Great! Let's begin our adventure in the garden.",
+              "speaker": "Sage",
+              "audio": "pop",
+              "choices": []
+            }
+          }
+        },
+        "garden_zone": {
+          "name": "Garden Zone",
+          "start": "enter_garden",
+          "nodes": {
+            "enter_garden": {
+              "text": "Wow! The garden is beautiful. There are flowers everywhere!",
+              "speaker": "Bunny",
+              "choices": [
+                {"label": "Look for gifts", "next": "search"},
+                {"label": "Rest", "next": "rest"}
+              ]
+            },
+            "search": {
+              "text": "I found a shiny gift! This will help us on our quest.",
+              "speaker": "Bunny",
+              "audio": "collect",
+              "choices": [
+                {"label": "Keep going", "next": "enter_garden"}
+              ]
+            },
+            "rest": {
+              "text": "Ahh, this is peaceful. We can continue later.",
+              "speaker": "Bunny",
+              "choices": [
+                {"label": "Ready to continue", "next": "enter_garden"}
+              ]
+            }
+          }
+        },
+        "forest_zone": {
+          "name": "Forest Zone",
+          "start": "enter_forest",
+          "nodes": {
+            "enter_forest": {
+              "text": "The forest is mysterious and dark. I see something glowing in the distance.",
+              "speaker": "Bunny",
+              "choices": [
+                {"label": "Investigate", "next": "find_treasure"},
+                {"label": "Go back", "next": "safe"}
+              ]
+            },
+            "find_treasure": {
+              "text": "It's another gift! Even more beautiful than the first!",
+              "speaker": "Bunny",
+              "audio": "chime",
+              "choices": [
+                {"label": "Continue exploring", "next": "enter_forest"}
+              ]
+            },
+            "safe": {
+              "text": "The forest is too scary. Let's return to familiar territory.",
+              "speaker": "Bunny",
+              "choices": [
+                {"label": "Explore again", "next": "enter_forest"}
+              ]
+            }
+          }
+        },
+        "victory": {
+          "name": "Victory",
+          "start": "win",
+          "nodes": {
+            "win": {
+              "text": "We did it! We collected all the gifts! The garden is safe and beautiful!",
+              "speaker": "Sage",
+              "audio": "victory",
+              "choices": []
+            }
+          }
+        }
+      }
+    },
+    "Side Quest": {
+      "version": "1.0",
+      "scenes": {
+        "flower_finder": {
+          "name": "Find the Flowers",
+          "start": "quest_start",
+          "nodes": {
+            "quest_start": {
+              "text": "The gardener lost their favorite flowers. Can you help find them?",
+              "speaker": "Gardener",
+              "choices": [
+                {"label": "Yes, I'll help", "next": "help"},
+                {"label": "No, sorry", "next": "refuse"}
+              ]
+            },
+            "help": {
+              "text": "Thank you! Look in the sunny spots of the garden.",
+              "speaker": "Gardener",
+              "audio": "pop",
+              "choices": [
+                {"label": "Start searching", "next": "found"}
+              ]
+            },
+            "found": {
+              "text": "You found them! They were hiding under the big tree.",
+              "speaker": "Gardener",
+              "audio": "chime",
+              "choices": [
+                {"label": "Return the flowers", "next": "reward"}
+              ]
+            },
+            "reward": {
+              "text": "Here's a gift for your help!",
+              "speaker": "Gardener",
+              "audio": "collect",
+              "choices": []
+            },
+            "refuse": {
+              "text": "That's okay. Maybe another time.",
+              "speaker": "Gardener",
+              "choices": []
+            }
+          }
+        }
+      }
+    }
+  }
+}

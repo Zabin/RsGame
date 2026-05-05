@@ -1,0 +1,89 @@
+{
+  "effects": {
+    "pop": {
+      "channel": "pulse1",
+      "frequency": 131072,
+      "duration": 10,
+      "volume": 15
+    },
+    "chime": {
+      "channel": "wave",
+      "frequency": 98304,
+      "duration": 20,
+      "volume": 12
+    },
+    "collect": {
+      "channel": "pulse1",
+      "frequency": 147146,
+      "duration": 15,
+      "volume": 13
+    },
+    "hit": {
+      "channel": "pulse2",
+      "frequency": 73573,
+      "duration": 12,
+      "volume": 14
+    }
+  },
+  "songs": {
+    "title_theme": {
+      "tempo": 120,
+      "loop": false,
+      "channels": {
+        "melody": {
+          "type": "pulse1",
+          "notes": [
+            {"frequency": 131072, "duration": 30},
+            {"frequency": 147146, "duration": 30},
+            {"frequency": 165063, "duration": 30},
+            {"frequency": 147146, "duration": 30},
+            {"type": "silence", "duration": 15}
+          ]
+        },
+        "harmony": {
+          "type": "pulse2",
+          "notes": [
+            {"frequency": 65536, "duration": 30},
+            {"frequency": 73573, "duration": 30},
+            {"frequency": 82532, "duration": 30},
+            {"frequency": 73573, "duration": 30},
+            {"type": "silence", "duration": 15}
+          ]
+        }
+      }
+    },
+    "garden_ambient": {
+      "tempo": 90,
+      "loop": true,
+      "channels": {
+        "base": {
+          "type": "wave",
+          "notes": [
+            {"frequency": 49152, "duration": 60},
+            {"frequency": 55132, "duration": 60},
+            {"frequency": 49152, "duration": 60},
+            {"frequency": 41566, "duration": 60}
+          ]
+        }
+      }
+    },
+    "victory": {
+      "tempo": 140,
+      "loop": false,
+      "channels": {
+        "main": {
+          "type": "pulse1",
+          "notes": [
+            {"frequency": 147146, "duration": 20},
+            {"frequency": 165063, "duration": 20},
+            {"frequency": 196000, "duration": 40},
+            {"type": "silence", "duration": 20},
+            {"frequency": 196000, "duration": 20},
+            {"frequency": 220000, "duration": 20},
+            {"frequency": 246942, "duration": 40}
+          ]
+        }
+      }
+    }
+  }
+}
