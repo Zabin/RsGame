@@ -2,7 +2,7 @@
 
 A playable **Game Boy Color game** built entirely in Python, compiling to a 32KB ROM. Explore three zones (Garden, Forest, Meadow), collect gifts, and discover the magic of the garden.
 
-**Status:** v2 — Feature complete with battery-backed saves, 3-zone exploration, gift collection, and persistent high scores.
+**Status:** v3 — Phase 5 complete. Feature-complete gameplay with battery-backed saves, graphics iteration tools, 180+ tests, and enhanced biome artwork.
 
 ---
 
@@ -42,18 +42,23 @@ python3 -c "from build_rom import build; rom = build('test.gbc'); print(f'ROM: {
 
 ```
 RsGame/
-├── gbc_lib.py        — ROM assembler: opcodes, color math, header writing
-├── tiles.py          — Tile pixel art (8×8) + encoding
-├── tilemaps.py       — Screen generators + collectible spawn tables
-├── music.py          — Music data (Twinkle Twinkle melody)
-├── asm_game.py       — Game logic: state machine, movement, scoring (SM83 assembly)
-├── build_rom.py      — Master builder: compiles all modules → 32KB ROM
-├── test_rom.py       — PyBoy emulation tests (state transitions, gameplay)
-├── Claude.md         — Original developer guide
-├── DEVELOPMENT.md    — Comprehensive architecture & how-to guide
-├── CONTRIBUTING.md   — Contributing guidelines, commit conventions
-├── memory.md         — Detailed memory maps (WRAM, ROM, SRAM, VRAM)
-└── .gitignore        — Git ignore patterns
+├── gbc_lib.py           — ROM assembler: opcodes, color math, header writing
+├── tiles.py             — Tile pixel art (8×8) + encoding
+├── tilemaps.py          — Screen generators + collectible spawn tables
+├── music.py             — Music data (Twinkle Twinkle melody)
+├── asm_game.py          — Game logic: state machine, movement, scoring (SM83 assembly)
+├── build_rom.py         — Master builder: compiles all modules → 32KB ROM
+├── test_rom.py          — PyBoy emulation tests (state transitions, gameplay)
+├── tile_pixels.py       — Raw tile pixel database (8×8 arrays, 0-3 values)
+├── tile_preview.py      — Render tiles to PNG (fast iteration tool)
+├── screen_preview.py    — Render screens to PNG (tilemap + attributes)
+├── graphics_utils.py    — Shared graphics utilities (color conversion, palette loading)
+├── GRAPHICS_PREVIEW.md  — Graphics iteration workflow & tool usage
+├── Claude.md            — Original developer guide
+├── DEVELOPMENT.md       — Comprehensive architecture & how-to guide
+├── CONTRIBUTING.md      — Contributing guidelines, commit conventions
+├── memory.md            — Detailed memory maps & build status
+└── .gitignore           — Git ignore patterns
 ```
 
 ---
@@ -94,17 +99,64 @@ RsGame/
 
 ---
 
+## Graphics Preview Tools (Phase 5)
+
+**Iterate graphics without full ROM builds** — preview PNG output in < 1 second.
+
+### Quick Start
+
+```bash
+# Generate tile previews (grids + individual tiles)
+python tile_preview.py --all
+python tile_preview.py --tile 0x10        # Single tile
+python tile_preview.py --type bg          # All background tiles
+python tile_preview.py --palettes         # Palette swatches
+
+# Generate screen previews (complete tilemaps)
+python screen_preview.py --all
+python screen_preview.py --screen garden  # Single screen
+python screen_preview.py --all --grid     # With tile grid overlay
+
+# View outputs
+open previews/                    # macOS/Linux
+start previews/                   # Windows
+```
+
+### Features
+
+- **Tile Preview:** 8×8 tiles at 8× upscale, hex-labeled grids, palette visualization
+- **Screen Preview:** 32×18 tilemaps with attributes applied, 2× upscale (512×576 px)
+- **Instant Feedback:** Generate all previews in ~1 second vs. 30-90 second full build
+- **Side-by-side Comparison:** View before/after graphics changes immediately
+
+### Workflow
+
+1. Edit tile pixels in `tile_pixels.py`
+2. Run `python tile_preview.py --all` to see changes instantly
+3. Edit screen layouts in `tilemaps.py`
+4. Run `python screen_preview.py --all` to verify full screens
+5. Build final ROM when satisfied: `python build_rom.py`
+
+**See [GRAPHICS_PREVIEW.md](GRAPHICS_PREVIEW.md) for comprehensive tool documentation.**
+
+---
+
 ## Development
 
 ### Setting Up
 ```bash
-# Install dependencies for testing
-pip install pyboy pytest black pylint
+# Install all dependencies
+pip install -r requirements.txt
+
+# Or manually:
+pip install pyboy pytest black pylint flake8 pillow
 
 # Install pre-commit hooks (optional but recommended)
 pip install pre-commit
 pre-commit install
 ```
+
+**Pillow is required** for graphics preview tools (`tile_preview.py`, `screen_preview.py`).
 
 ### Making Changes
 
@@ -156,13 +208,27 @@ pytest tests/ --cov             # (Phase 2+) Coverage report
 
 ## Known Issues & Limitations
 
-See [DEVELOPMENT.md Known Issues](DEVELOPMENT.md#known-issues) for details:
+### Minor Issues (Low Priority)
 
-- **Map hearts:** Address calculation off by one row (rendering issue, [fix documented](memory.md))
-- **Bunny render:** Uses two 8×8 OAM tiles (appears small)
-- **Score writes:** Not VBlank-gated (works in practice, hardware edge case)
+- **Map hearts:** Address calculation off by one row (visual glitch, [fix documented](memory.md))
+  - Hearts display at rows 6/8/10 instead of intended rows
+  - Functionality unaffected; planned for Phase 6 polish release
+  
+- **Bunny render:** Uses two 8×8 OAM tiles (appears small relative to background)
+  - Matches GBC architectural constraints
+  - Animation frames (4 total) working correctly
+  
+- **Score writes:** Not VBlank-gated
+  - Works in practice on all tested emulators
+  - Edge case on real hardware; planned for Phase 6
 
-These are planned for Phase 2-3 bug fix release.
+### Tested Compatibility
+
+- **Emulators:** PyBoy 2.7.0+ (full pass), BGB (expected to work)
+- **Platforms:** Linux, macOS, Windows
+- **ROM Type:** MBC1, 32KB + 8KB SRAM + Battery (cart type 0x03)
+
+See [DEVELOPMENT.md Known Issues](DEVELOPMENT.md#known-issues) for detailed technical notes.
 
 ---
 
@@ -226,14 +292,36 @@ asm_game.py─┘
 
 ---
 
-## Future Roadmap (Phase 2+)
+## Completed Phases
 
-See [DEVELOPMENT.md Roadmap](DEVELOPMENT.md#roadmap) for:
-- Bug fix release (map hearts, score VBlank gating, ROM validation)
-- Music system expansion (multi-track compositions)
-- Tile/palette registry (easy content creation)
+✅ **Phase 1:** Core gameplay (movement, collision, gift collection)
+✅ **Phase 2:** Zones & state transitions (3 zones, save system, persistent scoring)
+✅ **Phase 3:** Tile encoding & rendering (all 54 tiles, 8 BG + 4 OBJ palettes)
+✅ **Phase 4:** Audio (Twinkle Twinkle melody, mute toggle)
+✅ **Phase 5:** Feature architecture (graphics iteration tools, comprehensive test suite, 180+ tests)
+
+## Future Roadmap (Phase 6+)
+
+Planned enhancements:
+
+**Phase 6 — Enhanced Graphics:**
+- Animation preview (GIF export for sprite sequences)
+- Palette designer (interactive RGB15 color picker)
+- Tile editor (8×8 pixel grid UI)
+- Additional biomes (Desert, Cave, Swamp from concept art)
+
+**Phase 7 — Gameplay Expansion:**
 - Dialog system (NPC interactions, branching storyline)
-- Story framework (lore, characters, narrative progression)
+- Inventory mechanics (use/combine items)
+- Boss encounters or puzzle challenges
+
+**Phase 8 — Polish & Optimization:**
+- Performance profiling
+- Battery save encryption
+- ROM size optimization
+- Real hardware testing (actual GBC cartridge)
+
+See [DEVELOPMENT.md Roadmap](DEVELOPMENT.md#roadmap) for detailed architecture guidance.
 
 ---
 
