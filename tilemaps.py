@@ -13,21 +13,23 @@ W, H = 20, 18   # BG map dimensions in tiles (160×144 pixels = visible GBC scre
 # appear in every zone. Walls/objects guide path. Minimal transitions.
 CROSS_BIOME_FLOW = {
     "journey": "Garden→Forest→Meadow→Desert→Cave→Swamp→SnowPeak→CrystalLake→SunsetSky",
-    "path_row": 9,                  # constant across ALL zones
+    "path_row": 9,                  # constant across ALL zones (row 9-10 dirt path)
     "accent_palettes": [5, 6, 7],   # pink/yellow/purple shared accent in every zone
+    "elevation_arc": "Garden(start) → Forest → Meadow → Desert → Cave(lowest) → Swamp(rising) → SnowPeak(peak) → CrystalLake → SunsetSky(return)",
     "zones": [
-        {"id": 0, "name": "GARDEN",      "palette_family": [0,5,6,7], "theme": "welcoming home - flowers, grass, gentle rocks"},
-        {"id": 1, "name": "FOREST",      "palette_family": [0,3,5,7], "theme": "wild woodland - tree corridors, mushrooms, shade"},
-        {"id": 2, "name": "MEADOW",      "palette_family": [0,5,6,7], "theme": "open field - wide sky, scattered flowers, rocks"},
-        {"id": 3, "name": "DESERT",      "palette_family": [1,4,6],   "theme": "arid waste - sand, rock walls, sparse plants"},
-        {"id": 4, "name": "CAVE",        "palette_family": [4,7],     "theme": "underground - stone corridors, mineral accents"},
-        {"id": 5, "name": "SWAMP",       "palette_family": [0,3,5],   "theme": "murky wetland - dense flora, mushroom walls"},
-        {"id": 6, "name": "SNOW_PEAK",   "palette_family": [0,4,7],   "theme": "icy summit - white, crystal formations, sparse"},
-        {"id": 7, "name": "CRYSTAL_LAKE","palette_family": [0,6,7],   "theme": "ethereal water - light, reflective, peaceful"},
-        {"id": 8, "name": "SUNSET_SKY",  "palette_family": [5,6,7],   "theme": "warm return - golden light, home on horizon"},
+        {"id": 0, "name": "GARDEN",       "palette_family": [0,5,6,7], "theme": "welcoming home - flowers, grass, gentle rocks", "elevation": "start"},
+        {"id": 1, "name": "FOREST",       "palette_family": [0,3,5,7], "theme": "wild woodland - tree corridors, mushrooms, shade", "elevation": "gentle descent"},
+        {"id": 2, "name": "MEADOW",       "palette_family": [0,5,6,7], "theme": "open field - wide sky, scattered flowers, rocks", "elevation": "descent"},
+        {"id": 3, "name": "DESERT",       "palette_family": [1,4,6],   "theme": "arid waste - sand, rock walls, sparse plants", "elevation": "steep descent"},
+        {"id": 4, "name": "CAVE",         "palette_family": [4,7],     "theme": "underground - stone corridors, mineral accents", "elevation": "lowest point"},
+        {"id": 5, "name": "SWAMP",        "palette_family": [0,3,5],   "theme": "murky wetland - dense flora, mushroom walls", "elevation": "ascending"},
+        {"id": 6, "name": "SNOW_PEAK",    "palette_family": [0,4,7],   "theme": "icy summit - white, crystal formations, sparse", "elevation": "peak"},
+        {"id": 7, "name": "CRYSTAL_LAKE", "palette_family": [0,6,7],   "theme": "ethereal water - light, reflective, peaceful", "elevation": "high plateau"},
+        {"id": 8, "name": "SUNSET_SKY",   "palette_family": [5,6,7],   "theme": "warm return - golden light, home on horizon", "elevation": "return home"},
     ],
     "design_rules": {
-        "walls": "Cluster rocks/trees to create corridors guiding player along path row",
+        "vertical_flow": "Path (row 9-10) visually connects upper decorations (rows 1-8) to lower decorations (rows 11-17)",
+        "walls": "Cluster rocks/trees to create corridors guiding player along path row, especially at path edges",
         "accents": "Pink(5) yellow(6) purple(7) flowers appear in EVERY zone as connecting thread",
         "breathing_room": "25-30% plain grass - avoid cluttering every tile",
         "clustering": "Group same tiles together - NOT scattered randomly",
@@ -84,45 +86,76 @@ def garden_screen():
     _fill_grass(t, a, 1, 18)
     _horizontal_path(t, a, row=9)
 
-    # Tree landmarks (top, bot pairs) — scaled for 20-tile width
-    for tx, ty in [(2, 2), (10, 3), (17, 13)]:
-        _put(t, a, tx,   ty,   TL_TREE_TOP, 3)
-        _put(t, a, tx,   ty+1, TL_TREE_BOT, 3)
+    # Tree landmarks anchoring upper and lower zones
+    # Upper trees — frame the upper area
+    _put(t, a, 2,  2,  TL_TREE_TOP, 3)
+    _put(t, a, 2,  3,  TL_TREE_BOT, 3)
+    _put(t, a, 17, 2,  TL_TREE_TOP, 3)
+    _put(t, a, 17, 3,  TL_TREE_BOT, 3)
+    # Lower tree — anchor lower area
+    _put(t, a, 10, 15, TL_TREE_TOP, 3)
+    _put(t, a, 10, 16, TL_TREE_BOT, 3)
 
-    # Rock walls — clusters flanking path to guide player
-    for rx, ry in [
-        (1, 7), (1, 8),                    # left wall above path entrance
-        (1, 11),(1, 12),                   # left wall below path exit
-        (11, 7),(11, 8),                   # mid wall above path
-        (18, 11),(18, 12),                 # right wall below path
-        (5, 5),(6, 5),                     # upper cluster left
-        (15, 13),(16, 13),                 # lower cluster right
-    ]:
-        _put(t, a, rx, ry, TL_ROCK, 4)
+    # Rock wall anchors — frame the path from above and below, create visual "gateway"
+    # Left side: upper and lower anchors
+    _put(t, a, 0, 7,  TL_ROCK, 4)
+    _put(t, a, 0, 8,  TL_ROCK, 4)
+    _put(t, a, 0, 11, TL_ROCK, 4)
+    _put(t, a, 0, 12, TL_ROCK, 4)
+    # Right side: upper and lower anchors
+    _put(t, a, 19, 7,  TL_ROCK, 4)
+    _put(t, a, 19, 8,  TL_ROCK, 4)
+    _put(t, a, 19, 11, TL_ROCK, 4)
+    _put(t, a, 19, 12, TL_ROCK, 4)
 
-    for rx, ry in [(3,8),(8,8),(14,8),(4,11),(12,11),(19,7)]:
-        _put(t, a, rx, ry, TL_ROCK_SMALL, 4)
+    # Small rock clusters connecting upper area to path
+    # Left side flow down to path
+    _put(t, a, 3, 5,  TL_ROCK_SMALL, 4)
+    _put(t, a, 3, 6,  TL_ROCK_SMALL, 4)
+    _put(t, a, 3, 7,  TL_ROCK, 4)
+    # Right side flow down to path
+    _put(t, a, 16, 5,  TL_ROCK_SMALL, 4)
+    _put(t, a, 16, 6,  TL_ROCK_SMALL, 4)
+    _put(t, a, 16, 7,  TL_ROCK, 4)
 
-    # Flower beds — pink(5) yellow(6) purple(7) throughout
+    # Small rock clusters connecting path to lower area
+    # Left side flow from path
+    _put(t, a, 3, 12, TL_ROCK, 4)
+    _put(t, a, 3, 13, TL_ROCK_SMALL, 4)
+    # Right side flow from path
+    _put(t, a, 16, 12, TL_ROCK, 4)
+    _put(t, a, 16, 13, TL_ROCK_SMALL, 4)
+
+    # Flower beds — create vertical pathways of pink/yellow/purple through the zone
     flowers = [
-        # Upper-left bed
-        (3,2,5),(4,2,5),(3,3,5),(4,3,6),
-        # Upper-center
-        (8,2,6),(9,2,7),(8,3,6),
-        # Upper-right
-        (14,2,7),(15,2,7),(14,3,6),
-        # Near path above — guidance accents
-        (5,6,5),(6,6,6),(12,6,7),(13,6,5),(17,6,6),
-        # Near path below — mirrored accents
-        (4,12,6),(5,12,7),(11,12,5),(12,12,6),(17,12,5),
-        # Lower-left bed
-        (2,14,5),(3,14,6),(2,15,7),
-        # Lower-center
-        (9,15,6),(10,15,5),(9,16,7),
-        # Lower-right bed
-        (15,15,7),(16,15,5),(15,16,6),
-        # Scattered singles for texture
-        (6,4,7),(11,5,6),(19,3,5),(7,16,5),(13,17,7),
+        # Upper-left corner cluster (above path)
+        (4,2,5),(5,2,5),(4,3,6),(5,3,6),
+        # Upper-right corner cluster (above path)
+        (14,2,7),(15,2,7),(14,3,6),(15,3,5),
+        # Upper-center accent (rows 4-5, above path)
+        (8,4,5),(9,4,6),(10,4,7),(9,5,5),
+
+        # Path frame flowers — directly adjacent to path (rows 6-7 above, rows 11-12 below)
+        # Left side above path
+        (5,6,5),(6,7,6),(7,7,5),
+        # Right side above path
+        (12,6,7),(13,6,5),(13,7,6),
+        # Center above path
+        (10,6,6),(10,7,7),
+
+        # Left side below path
+        (5,12,6),(6,11,5),(7,11,6),
+        # Right side below path
+        (12,12,5),(13,12,6),(13,11,7),
+        # Center below path
+        (10,11,7),(10,12,5),
+
+        # Lower-left corner cluster (below path)
+        (2,14,5),(3,14,6),(4,14,5),(2,15,7),
+        # Lower-right corner cluster (below path)
+        (15,14,7),(16,14,6),(17,14,5),(16,15,7),
+        # Lower-center cluster (below path)
+        (8,16,6),(9,16,5),(10,15,7),(11,16,6),
     ]
     for x, y, p in flowers:
         _put(t, a, x, y, TL_BG_FLOWER, p)
