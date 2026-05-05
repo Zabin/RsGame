@@ -484,10 +484,14 @@ def build_game_asm(rom: ROM) -> dict:
     rom.RET()
 
     # ── update_score_disp ────────────────────────────────────────────────
-    # Writes 3 digit tiles to BG map row 0 cols 8,9,10 (during VBlank window)
+    # Writes 3 digit tiles to BG map row 0 cols 8,9,10 (VBlank-gated)
     rom.label('update_score_disp')
     rom.LD_A_nn(SCORE_DIRTY); rom.OR_A(); rom.RET_Z()
     rom.LD_A_nn(GAMESTATE); rom.CP_n(GS_PLAYING); rom.RET_NZ()
+
+    # Check VBlank: only write during VBlank (LY >= 144)
+    rom.LDH_A_n(LY); rom.CP_n(144); rom.RET_C()
+
     rom.XOR_A(); rom.LD_nn_A(SCORE_DIRTY)
     rom.LD_A_nn(SCORE); rom.LD_B_A()
 

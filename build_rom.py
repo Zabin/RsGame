@@ -123,10 +123,27 @@ def build(out_path='/mnt/user-data/outputs/BunnyGarden.gbc'):
     total = rom.pos
     print(f"Total used:   0x{total:04X} ({total} bytes of 32768)")
 
+    # ROM overflow check
+    if total > 32768:
+        raise Exception(f"❌ ROM OVERFLOW: {total} bytes exceeds 32KB limit (32768 bytes)")
+    headroom = 32768 - total
+    print(f"Headroom:     {headroom} bytes available for expansion")
+
     # ── 3. Patch all addresses into code ─────────────────────────────────
     def p16(pos, v):
         rom.data[pos]   = v & 0xFF
         rom.data[pos+1] = (v >> 8) & 0xFF
+
+    # Validate all patch points exist before patching
+    required_patches = [
+        'tile_src', 'bg_pal', 'obj_pal', 'mus_lo', 'mus_hi', 'mus_reset',
+        'title_t', 'title_a', 'intro_t', 'intro_a', 'save_t', 'save_a',
+        'map_t', 'map_a', 'vic_t', 'vic_a', 'gar_t', 'gar_a',
+        'for_t', 'for_a', 'mea_t', 'mea_a', 'zc_table'
+    ]
+    for patch_name in required_patches:
+        if patch_name not in patches:
+            raise Exception(f"❌ PATCH POINT MISSING: '{patch_name}' not found in game code")
 
     p16(patches['tile_src'], tile_addr)
     p16(patches['bg_pal'],   bg_pal_addr)
@@ -152,6 +169,8 @@ def build(out_path='/mnt/user-data/outputs/BunnyGarden.gbc'):
     p16(patches['mea_t'],   screen_addrs['meadow'][0])
     p16(patches['mea_a'],   screen_addrs['meadow'][1])
     p16(patches['zc_table'], zc_table_addr)
+
+    print("✅ All patch points verified and applied")
 
     # ── 4. Resolve labels + write header ────────────────────────────────
     rom.resolve()
