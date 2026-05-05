@@ -386,18 +386,27 @@ def swamp_screen():
 
 
 def snow_peak_screen():
-    t, a = _blank(TL_GRASS_PLAIN, 0)  # Start with grass for road placement
+    t, a = _blank(TL_SNOW_GROUND, 5)  # Snow Peak base: custom snow ground
     _score_bar(t, a, "SNOW PEAK")
-    _fill_grass(t, a, 1, 18)
-    _apply_zone_roads(t, a, 6)  # Zone 6 = SNOW PEAK - places brown dirt road
 
-    # Convert grass to snow ground (except where roads are)
+    # Fill snowy terrain
     for y in range(1, 18):
         for x in range(20):
             tile_idx = y * 20 + x
-            if t[tile_idx] in {TL_GRASS_PLAIN, TL_GRASS_TUFT, TL_GRASS_CLOVER}:
+            if t[tile_idx] == TL_SNOW_GROUND:
                 t[tile_idx] = TL_SNOW_GROUND
                 a[tile_idx] = 5
+
+    # Apply icy road path (frozen water tiles create visible path)
+    from road_generator import RoadGenerator
+    gen = RoadGenerator()
+    gen.generate()
+    road_map = gen.get_zone_road(6)  # Zone 6 = SNOW PEAK
+
+    for y in range(len(road_map)):
+        for x in range(len(road_map[0])):
+            if road_map[y][x]:
+                _put(t, a, x, y + 1, TL_FROZEN_WATER, 5)  # Use frozen water as icy road
 
     # Rock borders (mountain ridges) - palette 4 for gray rocks
     for x in range(20):
