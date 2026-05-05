@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+*.egg
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# IDE & Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Emulator & Build outputs
+*.gbc
+*.sav
+*.ram
+test_shots/
+BunnyGarden.gbc
+BunnyGarden_CI.gbc
+
+# Test & Coverage
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+test-results.txt
+
+# Temporary files
+*.tmp
+*.bak
