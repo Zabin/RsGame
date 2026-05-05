@@ -466,24 +466,56 @@ def snow_peak_screen():
 
 
 def crystal_lake_screen():
-    t, a = _blank(TL_GRASS_PLAIN, 0)  # Palette 0: grass base
+    t, a = _blank(TL_CRYSTAL_WATER, 6)  # Crystal Lake: water base with palette 6
     _score_bar(t, a, "CRYSTAL LAKE")
-    _fill_grass(t, a, 1, 18)
-    _apply_zone_roads(t, a, 7)  # Zone 7 = CRYSTAL (base layer)
 
-    # Peaceful, minimal obstacles
-    # Light flower distribution (yellow and purple) — palettes 6, 7
-    flowers = [
-        (2, 3, 6), (5, 4, 7), (8, 3, 6), (11, 4, 7), (14, 3, 6), (17, 4, 7),
-        (3, 7, 7), (10, 6, 6), (17, 7, 7),
-        (4, 13, 6), (7, 12, 7), (10, 14, 6), (13, 12, 7), (16, 13, 6),
-        (2, 16, 7), (9, 15, 6), (16, 16, 7),
+    # Fill water terrain
+    for y in range(1, 18):
+        for x in range(20):
+            tile_idx = y * 20 + x
+            if t[tile_idx] == TL_CRYSTAL_WATER:
+                t[tile_idx] = TL_CRYSTAL_WATER
+                a[tile_idx] = 6
+
+    # Apply crystalline path through water
+    from road_generator import RoadGenerator
+    gen = RoadGenerator()
+    gen.generate()
+    road_map = gen.get_zone_road(7)  # Zone 7 = CRYSTAL LAKE
+
+    for y in range(len(road_map)):
+        for x in range(len(road_map[0])):
+            if road_map[y][x]:
+                _put(t, a, x, y + 1, TL_CRYSTAL_PATH, 6)
+
+    # Lily pads scattered throughout - peaceful and minimal
+    lily_pads = [
+        (2, 3), (5, 4),
+        (15, 4), (18, 3),
+        (3, 8), (17, 8),
+        (2, 13), (7, 12),
+        (13, 12), (18, 13),
+        (5, 16), (10, 15),
+        (15, 16),
     ]
-    for x, y, p in flowers:
-        _put(t, a, x, y, TL_BG_FLOWER, p)
+    for lx, ly in lily_pads:
+        if ly < 18 and lx < 20:
+            idx = ly * 20 + lx
+            if t[idx] != TL_CRYSTAL_PATH:
+                _put(t, a, lx, ly, TL_LILY_PAD, 6)
 
-    # Small rock accent (reflective stones)
-    _put(t, a, 10, 10, TL_ROCK_SMALL, 4)
+    # Crystal formations (faceted crystals) - visual landmarks
+    crystals = [
+        (10, 2),
+        (4, 6), (16, 6),
+        (8, 11), (12, 11),
+        (10, 16),
+    ]
+    for cx, cy in crystals:
+        if cy < 18 and cx < 20:
+            idx = cy * 20 + cx
+            if t[idx] != TL_CRYSTAL_PATH:
+                _put(t, a, cx, cy, TL_CRYSTAL, 6)
 
     _put(t, a, 18, 8, TL_ARROW, 2)
     return t, a

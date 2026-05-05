@@ -34,6 +34,8 @@ ROCK_L     = _c(22,22,24); ROCK_M  = _c(15,15,17); ROCK_D  = _c( 9, 9,11)
 TREE_L     = _c( 9,17, 7); TREE_M  = _c( 5,12, 4); TREE_D  = _c( 2, 7, 2)
 # Snow palette (white/light-blue/mid-blue/dark-blue)
 SNOW_W     = _c(31,31,30); SNOW_L   = _c(26,28,31); SNOW_M  = _c(18,22,28); SNOW_D  = _c(10,14,20)
+# Crystal Lake palette (white/light-cyan/mid-blue/dark-blue water)
+CRYS_W     = _c(31,31,31); CRYS_L   = _c(20,30,31); CRYS_M  = _c(10,20,28); CRYS_D  = _c(4,12,20)
 # Accent: pink, yellow, purple
 PNK_L      = _c(31,22,26); PNK_M   = _c(28,12,20); PNK_D   = _c(20, 4,12)
 YEL_L      = _c(31,30,14); YEL_M   = _c(31,26, 0); YEL_D   = _c(24,16, 0)
@@ -47,7 +49,7 @@ BG_PALETTES = [
     [SKY,   TREE_L,  TREE_M,  TREE_D ],   # 3 trees
     [SKY,   ROCK_L,  ROCK_M,  ROCK_D ],   # 4 rocks
     [SNOW_W, SNOW_L, SNOW_M,  SNOW_D ],   # 5 snow peak
-    [SKY,   YEL_L,   YEL_M,   YEL_D  ],   # 6 yellow accent
+    [CRYS_W, CRYS_L, CRYS_M,  CRYS_D ],   # 6 crystal lake
     [BG_W,  PUR_L,   PUR_M,   PUR_D  ],   # 7 purple accent
 ]
 OBJ_PALETTES = [

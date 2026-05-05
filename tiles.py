@@ -58,8 +58,9 @@ TL_SNOW_PATH    = 0x32   # snow peak: packed snow path
 TL_CRYSTAL_WATER = 0x33  # crystal lake: animated water
 TL_LILY_PAD     = 0x34   # crystal lake: lily pad
 TL_CRYSTAL      = 0x35   # crystal lake: faceted crystal
-TL_CLOUD        = 0x36   # sunset sky: cloud
-TL_FLOATING_ISLAND = 0x37 # sunset sky: floating island
+TL_CRYSTAL_PATH = 0x36   # crystal lake: crystalline path
+TL_CLOUD        = 0x37   # sunset sky: cloud
+TL_FLOATING_ISLAND = 0x38 # sunset sky: floating island
 
 # Font: A-Z at 0x40-0x59, space=0x5A, then punctuation
 TL_FONT_A     = 0x40   # A..Z = 0x40..0x59
@@ -307,6 +308,51 @@ def pine_tree(): return enc([
     [2,2,1,1,1,1,2,2],[1,1,1,1,1,1,1,1],
 ])
 
+# Crystal Lake (palette 6: white/light-cyan/mid-blue/dark-blue water)
+def crystal_water(): return enc([
+    [2,1,2,1,2,1,2,1],  # rippling water pattern
+    [1,2,1,2,1,2,1,2],
+    [2,1,3,1,3,1,2,1],  # mid-blue ripples
+    [1,2,1,3,1,3,1,2],
+    [2,1,2,1,2,1,2,1],
+    [1,2,1,2,1,2,1,2],
+    [2,1,3,1,3,1,2,1],
+    [1,2,1,3,1,3,1,2],
+])
+
+def lily_pad(): return enc([
+    [0,0,2,2,2,2,0,0],  # lily pad floating on water
+    [0,2,1,1,1,1,2,0],
+    [2,1,1,3,3,1,1,2],
+    [2,1,3,3,3,3,1,2],
+    [2,1,3,3,3,3,1,2],
+    [2,1,1,3,3,1,1,2],
+    [0,2,1,1,1,1,2,0],
+    [0,0,2,2,2,2,0,0],
+])
+
+def crystal_gem(): return enc([
+    [0,0,0,3,3,0,0,0],  # faceted crystal
+    [0,0,3,1,1,3,0,0],
+    [0,3,1,2,2,1,3,0],
+    [3,1,2,2,2,2,1,3],
+    [3,1,2,2,2,2,1,3],
+    [0,3,1,2,2,1,3,0],
+    [0,0,3,1,1,3,0,0],
+    [0,0,0,3,3,0,0,0],
+])
+
+def crystal_path(): return enc([
+    [0,0,0,0,0,0,0,0],  # crystalline path
+    [0,1,1,1,1,1,1,0],
+    [0,1,0,2,2,0,1,0],
+    [0,1,2,3,3,2,1,0],
+    [0,1,2,3,3,2,1,0],
+    [0,1,0,2,2,0,1,0],
+    [0,1,1,1,1,1,1,0],
+    [0,0,0,0,0,0,0,0],
+])
+
 # Digits
 _DIG = [
     [[0,1,1,1,1,0,0,0],[1,2,2,2,2,1,0,0],[1,2,1,1,2,1,0,0],[1,2,1,1,2,1,0,0],
@@ -411,6 +457,10 @@ def build_tile_data():
     put(TL_FROZEN_WATER, frozen_water())
     put(TL_PINE_TREE,    pine_tree())
     put(TL_SNOW_PATH,    snow_path())
+    put(TL_CRYSTAL_WATER, crystal_water())
+    put(TL_LILY_PAD,     lily_pad())
+    put(TL_CRYSTAL,      crystal_gem())
+    put(TL_CRYSTAL_PATH, crystal_path())
     for n in range(10):
         put(TL_DIGIT_0 + n, digit_tile(n))
     for c, pix in _FONT.items():

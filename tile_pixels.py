@@ -350,6 +350,51 @@ SNOW_PATH = [
     [0,0,0,0,0,0,0,0],
 ]
 
+# Crystal Lake Biome Tiles
+CRYSTAL_WATER = [
+    [2,1,2,1,2,1,2,1],  # rippling water
+    [1,2,1,2,1,2,1,2],
+    [2,1,3,1,3,1,2,1],
+    [1,2,1,3,1,3,1,2],
+    [2,1,2,1,2,1,2,1],
+    [1,2,1,2,1,2,1,2],
+    [2,1,3,1,3,1,2,1],
+    [1,2,1,3,1,3,1,2],
+]
+
+LILY_PAD = [
+    [0,0,2,2,2,2,0,0],  # lily pad
+    [0,2,1,1,1,1,2,0],
+    [2,1,1,3,3,1,1,2],
+    [2,1,3,3,3,3,1,2],
+    [2,1,3,3,3,3,1,2],
+    [2,1,1,3,3,1,1,2],
+    [0,2,1,1,1,1,2,0],
+    [0,0,2,2,2,2,0,0],
+]
+
+CRYSTAL_GEM = [
+    [0,0,0,3,3,0,0,0],  # faceted crystal
+    [0,0,3,1,1,3,0,0],
+    [0,3,1,2,2,1,3,0],
+    [3,1,2,2,2,2,1,3],
+    [3,1,2,2,2,2,1,3],
+    [0,3,1,2,2,1,3,0],
+    [0,0,3,1,1,3,0,0],
+    [0,0,0,3,3,0,0,0],
+]
+
+CRYSTAL_PATH = [
+    [0,0,0,0,0,0,0,0],  # crystalline path
+    [0,1,1,1,1,1,1,0],
+    [0,1,0,2,2,0,1,0],
+    [0,1,2,3,3,2,1,0],
+    [0,1,2,3,3,2,1,0],
+    [0,1,0,2,2,0,1,0],
+    [0,1,1,1,1,1,1,0],
+    [0,0,0,0,0,0,0,0],
+]
+
 # Digits
 def digit_pixels(n: int):
     """Return 8x8 pixel array for digit 0-9"""
@@ -418,6 +463,10 @@ def _build_tile_map():
     TILE_PIXELS[getattr(tiles_module, 'TL_FROZEN_WATER', 0x30)] = FROZEN_WATER
     TILE_PIXELS[getattr(tiles_module, 'TL_PINE_TREE', 0x31)] = PINE_TREE
     TILE_PIXELS[getattr(tiles_module, 'TL_SNOW_PATH', 0x32)] = SNOW_PATH
+    TILE_PIXELS[getattr(tiles_module, 'TL_CRYSTAL_WATER', 0x33)] = CRYSTAL_WATER
+    TILE_PIXELS[getattr(tiles_module, 'TL_LILY_PAD', 0x34)] = LILY_PAD
+    TILE_PIXELS[getattr(tiles_module, 'TL_CRYSTAL', 0x35)] = CRYSTAL_GEM
+    TILE_PIXELS[getattr(tiles_module, 'TL_CRYSTAL_PATH', 0x36)] = CRYSTAL_PATH
 
     # Digits
     digit_start = getattr(tiles_module, 'TL_DIGIT_0', 0x23)
