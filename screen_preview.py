@@ -57,8 +57,8 @@ def render_screen(screen_name: str, upscale: int = 2) -> Optional[Image.Image]:
     base_width, base_height = 160, 144
     tile_size = 8
 
-    # Create base image
-    img = Image.new("RGB", (base_width, base_height), "white")
+    # Create base image with transparency
+    img = Image.new("RGBA", (base_width, base_height), (0, 0, 0, 0))
 
     # Render each tile
     for y in range(18):
@@ -87,18 +87,18 @@ def render_screen(screen_name: str, upscale: int = 2) -> Optional[Image.Image]:
             # Apply palette
             rgb_pixels = apply_palette(pixels, palette)
 
-            # Create tile image (8x8)
-            tile_img = Image.new("RGB", (tile_size, tile_size))
+            # Create tile image (8x8) with transparency
+            tile_img = Image.new("RGBA", (tile_size, tile_size))
             pixel_data = []
             for row in rgb_pixels:
                 for rgb in row:
-                    pixel_data.append(rgb)
+                    pixel_data.append(rgb + (255,))  # Add alpha channel (fully opaque)
             tile_img.putdata(pixel_data)
 
             # Paste into screen
             screen_x = x * tile_size
             screen_y = y * tile_size
-            img.paste(tile_img, (screen_x, screen_y))
+            img.paste(tile_img, (screen_x, screen_y), tile_img)  # Use tile_img as mask for alpha
 
     # Upscale
     if upscale != 1:

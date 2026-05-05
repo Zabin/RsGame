@@ -193,22 +193,29 @@ def garden_screen():
         (8, 16, 5), (9, 16, 7), (10, 16, 6),  # Pink, purple, yellow
     ]
 
-    # Apply all flower clusters
+    # Apply all flower clusters (skip if road tile)
     all_flowers = (upper_left_flowers + upper_right_flowers + upper_center_flowers +
                    lower_left_flowers + lower_right_flowers + lower_center_flowers)
 
     for x, y, p in all_flowers:
-        _put(t, a, x, y, TL_BG_FLOWER, p)
+        tile_idx = (y + 1) * W + x  # Account for score bar
+        if tile_idx < len(t) and t[tile_idx] != TL_PATH:  # Don't overlap roads
+            _put(t, a, x, y, TL_BG_FLOWER, p)
 
     # ── FOUNTAIN FEATURE: Bottom left quadrant ────────────────────────────────────
     # Fountain center (using rock as base - decorative accent)
-    _put(t, a, 2, 14, TL_ROCK, 4)
-    _put(t, a, 2, 13, TL_ROCK_SMALL, 4)
-    _put(t, a, 1, 14, TL_ROCK_SMALL, 4)
-    _put(t, a, 3, 13, TL_ROCK_SMALL, 4)
+    fountain_tiles = [(2, 14), (2, 13), (1, 14), (3, 13)]
+    for x, y in fountain_tiles:
+        tile_idx = (y + 1) * W + x
+        if tile_idx < len(t) and t[tile_idx] != TL_PATH:
+            _put(t, a, x, y, TL_ROCK_SMALL, 4)
+
     # Flowers around fountain for welcoming feel
-    _put(t, a, 1, 12, TL_BG_FLOWER, 5)  # Pink
-    _put(t, a, 3, 12, TL_BG_FLOWER, 6)  # Yellow
+    fountain_flowers = [(1, 12, 5), (3, 12, 6)]
+    for x, y, p in fountain_flowers:
+        tile_idx = (y + 1) * W + x
+        if tile_idx < len(t) and t[tile_idx] != TL_PATH:
+            _put(t, a, x, y, TL_BG_FLOWER, p)
 
     # ── PATH FRAMING: Accent flowers directly adjacent to main path ────────────────
     # Just above path (row 8)
@@ -224,7 +231,9 @@ def garden_screen():
     ]
 
     for x, y, p in path_frame_upper + path_frame_lower:
-        _put(t, a, x, y, TL_BG_FLOWER, p)
+        tile_idx = (y + 1) * W + x
+        if tile_idx < len(t) and t[tile_idx] != TL_PATH:
+            _put(t, a, x, y, TL_BG_FLOWER, p)
 
     _put(t, a, 18, 8, TL_ARROW, 2)   # zone-exit hint
     return t, a
