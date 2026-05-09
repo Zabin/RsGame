@@ -26,12 +26,9 @@ ENV/
 .DS_Store
 
 # Emulator & Build outputs
-*.gbc
 *.sav
 *.ram
 test_shots/
-BunnyGarden.gbc
-BunnyGarden_CI.gbc
 
 # Test & Coverage
 .coverage
