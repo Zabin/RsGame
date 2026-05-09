@@ -84,18 +84,21 @@ def build_game_asm(rom: ROM) -> dict:
     rom.XOR_A(); rom.LDH_n_A(LCDC)
 
     # Clear WRAM C000-C2FF
-    rom.LD_HL_nn(0xC000); rom.LD_BC_nn(0x0300); rom.XOR_A()
-    rom.label('cw'); rom.LD_HLI_A(); rom.DEC_BC()
+    # NB: re-zero A each iteration; the BC==0 check clobbers A via LD A,B.
+    rom.LD_HL_nn(0xC000); rom.LD_BC_nn(0x0300)
+    rom.label('cw')
+    rom.XOR_A(); rom.LD_HLI_A(); rom.DEC_BC()
     rom.LD_A_B(); rom.OR_C(); rom.JR_NZ('cw')
 
     # Clear shadow OAM
     rom.LD_HL_nn(OAM_BUF); rom.LD_B_n(160); rom.XOR_A()
     rom.label('coam'); rom.LD_HLI_A(); rom.DEC_B(); rom.JR_NZ('coam')
 
-    # Clear VRAM bank 0
+    # Clear VRAM bank 0 (same A-clobber caveat — re-zero each iter)
     rom.XOR_A(); rom.LDH_n_A(VBK)
-    rom.LD_HL_nn(0x8000); rom.LD_BC_nn(0x2000); rom.XOR_A()
-    rom.label('cv'); rom.LD_HLI_A(); rom.DEC_BC()
+    rom.LD_HL_nn(0x8000); rom.LD_BC_nn(0x2000)
+    rom.label('cv')
+    rom.XOR_A(); rom.LD_HLI_A(); rom.DEC_BC()
     rom.LD_A_B(); rom.OR_C(); rom.JR_NZ('cv')
 
     # Copy tile data → 0x8000
@@ -140,7 +143,7 @@ def build_game_asm(rom: ROM) -> dict:
     # Try load save
     rom.CALL('try_load_save')
 
-    rom.LD_A_n(0x93); rom.LDH_n_A(LCDC)
+    rom.LD_A_n(0x97); rom.LDH_n_A(LCDC)   # 0x97 = LCD on + 8x16 OBJ
     rom.LD_A_n(0x01); rom.LD_nn_A(0xFFFF)
     rom.EI()
 
@@ -443,22 +446,14 @@ def build_game_asm(rom: ROM) -> dict:
 
     rom.LD_A_nn(GAMESTATE); rom.CP_n(GS_PLAYING); rom.RET_NZ()
 
-    # Bunny head
+    # Bunny — single 8x16 OBJ (tile pair = head + body, frame * 2)
     rom.LD_HL_nn(OAM_BUF)
-    rom.LD_A_nn(PLAYER_Y); rom.ADD_A_n(16); rom.LD_HLI_A()
-    rom.LD_A_nn(PLAYER_X); rom.ADD_A_n(8);  rom.LD_HLI_A()
-    rom.LD_A_nn(PLAYER_FRAME); rom.ADD_A_A(); rom.LD_HLI_A()
+    rom.LD_A_nn(PLAYER_Y); rom.ADD_A_n(16); rom.LD_HLI_A()    # OAM Y
+    rom.LD_A_nn(PLAYER_X); rom.ADD_A_n(8);  rom.LD_HLI_A()    # OAM X
+    rom.LD_A_nn(PLAYER_FRAME); rom.ADD_A_A(); rom.LD_HLI_A()  # tile (0 or 2)
     rom.LD_A_nn(PLAYER_DIR)
-    rom.RRCA(); rom.RRCA(); rom.RRCA(); rom.AND_n(0x20)
-    rom.LD_HLI_A()
-
-    # Bunny body
-    rom.LD_A_nn(PLAYER_Y); rom.ADD_A_n(24); rom.LD_HLI_A()
-    rom.LD_A_nn(PLAYER_X); rom.ADD_A_n(8);  rom.LD_HLI_A()
-    rom.LD_A_nn(PLAYER_FRAME); rom.ADD_A_A(); rom.ADD_A_n(1); rom.LD_HLI_A()
-    rom.LD_A_nn(PLAYER_DIR)
-    rom.RRCA(); rom.RRCA(); rom.RRCA(); rom.AND_n(0x20)
-    rom.LD_HLI_A()
+    rom.RRCA(); rom.RRCA(); rom.RRCA(); rom.AND_n(0x20)        # dir → x-flip
+    rom.LD_HLI_A()                                              # attr (palette 0)
 
     # Collectibles
     rom.LD_A_nn(COLL_COUNT); rom.OR_A(); rom.RET_Z()
@@ -590,7 +585,7 @@ def build_game_asm(rom: ROM) -> dict:
     rom.JP('dsr_done')
 
     rom.label('dsr_done')
-    rom.LD_A_n(0x93); rom.LDH_n_A(LCDC)
+    rom.LD_A_n(0x97); rom.LDH_n_A(LCDC)   # re-enable LCD + 8x16 OBJ
     rom.RET()
 
     # ── copy_screen: DE=tile_src, BC=attr_src ─────────────

@@ -16,15 +16,15 @@ def enc(pix):
     return out
 
 # ── tile index constants ────────────────────────────────────────
-# OBJ tiles 0x00-0x07
-TL_BUNNY_T_F1  = 0x00
+# OBJ tiles 0x00-0x09 (8x16 mode: each sprite uses tile N + tile N+1)
+TL_BUNNY_T_F1  = 0x00   # bunny head F1, body at 0x01
 TL_BUNNY_B_F1  = 0x01
-TL_BUNNY_T_F2  = 0x02
+TL_BUNNY_T_F2  = 0x02   # bunny head F2 (same head art), body F2 walks
 TL_BUNNY_B_F2  = 0x03
-TL_CARROT      = 0x04   # the goal collectible (one per zone)
-TL_STAR        = 0x05   # bonus point collectible
-TL_FLOWER_OBJ  = 0x06   # bonus point collectible
-TL_CURSOR      = 0x07
+TL_CARROT      = 0x04   # carrot art at 0x04, blank bottom at 0x05
+TL_BLANK_OBJ   = 0x05
+TL_STAR        = 0x06   # star art at 0x06, blank bottom at 0x07
+TL_FLOWER_OBJ  = 0x08   # flower art at 0x08, blank bottom at 0x09
 
 # UI tiles 0x10-0x1F
 TL_BG_BLANK     = 0x10
@@ -128,34 +128,34 @@ def char_to_tile(c):
 # ── pixel art ──────────────────────────────────────────────────
 # Bunny — OBJ pal 0: 0=transparent 1=white 2=light-pink 3=hot-pink
 def bunny_top_f1(): return enc([
-    [0,3,0,0,3,0,0,0],
-    [0,3,2,0,3,2,0,0],
-    [0,3,2,0,3,2,0,0],
-    [0,0,3,3,3,3,0,0],
-    [0,3,1,1,1,1,3,0],
-    [3,1,3,1,1,3,1,3],
-    [3,1,1,2,2,1,1,3],
+    [0,3,3,0,0,3,3,0],   # tall ears
+    [0,3,2,3,3,2,3,0],
+    [3,3,2,3,3,2,3,3],
+    [3,1,3,3,3,3,1,3],   # head top
+    [3,1,1,1,1,1,1,3],
+    [3,1,3,1,1,3,1,3],   # eyes
+    [3,2,1,2,2,1,2,3],   # cheeks + nose
     [0,3,1,1,1,1,3,0],
 ])
 def bunny_bot_f1(): return enc([
-    [0,3,1,1,1,1,1,3],
+    [0,3,1,1,1,1,3,0],   # neck
     [3,1,1,2,2,1,1,3],
+    [3,1,2,2,2,2,1,3],   # belly
     [3,1,2,2,2,2,1,3],
     [3,1,1,2,2,1,1,3],
-    [3,1,3,1,1,3,1,3],
-    [0,3,3,0,0,3,3,0],
-    [0,3,3,0,0,3,3,0],
-    [0,3,1,0,0,1,3,0],
+    [0,3,1,1,1,1,3,0],
+    [0,3,3,0,0,3,3,0],   # both legs grounded
+    [3,3,1,0,0,1,3,3],
 ])
 def bunny_bot_f2(): return enc([
-    [0,3,1,1,1,1,1,3],
+    [0,3,1,1,1,1,3,0],
     [3,1,1,2,2,1,1,3],
     [3,1,2,2,2,2,1,3],
+    [3,1,2,2,2,2,1,3],
     [3,1,1,2,2,1,1,3],
-    [3,1,3,1,1,3,1,3],
-    [0,3,1,3,3,1,3,0],
-    [0,0,3,0,0,3,0,0],
-    [0,0,1,0,0,1,0,0],
+    [0,3,1,1,1,1,3,0],
+    [3,3,3,0,0,3,3,3],   # legs splayed (walking)
+    [3,1,0,0,0,0,1,3],
 ])
 
 # Carrot OBJ — pal 3: black/lite-orange/orange/dark-green
@@ -901,7 +901,10 @@ def build_tile_data():
     put(TL_CARROT,     carrot_obj())
     put(TL_STAR,       star_obj())
     put(TL_FLOWER_OBJ, flower_obj())
-    put(TL_CURSOR,     star_obj())
+    # 8x16 OBJ mode: write blank "bottom half" tiles at 0x05, 0x07, 0x09
+    put(TL_BLANK_OBJ,  ui_blank())
+    put(0x07,          ui_blank())
+    put(0x09,          ui_blank())
 
     # UI
     put(TL_BG_BLANK,     ui_blank())
