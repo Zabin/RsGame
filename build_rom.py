@@ -79,9 +79,7 @@ def build(out_path='BunnyGarden.gbc'):
     # 1. Emit all game code, get patch-point addresses back
     patches = build_game_asm(rom)
 
-    # Pad code section to 0x0800 boundary
-    while rom.pos % 0x100:
-        rom.emit(0)
+    # Code section (no specific boundary requirement, tiles load from wherever they are)
     print(f"Code end:     0x{rom.pos:04X}")
 
     # ── 2. Data sections (order matters for the addresses we patch in) ────

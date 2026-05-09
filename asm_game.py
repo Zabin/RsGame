@@ -398,11 +398,11 @@ def build_game_asm(rom: ROM) -> dict:
 
     # ── check_zone_transition (3×3 grid navigation) ───────────────────────
     rom.label('check_zone_transition')
-    # Check RIGHT (X >= 156): move to (row, col+1) if col < 2
+    # Check RIGHT (X >= 156): move to (row, col+1) if col < 3
     rom.LD_A_nn(PLAYER_X); rom.CP_n(156)
     rom.JR_C('czt_check_left')
     rom.LD_A_nn(CUR_ZONE); rom.LD_B_A()
-    rom.LD_A_B(); rom.AND_n(3); rom.CP_n(2); rom.JR_NC('czt_check_left')
+    rom.LD_A_B(); rom.AND_n(3); rom.CP_n(3); rom.JR_NC('czt_check_left')
     rom.LD_A_B(); rom.INC_A(); rom.LD_nn_A(CUR_ZONE)
     rom.LD_A_n(8); rom.LD_nn_A(PLAYER_X)
     rom.LD_A_n(GS_PLAYING); rom.LD_nn_A(TRANSITION_TO)
