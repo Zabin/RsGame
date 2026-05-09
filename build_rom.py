@@ -1,62 +1,69 @@
 #!/usr/bin/env python3
 """
-build_rom.py — Master build script for Bunny Garden Adventure GBC ROM.
+build_rom.py — Master build script for Bunny Quest GBC ROM.
 
-Edit OTHER files to change content:
+Wires together:
   tiles.py    → tile graphics
-  tilemaps.py → screen layouts + collectible positions
+  tilemaps.py → 9-zone screen layouts + collectible positions
   music.py    → music data
-  asm_game.py → game logic (SM83 assembly)
-  gbc_lib.py  → ROM assembler class (rarely needs editing)
+  asm_game.py → game logic (SM83 assembly) for 3x3 grid
 
-This file only:
-  1. Creates the ROM object
-  2. Calls build_game_asm() to emit code
-  3. Appends all data sections
-  4. Patches in the addresses
-  5. Writes the .gbc file
+Output: BunnyQuest.gbc
 """
-
-import sys
+import os, sys
 from gbc_lib import ROM, rgb15
-from tiles   import build_tile_data
+from tiles    import build_tile_data
 from tilemaps import ALL_SCREENS, ZONE_COLLECTS
-from music   import music_data
+from music    import music_data
 from asm_game import build_game_asm
 
-# ── Palette definitions (edit colors here) ──────────────────────────────
 def _c(r,g,b): return rgb15(r,g,b)
 
-# Natural greens / browns / grays
-SKY        = _c(28,30,26); GRASS_L = _c(18,26,12); GRASS_M = _c(12,21, 8); GRASS_D = _c( 6,14, 4)
-DIRT_L     = _c(26,19,11); DIRT_M  = _c(20,13, 6); DIRT_D  = _c(13, 8, 3)
-ROCK_L     = _c(22,22,24); ROCK_M  = _c(15,15,17); ROCK_D  = _c( 9, 9,11)
-TREE_L     = _c( 9,17, 7); TREE_M  = _c( 5,12, 4); TREE_D  = _c( 2, 7, 2)
-# Accent: pink, yellow, purple
-PNK_L      = _c(31,22,26); PNK_M   = _c(28,12,20); PNK_D   = _c(20, 4,12)
-YEL_L      = _c(31,30,14); YEL_M   = _c(31,26, 0); YEL_D   = _c(24,16, 0)
-PUR_L      = _c(22,14,30); PUR_M   = _c(15, 6,24); PUR_D   = _c( 8, 2,16)
-WHITE      = _c(31,31,31); BG_W    = _c(30,30,28); BLACK   = _c( 0, 0, 0)
+# ── BG palette colors ──────────────────────────────────────
+# Pal 0: lush grass (sky / lite-green / mid-green / dark-green)
+SKY      = _c(28,30,26); G_LITE = _c(18,28,12); G_MID = _c(10,22, 6); G_DARK = _c( 4,14, 4)
+# Pal 1: sand/dirt (sky / pale-sand / sand / brown)
+S_LITE   = _c(31,28,18); S_MID  = _c(28,21, 8); S_DARK = _c(20,12, 2)
+# Pal 2: UI dark-purple / white / lite-yellow / gold
+UI_BG    = _c( 4, 2,12); UI_W   = _c(31,31,31); UI_YL = _c(31,30,12); UI_GD = _c(28,20, 0)
+# Pal 3: water (sky / lite-blue / blue / navy)
+W_LITE   = _c(20,28,31); W_MID  = _c( 8,16,28); W_DARK = _c( 2, 6,16)
+# Pal 4: stone/cave (light-gray / gray / dark-gray / near-black)
+R_LITE   = _c(24,24,26); R_MID  = _c(14,14,18); R_DARK = _c( 6, 6,10)
+# Pal 5: brick/red (lite-pink / red / dark-red / near-black)
+B_LITE   = _c(31,18,16); B_MID  = _c(24, 6, 8); B_DARK = _c(14, 2, 4)
+# Pal 6: tree/leaf (lite-green / green / dark-green / brown)
+T_LITE   = _c(14,24, 8); T_MID  = _c( 6,18, 4); T_DARK = _c( 8, 6, 2)
+# Pal 7: accent purple/magenta (lite / magenta / purple / dark)
+P_LITE   = _c(26,18,30); P_MID  = _c(18, 6,24); P_DARK = _c(10, 2,16)
+
+WHITE = _c(31,31,31); BLACK = _c(0,0,0)
+
+# OBJ palette colors
+OB_LITE_PNK = _c(31,22,26); OB_HOT_PNK = _c(28, 4,16)
+OB_LITE_YEL = _c(31,30,12); OB_GOLD    = _c(28,18, 0)
+OB_LITE_PUR = _c(28,18,30); OB_PURPLE  = _c(16, 4,24)
+OB_LITE_ORG = _c(31,22,12); OB_ORANGE  = _c(28,12, 4); OB_LEAF = _c( 8,18, 2)
 
 BG_PALETTES = [
-    [SKY,   GRASS_L, GRASS_M, GRASS_D],   # 0 grass
-    [SKY,   DIRT_L,  DIRT_M,  DIRT_D ],   # 1 dirt
-    [PUR_D, BG_W,    YEL_L,   YEL_M  ],   # 2 UI / text
-    [SKY,   TREE_L,  TREE_M,  TREE_D ],   # 3 trees
-    [SKY,   ROCK_L,  ROCK_M,  ROCK_D ],   # 4 rocks
-    [SKY,   PNK_L,   PNK_M,   PNK_D  ],   # 5 pink accent
-    [SKY,   YEL_L,   YEL_M,   YEL_D  ],   # 6 yellow accent
-    [BG_W,  PUR_L,   PUR_M,   PUR_D  ],   # 7 purple accent
+    [SKY,    G_LITE, G_MID,  G_DARK],   # 0 grass
+    [SKY,    S_LITE, S_MID,  S_DARK],   # 1 sand/dirt
+    [UI_BG,  UI_W,   UI_YL,  UI_GD ],   # 2 UI / gold
+    [SKY,    W_LITE, W_MID,  W_DARK],   # 3 water
+    [SKY,    R_LITE, R_MID,  R_DARK],   # 4 stone
+    [SKY,    B_LITE, B_MID,  B_DARK],   # 5 brick / red
+    [SKY,    T_LITE, T_MID,  T_DARK],   # 6 tree / leaf
+    [SKY,    P_LITE, P_MID,  P_DARK],   # 7 accent purple
 ]
 OBJ_PALETTES = [
-    [BLACK, BG_W,  PNK_L, PNK_D],   # 0 bunny
-    [BLACK, YEL_L, YEL_M, YEL_D],   # 1 star
-    [BLACK, PNK_L, PNK_M, PNK_D],   # 2 flower
-    [BLACK, YEL_L, PUR_M, PUR_D],   # 3 gift
-    [BLACK, WHITE, PNK_M, PNK_D],   # 4 cursor (unused)
-    [BLACK, WHITE, WHITE, WHITE ],   # 5-7 unused
-    [BLACK, WHITE, WHITE, WHITE ],
-    [BLACK, WHITE, WHITE, WHITE ],
+    [BLACK, WHITE,       OB_LITE_PNK, OB_HOT_PNK ],   # 0 bunny
+    [BLACK, OB_LITE_YEL, OB_GOLD,     OB_PURPLE  ],   # 1 star
+    [BLACK, OB_LITE_PNK, OB_HOT_PNK,  OB_PURPLE  ],   # 2 flower
+    [BLACK, OB_LITE_ORG, OB_ORANGE,   OB_LEAF    ],   # 3 carrot
+    [BLACK, WHITE,       OB_LITE_PNK, OB_HOT_PNK ],   # 4 unused / cursor
+    [BLACK, WHITE,       WHITE,       WHITE      ],
+    [BLACK, WHITE,       WHITE,       WHITE      ],
+    [BLACK, WHITE,       WHITE,       WHITE      ],
 ]
 
 def _pal_bytes(pals):
@@ -66,25 +73,22 @@ def _pal_bytes(pals):
             out.append(c & 0xFF); out.append((c >> 8) & 0xFF)
     return bytes(out)
 
-# ── Build ────────────────────────────────────────────────────────────────
-def build(out_path='/mnt/user-data/outputs/BunnyGarden.gbc'):
+# ── Build ──────────────────────────────────────────────────
+def build(out_path='BunnyQuest.gbc'):
     rom = ROM(32768)
 
-    # 1. Emit all game code, get patch-point addresses back
     patches = build_game_asm(rom)
 
-    # Pad code section to 0x0800 boundary
+    # Pad code to next 0x100 boundary
     while rom.pos % 0x100:
         rom.emit(0)
     print(f"Code end:     0x{rom.pos:04X}")
 
-    # ── 2. Data sections (order matters for the addresses we patch in) ────
-
-    # Tile data (256 × 16 bytes = 4096)
+    # Tile data
     tile_addr = rom.pos
     for b in build_tile_data(): rom.emit(b)
 
-    # BG + OBJ palettes
+    # Palettes
     bg_pal_addr  = rom.pos
     for b in _pal_bytes(BG_PALETTES):  rom.emit(b)
     obj_pal_addr = rom.pos
@@ -94,7 +98,7 @@ def build(out_path='/mnt/user-data/outputs/BunnyGarden.gbc'):
     music_addr = rom.pos
     for b in music_data(): rom.emit(b)
 
-    # All screens (tile tilemap + attr tilemap, 576 bytes each)
+    # Screens (zones first, then UI)
     screen_addrs = {}
     for name, fn in ALL_SCREENS:
         tiles, attrs = fn()
@@ -105,17 +109,23 @@ def build(out_path='/mnt/user-data/outputs/BunnyGarden.gbc'):
         screen_addrs[name] = (t_addr, a_addr)
         print(f"  {name:8s}: T=0x{t_addr:04X} A=0x{a_addr:04X}")
 
-    # Zone collectible tables
-    # Each zone: [count, x0,y0,t0,0, x1,y1,t1,0, ...]
+    # Zone screens lookup table (9 entries × 4 bytes: tile_lo, tile_hi, attr_lo, attr_hi)
+    zs_table_addr = rom.pos
+    for i in range(9):
+        t_addr, a_addr = screen_addrs[f'z{i}']
+        rom.emit(t_addr & 0xFF, (t_addr >> 8) & 0xFF)
+        rom.emit(a_addr & 0xFF, (a_addr >> 8) & 0xFF)
+    print(f"  zs_table: 0x{zs_table_addr:04X}")
+
+    # Zone collectibles tables
     zone_data_addrs = []
     for clist in ZONE_COLLECTS:
         addr = rom.pos
         rom.emit(len(clist))
         for (x, y, t) in clist:
-            rom.emit(x, y, t, 0)   # trailing 0 = source "active" placeholder
+            rom.emit(x, y, t, 0)
         zone_data_addrs.append(addr)
 
-    # Zone lookup table: 3 × 2-byte pointers
     zc_table_addr = rom.pos
     for a in zone_data_addrs:
         rom.emit(a & 0xFF, (a >> 8) & 0xFF)
@@ -123,7 +133,7 @@ def build(out_path='/mnt/user-data/outputs/BunnyGarden.gbc'):
     total = rom.pos
     print(f"Total used:   0x{total:04X} ({total} bytes of 32768)")
 
-    # ── 3. Patch all addresses into code ─────────────────────────────────
+    # Patch addresses
     def p16(pos, v):
         rom.data[pos]   = v & 0xFF
         rom.data[pos+1] = (v >> 8) & 0xFF
@@ -145,19 +155,13 @@ def build(out_path='/mnt/user-data/outputs/BunnyGarden.gbc'):
     p16(patches['map_a'],   screen_addrs['map'][1])
     p16(patches['vic_t'],   screen_addrs['victory'][0])
     p16(patches['vic_a'],   screen_addrs['victory'][1])
-    p16(patches['gar_t'],   screen_addrs['garden'][0])
-    p16(patches['gar_a'],   screen_addrs['garden'][1])
-    p16(patches['for_t'],   screen_addrs['forest'][0])
-    p16(patches['for_a'],   screen_addrs['forest'][1])
-    p16(patches['mea_t'],   screen_addrs['meadow'][0])
-    p16(patches['mea_a'],   screen_addrs['meadow'][1])
+
+    p16(patches['zs_table'], zs_table_addr)
     p16(patches['zc_table'], zc_table_addr)
 
-    # ── 4. Resolve labels + write header ────────────────────────────────
     rom.resolve()
-    rom.set_header("BUNNYGARDEN", cart=0x03, rsize=0x00, ramsize=0x02)
+    rom.set_header("BUNNYQUEST", cart=0x03, rsize=0x00, ramsize=0x02)
 
-    # ── 5. Write file ────────────────────────────────────────────────────
     with open(out_path, 'wb') as f:
         f.write(rom.data)
     print(f"Wrote {len(rom.data)} bytes → {out_path}")
@@ -165,5 +169,5 @@ def build(out_path='/mnt/user-data/outputs/BunnyGarden.gbc'):
 
 
 if __name__ == '__main__':
-    out = sys.argv[1] if len(sys.argv) > 1 else '/mnt/user-data/outputs/BunnyGarden.gbc'
+    out = sys.argv[1] if len(sys.argv) > 1 else 'BunnyQuest.gbc'
     build(out)
