@@ -71,11 +71,14 @@ class TestVramInit:
 class TestZoneNavigation:
     """Verify zone navigation supports full 3×3 grid."""
 
-    def test_zone_right_boundary_allows_col_2(self, rom_data):
-        """Right boundary check must allow col 2 (zones 2, 5, 8) to remain accessible.
+    def test_zone_right_boundary_prevents_row_wrap(self, rom_data):
+        """Right boundary check must prevent wrapping from col 2 to col 0 of next row.
 
-        BUG HISTORY: Original check `if (zone & 3) >= 2` blocked navigation TO col 2.
-        Fixed check is `if (zone & 3) >= 3` which allows zones 0,1,2 in any row.
+        For a proper 3×3 grid with LEFT/RIGHT/UP/DOWN navigation:
+        - Boundary 2: if (zone & 3) >= 2, don't navigate right
+          * Prevents zone 2 → zone 3 (which would be row 1, col 0)
+          * Keeps rows separate; UP/DOWN nav moves between rows
+        - UP/DOWN navigation handles row transitions
         """
         # The check is: AND 3; CP n  (where n is the boundary)
         # Pattern: 0xE6 0x03 (AND 3) 0xFE 0x?? (CP n)
@@ -86,11 +89,11 @@ class TestZoneNavigation:
                 and rom_data[i + 2] == 0xFE
             ):
                 boundary = rom_data[i + 3]
-                # 2 = old buggy value (only zones in cols 0, 1 reachable)
-                # 3 = correct value (zones in cols 0, 1, 2 all reachable)
-                assert boundary >= 3, (
-                    f"Zone column boundary CP {boundary} restricts grid to {boundary} cols. "
-                    f"Should be 3 to allow full 3×3 zone navigation."
+                # 2 = correct value (prevents wrapping between rows)
+                # With UP/DOWN nav, all 9 zones are fully accessible
+                assert boundary == 2, (
+                    f"Zone column boundary CP {boundary} is incorrect. "
+                    f"Should be 2 to prevent wrapping from col 2 to row 1, col 0."
                 )
                 return
         pytest.fail("Zone boundary check (AND 3; CP n) not found in ROM")
