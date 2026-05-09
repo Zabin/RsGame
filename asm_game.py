@@ -16,19 +16,20 @@ PLAYER_FRAME = 0xC004   # 0 or 1
 ANIM_CTR     = 0xC005   # animation frame counter
 SCORE        = 0xC006   # 0-99
 SCORE_DIRTY  = 0xC007   # 1=needs redisplay
-CUR_ZONE     = 0xC008   # 0=garden 1=forest 2=meadow
-GIFTS        = 0xC009   # bitfield: bit0=zone0 bit1=zone1 bit2=zone2
-NEED_REDRAW  = 0xC00A   # 1=full screen reload next frame
-TRANSITION_TO= 0xC00B   # next GAMESTATE when NEED_REDRAW fires
-JOY_CUR      = 0xC00C   # current joypad (active HIGH, see bit map below)
-JOY_PREV     = 0xC00D   # previous frame joypad
-JOY_NEW      = 0xC00E   # newly-pressed = JOY_CUR & ~JOY_PREV
-MUSIC_CTR    = 0xC00F   # frames until next note
-MUSIC_PTR_LO = 0xC010   # ROM ptr to current music byte (lo)
-MUSIC_PTR_HI = 0xC011   # ROM ptr to current music byte (hi)
-VBLANK_FLAG  = 0xC012   # set by ISR, cleared by main loop
-TMP1         = 0xC013   # scratch
-TMP2         = 0xC014   # scratch
+CUR_ZONE     = 0xC008   # 0-8: zone index (0=garden...8=sunset_sky)
+GIFTS        = 0xC009   # bitfield: bit0-7 for zones 0-7
+GIFTS_HI     = 0xC00A   # bitfield: bit0 for zone 8
+NEED_REDRAW  = 0xC00B   # 1=full screen reload next frame
+TRANSITION_TO= 0xC00C   # next GAMESTATE when NEED_REDRAW fires
+JOY_CUR      = 0xC00D   # current joypad (active HIGH, see bit map below)
+JOY_PREV     = 0xC00E   # previous frame joypad
+JOY_NEW      = 0xC00F   # newly-pressed = JOY_CUR & ~JOY_PREV
+MUSIC_CTR    = 0xC010   # frames until next note
+MUSIC_PTR_LO = 0xC011   # ROM ptr to current music byte (lo)
+MUSIC_PTR_HI = 0xC012   # ROM ptr to current music byte (hi)
+VBLANK_FLAG  = 0xC013   # set by ISR, cleared by main loop
+TMP1         = 0xC014   # scratch
+TMP2         = 0xC015   # scratch
 COLL_DATA    = 0xC020   # array of (x,y,type,active) — 4 bytes each, up to 9
 COLL_COUNT   = 0xC050   # number of entries in COLL_DATA
 OAM_BUF      = 0xC300   # shadow OAM (160 bytes), DMA'd each VBlank

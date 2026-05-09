@@ -105,6 +105,78 @@ def meadow_screen():
     _put(t, a, 14, 13, TL_ROCK_SMALL, 4)
     return t, a
 
+def desert_screen():
+    t, a = _blank(TL_GRASS_PLAIN, 1)  # sandy color
+    _score_bar(t, a, "DESERT")
+    for y in range(1, 18):
+        for x in range(W):
+            h = (y * 7 + x * 13 + 5) % 16
+            t_tile = TL_GRASS_PLAIN if h < 12 else TL_GRASS_TUFT
+            _put(t, a, x, y, t_tile, 1)
+    _horizontal_path(t, a, row=9)
+    rocks = [(2,3), (8,5), (14,3), (5,13), (11,14), (18,12)]
+    for x, y in rocks:
+        _put(t, a, x, y, TL_ROCK, 4)
+    _put(t, a, 18, 8, TL_ARROW, 2)
+    return t, a
+
+def cave_screen():
+    t, a = _blank(TL_GRASS_PLAIN, 4)  # rocky color
+    _score_bar(t, a, "CAVE")
+    for y in range(1, 18):
+        for x in range(W):
+            h = (y * 11 + x * 7 + 3) % 16
+            t_tile = TL_ROCK if h < 10 else TL_ROCK_SMALL
+            _put(t, a, x, y, t_tile, 4)
+    _horizontal_path(t, a, row=9)
+    _put(t, a, 18, 8, TL_ARROW, 2)
+    return t, a
+
+def swamp_screen():
+    t, a = _blank(TL_GRASS_PLAIN, 0)
+    _score_bar(t, a, "SWAMP")
+    _fill_grass(t, a, 1, 18)
+    _horizontal_path(t, a, row=9)
+    # Swamp has mushrooms and darker tone
+    mushrooms = [(3,3), (7,4), (12,3), (16,5), (4,13), (10,14), (15,13)]
+    for x, y in mushrooms:
+        _put(t, a, x, y, TL_MUSHROOM, 5)
+    _put(t, a, 18, 8, TL_ARROW, 2)
+    return t, a
+
+def snow_peak_screen():
+    t, a = _blank(TL_GRASS_PLAIN, 5)  # snowy white
+    _score_bar(t, a, "SNOW")
+    _fill_grass(t, a, 1, 18)
+    _horizontal_path(t, a, row=9)
+    rocks = [(3,4), (9,3), (14,5), (6,12), (15,14)]
+    for x, y in rocks:
+        _put(t, a, x, y, TL_ROCK, 4)
+    _put(t, a, 18, 8, TL_ARROW, 2)
+    return t, a
+
+def crystal_lake_screen():
+    t, a = _blank(TL_GRASS_PLAIN, 6)  # cyan water
+    _score_bar(t, a, "LAKE")
+    _fill_grass(t, a, 1, 18)
+    _horizontal_path(t, a, row=9)
+    rocks = [(2,5), (10,4), (16,6), (5,13), (13,14)]
+    for x, y in rocks:
+        _put(t, a, x, y, TL_ROCK_SMALL, 4)
+    _put(t, a, 18, 8, TL_ARROW, 2)
+    return t, a
+
+def sunset_sky_screen():
+    t, a = _blank(TL_GRASS_PLAIN, 7)  # warm sunset
+    _score_bar(t, a, "SUNSET")
+    _fill_grass(t, a, 1, 18)
+    _horizontal_path(t, a, row=9)
+    rocks = [(4,4), (11,3), (17,5), (6,14), (14,13)]
+    for x, y in rocks:
+        _put(t, a, x, y, TL_ROCK, 4)
+    _put(t, a, 18, 8, TL_ARROW, 2)
+    return t, a
+
 # ── Menu/story screens ────────────────────────────────────────────────────
 def title_screen():
     t, a = _blank(TL_BG_BLANK, 2)
@@ -174,14 +246,20 @@ def victory_screen():
 
 # All 8 screens as (name, function) for build_rom to iterate
 ALL_SCREENS = [
-    ("garden",  garden_screen),
-    ("forest",  forest_screen),
-    ("meadow",  meadow_screen),
-    ("title",   title_screen),
-    ("intro",   intro_screen),
-    ("save",    save_screen),
-    ("map",     map_screen),
-    ("victory", victory_screen),
+    ("garden",       garden_screen),
+    ("forest",       forest_screen),
+    ("meadow",       meadow_screen),
+    ("desert",       desert_screen),
+    ("cave",         cave_screen),
+    ("swamp",        swamp_screen),
+    ("snow_peak",    snow_peak_screen),
+    ("crystal_lake", crystal_lake_screen),
+    ("sunset_sky",   sunset_sky_screen),
+    ("title",        title_screen),
+    ("intro",        intro_screen),
+    ("save",         save_screen),
+    ("map",          map_screen),
+    ("victory",      victory_screen),
 ]
 
 # ── Collectibles per zone ─────────────────────────────────────────────────
@@ -203,4 +281,34 @@ ZONE_COLLECTS = [
     [(24, 40, 1), (56, 32, 0), (88, 40, 1), (120, 32, 0), (152, 40, 1),
      (40, 104, 0), (88, 104, 1), (136, 104, 0),
      (136, 64, 2)],            # gift: top-right area
+
+    # Zone 3 — Desert
+    [(32, 40, 0), (72, 48, 1), (120, 40, 0),
+     (56, 104, 1), (112, 104, 0),
+     (80, 80, 2)],             # gift: center area
+
+    # Zone 4 — Cave
+    [(40, 32, 1), (88, 40, 0), (136, 32, 1),
+     (48, 104, 0), (112, 104, 1),
+     (144, 64, 2)],            # gift: right area
+
+    # Zone 5 — Swamp
+    [(24, 48, 1), (64, 40, 0), (112, 48, 1), (144, 40, 0),
+     (40, 104, 0), (104, 96, 1),
+     (96, 72, 2)],             # gift: center area
+
+    # Zone 6 — Snow Peak
+    [(32, 40, 0), (80, 48, 1), (128, 40, 0),
+     (56, 104, 1), (120, 104, 0),
+     (120, 88, 2)],            # gift: right-center area
+
+    # Zone 7 — Crystal Lake
+    [(24, 40, 1), (72, 32, 0), (120, 40, 1), (152, 32, 0),
+     (48, 104, 0), (112, 104, 1),
+     (64, 80, 2)],             # gift: left-center area
+
+    # Zone 8 — Sunset Sky
+    [(40, 32, 0), (88, 40, 1), (136, 32, 0),
+     (56, 104, 1), (120, 104, 0),
+     (144, 88, 2)],            # gift: right area
 ]
