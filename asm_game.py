@@ -93,7 +93,13 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_HL_nn(OAM_BUF); rom.LD_B_n(160); rom.XOR_A()
     rom.label('coam'); rom.LD_HLI_A(); rom.DEC_B(); rom.JR_NZ('coam')
 
-    # Clear VRAM bank 0
+    # Clear VRAM bank 1 (BG attribute map; prevents stale BG-OAM priority bits hiding sprites)
+    rom.LD_A_n(1); rom.LDH_n_A(VBK)
+    rom.LD_HL_nn(0x8000); rom.LD_BC_nn(0x2000); rom.XOR_A()
+    rom.label('cv1'); rom.LD_HLI_A(); rom.DEC_BC()
+    rom.LD_A_B(); rom.OR_C(); rom.JR_NZ('cv1')
+
+    # Clear VRAM bank 0 (tile data + tilemap)
     rom.XOR_A(); rom.LDH_n_A(VBK)
     rom.LD_HL_nn(0x8000); rom.LD_BC_nn(0x2000); rom.XOR_A()
     rom.label('cv'); rom.LD_HLI_A(); rom.DEC_BC()
@@ -130,7 +136,7 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_n(0x77); rom.LDH_n_A(NR50)
     rom.LD_A_n(0xFF); rom.LDH_n_A(NR51)
     rom.LD_A_n(0x80); rom.LDH_n_A(NR11)   # 50% duty square
-    rom.LD_A_n(0xD2); rom.LDH_n_A(NR12)   # volume 0xD, no envelope decay
+    rom.LD_A_n(0xF0); rom.LDH_n_A(NR12)   # initial volume 0xF, envelope period 0 (no decay)
 
     # Init music pointer (patched by build_rom.py)
     rom.LD_A_n(0); patches['mus_lo'] = rom.pos - 1
