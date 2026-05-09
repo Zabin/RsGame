@@ -38,16 +38,6 @@ SNOW_W     = _c(31,31,30); SNOW_L   = _c(26,28,31); SNOW_M  = _c(18,22,28); SNOW
 CRYS_W     = _c(31,31,31); CRYS_L   = _c(20,30,31); CRYS_M  = _c(10,20,28); CRYS_D  = _c(4,12,20)
 # Sunset Sky palette (white/orange/pink/red warm colors)
 SUNS_W     = _c(31,31,31); SUNS_O   = _c(31,24,12); SUNS_P  = _c(31,16,16); SUNS_R  = _c(24,8,4)
-# Meadow palette (white/light-green/mid-green/dark-green - open grassland)
-MEAD_W     = _c(31,31,31); MEAD_L   = _c(24,28,18); MEAD_M  = _c(16,22,10); MEAD_D  = _c(8,14,4)
-# Forest palette (white/dark-green/mid-green/dark-brown - dense woodland)
-FORE_W     = _c(31,31,31); FORE_L   = _c(12,18,8); FORE_M  = _c(8,12,4); FORE_D  = _c(12,8,4)
-# Desert palette (white/light-tan/mid-tan/dark-tan - sandy dunes)
-DESE_W     = _c(31,31,31); DESE_L   = _c(28,24,16); DESE_M  = _c(24,18,10); DESE_D  = _c(18,12,4)
-# Cave palette (white/light-gray/mid-gray/dark-gray - underground caverns)
-CAVE_W     = _c(31,31,31); CAVE_L   = _c(20,20,22); CAVE_M  = _c(14,14,16); CAVE_D  = _c(8,8,10)
-# Swamp palette (white/light-green/murky-green/dark-green - wetland marsh)
-SWMP_W     = _c(31,31,31); SWMP_L   = _c(18,24,14); SWMP_M  = _c(10,16,8); SWMP_D  = _c(4,10,2)
 # Accent: pink, yellow, purple
 PNK_L      = _c(31,22,26); PNK_M   = _c(28,12,20); PNK_D   = _c(20, 4,12)
 YEL_L      = _c(31,30,14); YEL_M   = _c(31,26, 0); YEL_D   = _c(24,16, 0)
@@ -63,11 +53,6 @@ BG_PALETTES = [
     [SNOW_W, SNOW_L, SNOW_M,  SNOW_D ],   # 5 snow peak
     [CRYS_W, CRYS_L, CRYS_M,  CRYS_D ],   # 6 crystal lake
     [SUNS_W, SUNS_O, SUNS_P,  SUNS_R ],   # 7 sunset sky
-    [MEAD_W, MEAD_L, MEAD_M,  MEAD_D ],   # 8 meadow
-    [FORE_W, FORE_L, FORE_M,  FORE_D ],   # 9 forest
-    [DESE_W, DESE_L, DESE_M,  DESE_D ],   # 10 desert
-    [CAVE_W, CAVE_L, CAVE_M,  CAVE_D ],   # 11 cave
-    [SWMP_W, SWMP_L, SWMP_M,  SWMP_D ],   # 12 swamp
 ]
 OBJ_PALETTES = [
     [BLACK, BG_W,  PNK_L, PNK_D],   # 0 bunny

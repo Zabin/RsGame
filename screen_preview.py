@@ -47,23 +47,25 @@ def render_screen(screen_name: str, upscale: int = 2) -> Optional[Image.Image]:
         print(f"ERROR rendering {screen_name}: {e}")
         return None
 
-    expected_size = 20 * 18  # 360 bytes (20 wide x 18 tall)
+    expected_size = 32 * 18  # 576 bytes (VRAM_W=32 wide x 18 tall)
     if not tiles or not attrs or len(tiles) != expected_size or len(attrs) != expected_size:
         return None
 
-    # Screen is 20x18 tiles, 8x8 pixels each
+    # Screen is 20 visible tiles x 18 rows, 8x8 pixels each
+    # VRAM map is 32 tiles wide but only 20 are visible on GBC screen
     # Base size: 160x144 pixels (standard GBC screen)
     # Upscaled: 320x288 pixels (2x)
     base_width, base_height = 160, 144
     tile_size = 8
+    vram_w = 32  # VRAM stride
 
-    # Create base image with transparency
-    img = Image.new("RGBA", (base_width, base_height), (0, 0, 0, 0))
+    # Create base image (RGB, black background)
+    img = Image.new("RGB", (base_width, base_height), (0, 0, 0))
 
-    # Render each tile
+    # Render each visible tile (20 wide x 18 tall)
     for y in range(18):
         for x in range(20):
-            idx = y * 20 + x
+            idx = y * vram_w + x  # use VRAM stride for indexing
             tile_id = tiles[idx]
             pal_id = attrs[idx]
 
@@ -87,18 +89,15 @@ def render_screen(screen_name: str, upscale: int = 2) -> Optional[Image.Image]:
             # Apply palette
             rgb_pixels = apply_palette(pixels, palette)
 
-            # Create tile image (8x8) with transparency
-            tile_img = Image.new("RGBA", (tile_size, tile_size))
-            pixel_data = []
-            for row in rgb_pixels:
-                for rgb in row:
-                    pixel_data.append(rgb + (255,))  # Add alpha channel (fully opaque)
+            # Create tile image (8x8) as RGB
+            tile_img = Image.new("RGB", (tile_size, tile_size))
+            pixel_data = [rgb for row in rgb_pixels for rgb in row]
             tile_img.putdata(pixel_data)
 
             # Paste into screen
             screen_x = x * tile_size
             screen_y = y * tile_size
-            img.paste(tile_img, (screen_x, screen_y), tile_img)  # Use tile_img as mask for alpha
+            img.paste(tile_img, (screen_x, screen_y))
 
     # Upscale
     if upscale != 1:

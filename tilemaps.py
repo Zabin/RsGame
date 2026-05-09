@@ -5,7 +5,8 @@ Edit ZONE_COLLECTS to move or add collectibles.
 """
 from tiles import *
 
-W, H = 20, 18   # BG map dimensions in tiles (160×144 pixels = visible GBC screen)
+W, H = 20, 18      # visible BG content dimensions (160×144 pixels = GBC screen)
+VRAM_W = 32        # VRAM BG map width — GBC hardware background maps are always 32 tiles wide
 
 # ── Cross-Biome Flow Reference ────────────────────────────────────────────
 # Master design blueprint: 9 zones in journey order.
@@ -39,12 +40,12 @@ CROSS_BIOME_FLOW = {
 }
 
 def _blank(t=TL_BG_BLANK, p=2):
-    return bytearray([t] * (W * H)), bytearray([p] * (W * H))
+    return bytearray([t] * (VRAM_W * H)), bytearray([p] * (VRAM_W * H))
 
 def _put(tiles, attrs, x, y, t, p):
     if 0 <= x < W and 0 <= y < H:
-        tiles[y * W + x] = t
-        attrs[y * W + x] = p & 7
+        tiles[y * VRAM_W + x] = t
+        attrs[y * VRAM_W + x] = p & 7
 
 def _str(tiles, attrs, x, y, s, p=2):
     for i, c in enumerate(s.upper()):
@@ -91,7 +92,7 @@ def _apply_zone_roads(tiles, attrs, zone_id):
     for y in range(len(road_map)):
         for x in range(len(road_map[0])):
             if road_map[y][x]:
-                tile_idx = (y + 1) * W + x  # y+1 to account for score bar
+                tile_idx = (y + 1) * VRAM_W + x  # y+1 to account for score bar
                 # Only replace grass tiles with road tiles
                 if tile_idx < len(tiles) and tiles[tile_idx] in grass_tiles:
                     _put(tiles, attrs, x, y + 1, TL_PATH, 1)
@@ -198,7 +199,7 @@ def garden_screen():
                    lower_left_flowers + lower_right_flowers + lower_center_flowers)
 
     for x, y, p in all_flowers:
-        tile_idx = (y + 1) * W + x  # Account for score bar
+        tile_idx = (y + 1) * VRAM_W + x  # Account for score bar
         if tile_idx < len(t) and t[tile_idx] != TL_PATH:  # Don't overlap roads
             _put(t, a, x, y, TL_BG_FLOWER, p)
 
@@ -206,14 +207,14 @@ def garden_screen():
     # Fountain center (using rock as base - decorative accent)
     fountain_tiles = [(2, 14), (2, 13), (1, 14), (3, 13)]
     for x, y in fountain_tiles:
-        tile_idx = (y + 1) * W + x
+        tile_idx = (y + 1) * VRAM_W + x
         if tile_idx < len(t) and t[tile_idx] != TL_PATH:
             _put(t, a, x, y, TL_ROCK_SMALL, 4)
 
     # Flowers around fountain for welcoming feel
     fountain_flowers = [(1, 12, 5), (3, 12, 6)]
     for x, y, p in fountain_flowers:
-        tile_idx = (y + 1) * W + x
+        tile_idx = (y + 1) * VRAM_W + x
         if tile_idx < len(t) and t[tile_idx] != TL_PATH:
             _put(t, a, x, y, TL_BG_FLOWER, p)
 
@@ -231,7 +232,7 @@ def garden_screen():
     ]
 
     for x, y, p in path_frame_upper + path_frame_lower:
-        tile_idx = (y + 1) * W + x
+        tile_idx = (y + 1) * VRAM_W + x
         if tile_idx < len(t) and t[tile_idx] != TL_PATH:
             _put(t, a, x, y, TL_BG_FLOWER, p)
 
@@ -239,18 +240,17 @@ def garden_screen():
     return t, a
 
 def forest_screen():
-    t, a = _blank(TL_FOREST_FLOOR, 9)  # Forest dark floor with palette 9
+    t, a = _blank(TL_FOREST_FLOOR, 3)  # Forest floor with tree palette 3 (dark greens)
     _score_bar(t, a, "FOREST")
 
-    # Fill forest floor throughout
+    # Fill forest floor with tree palette
     for y in range(1, 18):
-        for x in range(20):
-            tile_idx = y * 20 + x
+        for x in range(W):
+            tile_idx = y * VRAM_W + x
             if t[tile_idx] == TL_FOREST_FLOOR:
-                t[tile_idx] = TL_FOREST_FLOOR
-                a[tile_idx] = 9
+                a[tile_idx] = 3
 
-    # Apply forest path (dark woodland path through center)
+    # Apply woodland path (dirt tiles, palette 1)
     from road_generator import RoadGenerator
     gen = RoadGenerator()
     gen.generate()
@@ -259,51 +259,52 @@ def forest_screen():
     for y in range(len(road_map)):
         for x in range(len(road_map[0])):
             if road_map[y][x]:
-                _put(t, a, x, y + 1, TL_FOREST_PATH, 9)
+                _put(t, a, x, y + 1, TL_PATH, 1)  # standard dirt path (safe tile index)
 
-    # Dense canopy patches - creates shadowed forest feel
-    canopy = [
-        (2, 2), (4, 2), (6, 2), (8, 2), (10, 2), (12, 2), (14, 2), (16, 2), (18, 2),
-        (1, 4), (5, 4), (9, 4), (13, 4), (17, 4),
-        (3, 7), (7, 7), (11, 7), (15, 7),
-        (2, 11), (6, 11), (10, 11), (14, 11), (18, 11),
+    # Tree canopy clusters — use TL_TREE_TOP/BOT (safe indices, no font conflict)
+    canopy_tops = [
+        (2, 2), (6, 2), (10, 2), (14, 2), (18, 2),
+        (1, 5), (5, 5), (13, 5), (17, 5),
+        (3, 11), (7, 11), (11, 11), (15, 11),
         (4, 14), (8, 14), (12, 14), (16, 14),
-        (3, 16), (9, 16), (15, 16),
     ]
-    for cx, cy in canopy:
-        if cy < 18 and cx < 20:
-            idx = cy * 20 + cx
-            if t[idx] != TL_FOREST_PATH:
-                _put(t, a, cx, cy, TL_FOREST_DENSE, 9)
+    for cx, cy in canopy_tops:
+        if cy < 18 and cx < W:
+            idx = cy * VRAM_W + cx
+            if t[idx] != TL_PATH:
+                _put(t, a, cx, cy, TL_TREE_TOP, 3)
+                if cy + 1 < H:
+                    bot_idx = (cy + 1) * VRAM_W + cx
+                    if t[bot_idx] != TL_PATH:
+                        _put(t, a, cx, cy + 1, TL_TREE_BOT, 3)
 
-    # Mushrooms scattered throughout - forest accent
+    # Mushrooms for forest accent
     mushrooms = [
         (5, 5), (11, 6), (15, 8),
         (2, 10), (10, 12), (17, 13),
         (6, 15), (14, 15),
     ]
     for mx, my in mushrooms:
-        if my < 18 and mx < 20:
-            idx = my * 20 + mx
-            if t[idx] != TL_FOREST_PATH:
+        if my < 18 and mx < W:
+            idx = my * VRAM_W + mx
+            if t[idx] == TL_FOREST_FLOOR:
                 _put(t, a, mx, my, TL_MUSHROOM, 3)
 
     _put(t, a, 18, 8, TL_ARROW, 2)
     return t, a
 
 def meadow_screen():
-    t, a = _blank(TL_MEADOW_GRASS, 8)  # Meadow grassland with palette 8
+    t, a = _blank(TL_MEADOW_GRASS, 0)  # Meadow grassland with grass palette 0
     _score_bar(t, a, "MEADOW")
 
-    # Fill meadow grass terrain
+    # Fill meadow grass terrain with grass palette
     for y in range(1, 18):
-        for x in range(20):
-            tile_idx = y * 20 + x
+        for x in range(W):
+            tile_idx = y * VRAM_W + x
             if t[tile_idx] == TL_MEADOW_GRASS:
-                t[tile_idx] = TL_MEADOW_GRASS
-                a[tile_idx] = 8
+                a[tile_idx] = 0
 
-    # Apply meadow path (grass path through center)
+    # Apply meadow path (dirt path through center, palette 1)
     from road_generator import RoadGenerator
     gen = RoadGenerator()
     gen.generate()
@@ -312,7 +313,7 @@ def meadow_screen():
     for y in range(len(road_map)):
         for x in range(len(road_map[0])):
             if road_map[y][x]:
-                _put(t, a, x, y + 1, TL_MEADOW_PATH, 8)
+                _put(t, a, x, y + 1, TL_MEADOW_PATH, 0)  # meadow path, grass palette
 
     # Wildflower blooms scattered throughout - abundant and vibrant
     blooms = [
@@ -323,10 +324,10 @@ def meadow_screen():
         (2, 16), (8, 16), (14, 16),
     ]
     for bx, by in blooms:
-        if by < 18 and bx < 20:
-            idx = by * 20 + bx
+        if by < 18 and bx < W:
+            idx = by * VRAM_W + bx
             if t[idx] != TL_MEADOW_PATH:
-                _put(t, a, bx, by, TL_MEADOW_BLOOM, 8)
+                _put(t, a, bx, by, TL_MEADOW_BLOOM, 0)
 
     # Scattered trees for natural feel (using existing tree tiles)
     trees = [
@@ -334,8 +335,8 @@ def meadow_screen():
         (1, 15), (19, 15),
     ]
     for tx, ty in trees:
-        if ty < 18 and tx < 20:
-            idx = ty * 20 + tx
+        if ty < 18 and tx < W:
+            idx = ty * VRAM_W + tx
             if t[idx] != TL_MEADOW_PATH:
                 _put(t, a, tx, ty, TL_TREE_TOP, 3)
                 if ty + 1 < 18:
@@ -346,8 +347,8 @@ def meadow_screen():
         (6, 5), (14, 11),
     ]
     for rx, ry in rocks:
-        if ry < 18 and rx < 20:
-            idx = ry * 20 + rx
+        if ry < 18 and rx < W:
+            idx = ry * VRAM_W + rx
             if t[idx] != TL_MEADOW_PATH:
                 _put(t, a, rx, ry, TL_ROCK_SMALL, 4)
 
@@ -361,8 +362,8 @@ def desert_screen():
 
     # Fill desert sand throughout
     for y in range(1, 18):
-        for x in range(20):
-            tile_idx = y * 20 + x
+        for x in range(W):
+            tile_idx = y * VRAM_W + x
             if t[tile_idx] == TL_DESERT_SAND:
                 t[tile_idx] = TL_DESERT_SAND
                 a[tile_idx] = 10
@@ -387,8 +388,8 @@ def desert_screen():
         (5, 16), (11, 16), (17, 16),
     ]
     for rx, ry in rocks:
-        if ry < 18 and rx < 20:
-            idx = ry * 20 + rx
+        if ry < 18 and rx < W:
+            idx = ry * VRAM_W + rx
             if t[idx] != TL_DESERT_PATH:
                 _put(t, a, rx, ry, TL_DESERT_ROCK, 10)
 
@@ -402,8 +403,8 @@ def cave_screen():
 
     # Fill cave floor terrain
     for y in range(1, 18):
-        for x in range(20):
-            tile_idx = y * 20 + x
+        for x in range(W):
+            tile_idx = y * VRAM_W + x
             if t[tile_idx] == TL_CAVE_FLOOR:
                 t[tile_idx] = TL_CAVE_FLOOR
                 a[tile_idx] = 11
@@ -432,7 +433,7 @@ def cave_screen():
 
     # Rock clusters in center (mineral formations) - palette 4 for gray rocks
     for rx, ry in [(5, 3), (6, 4), (14, 3), (15, 4), (10, 5), (10, 13)]:
-        if t[ry * 20 + rx] == TL_CAVE_FLOOR:
+        if t[ry * VRAM_W +rx] == TL_CAVE_FLOOR:
             _put(t, a, rx, ry, TL_ROCK_SMALL, 4)
 
     # Crystal accents (glowing minerals) — palette 7
@@ -443,7 +444,7 @@ def cave_screen():
         (8, 8, 7), (12, 8, 7),
     ]
     for x, y, p in crystals:
-        if t[y * 20 + x] == TL_CAVE_FLOOR:
+        if t[y * VRAM_W +x] == TL_CAVE_FLOOR:
             _put(t, a, x, y, TL_BG_FLOWER, p)
 
     _put(t, a, 18, 8, TL_ARROW, 2)
@@ -456,8 +457,8 @@ def swamp_screen():
 
     # Fill swamp terrain
     for y in range(1, 18):
-        for x in range(20):
-            tile_idx = y * 20 + x
+        for x in range(W):
+            tile_idx = y * VRAM_W + x
             if t[tile_idx] == TL_SWAMP_GROUND:
                 t[tile_idx] = TL_SWAMP_GROUND
                 a[tile_idx] = 12
@@ -475,13 +476,13 @@ def swamp_screen():
 
     # Dense tree walls (swamp forest) - palette 3 for tree colors
     for x in range(1, W, 2):
-        if t[2 * 20 + x] == TL_SWAMP_GROUND:
+        if t[2 * VRAM_W +x] == TL_SWAMP_GROUND:
             _put(t, a, x, 2, TL_TREE_TOP, 3)
-        if t[3 * 20 + x] == TL_SWAMP_GROUND:
+        if t[3 * VRAM_W +x] == TL_SWAMP_GROUND:
             _put(t, a, x, 3, TL_TREE_BOT, 3)
-        if t[15 * 20 + x] == TL_SWAMP_GROUND:
+        if t[15 * VRAM_W +x] == TL_SWAMP_GROUND:
             _put(t, a, x, 15, TL_TREE_TOP, 3)
-        if t[16 * 20 + x] == TL_SWAMP_GROUND:
+        if t[16 * VRAM_W +x] == TL_SWAMP_GROUND:
             _put(t, a, x, 16, TL_TREE_BOT, 3)
 
     # Murky water patches (swamp puddles) — palette 12
@@ -490,7 +491,7 @@ def swamp_screen():
         (3, 12), (5, 11), (15, 12), (17, 11),
     ]
     for x, y in murk_patches:
-        if t[y * 20 + x] == TL_SWAMP_GROUND:
+        if t[y * VRAM_W +x] == TL_SWAMP_GROUND:
             _put(t, a, x, y, TL_SWAMP_MURK, 12)
 
     # Pink flowers (wetland blooms) — palette 5
@@ -499,7 +500,7 @@ def swamp_screen():
         (8, 12, 5), (10, 11, 5), (12, 12, 5),
     ]
     for x, y, p in flowers:
-        if t[y * 20 + x] == TL_SWAMP_GROUND:
+        if t[y * VRAM_W +x] == TL_SWAMP_GROUND:
             _put(t, a, x, y, TL_BG_FLOWER, p)
 
     _put(t, a, 18, 8, TL_ARROW, 2)
@@ -512,8 +513,8 @@ def snow_peak_screen():
 
     # Fill snowy terrain
     for y in range(1, 18):
-        for x in range(20):
-            tile_idx = y * 20 + x
+        for x in range(W):
+            tile_idx = y * VRAM_W + x
             if t[tile_idx] == TL_SNOW_GROUND:
                 t[tile_idx] = TL_SNOW_GROUND
                 a[tile_idx] = 5
@@ -530,19 +531,19 @@ def snow_peak_screen():
                 _put(t, a, x, y + 1, TL_SNOW_PATH, 5)  # Snow path with white/light-blue border
 
     # Rock borders (mountain ridges) - palette 4 for gray rocks
-    for x in range(20):
-        idx = 1 * 20 + x
+    for x in range(W):
+        idx = 1 * VRAM_W +x
         if t[idx] != TL_PATH:
             _put(t, a, x, 1, TL_ROCK, 4)
-        idx = 16 * 20 + x
+        idx = 16 * VRAM_W +x
         if t[idx] != TL_PATH:
             _put(t, a, x, 16, TL_ROCK, 4)
 
     for y in range(2, 16):
-        idx = y * 20 + 0
+        idx = y * VRAM_W +0
         if t[idx] != TL_PATH:
             _put(t, a, 0, y, TL_ROCK, 4)
-        idx = y * 20 + 19
+        idx = y * VRAM_W +19
         if t[idx] != TL_PATH:
             _put(t, a, 19, y, TL_ROCK, 4)
 
@@ -554,8 +555,8 @@ def snow_peak_screen():
         (17, 14), (18, 14),
     ]
     for px, py in pines:
-        if py < 18 and px < 20:
-            idx = py * 20 + px
+        if py < 18 and px < W:
+            idx = py * VRAM_W +px
             if t[idx] != TL_PATH:
                 _put(t, a, px, py, TL_PINE_TREE, 5)
 
@@ -566,7 +567,7 @@ def snow_peak_screen():
         (8, 11), (12, 11),
     ]
     for ix, iy in iceCliffs:
-        idx = iy * 20 + ix
+        idx = iy * VRAM_W +ix
         if t[idx] != TL_PATH:
             _put(t, a, ix, iy, TL_ICE_CLIFF, 5)
 
@@ -578,7 +579,7 @@ def snow_peak_screen():
         (14, 12), (15, 12),
     ]
     for fw_x, fw_y in frozenWater:
-        idx = fw_y * 20 + fw_x
+        idx = fw_y * VRAM_W +fw_x
         if t[idx] != TL_PATH:
             _put(t, a, fw_x, fw_y, TL_FROZEN_WATER, 5)
 
@@ -592,8 +593,8 @@ def crystal_lake_screen():
 
     # Fill water terrain
     for y in range(1, 18):
-        for x in range(20):
-            tile_idx = y * 20 + x
+        for x in range(W):
+            tile_idx = y * VRAM_W + x
             if t[tile_idx] == TL_CRYSTAL_WATER:
                 t[tile_idx] = TL_CRYSTAL_WATER
                 a[tile_idx] = 6
@@ -620,8 +621,8 @@ def crystal_lake_screen():
         (15, 16),
     ]
     for lx, ly in lily_pads:
-        if ly < 18 and lx < 20:
-            idx = ly * 20 + lx
+        if ly < 18 and lx < W:
+            idx = ly * VRAM_W +lx
             if t[idx] != TL_CRYSTAL_PATH:
                 _put(t, a, lx, ly, TL_LILY_PAD, 6)
 
@@ -633,8 +634,8 @@ def crystal_lake_screen():
         (10, 16),
     ]
     for cx, cy in crystals:
-        if cy < 18 and cx < 20:
-            idx = cy * 20 + cx
+        if cy < 18 and cx < W:
+            idx = cy * VRAM_W + cx
             if t[idx] != TL_CRYSTAL_PATH:
                 _put(t, a, cx, cy, TL_CRYSTAL, 6)
 
@@ -648,8 +649,8 @@ def sunset_sky_screen():
 
     # Fill sunset ground throughout
     for y in range(1, 18):
-        for x in range(20):
-            tile_idx = y * 20 + x
+        for x in range(W):
+            tile_idx = y * VRAM_W + x
             if t[tile_idx] == TL_SUNSET_GROUND:
                 t[tile_idx] = TL_SUNSET_GROUND
                 a[tile_idx] = 7
@@ -673,8 +674,8 @@ def sunset_sky_screen():
         (18, 14), (19, 14),
     ]
     for tx, ty in trees:
-        if ty < 18 and tx < 20:
-            idx = ty * 20 + tx
+        if ty < 18 and tx < W:
+            idx = ty * VRAM_W + tx
             if t[idx] != TL_SUNSET_PATH:
                 _put(t, a, tx, ty, TL_SUNSET_TREE, 7)
 
@@ -686,8 +687,8 @@ def sunset_sky_screen():
         (3, 14), (15, 14),
     ]
     for cx, cy in clouds:
-        if cy < 18 and cx < 20:
-            idx = cy * 20 + cx
+        if cy < 18 and cx < W:
+            idx = cy * VRAM_W + cx
             if t[idx] != TL_SUNSET_PATH:
                 _put(t, a, cx, cy, TL_CLOUD, 7)
 
@@ -698,8 +699,8 @@ def sunset_sky_screen():
         (10, 12),
     ]
     for ix, iy in islands:
-        if iy < 18 and ix < 20:
-            idx = iy * 20 + ix
+        if iy < 18 and ix < W:
+            idx = iy * VRAM_W +ix
             if t[idx] != TL_SUNSET_PATH:
                 _put(t, a, ix, iy, TL_FLOATING_ISLAND, 7)
 
@@ -778,12 +779,6 @@ ALL_SCREENS = [
     ("garden",      garden_screen),
     ("forest",      forest_screen),
     ("meadow",      meadow_screen),
-    ("desert",      desert_screen),
-    ("cave",        cave_screen),
-    ("swamp",       swamp_screen),
-    ("snow_peak",   snow_peak_screen),
-    ("crystal_lake",crystal_lake_screen),
-    ("sunset_sky",  sunset_sky_screen),
     ("title",       title_screen),
     ("intro",       intro_screen),
     ("save",        save_screen),
@@ -810,34 +805,4 @@ ZONE_COLLECTS = [
     [(24, 40, 1), (56, 32, 0), (88, 40, 1), (120, 32, 0), (152, 40, 1),
      (40, 104, 0), (88, 104, 1), (136, 104, 0),
      (136, 64, 2)],            # gift: top-right area
-
-    # Zone 3 — Desert
-    [(32, 48, 0), (80, 40, 1), (128, 48, 0),
-     (56, 104, 1), (112, 104, 0),
-     (88, 72, 2)],             # gift: center area
-
-    # Zone 4 — Cave
-    [(40, 56, 1), (88, 40, 0), (136, 56, 1),
-     (56, 112, 0), (120, 112, 1),
-     (88, 80, 2)],             # gift: center area
-
-    # Zone 5 — Swamp
-    [(32, 40, 0), (72, 48, 1), (112, 40, 0), (152, 48, 1),
-     (48, 104, 1), (128, 104, 0),
-     (88, 64, 2)],             # gift: center area
-
-    # Zone 6 — Snow Peak
-    [(40, 56, 1), (88, 32, 0), (136, 56, 1),
-     (56, 112, 0), (120, 112, 1),
-     (88, 72, 2)],             # gift: center area
-
-    # Zone 7 — Crystal Lake
-    [(32, 40, 1), (72, 32, 0), (112, 40, 1), (152, 32, 0),
-     (48, 104, 0), (128, 104, 1),
-     (88, 64, 2)],             # gift: center area
-
-    # Zone 8 — Sunset Sky
-    [(24, 32, 0), (56, 40, 1), (88, 32, 0), (120, 40, 1), (152, 32, 0),
-     (40, 104, 1), (88, 104, 0), (136, 104, 1),
-     (88, 72, 2)],             # gift: center area
 ]
