@@ -160,6 +160,9 @@ def build_game_asm(rom: ROM) -> dict:
     rom.JR_Z('game_loop')
     rom.XOR_A(); rom.LD_nn_A(VBLANK_FLAG)
 
+    # OAM DMA must happen early in VBlank, before any heavy operations
+    rom.CALL('do_dma')
+
     # Full screen redraw if flagged
     rom.LD_A_nn(NEED_REDRAW); rom.OR_A()
     rom.CALL_NZ('do_screen_redraw')
@@ -238,10 +241,9 @@ def build_game_asm(rom: ROM) -> dict:
     rom.XOR_A(); rom.LD_nn_A(GIFTS); rom.LD_nn_A(SCORE)
     rom.JP('end_frame')
 
-    # ── End of frame: OAM, DMA, hearts, music ────────────────────────────
+    # ── End of frame: update OAM, hearts, music ──────────────────────────
     rom.label('end_frame')
     rom.CALL('update_oam')
-    rom.CALL('do_dma')
     rom.CALL('update_hearts')
     rom.CALL('music_tick')
     rom.JP('game_loop')
@@ -416,13 +418,37 @@ def build_game_asm(rom: ROM) -> dict:
 
     # Check LEFT (X = 0): move to (row, col-1) if col > 0
     rom.label('czt_check_left')
-    rom.LD_A_nn(PLAYER_X); rom.OR_A(); rom.RET_NZ()
+    rom.LD_A_nn(PLAYER_X); rom.OR_A(); rom.JR_NZ('czt_check_down')
     rom.LD_A_nn(CUR_ZONE); rom.LD_B_A()
-    rom.LD_A_B(); rom.AND_n(3); rom.RET_Z()
+    rom.LD_A_B(); rom.AND_n(3); rom.JR_Z('czt_check_down')
     rom.LD_A_B(); rom.DEC_A(); rom.LD_nn_A(CUR_ZONE)
     rom.LD_A_n(150); rom.LD_nn_A(PLAYER_X)
     rom.LD_A_n(GS_PLAYING); rom.LD_nn_A(TRANSITION_TO)
     rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW); rom.RET()
+
+    # Check DOWN (Y >= 110): move to (row+1, col) if row < 2
+    rom.label('czt_check_down')
+    rom.LD_A_nn(PLAYER_Y); rom.CP_n(110)
+    rom.JR_C('czt_check_up')
+    rom.LD_A_nn(CUR_ZONE); rom.LD_B_A()
+    rom.LD_A_B(); rom.SRL_A(); rom.SRL_A(); rom.CP_n(2); rom.JR_NC('czt_check_up')
+    rom.LD_A_B(); rom.ADD_A_n(3); rom.LD_nn_A(CUR_ZONE)
+    rom.LD_A_n(32); rom.LD_nn_A(PLAYER_Y)
+    rom.LD_A_n(GS_PLAYING); rom.LD_nn_A(TRANSITION_TO)
+    rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW); rom.RET()
+
+    # Check UP (Y < 50): move to (row-1, col) if row > 0
+    rom.label('czt_check_up')
+    rom.LD_A_nn(PLAYER_Y); rom.CP_n(50)
+    rom.JR_NC('czt_done')
+    rom.LD_A_nn(CUR_ZONE); rom.LD_B_A()
+    rom.LD_A_B(); rom.SRL_A(); rom.SRL_A(); rom.RET_Z()
+    rom.LD_A_B(); rom.SUB_n(3); rom.LD_nn_A(CUR_ZONE)
+    rom.LD_A_n(110); rom.LD_nn_A(PLAYER_Y)
+    rom.LD_A_n(GS_PLAYING); rom.LD_nn_A(TRANSITION_TO)
+    rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW); rom.RET()
+
+    rom.label('czt_done')
 
     # ── check_complete (all 9 zones) ──────────────────────────────────────
     rom.label('check_complete')
