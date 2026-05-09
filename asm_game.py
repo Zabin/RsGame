@@ -31,6 +31,7 @@ TMP1         = 0xC013   # scratch
 TMP2         = 0xC014   # scratch
 COLL_DATA    = 0xC020   # array of (x,y,type,active) — 4 bytes each, up to 9
 COLL_COUNT   = 0xC050   # number of entries in COLL_DATA
+GIFTS_HI     = 0xC015   # high byte for 9th zone gift (zones 0-7 in GIFTS, zone 8 in GIFTS_HI bit0)
 OAM_BUF      = 0xC300   # shadow OAM (160 bytes), DMA'd each VBlank
 
 # Joypad bit positions in JOY_CUR (active HIGH after read_joypad)
@@ -366,8 +367,13 @@ def build_game_asm(rom: ROM) -> dict:
     # Hit! Deactivate.
     rom.POP_HL(); rom.XOR_A(); rom.LD_HL_A(); rom.INC_HL()
 
-    # If gift (type 2): set bit for CUR_ZONE in GIFTS
+    # If gift (type 2): set bit for CUR_ZONE in GIFTS (or GIFTS_HI for zone 8)
     rom.LD_A_C(); rom.CP_n(2); rom.JR_NZ('cc_not_g')
+    rom.LD_A_nn(CUR_ZONE); rom.CP_n(8); rom.JR_NZ('cc_gift_lo')
+    # Zone 8: set bit in GIFTS_HI
+    rom.LD_A_nn(GIFTS_HI); rom.OR_n(1); rom.LD_nn_A(GIFTS_HI); rom.JR('cc_not_g')
+    # Zones 0-7: set bit in GIFTS
+    rom.label('cc_gift_lo')
     rom.LD_A_n(1); rom.LD_C_A()           # mask starts at 1
     rom.LD_A_nn(CUR_ZONE); rom.OR_A(); rom.JR_Z('cc_mask_done')
     rom.LD_D_A()
@@ -390,27 +396,32 @@ def build_game_asm(rom: ROM) -> dict:
     rom.POP_HL(); rom.INC_HL()
     rom.POP_BC(); rom.DEC_B(); rom.JR_NZ('cc_loop'); rom.RET()
 
-    # ── check_zone_transition ────────────────────────────────────────────
+    # ── check_zone_transition (3×3 grid navigation) ───────────────────────
     rom.label('check_zone_transition')
+    # Check RIGHT (X >= 156): move to (row, col+1) if col < 2
     rom.LD_A_nn(PLAYER_X); rom.CP_n(156)
-    rom.JR_C('czt_left')
-    rom.LD_A_nn(CUR_ZONE); rom.CP_n(2); rom.JR_NC('czt_left')
-    rom.INC_A(); rom.LD_nn_A(CUR_ZONE)
+    rom.JR_C('czt_check_left')
+    rom.LD_A_nn(CUR_ZONE); rom.LD_B_A()
+    rom.LD_A_B(); rom.AND_n(3); rom.CP_n(2); rom.JR_NC('czt_check_left')
+    rom.LD_A_B(); rom.INC_A(); rom.LD_nn_A(CUR_ZONE)
     rom.LD_A_n(8); rom.LD_nn_A(PLAYER_X)
     rom.LD_A_n(GS_PLAYING); rom.LD_nn_A(TRANSITION_TO)
     rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW); rom.RET()
 
-    rom.label('czt_left')
+    # Check LEFT (X = 0): move to (row, col-1) if col > 0
+    rom.label('czt_check_left')
     rom.LD_A_nn(PLAYER_X); rom.OR_A(); rom.RET_NZ()
-    rom.LD_A_nn(CUR_ZONE); rom.OR_A(); rom.RET_Z()
-    rom.DEC_A(); rom.LD_nn_A(CUR_ZONE)
+    rom.LD_A_nn(CUR_ZONE); rom.LD_B_A()
+    rom.LD_A_B(); rom.AND_n(3); rom.RET_Z()
+    rom.LD_A_B(); rom.DEC_A(); rom.LD_nn_A(CUR_ZONE)
     rom.LD_A_n(150); rom.LD_nn_A(PLAYER_X)
     rom.LD_A_n(GS_PLAYING); rom.LD_nn_A(TRANSITION_TO)
     rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW); rom.RET()
 
-    # ── check_complete ───────────────────────────────────────────────────
+    # ── check_complete (all 9 zones) ──────────────────────────────────────
     rom.label('check_complete')
-    rom.LD_A_nn(GIFTS); rom.AND_n(0x07); rom.CP_n(0x07); rom.RET_NZ()
+    rom.LD_A_nn(GIFTS); rom.CP_n(0xFF); rom.RET_NZ()
+    rom.LD_A_nn(GIFTS_HI); rom.AND_n(1); rom.RET_Z()
     rom.LD_A_n(GS_VICTORY); rom.LD_nn_A(TRANSITION_TO)
     rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW); rom.RET()
 
@@ -568,7 +579,7 @@ def build_game_asm(rom: ROM) -> dict:
     rom.CALL('update_map_hearts')
     rom.JP('dsr_done')
 
-    # Zone selection
+    # Zone selection (9 zones)
     rom.label('dsr_p')
     rom.LD_A_nn(CUR_ZONE)
     rom.CP_n(0); rom.JR_NZ('dsr_p1')
@@ -579,9 +590,33 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_DE_nn(0); patches['for_t'] = rom.pos - 2
     rom.LD_BC_nn(0); patches['for_a'] = rom.pos - 2
     rom.JR('dsr_p_copy')
-    rom.label('dsr_p2')
+    rom.label('dsr_p2'); rom.CP_n(2); rom.JR_NZ('dsr_p3')
     rom.LD_DE_nn(0); patches['mea_t'] = rom.pos - 2
     rom.LD_BC_nn(0); patches['mea_a'] = rom.pos - 2
+    rom.JR('dsr_p_copy')
+    rom.label('dsr_p3'); rom.CP_n(3); rom.JR_NZ('dsr_p4')
+    rom.LD_DE_nn(0); patches['des_t'] = rom.pos - 2
+    rom.LD_BC_nn(0); patches['des_a'] = rom.pos - 2
+    rom.JR('dsr_p_copy')
+    rom.label('dsr_p4'); rom.CP_n(4); rom.JR_NZ('dsr_p5')
+    rom.LD_DE_nn(0); patches['cav_t'] = rom.pos - 2
+    rom.LD_BC_nn(0); patches['cav_a'] = rom.pos - 2
+    rom.JR('dsr_p_copy')
+    rom.label('dsr_p5'); rom.CP_n(5); rom.JR_NZ('dsr_p6')
+    rom.LD_DE_nn(0); patches['swa_t'] = rom.pos - 2
+    rom.LD_BC_nn(0); patches['swa_a'] = rom.pos - 2
+    rom.JR('dsr_p_copy')
+    rom.label('dsr_p6'); rom.CP_n(6); rom.JR_NZ('dsr_p7')
+    rom.LD_DE_nn(0); patches['sno_t'] = rom.pos - 2
+    rom.LD_BC_nn(0); patches['sno_a'] = rom.pos - 2
+    rom.JR('dsr_p_copy')
+    rom.label('dsr_p7'); rom.CP_n(7); rom.JR_NZ('dsr_p8')
+    rom.LD_DE_nn(0); patches['cry_t'] = rom.pos - 2
+    rom.LD_BC_nn(0); patches['cry_a'] = rom.pos - 2
+    rom.JR('dsr_p_copy')
+    rom.label('dsr_p8')
+    rom.LD_DE_nn(0); patches['sun_t'] = rom.pos - 2
+    rom.LD_BC_nn(0); patches['sun_a'] = rom.pos - 2
     rom.label('dsr_p_copy')
     rom.CALL('copy_screen')
 

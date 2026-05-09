@@ -776,14 +776,20 @@ def victory_screen():
 
 # All 14 screens: 9 playable zones + 5 menu screens
 ALL_SCREENS = [
-    ("garden",      garden_screen),
-    ("forest",      forest_screen),
-    ("meadow",      meadow_screen),
-    ("title",       title_screen),
-    ("intro",       intro_screen),
-    ("save",        save_screen),
-    ("map",         map_screen),
-    ("victory",     victory_screen),
+    ("garden",        garden_screen),
+    ("forest",        forest_screen),
+    ("meadow",        meadow_screen),
+    ("desert",        desert_screen),
+    ("cave",          cave_screen),
+    ("swamp",         swamp_screen),
+    ("snow_peak",     snow_peak_screen),
+    ("crystal_lake",  crystal_lake_screen),
+    ("sunset_sky",    sunset_sky_screen),
+    ("title",         title_screen),
+    ("intro",         intro_screen),
+    ("save",          save_screen),
+    ("map",           map_screen),
+    ("victory",       victory_screen),
 ]
 
 # ── Collectibles per zone ─────────────────────────────────────────────────
@@ -802,6 +808,36 @@ ZONE_COLLECTS = [
      (40, 64, 2)],             # gift: top-left area
 
     # Zone 2 — Meadow
+    [(24, 40, 1), (56, 32, 0), (88, 40, 1), (120, 32, 0), (152, 40, 1),
+     (40, 104, 0), (88, 104, 1), (136, 104, 0),
+     (136, 64, 2)],            # gift: top-right area
+
+    # Zone 3 — Desert
+    [(32, 32, 0), (88, 40, 1), (144, 32, 0),
+     (48, 104, 1), (112, 104, 0),
+     (144, 96, 2)],            # gift: top-right area
+
+    # Zone 4 — Cave
+    [(24, 40, 1), (80, 32, 0), (136, 40, 1),
+     (40, 104, 0), (120, 104, 1),
+     (24, 96, 2)],             # gift: top-left area
+
+    # Zone 5 — Swamp
+    [(32, 32, 1), (88, 32, 0), (144, 32, 1),
+     (56, 104, 0), (136, 104, 1),
+     (80, 64, 2)],             # gift: center area
+
+    # Zone 6 — Snow Peak
+    [(24, 32, 0), (80, 32, 1), (136, 32, 0),
+     (40, 104, 1), (120, 104, 0),
+     (136, 96, 2)],            # gift: top-right area
+
+    # Zone 7 — Crystal Lake
+    [(32, 40, 1), (72, 40, 0), (112, 40, 1), (152, 40, 0),
+     (48, 104, 0), (120, 104, 1),
+     (40, 64, 2)],             # gift: top-left area
+
+    # Zone 8 — Sunset Sky
     [(24, 40, 1), (56, 32, 0), (88, 40, 1), (120, 32, 0), (152, 40, 1),
      (40, 104, 0), (88, 104, 1), (136, 104, 0),
      (136, 64, 2)],            # gift: top-right area

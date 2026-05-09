@@ -145,7 +145,9 @@ def build(out_path='/mnt/user-data/outputs/BunnyGarden.gbc'):
         'tile_src', 'bg_pal', 'obj_pal', 'mus_lo', 'mus_hi', 'mus_reset',
         'title_t', 'title_a', 'intro_t', 'intro_a', 'save_t', 'save_a',
         'map_t', 'map_a', 'vic_t', 'vic_a', 'gar_t', 'gar_a',
-        'for_t', 'for_a', 'mea_t', 'mea_a', 'zc_table'
+        'for_t', 'for_a', 'mea_t', 'mea_a', 'des_t', 'des_a',
+        'cav_t', 'cav_a', 'swa_t', 'swa_a', 'sno_t', 'sno_a',
+        'cry_t', 'cry_a', 'sun_t', 'sun_a', 'zc_table'
     ]
     for patch_name in required_patches:
         if patch_name not in patches:
@@ -174,6 +176,18 @@ def build(out_path='/mnt/user-data/outputs/BunnyGarden.gbc'):
     p16(patches['for_a'],   screen_addrs['forest'][1])
     p16(patches['mea_t'],   screen_addrs['meadow'][0])
     p16(patches['mea_a'],   screen_addrs['meadow'][1])
+    p16(patches['des_t'],   screen_addrs['desert'][0])
+    p16(patches['des_a'],   screen_addrs['desert'][1])
+    p16(patches['cav_t'],   screen_addrs['cave'][0])
+    p16(patches['cav_a'],   screen_addrs['cave'][1])
+    p16(patches['swa_t'],   screen_addrs['swamp'][0])
+    p16(patches['swa_a'],   screen_addrs['swamp'][1])
+    p16(patches['sno_t'],   screen_addrs['snow_peak'][0])
+    p16(patches['sno_a'],   screen_addrs['snow_peak'][1])
+    p16(patches['cry_t'],   screen_addrs['crystal_lake'][0])
+    p16(patches['cry_a'],   screen_addrs['crystal_lake'][1])
+    p16(patches['sun_t'],   screen_addrs['sunset_sky'][0])
+    p16(patches['sun_a'],   screen_addrs['sunset_sky'][1])
     p16(patches['zc_table'], zc_table_addr)
 
     print("✅ All patch points verified and applied")

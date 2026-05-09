@@ -79,10 +79,10 @@ class TestScreenTypes:
 class TestCollectibles:
     """Tests for collectible spawn tables."""
 
-    def test_zone_collects_has_three_zones(self):
-        """ZONE_COLLECTS has entries for 3 zones (as list)."""
+    def test_zone_collects_has_nine_zones(self):
+        """ZONE_COLLECTS has entries for 9 zones (as list)."""
         assert isinstance(ZONE_COLLECTS, list)
-        assert len(ZONE_COLLECTS) == 3
+        assert len(ZONE_COLLECTS) == 9
         # Each zone should have collectibles
         for zone_collects in ZONE_COLLECTS:
             assert isinstance(zone_collects, list)
@@ -124,13 +124,20 @@ class TestCollectibles:
             (76, 72),  # Garden zone 0
             (8, 72),   # Forest zone 1 (left entry)
             (40, 72),  # Meadow zone 2
+            (76, 72),  # Desert zone 3
+            (8, 72),   # Cave zone 4 (left entry)
+            (40, 72),  # Swamp zone 5
+            (76, 72),  # Snow Peak zone 6
+            (8, 72),   # Crystal Lake zone 7 (left entry)
+            (40, 72),  # Sunset Sky zone 8
         ]
         # Verify gifts aren't exactly at spawn
         for zone_idx, collects in enumerate(ZONE_COLLECTS):
-            spawn_x, spawn_y = spawn_positions[zone_idx]
-            for x, y, typ in collects:
-                if typ == 2:  # Gift
-                    assert (x, y) != (spawn_x, spawn_y), f"Gift at spawn in zone {zone_idx}"
+            if zone_idx < len(spawn_positions):
+                spawn_x, spawn_y = spawn_positions[zone_idx]
+                for x, y, typ in collects:
+                    if typ == 2:  # Gift
+                        assert (x, y) != (spawn_x, spawn_y), f"Gift at spawn in zone {zone_idx}"
 
 
 @pytest.mark.unit
