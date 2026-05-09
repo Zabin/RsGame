@@ -80,30 +80,12 @@ def _horizontal_path(tiles, attrs, row=9):
         _put(tiles, attrs, x, row,   TL_PATH_TOP, 1)
         _put(tiles, attrs, x, row+1, TL_PATH_BOT, 1)
 
-def _apply_zone_roads(tiles, attrs, zone_id):
-    """Apply + shaped roads from road generator to zone tilemap."""
-    from road_generator import RoadGenerator
-    gen = RoadGenerator()
-    gen.generate()
-    road_map = gen.get_zone_road(zone_id)
-
-    # Place road tiles where road map indicates True, but only on grass (don't overwrite decorations)
-    grass_tiles = {TL_GRASS_PLAIN, TL_GRASS_TUFT, TL_GRASS_CLOVER}
-    for y in range(len(road_map)):
-        for x in range(len(road_map[0])):
-            if road_map[y][x]:
-                tile_idx = (y + 1) * VRAM_W + x  # y+1 to account for score bar
-                # Only replace grass tiles with road tiles
-                if tile_idx < len(tiles) and tiles[tile_idx] in grass_tiles:
-                    _put(tiles, attrs, x, y + 1, TL_PATH, 1)
-
-# ── Zone screens ──────────────────────────────────────────────────────────
+# ── Zone screens ──────────────────────────────────────────────────────
 def garden_screen():
     """Starting garden: Vibrant, welcoming Pokémon-style garden with fountains and flower beds."""
     t, a = _blank(TL_GRASS_PLAIN, 0)
     _score_bar(t, a, "GARDEN")
     _fill_grass(t, a, 1, 18)
-    _apply_zone_roads(t, a, 0)  # Zone 0 = Garden (base layer)
 
     # ── EDGE BORDERS: Rock frame around perimeter ────────────────────────────────────
     # Top border (row 1-2)
@@ -251,16 +233,6 @@ def forest_screen():
                 a[tile_idx] = 3
 
     # Apply woodland path (dirt tiles, palette 1)
-    from road_generator import RoadGenerator
-    gen = RoadGenerator()
-    gen.generate()
-    road_map = gen.get_zone_road(1)  # Zone 1 = FOREST
-
-    for y in range(len(road_map)):
-        for x in range(len(road_map[0])):
-            if road_map[y][x]:
-                _put(t, a, x, y + 1, TL_PATH, 1)  # standard dirt path (safe tile index)
-
     # Tree canopy clusters — use TL_TREE_TOP/BOT (safe indices, no font conflict)
     canopy_tops = [
         (2, 2), (6, 2), (10, 2), (14, 2), (18, 2),
@@ -305,16 +277,6 @@ def meadow_screen():
                 a[tile_idx] = 0
 
     # Apply meadow path (dirt path through center, palette 1)
-    from road_generator import RoadGenerator
-    gen = RoadGenerator()
-    gen.generate()
-    road_map = gen.get_zone_road(2)  # Zone 2 = MEADOW
-
-    for y in range(len(road_map)):
-        for x in range(len(road_map[0])):
-            if road_map[y][x]:
-                _put(t, a, x, y + 1, TL_MEADOW_PATH, 0)  # meadow path, grass palette
-
     # Wildflower blooms scattered throughout - abundant and vibrant
     blooms = [
         (2, 3), (5, 3), (8, 3), (11, 3), (14, 3), (17, 3),
@@ -369,16 +331,6 @@ def desert_screen():
                 a[tile_idx] = 10
 
     # Apply desert path (sandy path through center)
-    from road_generator import RoadGenerator
-    gen = RoadGenerator()
-    gen.generate()
-    road_map = gen.get_zone_road(3)  # Zone 3 = DESERT
-
-    for y in range(len(road_map)):
-        for x in range(len(road_map[0])):
-            if road_map[y][x]:
-                _put(t, a, x, y + 1, TL_DESERT_PATH, 10)
-
     # Rocky outcrops scattered throughout - desert features
     rocks = [
         (2, 3), (5, 3), (8, 3), (11, 3), (14, 3), (17, 3),
@@ -410,16 +362,6 @@ def cave_screen():
                 a[tile_idx] = 11
 
     # Apply cave path (distinct cavern path through the terrain)
-    from road_generator import RoadGenerator
-    gen = RoadGenerator()
-    gen.generate()
-    road_map = gen.get_zone_road(4)  # Zone 4 = CAVE
-
-    for y in range(len(road_map)):
-        for x in range(len(road_map[0])):
-            if road_map[y][x]:
-                _put(t, a, x, y + 1, TL_CAVE_PATH, 11)  # Cave path with distinct cavern colors
-
     # Cave wall formations (create cavern atmosphere)
     for y in range(2, 6):
         _put(t, a, 0, y, TL_CAVE_WALL, 11)
@@ -464,16 +406,6 @@ def swamp_screen():
                 a[tile_idx] = 12
 
     # Apply swamp path (distinct marshy path through the terrain)
-    from road_generator import RoadGenerator
-    gen = RoadGenerator()
-    gen.generate()
-    road_map = gen.get_zone_road(5)  # Zone 5 = SWAMP
-
-    for y in range(len(road_map)):
-        for x in range(len(road_map[0])):
-            if road_map[y][x]:
-                _put(t, a, x, y + 1, TL_SWAMP_PATH, 12)  # Marshy path with swamp colors
-
     # Dense tree walls (swamp forest) - palette 3 for tree colors
     for x in range(1, W, 2):
         if t[2 * VRAM_W +x] == TL_SWAMP_GROUND:
@@ -520,16 +452,6 @@ def snow_peak_screen():
                 a[tile_idx] = 5
 
     # Apply snow path (distinct packed snow path through the terrain)
-    from road_generator import RoadGenerator
-    gen = RoadGenerator()
-    gen.generate()
-    road_map = gen.get_zone_road(6)  # Zone 6 = SNOW PEAK
-
-    for y in range(len(road_map)):
-        for x in range(len(road_map[0])):
-            if road_map[y][x]:
-                _put(t, a, x, y + 1, TL_SNOW_PATH, 5)  # Snow path with white/light-blue border
-
     # Rock borders (mountain ridges) - palette 4 for gray rocks
     for x in range(W):
         idx = 1 * VRAM_W +x
@@ -600,16 +522,6 @@ def crystal_lake_screen():
                 a[tile_idx] = 6
 
     # Apply crystalline path through water
-    from road_generator import RoadGenerator
-    gen = RoadGenerator()
-    gen.generate()
-    road_map = gen.get_zone_road(7)  # Zone 7 = CRYSTAL LAKE
-
-    for y in range(len(road_map)):
-        for x in range(len(road_map[0])):
-            if road_map[y][x]:
-                _put(t, a, x, y + 1, TL_CRYSTAL_PATH, 6)
-
     # Lily pads scattered throughout - peaceful and minimal
     lily_pads = [
         (2, 3), (5, 4),
@@ -656,16 +568,6 @@ def sunset_sky_screen():
                 a[tile_idx] = 7
 
     # Apply sunset path (warm orange/pink/red tones)
-    from road_generator import RoadGenerator
-    gen = RoadGenerator()
-    gen.generate()
-    road_map = gen.get_zone_road(8)
-
-    for y in range(len(road_map)):
-        for x in range(len(road_map[0])):
-            if road_map[y][x]:
-                _put(t, a, x, y + 1, TL_SUNSET_PATH, 7)
-
     # Silhouetted trees frame the scene
     trees = [
         (2, 2), (3, 2),

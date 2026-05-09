@@ -73,7 +73,7 @@ def _pal_bytes(pals):
     return bytes(out)
 
 # ── Build ────────────────────────────────────────────────────────────────
-def build(out_path='/mnt/user-data/outputs/BunnyGarden.gbc'):
+def build(out_path='BunnyGarden.gbc'):
     rom = ROM(32768)
 
     # 1. Emit all game code, get patch-point addresses back
@@ -204,5 +204,5 @@ def build(out_path='/mnt/user-data/outputs/BunnyGarden.gbc'):
 
 
 if __name__ == '__main__':
-    out = sys.argv[1] if len(sys.argv) > 1 else '/mnt/user-data/outputs/BunnyGarden.gbc'
+    out = sys.argv[1] if len(sys.argv) > 1 else 'BunnyGarden.gbc'
     build(out)

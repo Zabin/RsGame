@@ -11,10 +11,17 @@ A playable **Game Boy Color game** built entirely in Python, compiling to a 32KB
 ### Prerequisites
 - Python 3.10+
 - `pip` (Python package manager)
+- `make` (for convenient build commands; optional but recommended)
+
+### Setup
+```bash
+pip install -r requirements.txt
+make install-hooks    # Install git pre-commit hook (optional)
+```
 
 ### Build the ROM
 ```bash
-python3 build_rom.py
+make build
 # Output: BunnyGarden.gbc (32KB Game Boy Color ROM)
 ```
 
@@ -27,13 +34,17 @@ python3 build_rom.py
    - **SELECT:** Open MAP screen (B=close)
    - **A:** Confirm dialogs
 
-### Run Tests
+### Run Tests & Generate Previews
 ```bash
-# Full test suite (requires PyBoy)
-python3 test_rom.py
+# Full build pipeline (tests, ROM, previews)
+make all
 
-# Quick build validation
-python3 -c "from build_rom import build; rom = build('test.gbc'); print(f'ROM: {len(rom.data)} bytes')"
+# Run tests only
+make test              # All tests (requires PyBoy)
+make test-unit        # Unit tests only (fast, ~0.2s)
+
+# Generate graphics previews (no ROM rebuild)
+make previews
 ```
 
 ---

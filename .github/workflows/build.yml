@@ -24,11 +24,11 @@ jobs:
 
       - name: Build ROM
         run: |
-          python3 build_rom.py ./BunnyGarden_build.gbc
+          python3 build_rom.py
 
       - name: Validate ROM size
         run: |
-          SIZE=$(stat -c%s ./BunnyGarden_build.gbc)
+          SIZE=$(stat -c%s ./BunnyGarden.gbc)
           if [ "$SIZE" -ne 32768 ]; then
             echo "❌ ROM size mismatch: $SIZE bytes (expected 32768)"
             exit 1
@@ -38,7 +38,7 @@ jobs:
       - name: Validate ROM header
         run: |
           python3 << 'EOF'
-          with open('BunnyGarden_build.gbc', 'rb') as f:
+          with open('BunnyGarden.gbc', 'rb') as f:
               data = f.read()
 
           # Check entry point
@@ -65,7 +65,7 @@ jobs:
       - name: Check ROM sections
         run: |
           python3 << 'EOF'
-          with open('BunnyGarden_build.gbc', 'rb') as f:
+          with open('BunnyGarden.gbc', 'rb') as f:
               data = f.read()
 
           # Check game code section
@@ -91,7 +91,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: BunnyGarden.gbc
-          path: ./BunnyGarden_build.gbc
+          path: ./BunnyGarden.gbc
           retention-days: 30
 
       - name: Report success
