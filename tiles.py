@@ -1,7 +1,6 @@
 """
-tiles.py — Tile pixel art (8x8) and VRAM index constants.
-Edit this file to change how any tile looks.
-Add new tile functions + new TL_* constants, then register in build_tile_data().
+tiles.py — Tile pixel art (8x8) and VRAM index constants for Bunny Quest.
+9 visually distinct zones share one 256-tile bank.
 """
 
 # ── encoding helper ────────────────────────────────────────────
@@ -17,51 +16,109 @@ def enc(pix):
     return out
 
 # ── tile index constants ────────────────────────────────────────
-# OBJ tiles (used in OAM)
-TL_BUNNY_T_F1  = 0x00   # bunny head,  walk frame 1
-TL_BUNNY_B_F1  = 0x01   # bunny body,  walk frame 1
-TL_BUNNY_T_F2  = 0x02   # bunny head,  walk frame 2
-TL_BUNNY_B_F2  = 0x03   # bunny body,  walk frame 2
-TL_GIFT        = 0x04   # gift box OBJ
-TL_STAR        = 0x05   # star OBJ
-TL_FLOWER_OBJ  = 0x06   # flower OBJ
-TL_CURSOR      = 0x07   # menu cursor (reuses star)
+# OBJ tiles 0x00-0x09 (8x16 mode: each sprite uses tile N + tile N+1)
+TL_BUNNY_T_F1  = 0x00   # bunny head F1, body at 0x01
+TL_BUNNY_B_F1  = 0x01
+TL_BUNNY_T_F2  = 0x02   # bunny head F2 (same head art), body F2 walks
+TL_BUNNY_B_F2  = 0x03
+TL_CARROT      = 0x04   # carrot art at 0x04, blank bottom at 0x05
+TL_BLANK_OBJ   = 0x05
+TL_STAR        = 0x06   # star art at 0x06, blank bottom at 0x07
+TL_FLOWER_OBJ  = 0x08   # flower art at 0x08, blank bottom at 0x09
 
-# BG tiles
-TL_GRASS_PLAIN  = 0x10
-TL_GRASS_TUFT   = 0x11
-TL_GRASS_CLOVER = 0x12
-TL_PATH         = 0x13   # dirt path center
-TL_PATH_TOP     = 0x14   # dirt path top edge (grass→dirt)
-TL_PATH_BOT     = 0x15   # dirt path bot edge (dirt→grass)
-TL_ROCK         = 0x16   # large rock
-TL_ROCK_SMALL   = 0x17   # small rock
-TL_TREE_TOP     = 0x18   # tree canopy
-TL_TREE_BOT     = 0x19   # tree trunk + roots
-TL_MUSHROOM     = 0x1A   # mushroom (forest accent)
-TL_BG_FLOWER    = 0x1B   # wildflower (palette sets color)
-TL_BG_BLANK     = 0x1C   # solid color 0 — UI bar fill
-TL_HEART_FULL   = 0x1D   # filled heart (gift collected)
-TL_HEART_EMPTY  = 0x1E   # empty heart  (gift not yet collected)
-TL_GIFT_ICON    = 0x1F   # mini gift icon in score bar
-TL_DIGIT_0      = 0x20   # digits 0-9 at 0x20-0x29
-TL_BORDER_H     = 0x2A   # horizontal border bar
-TL_ARROW        = 0x2B   # right-pointing arrow (zone exit hint)
-TL_STAR_ICON_BG = 0x2D   # star icon in score bar
+# UI tiles 0x10-0x1F
+TL_BG_BLANK     = 0x10
+TL_HEART_FULL   = 0x11
+TL_HEART_EMPTY  = 0x12
+TL_CARROT_ICON  = 0x13   # mini carrot in score bar
+TL_STAR_ICON_BG = 0x14
+TL_BORDER_H     = 0x15
+TL_ARROW_R      = 0x16
+TL_ARROW_L      = 0x17
+TL_ARROW_U      = 0x18
+TL_ARROW_D      = 0x19
 
-# Font: A-Z at 0x40-0x59, space=0x5A, then punctuation
-TL_FONT_A     = 0x40   # A..Z = 0x40..0x59
-TL_FONT_SP    = 0x5A   # space
-TL_FONT_DOT   = 0x5B   # .
-TL_FONT_BANG  = 0x5C   # !
-TL_FONT_QM    = 0x5D   # ?
-TL_FONT_COMMA = 0x5E   # ,
-TL_FONT_APOS  = 0x5F   # '
-TL_FONT_DASH  = 0x60   # -
-TL_FONT_COLON = 0x61   # :
+# Digits 0x20-0x29
+TL_DIGIT_0      = 0x20
+
+# Font A-Z 0x40-0x59, punctuation 0x5A-0x61
+TL_FONT_A       = 0x40
+TL_FONT_SP      = 0x5A
+TL_FONT_DOT     = 0x5B
+TL_FONT_BANG    = 0x5C
+TL_FONT_QM      = 0x5D
+TL_FONT_COMMA   = 0x5E
+TL_FONT_APOS    = 0x5F
+TL_FONT_DASH    = 0x60
+TL_FONT_COLON   = 0x61
+
+# Zone tiles 0x70-0xCF (80 slots)
+# ── Zone 0: Beach ─────────────────
+TL_SAND          = 0x70
+TL_SAND_RIPPLE   = 0x71
+TL_WATER_TOP     = 0x72   # foamy edge
+TL_WATER_MID     = 0x73   # plain water
+TL_PALM_TOP      = 0x74
+TL_PALM_BOT      = 0x75
+TL_SHELL         = 0x76
+# ── Zone 1: Forest ─────────────────
+TL_GRASS         = 0x78
+TL_GRASS_TUFT    = 0x79
+TL_TREE_TOP      = 0x7A
+TL_TREE_BOT      = 0x7B
+TL_MUSHROOM      = 0x7C
+TL_LOG           = 0x7D
+# ── Zone 2: Mountain ───────────────
+TL_SNOW          = 0x80
+TL_SNOW_BUMP     = 0x81
+TL_PEAK_TOP      = 0x82
+TL_PEAK_BOT      = 0x83
+TL_ROCK_BIG      = 0x84
+TL_ICICLE        = 0x85
+# ── Zone 3: Lake ───────────────────
+TL_WATER_DEEP    = 0x88
+TL_WATER_RIPPLE  = 0x89
+TL_LILYPAD       = 0x8A
+TL_REED          = 0x8B
+TL_FISH          = 0x8C
+TL_PIER          = 0x8D
+# ── Zone 4: Village ────────────────
+TL_COBBLE        = 0x90
+TL_COBBLE_VAR    = 0x91
+TL_HOUSE_TOP     = 0x92
+TL_HOUSE_BOT     = 0x93
+TL_LANTERN       = 0x94
+TL_FENCE         = 0x95
+# ── Zone 5: Cave ───────────────────
+TL_CAVE_FLOOR    = 0x98
+TL_CAVE_BUMP     = 0x99
+TL_CAVE_WALL     = 0x9A
+TL_CRYSTAL       = 0x9B
+TL_DRIP          = 0x9C
+TL_BAT           = 0x9D
+# ── Zone 6: Desert ─────────────────
+TL_DUNE          = 0xA0
+TL_DUNE_BUMP     = 0xA1
+TL_CACTUS_TOP    = 0xA2
+TL_CACTUS_BOT    = 0xA3
+TL_BONES         = 0xA4
+TL_PYRAMID       = 0xA5
+# ── Zone 7: Plains ─────────────────
+TL_PLAIN_GRASS   = 0xA8
+TL_FLOWER_RED    = 0xA9
+TL_FLOWER_BLUE   = 0xAA
+TL_FLOWER_YEL    = 0xAB
+TL_BUTTERFLY     = 0xAC
+TL_TALL_GRASS    = 0xAD
+# ── Zone 8: Castle ─────────────────
+TL_CASTLE_BRICK  = 0xB0
+TL_CASTLE_GOLD   = 0xB1
+TL_BANNER_TOP    = 0xB2
+TL_BANNER_BOT    = 0xB3
+TL_GATE          = 0xB4
+TL_TORCH         = 0xB5
 
 def char_to_tile(c):
-    """Map a character to its BG tile index."""
     if 'A' <= c <= 'Z': return TL_FONT_A + (ord(c) - ord('A'))
     if '0' <= c <= '9': return TL_DIGIT_0 + (ord(c) - ord('0'))
     return {' ':TL_FONT_SP, '.':TL_FONT_DOT, '!':TL_FONT_BANG,
@@ -71,38 +128,49 @@ def char_to_tile(c):
 # ── pixel art ──────────────────────────────────────────────────
 # Bunny — OBJ pal 0: 0=transparent 1=white 2=light-pink 3=hot-pink
 def bunny_top_f1(): return enc([
-    [0,3,0,0,3,0,0,0],  # ears
-    [0,3,2,0,3,0,0,0],
-    [0,3,2,0,3,0,0,0],
-    [0,0,3,3,3,3,0,0],  # head top
-    [0,3,1,1,1,1,3,0],  # face
-    [0,3,3,1,1,3,1,3],  # eyes
-    [0,3,1,1,2,1,1,3],  # nose
-    [0,0,3,1,1,1,3,0],  # chin
+    [0,3,3,0,0,3,3,0],   # tall ears
+    [0,3,2,3,3,2,3,0],
+    [3,3,2,3,3,2,3,3],
+    [3,1,3,3,3,3,1,3],   # head top
+    [3,1,1,1,1,1,1,3],
+    [3,1,3,1,1,3,1,3],   # eyes
+    [3,2,1,2,2,1,2,3],   # cheeks + nose
+    [0,3,1,1,1,1,3,0],
 ])
 def bunny_bot_f1(): return enc([
-    [0,3,1,1,1,1,1,3],  # body
-    [3,1,1,2,2,1,1,3],  # belly mark
-    [3,1,1,1,1,1,1,3],
-    [3,1,1,1,1,1,1,3],
-    [3,1,3,1,1,3,1,3],  # hips
-    [0,3,3,0,0,3,3,0],  # legs
-    [0,3,3,0,0,3,3,0],
-    [0,0,0,0,0,0,0,0],
-])
-def bunny_top_f2(): return bunny_top_f1()   # head stays same
-def bunny_bot_f2(): return enc([
-    [0,3,1,1,1,1,1,3],
+    [0,3,1,1,1,1,3,0],   # neck
     [3,1,1,2,2,1,1,3],
-    [3,1,1,1,1,1,1,3],
-    [3,1,1,1,1,1,1,3],
-    [3,1,3,1,1,3,1,3],
-    [0,3,1,3,3,1,3,0],  # walking legs
-    [0,0,3,0,0,3,0,0],
-    [0,0,0,0,0,0,0,0],
+    [3,1,2,2,2,2,1,3],   # belly
+    [3,1,2,2,2,2,1,3],
+    [3,1,1,2,2,1,1,3],
+    [0,3,1,1,1,1,3,0],
+    [0,3,3,0,0,3,3,0],   # both legs grounded
+    [3,3,1,0,0,1,3,3],
+])
+def bunny_bot_f2(): return enc([
+    [0,3,1,1,1,1,3,0],
+    [3,1,1,2,2,1,1,3],
+    [3,1,2,2,2,2,1,3],
+    [3,1,2,2,2,2,1,3],
+    [3,1,1,2,2,1,1,3],
+    [0,3,1,1,1,1,3,0],
+    [3,3,3,0,0,3,3,3],   # legs splayed (walking)
+    [3,1,0,0,0,0,1,3],
 ])
 
-# Collectibles
+# Carrot OBJ — pal 3: black/lite-orange/orange/dark-green
+# 1=light orange, 2=orange (carrot body), 3=green (leaves)
+def carrot_obj(): return enc([
+    [0,0,0,3,3,0,0,0],
+    [0,0,3,3,3,3,0,0],
+    [0,3,3,2,3,3,3,0],
+    [0,0,1,2,2,1,0,0],
+    [0,0,1,2,2,1,0,0],
+    [0,0,0,2,2,0,0,0],
+    [0,0,0,1,2,0,0,0],
+    [0,0,0,0,1,0,0,0],
+])
+
 def star_obj(): return enc([
     [0,0,0,2,2,0,0,0],
     [0,0,2,3,3,2,0,0],
@@ -113,6 +181,7 @@ def star_obj(): return enc([
     [0,0,2,3,3,2,0,0],
     [0,0,0,2,2,0,0,0],
 ])
+
 def flower_obj(): return enc([
     [0,0,1,2,2,1,0,0],
     [0,1,2,3,3,2,1,0],
@@ -123,101 +192,578 @@ def flower_obj(): return enc([
     [0,1,2,3,3,2,1,0],
     [0,0,1,2,2,1,0,0],
 ])
-def gift_obj(): return enc([
-    [0,1,0,1,1,0,1,0],  # bow (yellow=1)
-    [1,1,1,1,1,1,1,1],  # ribbon band
-    [0,3,3,1,1,3,3,0],  # box sides (purple=3)
-    [3,3,3,1,1,3,3,3],
-    [3,3,3,1,1,3,3,3],
-    [3,3,3,1,1,3,3,3],
-    [3,3,3,1,1,3,3,3],
-    [0,3,3,3,3,3,3,0],
+
+# ── Beach (palette 1=sand) ──────────────
+def sand_plain(): return enc([
+    [1,1,1,2,1,1,1,1],
+    [1,2,1,1,1,1,2,1],
+    [1,1,1,1,2,1,1,1],
+    [2,1,1,1,1,1,1,2],
+    [1,1,1,2,1,1,1,1],
+    [1,1,2,1,1,2,1,1],
+    [1,1,1,1,1,1,1,2],
+    [1,2,1,1,2,1,1,1],
+])
+def sand_ripple(): return enc([
+    [1,1,2,2,1,1,2,1],
+    [2,2,1,1,2,2,1,1],
+    [1,1,1,2,1,1,1,2],
+    [1,1,1,1,2,1,2,1],
+    [2,1,1,2,1,1,1,1],
+    [1,2,1,1,1,2,2,1],
+    [1,1,2,2,1,1,1,2],
+    [1,1,1,1,1,2,1,1],
+])
+# Water (palette 3=blue: light/mid/dark/navy)
+def water_top(): return enc([
+    [1,2,2,1,2,2,1,2],
+    [2,1,1,2,1,1,2,1],
+    [2,2,3,3,3,3,2,2],
+    [3,3,2,2,2,2,3,3],
+    [2,3,3,3,3,3,3,2],
+    [3,3,3,3,3,3,3,3],
+    [3,2,3,3,3,3,2,3],
+    [3,3,3,2,2,3,3,3],
+])
+def water_mid(): return enc([
+    [3,3,3,3,3,3,3,3],
+    [3,2,3,3,3,3,2,3],
+    [3,3,3,2,2,3,3,3],
+    [3,3,3,3,3,3,3,3],
+    [2,3,3,3,3,3,3,2],
+    [3,3,2,3,3,2,3,3],
+    [3,3,3,3,3,3,3,3],
+    [3,2,3,3,3,3,2,3],
+])
+def palm_top(): return enc([   # palette 6 (tree green)
+    [0,0,0,3,0,0,0,0],
+    [0,3,2,2,2,3,0,0],
+    [3,2,1,3,3,1,2,3],
+    [3,1,3,3,3,3,1,3],
+    [0,2,3,3,3,3,2,0],
+    [3,1,3,3,3,3,1,3],
+    [0,3,2,2,2,3,0,0],
+    [0,0,0,3,0,0,0,0],
+])
+def palm_bot(): return enc([   # palette 1 (sand-brown)
+    [0,0,0,3,3,0,0,0],
+    [0,0,0,3,2,0,0,0],
+    [0,0,0,3,3,0,0,0],
+    [0,0,0,2,3,0,0,0],
+    [0,0,0,3,3,0,0,0],
+    [0,0,0,3,2,0,0,0],
+    [0,0,0,3,3,0,0,0],
+    [0,0,0,3,3,0,0,0],
+])
+def shell(): return enc([   # palette 5 (pink)
+    [0,0,1,2,2,1,0,0],
+    [0,1,2,3,3,2,1,0],
+    [1,2,3,2,2,3,2,1],
+    [1,2,3,1,1,3,2,1],
+    [1,2,3,2,2,3,2,1],
+    [0,1,2,3,3,2,1,0],
+    [0,0,1,2,2,1,0,0],
+    [0,0,0,1,1,0,0,0],
 ])
 
-# BG tiles — Grass (palette 0: sky/lite/mid/dark green)
-def grass_plain(): return enc([
-    [1,1,2,1,1,1,1,2],[1,2,1,1,2,1,1,1],
-    [1,1,1,1,1,1,2,1],[2,1,1,2,1,1,1,1],
-    [1,1,1,1,1,1,1,2],[1,2,1,1,1,2,1,1],
-    [1,1,1,2,1,1,1,1],[1,1,2,1,1,1,2,1],
+# ── Forest (palette 0=grass green) ──────
+def grass_tile(): return enc([
+    [1,1,2,1,1,1,1,2],
+    [1,2,1,1,2,1,1,1],
+    [1,1,1,1,1,1,2,1],
+    [2,1,1,2,1,1,1,1],
+    [1,1,1,1,1,1,1,2],
+    [1,2,1,1,1,2,1,1],
+    [1,1,1,2,1,1,1,1],
+    [1,1,2,1,1,1,2,1],
 ])
 def grass_tuft(): return enc([
-    [1,1,2,3,2,1,1,1],[1,2,3,2,3,2,1,1],
-    [1,1,2,1,1,1,2,1],[1,1,1,1,1,2,1,1],
-    [1,2,1,3,1,1,1,2],[1,2,3,2,3,2,1,1],
-    [1,1,2,1,1,2,3,1],[1,1,1,1,1,1,2,1],
+    [1,1,2,3,2,1,1,1],
+    [1,2,3,2,3,2,1,1],
+    [1,1,2,1,1,1,2,1],
+    [1,1,1,1,1,2,1,1],
+    [1,2,1,3,1,1,1,2],
+    [1,2,3,2,3,2,1,1],
+    [1,1,2,1,1,2,3,1],
+    [1,1,1,1,1,1,2,1],
 ])
-def grass_clover(): return enc([
-    [1,1,1,2,1,1,1,1],[1,2,3,2,3,2,1,1],
-    [1,1,2,3,2,1,1,2],[1,1,1,2,1,1,1,1],
-    [2,1,1,1,1,2,3,2],[1,1,2,1,2,3,2,1],
-    [1,1,1,2,1,2,1,1],[1,2,1,1,1,1,1,2],
+def tree_top(): return enc([   # palette 6 (tree)
+    [0,0,1,2,2,1,0,0],
+    [0,1,2,3,3,2,1,0],
+    [1,2,3,2,2,3,2,1],
+    [2,3,3,3,3,3,3,2],
+    [2,3,2,3,3,2,3,2],
+    [1,2,3,3,3,3,2,1],
+    [0,1,2,3,3,2,1,0],
+    [0,0,1,2,2,1,0,0],
 ])
-
-# BG tiles — Dirt path (palette 1: sky/lite/mid/dark brown)
-def path_tile(): return enc([
-    [1,2,1,1,1,2,1,1],[2,1,2,1,1,1,2,1],
-    [1,1,1,2,1,2,1,1],[1,2,1,1,1,1,1,2],
-    [1,1,1,2,1,1,2,1],[2,1,2,1,1,2,1,1],
-    [1,1,1,1,2,1,1,2],[1,2,1,1,1,1,2,1],
+def tree_bot(): return enc([   # palette 6
+    [0,0,0,3,3,0,0,0],
+    [0,0,3,2,3,3,0,0],
+    [0,0,3,2,2,3,0,0],
+    [0,0,3,2,3,3,0,0],
+    [0,0,3,3,2,3,0,0],
+    [0,0,3,2,3,3,0,0],
+    [0,1,1,1,1,1,1,0],
+    [1,1,1,1,1,1,1,1],
 ])
-def path_top_edge(): return enc([
-    [3,3,3,3,3,3,3,3],[2,3,3,2,3,2,3,3],
-    [1,2,1,1,1,2,1,1],[2,1,2,1,1,1,2,1],
-    [1,1,1,2,1,2,1,1],[1,2,1,1,1,1,1,2],
-    [1,1,1,2,1,1,2,1],[2,1,2,1,1,2,1,1],
+def mushroom(): return enc([   # palette 7 (pink/purple)
+    [0,0,3,3,3,0,0,0],
+    [0,3,2,1,2,3,0,0],
+    [3,2,1,1,1,2,3,0],
+    [3,2,1,1,1,1,3,0],
+    [3,2,2,2,2,2,3,0],
+    [0,0,1,1,1,0,0,0],
+    [0,0,1,1,1,0,0,0],
+    [0,0,3,3,3,0,0,0],
 ])
-def path_bot_edge(): return enc([
-    [1,2,1,1,1,2,1,1],[2,1,2,1,1,1,2,1],
-    [1,1,1,2,1,2,1,1],[1,2,1,1,1,1,1,2],
-    [1,1,1,2,1,1,2,1],[2,1,2,1,1,2,1,1],
-    [2,3,3,2,3,2,3,3],[3,3,3,3,3,3,3,3],
-])
-
-# BG tiles — Rocks (palette 4: sky/lite/mid/dark gray)
-def rock_big(): return enc([
-    [0,0,2,2,2,2,0,0],[0,2,1,1,1,2,3,0],
-    [2,1,1,1,2,1,2,3],[2,1,2,1,1,1,2,3],
-    [2,1,1,1,1,2,2,3],[2,1,1,2,1,1,2,3],
-    [0,2,2,1,1,2,3,0],[0,0,2,3,3,3,0,0],
-])
-def rock_small(): return enc([
-    [1,1,1,1,1,1,1,1],[1,1,2,2,2,2,1,1],
-    [1,2,1,1,1,2,3,1],[1,2,1,2,1,2,3,1],
-    [1,2,1,1,1,2,3,1],[1,1,2,2,2,3,1,1],
-    [1,1,1,3,3,1,1,1],[1,1,1,1,1,1,1,1],
-])
-
-# BG tiles — Trees (palette 3: sky/lite/mid/dark tree-green)
-def tree_top(): return enc([
-    [0,0,1,2,2,1,0,0],[0,1,2,3,3,2,1,0],
-    [1,2,3,2,2,3,2,1],[2,3,3,3,3,3,3,2],
-    [2,3,2,3,3,2,3,2],[1,2,3,3,3,3,2,1],
-    [0,1,2,3,3,2,1,0],[0,0,1,2,2,1,0,0],
-])
-def tree_bot(): return enc([
-    [0,0,0,3,3,0,0,0],[0,0,3,2,3,3,0,0],
-    [0,0,3,2,2,3,0,0],[0,0,3,2,3,3,0,0],
-    [0,0,3,3,2,3,0,0],[0,0,3,2,3,3,0,0],
-    [0,1,1,1,1,1,1,0],[1,1,1,1,1,1,1,1],
+def log_tile(): return enc([   # palette 1 (brown)
+    [0,1,1,1,1,1,1,0],
+    [1,2,2,3,3,2,2,1],
+    [3,2,3,2,2,3,2,3],
+    [3,2,2,3,3,2,2,3],
+    [3,2,3,2,2,3,2,3],
+    [3,2,2,3,3,2,2,3],
+    [1,2,2,3,3,2,2,1],
+    [0,1,1,1,1,1,1,0],
 ])
 
-# BG tiles — accents (palette set per-tile in tilemap attributes)
-def mushroom(): return enc([   # pink palette 5
-    [0,0,3,3,3,0,0,0],[0,3,2,1,2,3,0,0],
-    [3,2,1,1,1,2,3,0],[3,2,1,1,1,1,3,0],
-    [3,2,2,2,2,2,3,0],[0,0,1,1,1,0,0,0],
-    [0,0,1,1,1,0,0,0],[0,0,3,3,3,0,0,0],
+# ── Mountain (palette 4=stone+snow) ─────
+def snow_plain(): return enc([
+    [1,1,1,1,2,1,1,1],
+    [1,1,2,1,1,1,1,1],
+    [1,1,1,1,1,2,1,1],
+    [2,1,1,1,1,1,1,2],
+    [1,1,1,2,1,1,1,1],
+    [1,2,1,1,1,1,2,1],
+    [1,1,1,1,1,1,1,1],
+    [1,1,1,2,1,1,1,1],
 ])
-def bg_flower(): return enc([  # palette chosen per-tile in tilemap
-    [0,0,2,3,2,0,0,0],[0,2,3,1,3,2,0,0],
-    [2,3,1,2,1,3,2,0],[0,2,3,1,3,2,0,0],
-    [0,0,2,3,2,0,0,0],[0,0,0,1,0,0,0,0],
-    [0,0,0,1,0,0,0,0],[0,0,0,0,0,0,0,0],
+def snow_bump(): return enc([
+    [0,0,1,1,1,1,0,0],
+    [0,1,2,1,1,2,1,0],
+    [1,1,1,1,1,1,1,1],
+    [1,2,1,1,1,1,2,1],
+    [1,1,2,1,1,2,1,1],
+    [1,2,1,1,1,1,2,1],
+    [1,1,1,2,2,1,1,1],
+    [1,1,1,1,1,1,1,1],
+])
+def peak_top(): return enc([   # palette 4 (stone gray)
+    [0,0,0,1,1,0,0,0],
+    [0,0,1,2,1,1,0,0],
+    [0,0,1,1,2,1,0,0],
+    [0,1,2,2,1,2,1,0],
+    [0,1,1,3,2,1,1,0],
+    [1,2,2,3,3,2,2,1],
+    [1,3,2,3,3,3,2,1],
+    [2,3,3,3,3,3,3,2],
+])
+def peak_bot(): return enc([   # palette 4
+    [3,2,3,3,3,3,2,3],
+    [3,3,3,2,2,3,3,3],
+    [2,3,3,3,3,3,3,2],
+    [3,3,3,3,3,3,3,3],
+    [3,3,2,3,3,2,3,3],
+    [3,3,3,3,3,3,3,3],
+    [2,3,3,3,3,3,3,2],
+    [3,3,3,3,3,3,3,3],
+])
+def rock_big(): return enc([   # palette 4
+    [0,0,2,2,2,2,0,0],
+    [0,2,1,1,1,2,3,0],
+    [2,1,1,1,2,1,2,3],
+    [2,1,2,1,1,1,2,3],
+    [2,1,1,1,1,2,2,3],
+    [2,1,1,2,1,1,2,3],
+    [0,2,2,1,1,2,3,0],
+    [0,0,2,3,3,3,0,0],
+])
+def icicle(): return enc([   # palette 3 (water blue) -- icy
+    [1,2,1,1,1,2,1,2],
+    [0,3,3,1,1,3,3,1],
+    [0,2,3,3,3,2,2,0],
+    [0,0,3,2,2,3,0,0],
+    [0,0,2,3,3,2,0,0],
+    [0,0,0,2,2,0,0,0],
+    [0,0,0,3,2,0,0,0],
+    [0,0,0,0,2,0,0,0],
 ])
 
-# UI tiles (palette 2: dark-purple / white / lite-yellow / mid-yellow)
-def ui_blank():      return enc([[0]*8]*8)   # solid color-0 = dark bg
+# ── Lake (palette 3=water) ──────────────
+def water_deep(): return enc([
+    [3,3,3,3,3,3,3,3],
+    [3,3,3,2,2,3,3,3],
+    [3,3,3,3,3,3,3,3],
+    [3,2,3,3,3,3,2,3],
+    [3,3,3,2,3,3,3,3],
+    [3,3,3,3,3,3,3,3],
+    [3,3,2,3,3,2,3,3],
+    [3,3,3,3,3,3,3,3],
+])
+def water_ripple(): return enc([
+    [3,3,1,1,3,3,1,3],
+    [1,1,3,3,1,1,3,3],
+    [3,3,3,1,3,3,3,1],
+    [3,3,3,3,1,3,1,3],
+    [1,3,3,1,3,3,3,3],
+    [3,1,3,3,3,1,1,3],
+    [3,3,1,1,3,3,3,1],
+    [3,3,3,3,3,1,3,3],
+])
+def lilypad(): return enc([   # palette 6 (lily green)
+    [0,0,1,2,2,1,0,0],
+    [0,1,3,2,2,3,1,0],
+    [1,3,2,2,2,2,3,1],
+    [3,2,2,2,2,2,2,3],
+    [3,2,2,1,1,2,2,3],
+    [1,3,2,2,2,2,3,1],
+    [0,1,3,3,3,3,1,0],
+    [0,0,1,1,1,1,0,0],
+])
+def reed(): return enc([   # palette 6
+    [0,0,3,0,0,3,0,0],
+    [0,2,3,0,2,3,0,0],
+    [0,2,3,2,2,3,0,0],
+    [0,3,3,3,3,3,0,3],
+    [0,2,3,3,2,3,0,3],
+    [0,2,3,3,2,3,2,3],
+    [0,2,3,3,2,3,2,3],
+    [3,2,3,3,2,3,2,3],
+])
+def fish(): return enc([   # palette 7 (orange/pink)
+    [0,0,0,0,0,0,0,0],
+    [0,0,2,2,2,1,0,0],
+    [0,2,3,2,2,2,1,0],
+    [3,2,1,2,2,2,3,1],
+    [3,2,2,2,2,2,3,1],
+    [0,2,3,2,2,2,1,0],
+    [0,0,2,2,2,1,0,0],
+    [0,0,0,0,0,0,0,0],
+])
+def pier(): return enc([   # palette 1 (brown)
+    [3,3,3,3,3,3,3,3],
+    [2,2,2,2,2,2,2,2],
+    [3,3,3,3,3,3,3,3],
+    [0,0,0,3,3,0,0,0],
+    [0,0,0,3,3,0,0,0],
+    [0,0,0,3,3,0,0,0],
+    [0,0,0,3,3,0,0,0],
+    [0,0,0,3,3,0,0,0],
+])
+
+# ── Village (palette 5=brick + accents) ─
+def cobble(): return enc([   # palette 4 (gray cobble)
+    [3,2,2,3,3,2,2,3],
+    [2,1,1,2,2,1,1,2],
+    [2,1,2,2,2,2,1,2],
+    [3,2,2,3,3,2,2,3],
+    [2,2,3,2,2,3,2,2],
+    [1,1,2,1,1,2,1,1],
+    [1,2,2,1,1,2,2,1],
+    [2,3,3,2,2,3,3,2],
+])
+def cobble_var(): return enc([   # palette 4
+    [2,2,3,3,2,2,3,3],
+    [1,1,2,2,1,1,2,2],
+    [1,2,2,1,1,2,2,1],
+    [2,3,3,2,2,3,3,2],
+    [3,3,2,2,3,3,2,2],
+    [2,2,1,1,2,2,1,1],
+    [2,1,1,2,2,1,1,2],
+    [3,2,2,3,3,2,2,3],
+])
+def house_top(): return enc([   # palette 5 (brick red)
+    [0,0,0,3,3,0,0,0],
+    [0,0,3,2,2,3,0,0],
+    [0,3,2,1,1,2,3,0],
+    [3,2,1,2,2,1,2,3],
+    [3,1,2,3,3,2,1,3],
+    [3,2,1,1,1,1,2,3],
+    [3,3,3,3,3,3,3,3],
+    [2,1,2,1,2,1,2,1],
+])
+def house_bot(): return enc([   # palette 5
+    [3,2,3,2,3,2,3,2],
+    [2,3,2,3,2,3,2,3],
+    [3,2,2,1,1,2,2,3],
+    [2,1,1,3,3,1,1,2],
+    [3,1,1,3,3,1,1,3],
+    [2,1,1,3,3,1,1,2],
+    [3,2,2,1,1,2,2,3],
+    [3,3,3,3,3,3,3,3],
+])
+def lantern(): return enc([   # palette 2 (gold UI)
+    [0,0,0,3,3,0,0,0],
+    [0,0,3,2,2,3,0,0],
+    [0,3,3,3,3,3,3,0],
+    [0,3,2,3,3,2,3,0],
+    [0,3,3,2,2,3,3,0],
+    [0,3,2,3,3,2,3,0],
+    [0,0,3,2,2,3,0,0],
+    [0,0,0,3,3,0,0,0],
+])
+def fence(): return enc([   # palette 1 (wood)
+    [3,3,1,3,3,1,3,3],
+    [2,2,1,2,2,1,2,2],
+    [3,3,3,3,3,3,3,3],
+    [2,2,2,2,2,2,2,2],
+    [3,3,1,3,3,1,3,3],
+    [2,2,1,2,2,1,2,2],
+    [3,3,1,3,3,1,3,3],
+    [2,2,1,2,2,1,2,2],
+])
+
+# ── Cave (palette 4=dark stone, 7=crystal) ─
+def cave_floor(): return enc([   # palette 4
+    [3,3,3,3,3,3,3,3],
+    [3,2,3,3,3,2,3,3],
+    [3,3,3,2,3,3,3,3],
+    [3,3,2,3,3,3,3,2],
+    [2,3,3,3,3,3,2,3],
+    [3,3,3,3,2,3,3,3],
+    [3,2,3,3,3,3,3,3],
+    [3,3,3,3,3,2,3,3],
+])
+def cave_bump(): return enc([   # palette 4
+    [3,3,3,3,3,3,3,3],
+    [3,3,2,2,2,2,3,3],
+    [3,2,1,1,1,1,2,3],
+    [3,2,1,2,2,1,2,3],
+    [3,2,1,1,1,1,2,3],
+    [3,3,2,2,2,2,3,3],
+    [3,3,3,3,3,3,3,3],
+    [3,3,3,3,3,3,3,3],
+])
+def cave_wall(): return enc([   # palette 4
+    [2,2,1,1,1,2,2,2],
+    [2,3,3,2,2,3,3,2],
+    [3,3,2,3,3,2,3,3],
+    [3,2,3,3,3,3,2,3],
+    [3,2,3,3,3,3,2,3],
+    [3,3,2,3,3,2,3,3],
+    [2,3,3,2,2,3,3,2],
+    [2,2,1,1,1,2,2,2],
+])
+def crystal(): return enc([   # palette 7 (purple)
+    [0,0,1,2,2,1,0,0],
+    [0,1,2,3,3,2,1,0],
+    [1,2,3,2,2,3,2,1],
+    [2,3,2,1,1,2,3,2],
+    [2,3,2,1,1,2,3,2],
+    [1,2,3,2,2,3,2,1],
+    [0,1,2,3,3,2,1,0],
+    [0,0,1,2,2,1,0,0],
+])
+def drip(): return enc([   # palette 3 (water)
+    [0,0,0,2,2,0,0,0],
+    [0,0,2,3,3,2,0,0],
+    [0,0,2,3,3,2,0,0],
+    [0,0,0,2,2,0,0,0],
+    [0,0,0,0,0,0,0,0],
+    [0,0,0,1,1,0,0,0],
+    [0,0,1,3,3,1,0,0],
+    [0,0,0,1,1,0,0,0],
+])
+def bat(): return enc([   # palette 4 (dark)
+    [0,0,0,0,0,0,0,0],
+    [3,3,0,0,0,0,3,3],
+    [3,2,3,3,3,3,2,3],
+    [2,3,1,3,3,1,3,2],
+    [2,3,3,3,3,3,3,2],
+    [0,2,3,3,3,3,2,0],
+    [0,0,2,3,3,2,0,0],
+    [0,0,0,0,0,0,0,0],
+])
+
+# ── Desert (palette 1=sand, recolored) ───
+def dune(): return enc([   # palette 1 — orange-tinted sand via palette
+    [1,2,1,1,1,1,2,1],
+    [2,1,1,2,2,1,1,2],
+    [1,1,2,1,1,2,1,1],
+    [1,2,1,1,1,1,2,1],
+    [2,1,1,1,2,1,1,1],
+    [1,1,2,1,1,1,1,2],
+    [1,2,1,2,1,1,2,1],
+    [1,1,1,1,2,1,1,1],
+])
+def dune_bump(): return enc([   # palette 1
+    [0,0,1,1,2,2,1,0],
+    [0,1,2,2,1,1,2,1],
+    [1,2,1,1,2,2,1,2],
+    [2,1,2,2,1,1,2,1],
+    [1,2,1,1,2,2,1,1],
+    [2,1,2,2,1,1,1,2],
+    [1,2,1,1,2,2,2,1],
+    [2,1,2,1,1,1,1,2],
+])
+def cactus_top(): return enc([   # palette 6 (cactus green)
+    [0,0,3,3,0,0,0,0],
+    [0,3,2,2,3,0,0,3],
+    [0,3,2,1,3,3,3,2],
+    [0,3,2,1,2,2,3,2],
+    [0,3,2,1,1,1,3,2],
+    [0,3,2,1,1,1,3,2],
+    [0,3,2,1,1,1,3,3],
+    [0,3,2,1,1,1,3,0],
+])
+def cactus_bot(): return enc([   # palette 6
+    [0,3,2,1,1,1,3,0],
+    [0,3,2,1,1,1,3,0],
+    [0,3,2,1,1,1,3,0],
+    [0,3,2,1,1,1,3,0],
+    [3,3,2,1,1,1,3,0],
+    [3,3,3,3,3,3,3,0],
+    [0,3,3,3,3,3,0,0],
+    [0,0,0,0,0,0,0,0],
+])
+def bones(): return enc([   # palette 4 (white-ish gray)
+    [0,1,1,0,0,1,1,0],
+    [1,2,2,1,1,2,2,1],
+    [1,1,1,1,1,1,1,1],
+    [0,0,1,2,2,1,0,0],
+    [0,0,1,2,2,1,0,0],
+    [1,1,1,2,2,1,1,1],
+    [1,2,2,1,1,2,2,1],
+    [0,1,1,0,0,1,1,0],
+])
+def pyramid(): return enc([   # palette 1 (sand)
+    [0,0,0,3,3,0,0,0],
+    [0,0,2,3,3,2,0,0],
+    [0,0,2,2,2,3,0,0],
+    [0,2,2,2,3,2,3,0],
+    [0,2,1,2,2,2,3,0],
+    [2,2,1,2,1,2,2,3],
+    [2,1,2,1,2,1,2,3],
+    [3,3,3,3,3,3,3,3],
+])
+
+# ── Plains (palette 0=grass green) ───────
+def plain_grass(): return enc([
+    [1,2,1,1,1,1,2,1],
+    [1,1,1,2,1,1,1,2],
+    [2,1,1,1,1,2,1,1],
+    [1,1,2,1,1,1,1,1],
+    [1,2,1,1,2,1,1,2],
+    [1,1,1,2,1,1,2,1],
+    [2,1,1,1,1,2,1,1],
+    [1,1,2,1,1,1,1,2],
+])
+def flower_red(): return enc([   # palette 5 (red/pink)
+    [0,0,2,3,3,2,0,0],
+    [0,2,3,1,1,3,2,0],
+    [2,3,1,2,2,1,3,2],
+    [2,3,2,3,3,2,3,2],
+    [2,3,1,2,2,1,3,2],
+    [0,2,3,1,1,3,2,0],
+    [0,0,3,3,3,3,0,0],
+    [0,0,0,3,3,0,0,0],
+])
+def flower_blue(): return enc([   # palette 3 (blue)
+    [0,0,1,2,2,1,0,0],
+    [0,1,2,3,3,2,1,0],
+    [1,2,3,1,1,3,2,1],
+    [2,3,1,2,2,1,3,2],
+    [1,2,3,1,1,3,2,1],
+    [0,1,2,3,3,2,1,0],
+    [0,0,1,2,2,1,0,0],
+    [0,0,0,2,2,0,0,0],
+])
+def flower_yel(): return enc([   # palette 2 (gold/yellow UI)
+    [0,0,2,3,3,2,0,0],
+    [0,2,3,1,1,3,2,0],
+    [2,3,1,2,2,1,3,2],
+    [2,3,2,3,3,2,3,2],
+    [2,3,1,2,2,1,3,2],
+    [0,2,3,1,1,3,2,0],
+    [0,0,2,3,3,2,0,0],
+    [0,0,0,2,2,0,0,0],
+])
+def butterfly(): return enc([   # palette 7 (purple)
+    [0,3,3,0,3,3,3,0],
+    [3,2,2,3,3,1,2,3],
+    [3,1,2,2,2,2,1,3],
+    [3,3,2,3,3,2,3,3],
+    [3,2,3,2,2,3,2,3],
+    [3,1,2,2,2,2,1,3],
+    [3,2,1,3,3,1,2,3],
+    [0,3,3,0,3,3,3,0],
+])
+def tall_grass(): return enc([   # palette 0
+    [0,3,0,3,0,3,0,3],
+    [3,2,3,2,3,2,3,2],
+    [3,2,3,2,3,2,3,2],
+    [3,2,3,2,3,2,3,2],
+    [2,3,2,3,2,3,2,3],
+    [2,3,2,3,2,3,2,3],
+    [1,2,1,2,1,2,1,2],
+    [2,2,2,2,2,2,2,2],
+])
+
+# ── Castle (palette 5=brick red, 2=gold) ─
+def castle_brick(): return enc([   # palette 5 (red)
+    [3,2,2,2,3,3,2,2],
+    [2,1,1,1,2,2,1,1],
+    [2,1,2,1,2,2,1,2],
+    [3,2,2,2,3,3,2,2],
+    [2,2,3,3,2,2,2,3],
+    [1,1,2,2,1,1,1,2],
+    [1,2,1,2,1,2,1,1],
+    [2,2,3,3,2,2,2,3],
+])
+def castle_gold(): return enc([   # palette 2 (UI gold)
+    [3,2,2,3,3,2,2,3],
+    [2,1,1,2,2,1,1,2],
+    [3,2,3,3,3,3,2,3],
+    [2,3,3,1,1,3,3,2],
+    [2,3,1,3,3,1,3,2],
+    [3,2,3,3,3,3,2,3],
+    [2,1,1,2,2,1,1,2],
+    [3,2,2,3,3,2,2,3],
+])
+def banner_top(): return enc([   # palette 7 (purple banner)
+    [3,3,3,3,3,3,3,3],
+    [3,2,2,2,2,2,2,3],
+    [3,2,1,3,3,1,2,3],
+    [3,2,3,2,2,3,2,3],
+    [3,2,1,3,3,1,2,3],
+    [3,2,2,2,2,2,2,3],
+    [3,2,2,2,2,2,2,3],
+    [3,3,3,3,3,3,3,3],
+])
+def banner_bot(): return enc([   # palette 7
+    [3,2,2,2,2,2,2,3],
+    [3,2,1,1,1,1,2,3],
+    [3,2,2,2,2,2,2,3],
+    [0,3,2,2,2,2,3,0],
+    [0,0,3,2,2,3,0,0],
+    [0,0,0,3,3,0,0,0],
+    [0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0],
+])
+def gate(): return enc([   # palette 1 (wood/brown)
+    [3,3,3,3,3,3,3,3],
+    [3,2,3,2,3,2,3,3],
+    [2,3,2,3,2,3,2,3],
+    [3,2,3,2,3,2,3,2],
+    [2,3,2,3,2,3,2,3],
+    [3,2,3,2,3,2,3,2],
+    [3,3,3,2,2,3,3,3],
+    [3,3,3,3,3,3,3,3],
+])
+def torch(): return enc([   # palette 2 (gold flame)
+    [0,0,0,3,0,0,0,0],
+    [0,0,3,2,3,0,0,0],
+    [0,3,2,1,2,3,0,0],
+    [0,3,2,2,2,3,0,0],
+    [0,0,3,3,3,0,0,0],
+    [0,0,0,1,0,0,0,0],
+    [0,0,0,1,0,0,0,0],
+    [0,0,1,1,1,0,0,0],
+])
+
+# ── UI tiles ──────────────
+def ui_blank():      return enc([[0]*8]*8)
 def heart_full():    return enc([
     [0,3,3,0,0,3,3,0],[3,2,2,3,3,2,2,3],
     [3,2,2,2,2,2,2,3],[3,2,2,2,2,2,2,3],
@@ -230,11 +776,15 @@ def heart_empty():   return enc([
     [0,3,1,1,1,1,3,0],[0,0,3,1,1,3,0,0],
     [0,0,0,3,3,0,0,0],[0,0,0,0,0,0,0,0],
 ])
-def gift_icon_bg():  return enc([
-    [0,0,1,0,0,1,0,0],[0,2,2,2,2,2,2,0],
-    [3,3,3,2,2,3,3,3],[3,3,3,2,2,3,3,3],
-    [3,3,3,2,2,3,3,3],[0,3,3,3,3,3,3,0],
-    [0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],
+def carrot_icon_bg(): return enc([   # palette 2
+    [0,0,0,3,3,0,0,0],
+    [0,0,3,3,3,3,0,0],
+    [0,0,2,3,2,2,0,0],
+    [0,0,2,3,3,2,0,0],
+    [0,0,0,3,3,0,0,0],
+    [0,0,0,2,3,0,0,0],
+    [0,0,0,1,2,0,0,0],
+    [0,0,0,0,1,0,0,0],
 ])
 def star_icon_bg():  return enc([
     [0,0,0,2,2,0,0,0],[0,0,2,3,3,2,0,0],
@@ -243,9 +793,9 @@ def star_icon_bg():  return enc([
     [0,0,2,0,0,2,0,0],[0,0,0,0,0,0,0,0],
 ])
 def border_h():      return enc([
-    [0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],
+    [0]*8,[0]*8,[0]*8,
     [3,3,3,3,3,3,3,3],[3,3,3,3,3,3,3,3],
-    [0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],
+    [0]*8,[0]*8,[0]*8,
 ])
 def arrow_right():   return enc([
     [0,0,1,0,0,0,0,0],[0,0,1,1,0,0,0,0],
@@ -253,8 +803,26 @@ def arrow_right():   return enc([
     [1,1,2,2,2,1,0,0],[0,0,1,2,1,0,0,0],
     [0,0,1,1,0,0,0,0],[0,0,1,0,0,0,0,0],
 ])
+def arrow_left():    return enc([
+    [0,0,0,0,1,0,0,0],[0,0,0,1,1,0,0,0],
+    [0,0,1,2,1,0,0,0],[0,1,2,2,2,1,1,0],
+    [0,1,2,2,2,1,1,0],[0,0,1,2,1,0,0,0],
+    [0,0,0,1,1,0,0,0],[0,0,0,0,1,0,0,0],
+])
+def arrow_up():      return enc([
+    [0,0,0,1,0,0,0,0],[0,0,1,2,1,0,0,0],
+    [0,1,2,2,2,1,0,0],[1,2,2,2,2,2,1,0],
+    [0,0,1,2,1,0,0,0],[0,0,1,2,1,0,0,0],
+    [0,0,1,2,1,0,0,0],[0,0,1,1,1,0,0,0],
+])
+def arrow_down():    return enc([
+    [0,0,1,1,1,0,0,0],[0,0,1,2,1,0,0,0],
+    [0,0,1,2,1,0,0,0],[0,0,1,2,1,0,0,0],
+    [1,2,2,2,2,2,1,0],[0,1,2,2,2,1,0,0],
+    [0,0,1,2,1,0,0,0],[0,0,0,1,0,0,0,0],
+])
 
-# Digits
+# Digits 0-9
 _DIG = [
     [[0,1,1,1,1,0,0,0],[1,2,2,2,2,1,0,0],[1,2,1,1,2,1,0,0],[1,2,1,1,2,1,0,0],
      [1,2,1,1,2,1,0,0],[1,2,2,2,2,1,0,0],[0,1,1,1,1,0,0,0],[0]*8],
@@ -279,7 +847,7 @@ _DIG = [
 ]
 def digit_tile(n): return enc(_DIG[n])
 
-# Font (A-Z + punctuation)
+# Font A-Z + punctuation
 _FONT = {
     'A':[[0,0,1,1,1,0,0,0],[0,1,2,2,2,1,0,0],[0,1,2,1,2,1,0,0],[0,1,2,2,2,1,0,0],[0,1,2,1,2,1,0,0],[0,1,2,1,2,1,0,0],[0,1,2,1,2,1,0,0],[0]*8],
     'B':[[0,1,1,1,1,0,0,0],[0,1,2,2,2,1,0,0],[0,1,2,2,1,0,0,0],[0,1,2,2,2,1,0,0],[0,1,2,1,2,1,0,0],[0,1,2,1,2,1,0,0],[0,1,1,1,1,0,0,0],[0]*8],
@@ -318,43 +886,107 @@ _FONT = {
 }
 def font_tile(c): return enc(_FONT.get(c, _FONT[' ']))
 
-# ── build_tile_data: assemble all 256 tiles into 4096-byte block ───────────
+# ── build_tile_data ────────────────────────────────────────
 def build_tile_data():
     data = bytearray(256 * 16)
     def put(idx, tile):
         for i, b in enumerate(tile):
             data[idx * 16 + i] = b
-    # OBJ sprites
+
+    # OBJ
     put(TL_BUNNY_T_F1, bunny_top_f1())
     put(TL_BUNNY_B_F1, bunny_bot_f1())
-    put(TL_BUNNY_T_F2, bunny_top_f2())
+    put(TL_BUNNY_T_F2, bunny_top_f1())   # head static
     put(TL_BUNNY_B_F2, bunny_bot_f2())
-    put(TL_GIFT,       gift_obj())
+    put(TL_CARROT,     carrot_obj())
     put(TL_STAR,       star_obj())
     put(TL_FLOWER_OBJ, flower_obj())
-    put(TL_CURSOR,     star_obj())
-    # BG
-    put(TL_GRASS_PLAIN,  grass_plain())
-    put(TL_GRASS_TUFT,   grass_tuft())
-    put(TL_GRASS_CLOVER, grass_clover())
-    put(TL_PATH,         path_tile())
-    put(TL_PATH_TOP,     path_top_edge())
-    put(TL_PATH_BOT,     path_bot_edge())
-    put(TL_ROCK,         rock_big())
-    put(TL_ROCK_SMALL,   rock_small())
-    put(TL_TREE_TOP,     tree_top())
-    put(TL_TREE_BOT,     tree_bot())
-    put(TL_MUSHROOM,     mushroom())
-    put(TL_BG_FLOWER,    bg_flower())
+    # 8x16 OBJ mode: write blank "bottom half" tiles at 0x05, 0x07, 0x09
+    put(TL_BLANK_OBJ,  ui_blank())
+    put(0x07,          ui_blank())
+    put(0x09,          ui_blank())
+
+    # UI
     put(TL_BG_BLANK,     ui_blank())
     put(TL_HEART_FULL,   heart_full())
     put(TL_HEART_EMPTY,  heart_empty())
-    put(TL_GIFT_ICON,    gift_icon_bg())
+    put(TL_CARROT_ICON,  carrot_icon_bg())
     put(TL_STAR_ICON_BG, star_icon_bg())
     put(TL_BORDER_H,     border_h())
-    put(TL_ARROW,        arrow_right())
+    put(TL_ARROW_R,      arrow_right())
+    put(TL_ARROW_L,      arrow_left())
+    put(TL_ARROW_U,      arrow_up())
+    put(TL_ARROW_D,      arrow_down())
+
+    # Digits + font
     for n in range(10):
         put(TL_DIGIT_0 + n, digit_tile(n))
-    for c, pix in _FONT.items():
-        put(char_to_tile(c), enc(pix))
+    for c in _FONT:
+        put(char_to_tile(c), enc(_FONT[c]))
+
+    # Beach
+    put(TL_SAND,         sand_plain())
+    put(TL_SAND_RIPPLE,  sand_ripple())
+    put(TL_WATER_TOP,    water_top())
+    put(TL_WATER_MID,    water_mid())
+    put(TL_PALM_TOP,     palm_top())
+    put(TL_PALM_BOT,     palm_bot())
+    put(TL_SHELL,        shell())
+    # Forest
+    put(TL_GRASS,        grass_tile())
+    put(TL_GRASS_TUFT,   grass_tuft())
+    put(TL_TREE_TOP,     tree_top())
+    put(TL_TREE_BOT,     tree_bot())
+    put(TL_MUSHROOM,     mushroom())
+    put(TL_LOG,          log_tile())
+    # Mountain
+    put(TL_SNOW,         snow_plain())
+    put(TL_SNOW_BUMP,    snow_bump())
+    put(TL_PEAK_TOP,     peak_top())
+    put(TL_PEAK_BOT,     peak_bot())
+    put(TL_ROCK_BIG,     rock_big())
+    put(TL_ICICLE,       icicle())
+    # Lake
+    put(TL_WATER_DEEP,   water_deep())
+    put(TL_WATER_RIPPLE, water_ripple())
+    put(TL_LILYPAD,      lilypad())
+    put(TL_REED,         reed())
+    put(TL_FISH,         fish())
+    put(TL_PIER,         pier())
+    # Village
+    put(TL_COBBLE,       cobble())
+    put(TL_COBBLE_VAR,   cobble_var())
+    put(TL_HOUSE_TOP,    house_top())
+    put(TL_HOUSE_BOT,    house_bot())
+    put(TL_LANTERN,      lantern())
+    put(TL_FENCE,        fence())
+    # Cave
+    put(TL_CAVE_FLOOR,   cave_floor())
+    put(TL_CAVE_BUMP,    cave_bump())
+    put(TL_CAVE_WALL,    cave_wall())
+    put(TL_CRYSTAL,      crystal())
+    put(TL_DRIP,         drip())
+    put(TL_BAT,          bat())
+    # Desert
+    put(TL_DUNE,         dune())
+    put(TL_DUNE_BUMP,    dune_bump())
+    put(TL_CACTUS_TOP,   cactus_top())
+    put(TL_CACTUS_BOT,   cactus_bot())
+    put(TL_BONES,        bones())
+    put(TL_PYRAMID,      pyramid())
+    # Plains
+    put(TL_PLAIN_GRASS,  plain_grass())
+    put(TL_FLOWER_RED,   flower_red())
+    put(TL_FLOWER_BLUE,  flower_blue())
+    put(TL_FLOWER_YEL,   flower_yel())
+    put(TL_BUTTERFLY,    butterfly())
+    put(TL_TALL_GRASS,   tall_grass())
+    # Castle
+    put(TL_CASTLE_BRICK, castle_brick())
+    put(TL_CASTLE_GOLD,  castle_gold())
+    put(TL_BANNER_TOP,   banner_top())
+    put(TL_BANNER_BOT,   banner_bot())
+    put(TL_GATE,         gate())
+    put(TL_TORCH,        torch())
+
     return data
