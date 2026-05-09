@@ -553,6 +553,73 @@ DESERT_PATH = [
     [0,0,0,0,0,0,0,0],
 ]
 
+# Cave Biome Tiles
+CAVE_FLOOR = [
+    [3,3,1,1,1,1,3,3],  # stone floor
+    [3,1,1,2,2,1,1,3],
+    [1,1,2,2,2,2,1,1],
+    [1,2,2,1,1,2,2,1],
+    [2,2,1,1,1,1,2,2],
+    [2,1,1,2,2,1,1,2],
+    [1,1,2,2,2,2,1,1],
+    [1,1,1,1,1,1,1,1],
+]
+
+CAVE_WALL = [
+    [2,2,1,3,3,1,2,2],  # cave wall
+    [2,1,1,3,3,1,1,2],
+    [1,1,3,3,3,3,1,1],
+    [1,3,3,2,2,3,3,1],
+    [3,3,2,2,2,2,3,3],
+    [3,2,2,3,3,2,2,3],
+    [2,2,3,3,3,3,2,2],
+    [2,1,1,1,1,1,1,2],
+]
+
+CAVE_PATH = [
+    [0,0,0,0,0,0,0,0],  # passage path
+    [0,1,1,1,1,1,1,0],
+    [0,1,0,2,2,0,1,0],
+    [0,1,2,3,3,2,1,0],
+    [0,1,2,3,3,2,1,0],
+    [0,1,0,2,2,0,1,0],
+    [0,1,1,1,1,1,1,0],
+    [0,0,0,0,0,0,0,0],
+]
+
+SWAMP_GROUND = [
+    [0,1,1,2,2,1,1,0],  # muddy swamp ground
+    [1,2,2,2,2,2,2,1],
+    [1,2,1,2,1,2,2,1],
+    [2,2,2,1,2,2,1,2],
+    [2,1,2,2,2,1,2,2],
+    [1,2,2,1,2,2,2,1],
+    [1,2,2,2,2,1,2,1],
+    [0,1,2,2,2,2,1,0],
+]
+
+SWAMP_MURK = [
+    [0,0,1,1,1,1,0,0],  # murky water patches
+    [0,1,2,2,2,2,1,0],
+    [1,2,3,3,3,3,2,1],
+    [1,2,3,0,0,3,2,1],
+    [1,2,3,0,0,3,2,1],
+    [1,2,3,3,3,3,2,1],
+    [0,1,2,2,2,2,1,0],
+    [0,0,1,1,1,1,0,0],
+]
+
+SWAMP_PATH = [
+    [0,0,0,0,0,0,0,0],  # marshy path
+    [0,1,1,1,1,1,1,0],
+    [0,1,0,2,2,0,1,0],
+    [0,1,2,2,2,2,1,0],
+    [0,1,2,2,2,2,1,0],
+    [0,1,0,2,2,0,1,0],
+    [0,1,1,1,1,1,1,0],
+    [0,0,0,0,0,0,0,0],
+]
+
 # Digits
 def digit_pixels(n: int):
     """Return 8x8 pixel array for digit 0-9"""
@@ -639,6 +706,12 @@ def _build_tile_map():
     TILE_PIXELS[getattr(tiles_module, 'TL_DESERT_SAND', 0x42)] = DESERT_SAND
     TILE_PIXELS[getattr(tiles_module, 'TL_DESERT_ROCK', 0x43)] = DESERT_ROCK
     TILE_PIXELS[getattr(tiles_module, 'TL_DESERT_PATH', 0x44)] = DESERT_PATH
+    TILE_PIXELS[getattr(tiles_module, 'TL_CAVE_FLOOR', 0x45)] = CAVE_FLOOR
+    TILE_PIXELS[getattr(tiles_module, 'TL_CAVE_WALL', 0x46)] = CAVE_WALL
+    TILE_PIXELS[getattr(tiles_module, 'TL_CAVE_PATH', 0x47)] = CAVE_PATH
+    TILE_PIXELS[getattr(tiles_module, 'TL_SWAMP_GROUND', 0x48)] = SWAMP_GROUND
+    TILE_PIXELS[getattr(tiles_module, 'TL_SWAMP_MURK', 0x49)] = SWAMP_MURK
+    TILE_PIXELS[getattr(tiles_module, 'TL_SWAMP_PATH', 0x4A)] = SWAMP_PATH
 
     # Digits
     digit_start = getattr(tiles_module, 'TL_DIGIT_0', 0x23)

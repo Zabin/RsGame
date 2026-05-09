@@ -397,27 +397,45 @@ def desert_screen():
 
 
 def cave_screen():
-    t, a = _blank(TL_GRASS_PLAIN, 4)  # Palette 4: gray/rock base
+    t, a = _blank(TL_CAVE_FLOOR, 11)  # Cave base: custom cave floor with palette 11
     _score_bar(t, a, "CAVE")
-    _fill_grass(t, a, 1, 18)
-    _apply_zone_roads(t, a, 4)  # Zone 4 = CAVE (base layer)
 
-    # Rock walls forming cave passage
+    # Fill cave floor terrain
+    for y in range(1, 18):
+        for x in range(20):
+            tile_idx = y * 20 + x
+            if t[tile_idx] == TL_CAVE_FLOOR:
+                t[tile_idx] = TL_CAVE_FLOOR
+                a[tile_idx] = 11
+
+    # Apply cave path (distinct cavern path through the terrain)
+    from road_generator import RoadGenerator
+    gen = RoadGenerator()
+    gen.generate()
+    road_map = gen.get_zone_road(4)  # Zone 4 = CAVE
+
+    for y in range(len(road_map)):
+        for x in range(len(road_map[0])):
+            if road_map[y][x]:
+                _put(t, a, x, y + 1, TL_CAVE_PATH, 11)  # Cave path with distinct cavern colors
+
+    # Cave wall formations (create cavern atmosphere)
     for y in range(2, 6):
-        _put(t, a, 0, y, TL_ROCK, 4)
+        _put(t, a, 0, y, TL_CAVE_WALL, 11)
     for y in range(12, 16):
-        _put(t, a, 0, y, TL_ROCK, 4)
+        _put(t, a, 0, y, TL_CAVE_WALL, 11)
 
     for y in range(2, 6):
-        _put(t, a, 19, y, TL_ROCK, 4)
+        _put(t, a, 19, y, TL_CAVE_WALL, 11)
     for y in range(12, 16):
-        _put(t, a, 19, y, TL_ROCK, 4)
+        _put(t, a, 19, y, TL_CAVE_WALL, 11)
 
-    # Rock clusters in center (mineral formations)
+    # Rock clusters in center (mineral formations) - palette 4 for gray rocks
     for rx, ry in [(5, 3), (6, 4), (14, 3), (15, 4), (10, 5), (10, 13)]:
-        _put(t, a, rx, ry, TL_ROCK_SMALL, 4)
+        if t[ry * 20 + rx] == TL_CAVE_FLOOR:
+            _put(t, a, rx, ry, TL_ROCK_SMALL, 4)
 
-    # Purple crystal accents (glowing minerals) — palette 7
+    # Crystal accents (glowing minerals) — palette 7
     crystals = [
         (3, 2, 7), (17, 2, 7),
         (4, 13, 7), (16, 13, 7),
@@ -425,38 +443,64 @@ def cave_screen():
         (8, 8, 7), (12, 8, 7),
     ]
     for x, y, p in crystals:
-        _put(t, a, x, y, TL_BG_FLOWER, p)
+        if t[y * 20 + x] == TL_CAVE_FLOOR:
+            _put(t, a, x, y, TL_BG_FLOWER, p)
 
     _put(t, a, 18, 8, TL_ARROW, 2)
     return t, a
 
 
 def swamp_screen():
-    t, a = _blank(TL_GRASS_PLAIN, 0)  # Palette 0: grass base
+    t, a = _blank(TL_SWAMP_GROUND, 12)  # Swamp base: custom muddy ground with palette 12
     _score_bar(t, a, "SWAMP")
-    _fill_grass(t, a, 1, 18)
-    _apply_zone_roads(t, a, 5)  # Zone 5 = SWAMP (base layer)
 
-    # Dense tree walls (swamp forest)
+    # Fill swamp terrain
+    for y in range(1, 18):
+        for x in range(20):
+            tile_idx = y * 20 + x
+            if t[tile_idx] == TL_SWAMP_GROUND:
+                t[tile_idx] = TL_SWAMP_GROUND
+                a[tile_idx] = 12
+
+    # Apply swamp path (distinct marshy path through the terrain)
+    from road_generator import RoadGenerator
+    gen = RoadGenerator()
+    gen.generate()
+    road_map = gen.get_zone_road(5)  # Zone 5 = SWAMP
+
+    for y in range(len(road_map)):
+        for x in range(len(road_map[0])):
+            if road_map[y][x]:
+                _put(t, a, x, y + 1, TL_SWAMP_PATH, 12)  # Marshy path with swamp colors
+
+    # Dense tree walls (swamp forest) - palette 3 for tree colors
     for x in range(1, W, 2):
-        _put(t, a, x, 2, TL_TREE_TOP, 3)
-        _put(t, a, x, 3, TL_TREE_BOT, 3)
-        _put(t, a, x, 15, TL_TREE_TOP, 3)
-        _put(t, a, x, 16, TL_TREE_BOT, 3)
+        if t[2 * 20 + x] == TL_SWAMP_GROUND:
+            _put(t, a, x, 2, TL_TREE_TOP, 3)
+        if t[3 * 20 + x] == TL_SWAMP_GROUND:
+            _put(t, a, x, 3, TL_TREE_BOT, 3)
+        if t[15 * 20 + x] == TL_SWAMP_GROUND:
+            _put(t, a, x, 15, TL_TREE_TOP, 3)
+        if t[16 * 20 + x] == TL_SWAMP_GROUND:
+            _put(t, a, x, 16, TL_TREE_BOT, 3)
+
+    # Murky water patches (swamp puddles) — palette 12
+    murk_patches = [
+        (2, 5), (4, 6), (16, 5), (18, 6),
+        (3, 12), (5, 11), (15, 12), (17, 11),
+    ]
+    for x, y in murk_patches:
+        if t[y * 20 + x] == TL_SWAMP_GROUND:
+            _put(t, a, x, y, TL_SWAMP_MURK, 12)
 
     # Pink flowers (wetland blooms) — palette 5
     flowers = [
-        (2, 5, 5), (4, 6, 5), (6, 5, 5),
-        (14, 5, 5), (16, 6, 5), (18, 5, 5),
-        (3, 12, 5), (5, 11, 5), (8, 12, 5),
-        (12, 11, 5), (15, 12, 5), (17, 11, 5),
+        (8, 5, 5), (10, 6, 5), (12, 5, 5),
+        (8, 12, 5), (10, 11, 5), (12, 12, 5),
     ]
     for x, y, p in flowers:
-        _put(t, a, x, y, TL_BG_FLOWER, p)
-
-    # Mushroom clusters (swamp fungi) — palette 5
-    for mx, my in [(10, 4), (10, 14)]:
-        _put(t, a, mx, my, TL_MUSHROOM, 5)
+        if t[y * 20 + x] == TL_SWAMP_GROUND:
+            _put(t, a, x, y, TL_BG_FLOWER, p)
 
     _put(t, a, 18, 8, TL_ARROW, 2)
     return t, a

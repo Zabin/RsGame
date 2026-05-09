@@ -73,6 +73,12 @@ TL_FOREST_PATH  = 0x41   # forest: woodland path
 TL_DESERT_SAND  = 0x42   # desert: sandy dunes
 TL_DESERT_ROCK  = 0x43   # desert: rocky outcrop
 TL_DESERT_PATH  = 0x44   # desert: sandy path
+TL_CAVE_FLOOR   = 0x45   # cave: stone floor
+TL_CAVE_WALL    = 0x46   # cave: cave wall
+TL_CAVE_PATH    = 0x47   # cave: passage path
+TL_SWAMP_GROUND = 0x48   # swamp: muddy ground
+TL_SWAMP_MURK   = 0x49   # swamp: murky water
+TL_SWAMP_PATH   = 0x4A   # swamp: marshy path
 
 # Font: A-Z at 0x40-0x59, space=0x5A, then punctuation
 TL_FONT_A     = 0x40   # A..Z = 0x40..0x59
@@ -523,6 +529,73 @@ def desert_path(): return enc([
     [0,0,0,0,0,0,0,0],
 ])
 
+# Cave (palette 11: white/light-gray/mid-gray/dark-gray - underground caverns)
+def cave_floor(): return enc([
+    [3,3,1,1,1,1,3,3],  # stone floor with cracks
+    [3,1,1,2,2,1,1,3],
+    [1,1,2,2,2,2,1,1],
+    [1,2,2,1,1,2,2,1],
+    [2,2,1,1,1,1,2,2],
+    [2,1,1,2,2,1,1,2],
+    [1,1,2,2,2,2,1,1],
+    [1,1,1,1,1,1,1,1],
+])
+
+def cave_wall(): return enc([
+    [2,2,1,3,3,1,2,2],  # rough cave wall
+    [2,1,1,3,3,1,1,2],
+    [1,1,3,3,3,3,1,1],
+    [1,3,3,2,2,3,3,1],
+    [3,3,2,2,2,2,3,3],
+    [3,2,2,3,3,2,2,3],
+    [2,2,3,3,3,3,2,2],
+    [2,1,1,1,1,1,1,2],
+])
+
+def cave_path(): return enc([
+    [0,0,0,0,0,0,0,0],  # passage path
+    [0,1,1,1,1,1,1,0],
+    [0,1,0,2,2,0,1,0],
+    [0,1,2,3,3,2,1,0],
+    [0,1,2,3,3,2,1,0],
+    [0,1,0,2,2,0,1,0],
+    [0,1,1,1,1,1,1,0],
+    [0,0,0,0,0,0,0,0],
+])
+
+def swamp_ground(): return enc([
+    [0,1,1,2,2,1,1,0],  # muddy swamp ground
+    [1,2,2,2,2,2,2,1],
+    [1,2,1,2,1,2,2,1],
+    [2,2,2,1,2,2,1,2],
+    [2,1,2,2,2,1,2,2],
+    [1,2,2,1,2,2,2,1],
+    [1,2,2,2,2,1,2,1],
+    [0,1,2,2,2,2,1,0],
+])
+
+def swamp_murk(): return enc([
+    [0,0,1,1,1,1,0,0],  # murky water patches
+    [0,1,2,2,2,2,1,0],
+    [1,2,3,3,3,3,2,1],
+    [1,2,3,0,0,3,2,1],
+    [1,2,3,0,0,3,2,1],
+    [1,2,3,3,3,3,2,1],
+    [0,1,2,2,2,2,1,0],
+    [0,0,1,1,1,1,0,0],
+])
+
+def swamp_path(): return enc([
+    [0,0,0,0,0,0,0,0],  # marshy path
+    [0,1,1,1,1,1,1,0],
+    [0,1,0,2,2,0,1,0],
+    [0,1,2,2,2,2,1,0],
+    [0,1,2,2,2,2,1,0],
+    [0,1,0,2,2,0,1,0],
+    [0,1,1,1,1,1,1,0],
+    [0,0,0,0,0,0,0,0],
+])
+
 # Digits
 _DIG = [
     [[0,1,1,1,1,0,0,0],[1,2,2,2,2,1,0,0],[1,2,1,1,2,1,0,0],[1,2,1,1,2,1,0,0],
@@ -645,6 +718,12 @@ def build_tile_data():
     put(TL_DESERT_SAND,  desert_sand())
     put(TL_DESERT_ROCK,  desert_rock())
     put(TL_DESERT_PATH,  desert_path())
+    put(TL_CAVE_FLOOR,   cave_floor())
+    put(TL_CAVE_WALL,    cave_wall())
+    put(TL_CAVE_PATH,    cave_path())
+    put(TL_SWAMP_GROUND, swamp_ground())
+    put(TL_SWAMP_MURK,   swamp_murk())
+    put(TL_SWAMP_PATH,   swamp_path())
     for n in range(10):
         put(TL_DIGIT_0 + n, digit_tile(n))
     for c, pix in _FONT.items():
