@@ -14,25 +14,21 @@
 
 ## Position
 
-- **Updated:** 2026-07-06 (run #9)
+- **Updated:** 2026-07-06 (run #10)
 - **Increment:** **Bootstrap baseline** — document the shipped game (**Bunny Quest**) as-built
   through stages 01–07, verify the as-built record (09), then drive the widened
   BL-0001/0003/0005/0006/0007 remediation scope (BL-0008's umbrella) through the 07→08→09 loop.
   See [`BOOTSTRAP.md`](BOOTSTRAP.md).
-- **Pipeline state:** Stage 01 ✅. Stage 02 ✅. **Stage 03: GDS-01…GDS-04 ✅ authored, gates
-  closed.** GDS-05…GDS-10 still `⛔ Planned (scaffold only)`; `docs/architecture/adr/` still
+- **Pipeline state:** Stage 01 ✅. Stage 02 ✅. **Stage 03: GDS-01…GDS-05 ✅ authored, gates
+  closed.** GDS-06…GDS-10 still `⛔ Planned (scaffold only)`; `docs/architecture/adr/` still
   empty (deferred, `BL-0016`). Stages 04–11 ⛔ unstarted.
-- **Backlog:** 18 open entries. **BL-0017 (new, Low)** → `SCHEDULED`: the "one carrot per zone"
-  rule isn't code-enforced — a future `ZONE_COLLECTS`-touching package should add an explicit
-  checklist item, not a dedicated fix now. **BL-0018 (new, Low)** → `DEFERRED`: `SaveGame` doesn't
-  persist player facing/animation frame or per-zone score-item collected-state — confirm as
-  intended (or not) when `04-requirements-engineering` derives the save/persistence
-  requirements. All other entries unchanged. No `NEW`, no gate.
-- **Next step:** `03-architecture-design-synthesis` again, for **GDS-05 (Functional
-  Requirements)** — capability-level FRs the requirements baseline will elaborate. One level per
-  pass.
+- **Backlog:** 18 open entries, unchanged from run #9 — this run referenced `BL-0006`/`BL-0018`
+  as existing facts/open questions but raised no new findings. No `NEW`, no gate.
+- **Next step:** `03-architecture-design-synthesis` again, for **GDS-06 (Non-functional
+  Requirements)** — ROM budget, VBlank timing discipline, save integrity, build determinism,
+  test-coverage bar. One level per pass.
 - **Open gates:** none formally raised. Still recommended to the user (unchanged from runs
-  #2–#8): whether to pull BL-0006/BL-0008 (test-suite rewrite) forward out of numeric stage
+  #2–#9): whether to pull BL-0006/BL-0008 (test-suite rewrite) forward out of numeric stage
   order — fully grounded and executable at any time now.
 
 ## Run log
@@ -49,3 +45,4 @@
 | 7 | 2026-07-06 | advance | `03-architecture-design-synthesis` | GDS-02 (System Context) | ✅ Authored as-built: the ROM artifact (32768 bytes, MBC1+RAM+BATTERY, single-bank, ~9.6KB headroom), the six-module build pipeline (R101/R302/R303), and the verification harness's real current state — T1 reliable (R304), the rest not (`BL-0006`). States assumption A2 explicitly; names the toolchain-portability gap (R306/`BL-0005`) and the absence of CI as real external constraints. Gate closed; merge decision recorded (supersedes `Claude.md`'s system overview and `test_rom.py`'s header-comment framing, pending the doc-refresh pass). No new findings — referenced existing `BL-0005`/`BL-0006` only. No drift. | `03-architecture-design-synthesis` again — GDS-03 (Architecture), the next unauthored level |
 | 8 | 2026-07-06 | advance | `03-architecture-design-synthesis` | GDS-03 (Architecture) | ✅ Authored as-built: the six-module decomposition (line counts/exports verified directly against source), the one-job-per-file rule, and the patch-point build contract's exact ordering (`build_game_asm` → lay out data → patch `patches[key]` → `rom.resolve()` → `set_header()` → write), per R302. Gate closed; merge decision recorded (supersedes `Claude.md`'s Architecture Overview section — the module list was accurate, the surrounding prose wasn't). Harvested 1 new finding: **BL-0016** (Low, `recommendation`, SCHEDULED) — as-built ADRs (single-bank ROM, Python-assembler-over-RGBDS, 8×16 OBJ, etc.) still owed, deferred to a dedicated future pass rather than folded into this one. No drift. | `03-architecture-design-synthesis` again — GDS-04 (Domain Model), the next unauthored level |
 | 9 | 2026-07-06 | advance | `03-architecture-design-synthesis` | GDS-04 (Domain Model) | ✅ Authored as-built entity model directly from `tilemaps.py`/`asm_game.py`: Zone (×9), Screen (14 = 9 zone + 5 UI), Collectible (ScoreItem abundant tier vs. Carrot scarce tier), Player, Score, CarrotCount, SaveGame, GameState (cross-referenced to GDS-01). Corrected the level's own stale "gifts" scaffold wording to "carrots." Gate closed; merge decision recorded (supersedes `Claude.md`/`memory.md`'s entity-level tables entirely — they describe entities that no longer exist under those names; byte-address tables remain GDS-07's concern). Harvested 2 new findings: **BL-0017** (Low, SCHEDULED) — "one carrot per zone" isn't code-enforced; **BL-0018** (Low, DEFERRED) — `SaveGame` doesn't persist player facing/frame or per-zone score-item state, confirm intended at `04-requirements-engineering`. No drift. | `03-architecture-design-synthesis` again — GDS-05 (Functional Requirements), the next unauthored level |
+| 10 | 2026-07-06 | advance | `03-architecture-design-synthesis` | GDS-05 (Functional Requirements) | ✅ Authored six capability-level groupings (game-state transitions, movement/zone traversal, collection mechanics, victory condition, save/load, presentation), each verified directly against `asm_game.py` — explicitly not using `test_rom.py`'s T2–T10 suites as evidence, per `GDS-02`/`BL-0006`'s finding. C5 (save/load) carries forward `BL-0018`'s open question rather than resolving it. Deliberately capability-altitude, not a numbered `FR-xxxx` baseline. Gate closed; merge decision recorded (supersedes `Claude.md`'s Known Good Behavior list as capability-level source of truth). No new findings — referenced existing `BL-0006`/`BL-0018` only. No drift. | `03-architecture-design-synthesis` again — GDS-06 (Non-functional Requirements), the next unauthored level |
