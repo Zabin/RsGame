@@ -64,7 +64,7 @@ build order.
 | GDS-00 | Vision level | `docs/architecture/00-vision.md` | MSTR-001 | ✅ |
 | GDS-01 | Concept of Play | `docs/architecture/01-concept-of-play.md` | GDS-00 | ✅ (2026-07-06) |
 | GDS-02 | System Context | `docs/architecture/02-system-context.md` | GDS-01 | ✅ (2026-07-06) |
-| GDS-03 | Architecture | `docs/architecture/03-architecture.md` | GDS-02 | ⛔ (scaffold) |
+| GDS-03 | Architecture | `docs/architecture/03-architecture.md` | GDS-02 | ✅ (2026-07-06) |
 | GDS-04 | Domain Model | `docs/architecture/04-domain-model.md` | GDS-03 | ⛔ (scaffold) |
 | GDS-05 | Functional Requirements | `docs/architecture/05-functional-requirements.md` | GDS-04 | ⛔ (scaffold) |
 | GDS-06 | Non-functional Requirements | `docs/architecture/06-non-functional-requirements.md` | GDS-05 | ⛔ (scaffold) |
