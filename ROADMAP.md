@@ -80,10 +80,10 @@ build order.
 
 | ID | Document | Path | Depends on | Status |
 |---|---|---|---|---|
-| RQ-01 | Functional Requirements | `docs/requirements/01-functional-requirements.md` | GDS-01…05, ADRs | ⛔ |
-| RQ-02 | Non-Functional Requirements | `docs/requirements/02-non-functional-requirements.md` | GDS-06 | ⛔ |
-| RQ-03 | Requirements Review | `docs/requirements/03-requirements-review.md` | RQ-01, RQ-02 | ⛔ |
-| RQ-04 | Requirements Traceability Matrix | `docs/requirements/04-requirements-traceability-matrix.md` | RQ-01…03 | ⛔ |
+| RQ-01 | Functional Requirements | `docs/requirements/01-functional-requirements.md` | GDS-01…05, ADRs | ✅ (2026-07-06) |
+| RQ-02 | Non-Functional Requirements | `docs/requirements/02-non-functional-requirements.md` | GDS-06 | ✅ (2026-07-06) |
+| RQ-03 | Requirements Review | `docs/requirements/03-requirements-review.md` | RQ-01, RQ-02 | ✅ (2026-07-06) |
+| RQ-04 | Requirements Traceability Matrix | `docs/requirements/04-requirements-traceability-matrix.md` | RQ-01…03 | ✅ (2026-07-06) |
 
 ## Theme: Feature planning (`docs/feature-planning/`) — owner `05-feature-decomposition`
 
