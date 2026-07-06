@@ -66,7 +66,7 @@ build order.
 | GDS-02 | System Context | `docs/architecture/02-system-context.md` | GDS-01 | ✅ (2026-07-06) |
 | GDS-03 | Architecture | `docs/architecture/03-architecture.md` | GDS-02 | ✅ (2026-07-06) |
 | GDS-04 | Domain Model | `docs/architecture/04-domain-model.md` | GDS-03 | ✅ (2026-07-06) |
-| GDS-05 | Functional Requirements | `docs/architecture/05-functional-requirements.md` | GDS-04 | ⛔ (scaffold) |
+| GDS-05 | Functional Requirements | `docs/architecture/05-functional-requirements.md` | GDS-04 | ✅ (2026-07-06) |
 | GDS-06 | Non-functional Requirements | `docs/architecture/06-non-functional-requirements.md` | GDS-05 | ⛔ (scaffold) |
 | GDS-07 | Data Model | `docs/architecture/07-data-model.md` | GDS-06 | ⛔ (scaffold) |
 | GDS-08 | Presentation Architecture | `docs/architecture/08-presentation-architecture.md` | GDS-07 | ⛔ (scaffold) |
