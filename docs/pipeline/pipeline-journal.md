@@ -14,21 +14,21 @@
 
 ## Position
 
-- **Updated:** 2026-07-06 (run #14)
+- **Updated:** 2026-07-06 (run #15)
 - **Increment:** **Bootstrap baseline** — document the shipped game (**Bunny Quest**) as-built
   through stages 01–07, verify the as-built record (09), then drive the widened
   BL-0001/0003/0005/0006/0007 remediation scope (BL-0008's umbrella) through the 07→08→09 loop.
-  See [`BOOTSTRAP.md`](BOOTSTRAP.md). Per the user's explicit instruction, this and the next runs
-  iterate through all remaining open `03-architecture-design-synthesis` work in sequence (GDS-09,
-  GDS-10, the deferred ADR pass) rather than stopping after one level.
-- **Pipeline state:** Stage 01 ✅. Stage 02 ✅. **Stage 03: GDS-01…GDS-09 ✅ authored, gates
-  closed.** GDS-10 still `⛔ Planned (scaffold only)`; `docs/architecture/adr/` still empty
-  (deferred, `BL-0016`). Stages 04–11 ⛔ unstarted.
-- **Backlog:** 18 open entries, unchanged — this run raised no new findings (the six contracts
-  matched expectations cleanly against direct code reads). No `NEW`, no gate.
-- **Next step:** `03-architecture-design-synthesis` again, for **GDS-10 (Requirements
-  Traceability Matrix level)** — the next unauthored ladder level, immediately followed in this
-  same iteration by the deferred ADR-authoring pass (`BL-0016`).
+  See [`BOOTSTRAP.md`](BOOTSTRAP.md). Per the user's explicit instruction, this and the next run
+  iterate through all remaining open `03-architecture-design-synthesis` work in sequence (GDS-09
+  ✅, GDS-10 ✅, the deferred ADR pass next) rather than stopping after one level.
+- **Pipeline state:** Stage 01 ✅. Stage 02 ✅. **Stage 03: the global ladder GDS-00…GDS-10 is
+  now fully ✅ authored, all gates closed.** `docs/architecture/adr/` still empty (deferred,
+  `BL-0016`) — the one remaining piece of stage 03. Stages 04–11 ⛔ unstarted.
+- **Backlog:** 18 open entries, unchanged — this run raised no new findings (GDS-10 documents a
+  scheme, not row data, since `docs/requirements/` doesn't exist yet). No `NEW`, no gate.
+- **Next step:** `03-architecture-design-synthesis` again, for the **deferred as-built ADR pass
+  (`BL-0016`)** — the last piece of stage 03. Once that closes, advance to
+  `04-requirements-engineering`.
 - **Open gates:** none formally raised. Still recommended to the user (unchanged from runs
   #2–#11): whether to pull BL-0006/BL-0008 (test-suite rewrite) forward out of numeric stage
   order — fully grounded and executable at any time now.
@@ -52,3 +52,4 @@
 | 12 | 2026-07-06 | advance | `03-architecture-design-synthesis` | GDS-07 (Data Model) | ✅ First byte-level GDS pass: full ROM section layout (23148/32768 bytes), the complete WRAM map, the SRAM save format (confirming `BL-0018` at byte level), the tile index map (83/256 slots, one clean 8-tile-aligned block per zone), and the palette tables. **Corrected `BL-0009` in place** (not a new entry): direct read of `build_rom.py`'s `BG_PALETTES` shows only 5 of 8 BG palettes serve zone terrain today, organized by terrain family with real reuse already in place (one palette covers three zones) — more headroom than originally characterized. Gate closed; merge decision recorded (supersedes `Claude.md`'s Data-layout/WRAM/SRAM sections and `memory.md`'s tile-index/palette tables entirely — the most consequential merge decision in this ladder so far). No drift. | `03-architecture-design-synthesis` again — GDS-08 (Presentation Architecture), the next unauthored level |
 | 13 | 2026-07-06 | advance | `03-architecture-design-synthesis` | GDS-08 (Presentation Architecture) | ✅ Authored as-built: screen composition (one shared pattern across all 9 zones, R203), sprite strategy (8×16 OBJ pairs — corrected the level's own stale "8×8" scaffold wording, matching `LCDC=0x97`), the 40-entry OAM budget shared with collectibles, the static row-0 HUD, the corrected palette-assignment picture from `BL-0009`/GDS-07 (terrain-family reuse), and the single-channel audio engine shape. Added a process note (not new content) citing R210 for future presentation-content authoring. Gate closed; merge decision recorded (supersedes `memory.md`'s presentation-strategy framing entirely). No new findings — referenced existing `BL-0009`/`BL-0016` only. No drift. | `03-architecture-design-synthesis` again — GDS-09 (Interface Specification), the next unauthored level |
 | 14 | 2026-07-06 | advance (user-directed iteration through all remaining open stage-03 work) | `03-architecture-design-synthesis` | GDS-09 (Interface Specification) | ✅ Authored six cross-module contracts directly from source: `class ROM` (159 public methods, confirmed by direct count), `build_game_asm(rom) -> patches dict` (confirmed patch-key set per GDS-07), `build_tile_data() -> bytes` (confirmed fixed `bytearray(256 * 16)`), `ALL_SCREENS`/`ZONE_COLLECTS` (`tilemaps.py`), `music_data() -> list[int]` (confirmed terminal `0xFF` loop marker by direct read). Gate closed; merge decision recorded (wholly new content — no `Claude.md`/`memory.md` section previously stated these contract obligations). No new findings — the six contracts matched expectations cleanly. No drift. | `03-architecture-design-synthesis` again — GDS-10 (RTM level), then the deferred ADR pass (`BL-0016`), continuing in the same iteration per the user's instruction |
+| 15 | 2026-07-06 | advance (same user-directed iteration) | `03-architecture-design-synthesis` | GDS-10 (Requirements Traceability Matrix level) | ✅ Authored the traceability *scheme* rather than row data, since `docs/requirements/` (the stated merge source) doesn't exist yet — confirmed by `ROADMAP.md`, `RQ-01`…`RQ-04` all `⛔`. Documented the project's ID-namespace convention (confirmed against `ROADMAP.md`'s theme tables), the future row shape (origin → requirement → feature → implementation → verification), and the observation that `BL-xxxx` already functions as a cross-cutting traceability lane exercised end-to-end (e.g. `BL-0009`: R101 → GDS-07 → GDS-08). Gate closed; merge decision recorded (this level stays authoritative for the scheme until `RQ-04` is authored, at which point `RQ-04` owns row-level data). **Closes the global ladder GDS-00…GDS-10.** No new findings. No drift. | `03-architecture-design-synthesis` again — the deferred as-built ADR pass (`BL-0016`), the last piece of stage 03 |
