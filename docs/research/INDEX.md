@@ -40,12 +40,12 @@ section, 3–8 page band) is embedded in each `02-research-*` skill.
 
 | ID | Topic | Scope (one line) | Status |
 |---|---|---|---|
-| R301 | PyBoy headless API | memory access, button input, ticks, screenshots, `.ram` saves | ⛔ Planned |
-| R302 | Python-assembler codegen patterns | label resolution, patch-point dicts, section layout | ⛔ Planned |
-| R303 | 2bpp tile encoding & palette data formats | bitplanes, attribute maps, byte costs | ⛔ Planned |
-| R304 | ROM validation | header checksum, size, cart-type fields | ⛔ Planned |
-| R305 | Emulator-based test design | memory vs. pixel assertions, frame determinism, save harnesses | ⛔ Planned |
-| R306 | Toolchain portability | path conventions, CI-friendly builds, cross-checking emulators | ⛔ Planned |
+| R301 | [PyBoy headless API](encyclopedia/R301-pyboy-headless-api.md) | memory access, button input, ticks, screenshots, `.ram` saves | ✅ |
+| R302 | [Python-assembler codegen patterns](encyclopedia/R302-python-assembler-codegen-patterns.md) | label resolution, patch-point dicts, section layout | ✅ |
+| R303 | [2bpp tile encoding & palette data formats](encyclopedia/R303-2bpp-tile-encoding.md) | bitplanes, attribute maps, byte costs, the 256-tile budget | ✅ |
+| R304 | [ROM validation](encyclopedia/R304-rom-validation.md) | header checksum, size, cart-type fields; why T1 survives the BL-0006 rewrite | ✅ |
+| R305 | [Emulator-based test design](encyclopedia/R305-emulator-based-test-design.md) | memory vs. pixel assertions, frame determinism, save harnesses; **the concrete BL-0006 rewrite target** | ✅ |
+| R306 | [Toolchain portability](encyclopedia/R306-toolchain-portability.md) | path conventions; **the concrete BL-0005 rewrite target** | ✅ |
 
 The planned-topic lists are suggestions recorded at scaffold time — the owning skill adjusts them
 to real gaps (adding/retitling rows) as grounding needs emerge; keep this index the single source
