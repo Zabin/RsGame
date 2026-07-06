@@ -54,12 +54,11 @@ ramsize=0x02)` — cart type `0x03` is MBC1+RAM+BATTERY, `rsize=0x00` is the 32 
 size code (bank 0 only, `$0000`–`$7FFF` is the entire ROM, no banking register writes needed or
 used anywhere in the codebase today), and `ramsize=0x02` is 8 KiB of cartridge RAM (one bank,
 matching the no-RAM-banking case).[^1] The save format (per `Claude.md`/`memory.md`) writes a
-4-byte magic (`B`,`U`,`N`,`Y`) plus game state to `0xA000`+ — this is ordinary SRAM read/write
-through the always-enabled 8 KiB window; the codebase's save/load routines do not appear to
-explicitly write the RAM-enable sequence (`$0A` to `$0000`–`$1FFF`) before accessing SRAM,
-**worth a direct-code re-check** the next time save/load code is touched, since Pan Docs states
-RAM access requires this enable step and its absence would be a latent (if likely
-emulator-invisible) correctness gap.
+4-byte magic (`B`,`U`,`N`,`Y`) plus game state to `0xA000`+. **Confirmed correct by direct code
+read:** both the save and load routines in `asm_game.py` bracket every SRAM access with the
+documented enable/disable sequence — `LD A,0x0A; LD (0x0000),A` immediately before writing/reading
+`0xA000`+, and `XOR A; LD (0x0000),A` (writing `$00`, whose low nibble is not `$A`) immediately
+after — exactly matching Pan Docs' RAM-enable protocol on both the save path and the load path.
 
 **This project currently uses none of MBC1's banking registers** — `rsize=0x00` means the entire
 32 KiB ROM is bank 0, mapped statically at `$0000`–`$7FFF`, and no code anywhere writes to
@@ -69,13 +68,10 @@ current ~9.6 KB of headroom (per MSTR-001 §3).
 
 ## Implementation Guidance
 
-- **Before any SRAM read/write, confirm (or add) the RAM-enable write** (`$0A` to any address in
-  `$0000`–`$1FFF`) — audit the current save/load routines in `asm_game.py` against this
-  requirement rather than assuming PyBoy's apparent success means the sequence is correct on real
-  hardware.
-- **Disable RAM access after save/load completes** (any non-`$0A`-low-nibble byte to the same
-  range) to protect against corruption on power-loss — add this if the current code doesn't
-  already.
+- **Preserve the existing enable/disable bracketing on every future SRAM access.** A new save
+  field or a new persisted structure must be written *inside* the same `$0A`-enable /
+  `$00`-disable bracket the current code already uses — don't add a new SRAM read/write path that
+  skips this, even for a single byte.
 - **When the C7 growth path actually requires more than 32 KiB:** MBC1's default wiring (32 banks
   ×16 KiB = 512 KiB, RAM banking intact) is the natural first step and requires the *least*
   change to the existing single-RAM-bank save format; only reach for the large-ROM alternate
