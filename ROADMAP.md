@@ -54,7 +54,7 @@ build order.
 |---|---|---|---|---|
 | RS-INDEX | Research index (tier tables) | `docs/research/INDEX.md` | — | ♻️ |
 | R101–R110 | Tier R100 — GBC hardware & SM83 | `docs/research/encyclopedia/` | MSTR-001 | ✅ (2026-07-06) |
-| R201–R208 | Tier R200 — Game design | `docs/research/encyclopedia/` | MSTR-001 | ⛔ |
+| R201–R211 | Tier R200 — Game design (incl. R209–R211, pixel art / AI-generation workflow / GBC case studies, filed via `BL-0013`) | `docs/research/encyclopedia/` | MSTR-001 | ✅ (2026-07-06) |
 | R301–R306 | Tier R300 — Tooling & verification | `docs/research/encyclopedia/` | MSTR-001 | ✅ (2026-07-06) |
 
 ## Theme: Architecture (`docs/architecture/`) — owner `03-architecture-design-synthesis` (+ `01-vision` for GDS-00)

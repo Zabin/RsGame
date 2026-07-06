@@ -27,14 +27,17 @@ section, 3–8 page band) is embedded in each `02-research-*` skill.
 
 | ID | Topic | Scope (one line) | Status |
 |---|---|---|---|
-| R201 | Top-down collect-a-thon structure & goal design | goal hierarchies, gating, the gifts→victory shape | ⛔ Planned |
-| R202 | 8-bit game feel | movement speed, animation cadence, collision tolerance norms | ⛔ Planned |
-| R203 | Screen composition on a 20×18 tile grid | readability, landmarking, edges-as-exits | ⛔ Planned |
-| R204 | HUD & score-bar conventions | row-0 UI bar patterns, icon+digit layouts | ⛔ Planned |
-| R205 | Save-system design & player expectations | battery saves, auto-load, save menus | ⛔ Planned |
-| R206 | Difficulty, pacing & session length for handheld play | zone sizing, collectible density | ⛔ Planned |
-| R207 | GB-era chiptune composition & audio feedback cues | melody conventions, jingles, note-length feel | ⛔ Planned |
-| R208 | Palette & color design under CGB constraints | 4-color-per-palette design, 8-palette budgets | ⛔ Planned |
+| R201 | [Top-down collect-a-thon structure & goal design](encyclopedia/R201-collectathon-goal-design.md) | goal hierarchies, gating, the 9-carrot victory shape | ✅ |
+| R202 | [8-bit game feel](encyclopedia/R202-8bit-game-feel.md) | movement speed, animation cadence, collision tolerance norms | ✅ |
+| R203 | [Screen composition on a 20×18 tile grid](encyclopedia/R203-screen-composition-tile-grid.md) | readability, landmarking, edges-as-exits | ✅ |
+| R204 | [HUD & score-bar conventions](encyclopedia/R204-hud-score-bar-conventions.md) | row-0 UI bar patterns, icon+digit layouts | ✅ |
+| R205 | [Save-system design & player expectations](encyclopedia/R205-save-system-design.md) | battery saves, auto-load, save menus | ✅ |
+| R206 | [Difficulty, pacing & session length for handheld play](encyclopedia/R206-difficulty-pacing-session-length.md) | zone sizing, collectible density | ✅ |
+| R207 | [GB-era chiptune composition & audio feedback cues](encyclopedia/R207-gb-chiptune-composition.md) | melody conventions, jingles, note-length feel | ✅ |
+| R208 | [Palette & color design under CGB constraints](encyclopedia/R208-palette-color-design.md) | 4-color-per-palette design, 8-palette budgets | ✅ |
+| R209 | [Pixel art technique at 8×8/2bpp scale](encyclopedia/R209-pixel-art-technique.md) | silhouette-first design, color-per-part budgeting, outline use (filed via `BL-0013`) | ✅ |
+| R210 | [AI/agent-assisted tile-art generation & iteration workflow](encyclopedia/R210-ai-assisted-tile-art-workflow.md) | design→encode→render→review→revise loop for this project's own tooling (filed via `BL-0013`) | ✅ |
+| R211 | [Comparative case studies: acclaimed GBC/GBC-era visual design](encyclopedia/R211-acclaimed-gbc-visual-design-case-studies.md) | Oracle of Seasons/Ages, Shantae, Pokémon Gold/Silver, DKC (GBC) (filed via `BL-0013`) | ✅ |
 
 ## Tier R300 — Tooling, Emulation & Verification (`02-research-tooling-and-testing`)
 
