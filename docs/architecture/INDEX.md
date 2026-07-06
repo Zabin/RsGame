@@ -15,7 +15,7 @@ is closed with its decision recorded in prose. Status here and in `ROADMAP.md` m
 |---|---|---|---|
 | GDS-00 | Vision (owned by `01-vision`) | [00-vision.md](00-vision.md) | ✅ Authored (gate closed 2026-07-06; content revised same day, see MSTR-001 §8) |
 | GDS-01 | Concept of Play | [01-concept-of-play.md](01-concept-of-play.md) | ✅ Authored (gate closed 2026-07-06) |
-| GDS-02 | System Context | [02-system-context.md](02-system-context.md) | ⛔ Planned (scaffold only) |
+| GDS-02 | System Context | [02-system-context.md](02-system-context.md) | ✅ Authored (gate closed 2026-07-06) |
 | GDS-03 | Architecture | [03-architecture.md](03-architecture.md) | ⛔ Planned (scaffold only) |
 | GDS-04 | Domain Model | [04-domain-model.md](04-domain-model.md) | ⛔ Planned (scaffold only) |
 | GDS-05 | Functional Requirements | [05-functional-requirements.md](05-functional-requirements.md) | ⛔ Planned (scaffold only) |
