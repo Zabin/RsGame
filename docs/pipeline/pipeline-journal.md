@@ -14,26 +14,30 @@
 
 ## Position
 
-- **Updated:** 2026-07-06 (run #16)
+- **Updated:** 2026-07-06 (run #17)
 - **Increment:** **Bootstrap baseline** — document the shipped game (**Bunny Quest**) as-built
   through stages 01–07, verify the as-built record (09), then drive the widened
   BL-0001/0003/0005/0006/0007 remediation scope (BL-0008's umbrella) through the 07→08→09 loop.
-  See [`BOOTSTRAP.md`](BOOTSTRAP.md). Per the user's explicit instruction to iterate through all
-  remaining open `03-architecture-design-synthesis` work in one turn: GDS-09 ✅, GDS-10 ✅, and
-  the deferred ADR pass ✅ are now all complete — **stage 03 is fully closed.**
-- **Pipeline state:** Stage 01 ✅. Stage 02 ✅. **Stage 03 ✅ — fully complete**: the global
-  ladder GDS-00…GDS-10 fully authored with all gates closed, plus `docs/architecture/adr/`
-  populated with eight as-built ADRs (`ADR-0001`…`ADR-0008`). Stages 04–11 ⛔ unstarted.
-- **Backlog:** 18 entries, 1 status change this run — **`BL-0016` flipped `SCHEDULED` → `DONE`**
-  (the ADR pass it recommended is now complete). No new findings raised authoring the ADRs. No
-  `NEW`, no gate.
-- **Next step:** Stage 03 is fully closed — advance to **`04-requirements-engineering`** (the
-  requirements baseline `RQ-01`…`RQ-04`, formalizing GDS-05/GDS-06's FR/NFR groupings into
-  numbered requirements per [GDS-10](../architecture/10-requirements-traceability-matrix.md) §3's
-  stated contract).
-- **Open gates:** none formally raised. Still recommended to the user (unchanged from runs
-  #2–#11): whether to pull BL-0006/BL-0008 (test-suite rewrite) forward out of numeric stage
-  order — fully grounded and executable at any time now.
+  See [`BOOTSTRAP.md`](BOOTSTRAP.md). Stage 03 (global ladder + ADRs) closed in runs #14–#16;
+  this run closes **stage 04** entirely (the requirements baseline `RQ-01`…`RQ-04`).
+- **Pipeline state:** Stage 01 ✅. Stage 02 ✅. Stage 03 ✅ (global ladder GDS-00…GDS-10 +
+  eight ADRs). **Stage 04 ✅ — fully complete**: `RQ-01`…`RQ-04` all authored (24 FR leaves + 11
+  NFR leaves + 4 candidates, a Requirements Review with 6 findings, and a populated row-level
+  traceability matrix). Stages 05–11 ⛔ unstarted.
+- **Backlog:** 19 entries. **`BL-0018` flipped `DEFERRED` → `NEEDS-USER`** (the save-scope
+  question is now confirmed genuinely open, not further deferrable, per RQ-03 finding #1) — **a
+  real open gate for the user, named below.** New: **`BL-0019`** (Low, SCHEDULED) — recommends a
+  future ROM-headroom re-affirmation checklist item, per RQ-03 finding #4. `BL-0017` unchanged
+  (still SCHEDULED, consistent with RQ-01's CR-02 disposition).
+- **Next step:** Stage 04 is fully closed — advance to **`05-feature-decomposition`** (Release
+  Plan, Epic Catalog, Feature Catalog, Feature Dependency Graph, Feature Review, derived from the
+  RQ-01…RQ-04 baseline).
+- **Open gates:** **`BL-0018` is now a live `NEEDS-USER` item** — does the save system's declared
+  field set remain intended scope, or should facing/frame/per-zone score-item state be added
+  (CR-01)? Not blocking `05-feature-decomposition` from starting, but should be resolved before
+  any future package touches the save system. Still recommended (unchanged from runs #2–#11):
+  whether to pull BL-0006/BL-0008 (test-suite rewrite) forward out of numeric stage order — fully
+  grounded and executable at any time now.
 
 ## Run log
 
@@ -56,3 +60,4 @@
 | 14 | 2026-07-06 | advance (user-directed iteration through all remaining open stage-03 work) | `03-architecture-design-synthesis` | GDS-09 (Interface Specification) | ✅ Authored six cross-module contracts directly from source: `class ROM` (159 public methods, confirmed by direct count), `build_game_asm(rom) -> patches dict` (confirmed patch-key set per GDS-07), `build_tile_data() -> bytes` (confirmed fixed `bytearray(256 * 16)`), `ALL_SCREENS`/`ZONE_COLLECTS` (`tilemaps.py`), `music_data() -> list[int]` (confirmed terminal `0xFF` loop marker by direct read). Gate closed; merge decision recorded (wholly new content — no `Claude.md`/`memory.md` section previously stated these contract obligations). No new findings — the six contracts matched expectations cleanly. No drift. | `03-architecture-design-synthesis` again — GDS-10 (RTM level), then the deferred ADR pass (`BL-0016`), continuing in the same iteration per the user's instruction |
 | 15 | 2026-07-06 | advance (same user-directed iteration) | `03-architecture-design-synthesis` | GDS-10 (Requirements Traceability Matrix level) | ✅ Authored the traceability *scheme* rather than row data, since `docs/requirements/` (the stated merge source) doesn't exist yet — confirmed by `ROADMAP.md`, `RQ-01`…`RQ-04` all `⛔`. Documented the project's ID-namespace convention (confirmed against `ROADMAP.md`'s theme tables), the future row shape (origin → requirement → feature → implementation → verification), and the observation that `BL-xxxx` already functions as a cross-cutting traceability lane exercised end-to-end (e.g. `BL-0009`: R101 → GDS-07 → GDS-08). Gate closed; merge decision recorded (this level stays authoritative for the scheme until `RQ-04` is authored, at which point `RQ-04` owns row-level data). **Closes the global ladder GDS-00…GDS-10.** No new findings. No drift. | `03-architecture-design-synthesis` again — the deferred as-built ADR pass (`BL-0016`), the last piece of stage 03 |
 | 16 | 2026-07-06 | advance (Workflow C, same user-directed iteration) | `03-architecture-design-synthesis` | Deferred as-built ADR pass (`BL-0016`) | ✅ Authored eight ADRs covering every already-made decision `BL-0016` named plus two more surfaced by the ladder itself: **ADR-0001** single-bank ROM/no MBC switching yet (names C7 as its future supersession trigger), **ADR-0002** Python assembler over RGBDS, **ADR-0003** one-job-per-file decomposition, **ADR-0004** patch-point dict linkage contract, **ADR-0005** shadow-OAM DMA every frame, **ADR-0006** MBC1+RAM+BATTERY/`BUNY` save format, **ADR-0007** 8×16 OBJ mode (explicitly notes this project's own docs previously misstated this as "8×8," a second confirmed instance of the doc-staleness risk beyond the MSTR-001 vision correction), **ADR-0008** PyBoy headless as verification target (formalizes assumption A2). `docs/architecture/adr/INDEX.md` populated; `BL-0016` flipped to `DONE`; `ROADMAP.md`'s ADR row flipped. No new findings — the ADRs record existing decisions, none contradicted the as-built record. **Stage 03 (`03-architecture-design-synthesis`) is now fully complete** — global ladder + ADR set both closed. | `04-requirements-engineering` — the requirements baseline (`RQ-01`…`RQ-04`), the next unstarted stage |
+| 17 | 2026-07-06 | advance | `04-requirements-engineering` | RQ-01…RQ-04 (full requirements baseline) | ✅ Authored all four deliverables in order. **RQ-01:** 24 numbered `FR-xxxx` leaves across six groupings (game states, movement/traversal, collectibles/victory, zones/screens, save/load, presentation) formalizing GDS-05's C1–C6, plus 2 Candidates (CR-01 full save-field persistence, CR-02 carrot-invariant enforcement). **RQ-02:** 11 numbered `NFR-xxxx` leaves formalizing GDS-06's N1–N5 with honest compliance status preserved (NFR-1200 score-bar timing and NFR-7100 test-suite currency both recorded **NOT MET**, per BL-0003/BL-0008 and BL-0006 respectively), plus 2 Candidates (CR-03 bank-switching extensibility, CR-04 real-hardware verification). **RQ-03:** reviewed the full baseline — 6 findings, none requiring a baseline rewrite; the highest-severity finding (systemic: most FRs' "Verification Method: Test" cells are unsatisfiable today given BL-0006) and a Medium finding (BL-0018's save-scope question is genuinely open, not resolvable by this stage) were both surfaced honestly rather than papered over. **RQ-04:** populated the row-level traceability matrix GDS-10 deferred here, forward columns correctly `UNASSIGNED` (stages 05–09 haven't run), Test column distinguishing trustworthy/non-compliant/no-check states. Harvested: **BL-0018** flipped `DEFERRED`→`NEEDS-USER` (a real, named open gate); new **BL-0019** (Low, SCHEDULED) — ROM-headroom re-affirmation recommendation. `docs/requirements/INDEX.md` and `ROADMAP.md`'s RQ-01…04 rows flipped. **Closes stage 04 entirely.** No drift. | `05-feature-decomposition` — the next unstarted stage, once the user weighs in on the new `BL-0018` `NEEDS-USER` gate (not blocking, but worth a decision before any future save-system package) |
