@@ -13,7 +13,7 @@ is closed with its decision recorded in prose. Status here and in `ROADMAP.md` m
 
 | Level | Title | File | Status |
 |---|---|---|---|
-| GDS-00 | Vision (owned by `01-vision`) | [00-vision.md](00-vision.md) | ⛔ Planned (scaffold only) |
+| GDS-00 | Vision (owned by `01-vision`) | [00-vision.md](00-vision.md) | ✅ Authored (gate closed 2026-07-06) |
 | GDS-01 | Concept of Play | [01-concept-of-play.md](01-concept-of-play.md) | ⛔ Planned (scaffold only) |
 | GDS-02 | System Context | [02-system-context.md](02-system-context.md) | ⛔ Planned (scaffold only) |
 | GDS-03 | Architecture | [03-architecture.md](03-architecture.md) | ⛔ Planned (scaffold only) |
@@ -39,7 +39,7 @@ file.
 
 | Artifact | File | Status |
 |---|---|---|
-| Strategic assumptions register | [strategic-assumptions-register.md](strategic-assumptions-register.md) | ⛔ Planned (not yet created) |
+| Strategic assumptions register | [strategic-assumptions-register.md](strategic-assumptions-register.md) | ✅ Authored 2026-07-06 (A1–A7, ♻️ living) |
 
 ## §4 — Architecture Decision Records
 

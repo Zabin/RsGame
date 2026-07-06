@@ -45,7 +45,7 @@ build order.
 
 | ID | Document | Path | Depends on | Status |
 |---|---|---|---|---|
-| MSTR-001 | Program vision | `docs/master/MSTR-001-program-vision.md` | — | ⛔ |
+| MSTR-001 | Program vision | `docs/master/MSTR-001-program-vision.md` | — | ✅ |
 | MSTR-002…007 | Optional principle docs (see `docs/master/INDEX.md`) | `docs/master/` | MSTR-001 | ⛔ (on demand) |
 
 ## Theme: Research (`docs/research/`) — owners: the three `02-research-*` skills
@@ -61,7 +61,7 @@ build order.
 
 | ID | Document | Path | Depends on | Status |
 |---|---|---|---|---|
-| GDS-00 | Vision level | `docs/architecture/00-vision.md` | MSTR-001 | ⛔ (scaffold) |
+| GDS-00 | Vision level | `docs/architecture/00-vision.md` | MSTR-001 | ✅ |
 | GDS-01 | Concept of Play | `docs/architecture/01-concept-of-play.md` | GDS-00 | ⛔ (scaffold) |
 | GDS-02 | System Context | `docs/architecture/02-system-context.md` | GDS-01 | ⛔ (scaffold) |
 | GDS-03 | Architecture | `docs/architecture/03-architecture.md` | GDS-02 | ⛔ (scaffold) |
@@ -72,7 +72,7 @@ build order.
 | GDS-08 | Presentation Architecture | `docs/architecture/08-presentation-architecture.md` | GDS-07 | ⛔ (scaffold) |
 | GDS-09 | Interface Specification | `docs/architecture/09-interface-specification.md` | GDS-08 | ⛔ (scaffold) |
 | GDS-10 | RTM level | `docs/architecture/10-requirements-traceability-matrix.md` | GDS-09 | ⛔ (scaffold) |
-| AR-ASSUME | Strategic assumptions register | `docs/architecture/strategic-assumptions-register.md` | MSTR-001 | ⛔ |
+| AR-ASSUME | Strategic assumptions register | `docs/architecture/strategic-assumptions-register.md` | MSTR-001 | ♻️ (A1–A7 authored 2026-07-06) |
 | ADR-xxxx | Architecture Decision Records | `docs/architecture/adr/` | GDS-03 | ⛔ (as-built set) |
 | ADS-xxx | Per-cluster design syntheses | `docs/architecture/` | research tiers | ⛔ (zero-or-more, on demand) |
 
