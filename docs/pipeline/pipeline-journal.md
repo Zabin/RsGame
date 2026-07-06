@@ -14,21 +14,24 @@
 
 ## Position
 
-- **Updated:** 2026-07-06 (run #11)
+- **Updated:** 2026-07-06 (run #12)
 - **Increment:** **Bootstrap baseline** — document the shipped game (**Bunny Quest**) as-built
   through stages 01–07, verify the as-built record (09), then drive the widened
   BL-0001/0003/0005/0006/0007 remediation scope (BL-0008's umbrella) through the 07→08→09 loop.
   See [`BOOTSTRAP.md`](BOOTSTRAP.md).
-- **Pipeline state:** Stage 01 ✅. Stage 02 ✅. **Stage 03: GDS-01…GDS-06 ✅ authored, gates
-  closed.** GDS-07…GDS-10 still `⛔ Planned (scaffold only)`; `docs/architecture/adr/` still
+- **Pipeline state:** Stage 01 ✅. Stage 02 ✅. **Stage 03: GDS-01…GDS-07 ✅ authored, gates
+  closed.** GDS-08…GDS-10 still `⛔ Planned (scaffold only)`; `docs/architecture/adr/` still
   empty (deferred, `BL-0016`). Stages 04–11 ⛔ unstarted.
-- **Backlog:** 18 open entries, unchanged from run #10 — this run stated two NFRs as **not
-  currently met** (N2 VBlank timing discipline, N5 test-coverage bar) but both trace to
-  already-tracked entries (`BL-0003`/`BL-0008`, `BL-0006`), no new findings. No `NEW`, no gate.
-- **Next step:** `03-architecture-design-synthesis` again, for **GDS-07 (Data Model)** — ROM
-  section layout, WRAM map, SRAM save format, tile index map, palette tables. One level per pass.
+- **Backlog:** 18 open entries, unchanged in count — **`BL-0009` corrected in place** (not a new
+  entry): direct code read of `build_rom.py`'s `BG_PALETTES` shows palettes are organized by
+  terrain family with real reuse already in place (only 5 of 8 BG palettes serve zone terrain
+  today; one palette already covers three zones) — more headroom than the original framing
+  suggested. No `NEW`, no gate.
+- **Next step:** `03-architecture-design-synthesis` again, for **GDS-08 (Presentation
+  Architecture)** — screens, sprite composition, palette assignment strategy, HUD, audio engine
+  shape; should state `BL-0009`'s corrected picture explicitly. One level per pass.
 - **Open gates:** none formally raised. Still recommended to the user (unchanged from runs
-  #2–#10): whether to pull BL-0006/BL-0008 (test-suite rewrite) forward out of numeric stage
+  #2–#11): whether to pull BL-0006/BL-0008 (test-suite rewrite) forward out of numeric stage
   order — fully grounded and executable at any time now.
 
 ## Run log
@@ -47,3 +50,4 @@
 | 9 | 2026-07-06 | advance | `03-architecture-design-synthesis` | GDS-04 (Domain Model) | ✅ Authored as-built entity model directly from `tilemaps.py`/`asm_game.py`: Zone (×9), Screen (14 = 9 zone + 5 UI), Collectible (ScoreItem abundant tier vs. Carrot scarce tier), Player, Score, CarrotCount, SaveGame, GameState (cross-referenced to GDS-01). Corrected the level's own stale "gifts" scaffold wording to "carrots." Gate closed; merge decision recorded (supersedes `Claude.md`/`memory.md`'s entity-level tables entirely — they describe entities that no longer exist under those names; byte-address tables remain GDS-07's concern). Harvested 2 new findings: **BL-0017** (Low, SCHEDULED) — "one carrot per zone" isn't code-enforced; **BL-0018** (Low, DEFERRED) — `SaveGame` doesn't persist player facing/frame or per-zone score-item state, confirm intended at `04-requirements-engineering`. No drift. | `03-architecture-design-synthesis` again — GDS-05 (Functional Requirements), the next unauthored level |
 | 10 | 2026-07-06 | advance | `03-architecture-design-synthesis` | GDS-05 (Functional Requirements) | ✅ Authored six capability-level groupings (game-state transitions, movement/zone traversal, collection mechanics, victory condition, save/load, presentation), each verified directly against `asm_game.py` — explicitly not using `test_rom.py`'s T2–T10 suites as evidence, per `GDS-02`/`BL-0006`'s finding. C5 (save/load) carries forward `BL-0018`'s open question rather than resolving it. Deliberately capability-altitude, not a numbered `FR-xxxx` baseline. Gate closed; merge decision recorded (supersedes `Claude.md`'s Known Good Behavior list as capability-level source of truth). No new findings — referenced existing `BL-0006`/`BL-0018` only. No drift. | `03-architecture-design-synthesis` again — GDS-06 (Non-functional Requirements), the next unauthored level |
 | 11 | 2026-07-06 | advance | `03-architecture-design-synthesis` | GDS-06 (Non-functional Requirements) | ✅ Authored five NFRs with honest compliance status each: ROM budget (met) · VBlank timing discipline (**not fully met** — the score-bar write, `BL-0003`/`BL-0008`) · save integrity (met for enable/disable bracketing; `BL-0018`'s field-scope question separate) · build determinism (met, confirmed byte-identical rebuild) · test-coverage bar (**not met** — `test_rom.py`'s T2–T10 suites test stale semantics, `BL-0006`; the historical "88/88" figure explicitly not cited as compliance evidence). Gate closed; merge decision recorded (supersedes `Claude.md`'s scattered NFR framing; credits its "Remaining Known Issues" note, which survived the rewrite, as N2's source). No new findings — referenced existing `BL-0003`/`BL-0006`/`BL-0008`/`BL-0009`/`BL-0018` only. No drift. | `03-architecture-design-synthesis` again — GDS-07 (Data Model), the next unauthored level |
+| 12 | 2026-07-06 | advance | `03-architecture-design-synthesis` | GDS-07 (Data Model) | ✅ First byte-level GDS pass: full ROM section layout (23148/32768 bytes), the complete WRAM map, the SRAM save format (confirming `BL-0018` at byte level), the tile index map (83/256 slots, one clean 8-tile-aligned block per zone), and the palette tables. **Corrected `BL-0009` in place** (not a new entry): direct read of `build_rom.py`'s `BG_PALETTES` shows only 5 of 8 BG palettes serve zone terrain today, organized by terrain family with real reuse already in place (one palette covers three zones) — more headroom than originally characterized. Gate closed; merge decision recorded (supersedes `Claude.md`'s Data-layout/WRAM/SRAM sections and `memory.md`'s tile-index/palette tables entirely — the most consequential merge decision in this ladder so far). No drift. | `03-architecture-design-synthesis` again — GDS-08 (Presentation Architecture), the next unauthored level |
