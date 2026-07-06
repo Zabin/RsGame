@@ -23,7 +23,7 @@ is closed with its decision recorded in prose. Status here and in `ROADMAP.md` m
 | GDS-07 | Data Model | [07-data-model.md](07-data-model.md) | ✅ Authored (gate closed 2026-07-06) |
 | GDS-08 | Presentation Architecture | [08-presentation-architecture.md](08-presentation-architecture.md) | ✅ Authored (gate closed 2026-07-06) |
 | GDS-09 | Interface Specification | [09-interface-specification.md](09-interface-specification.md) | ✅ Authored (gate closed 2026-07-06) |
-| GDS-10 | Requirements Traceability Matrix level | [10-requirements-traceability-matrix.md](10-requirements-traceability-matrix.md) | ⛔ Planned (scaffold only) |
+| GDS-10 | Requirements Traceability Matrix level | [10-requirements-traceability-matrix.md](10-requirements-traceability-matrix.md) | ✅ Authored (gate closed 2026-07-06) |
 
 ## §2 — Per-cluster design syntheses (ADS-xxx)
 
