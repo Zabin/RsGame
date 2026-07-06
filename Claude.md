@@ -1,5 +1,18 @@
 # Bunny Garden Adventure — Developer Guide
 
+## Development pipeline (read this first for any non-trivial change)
+
+This project is driven by a documentation-driven-development skill pipeline — see
+[`.claude/skills/README.md`](.claude/skills/README.md) (stages, iteration loops, hard rules
+G1–G5), [`ROADMAP.md`](ROADMAP.md) (per-document status), and
+[`docs/pipeline/BOOTSTRAP.md`](docs/pipeline/BOOTSTRAP.md) (the run-book). The default entry
+point is the `00-pipeline-manager` skill ("run the pipeline skill"); new features and bug reports
+enter via `00-intake`, never by side-channel edits. Position and obligations persist in
+[`docs/pipeline/pipeline-journal.md`](docs/pipeline/pipeline-journal.md) and
+[`docs/pipeline/backlog.md`](docs/pipeline/backlog.md). This file remains the working
+quick-reference; the GDS ladder under `docs/architecture/` absorbs its sections level by level
+(each level's merge gate records the decision).
+
 ## Architecture Overview
 
 Each file has ONE job. Edit only what you need.
