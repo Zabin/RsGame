@@ -14,24 +14,25 @@
 
 ## Position
 
-- **Updated:** 2026-07-06 (run #8)
+- **Updated:** 2026-07-06 (run #9)
 - **Increment:** **Bootstrap baseline** — document the shipped game (**Bunny Quest**) as-built
   through stages 01–07, verify the as-built record (09), then drive the widened
   BL-0001/0003/0005/0006/0007 remediation scope (BL-0008's umbrella) through the 07→08→09 loop.
   See [`BOOTSTRAP.md`](BOOTSTRAP.md).
-- **Pipeline state:** Stage 01 ✅. Stage 02 ✅. **Stage 03: GDS-01/GDS-02/GDS-03 ✅ authored,
-  gates closed.** GDS-04…GDS-10 still `⛔ Planned (scaffold only)`; `docs/architecture/adr/`
-  still empty (deferred, `BL-0016`). Stages 04–11 ⛔ unstarted.
-- **Backlog:** 16 open entries. **BL-0016 (new, Low, `recommendation`)** → `SCHEDULED`: GDS-03
-  identified the concrete as-built ADRs still owed (single-bank ROM, Python-assembler-over-RGBDS,
-  shadow-OAM DMA, 8×16 OBJ mode, MBC1+RAM+BATTERY, PyBoy-as-gate) — deferred to a dedicated
-  future pass per the one-level-per-advance discipline, not forgotten. All other entries
-  unchanged. No `NEW`, no gate.
-- **Next step:** `03-architecture-design-synthesis` again, for **GDS-04 (Domain Model)** — game
-  entities: zones, screens, collectibles, gifts/carrots, score, save-game, game states. One level
-  per pass.
+- **Pipeline state:** Stage 01 ✅. Stage 02 ✅. **Stage 03: GDS-01…GDS-04 ✅ authored, gates
+  closed.** GDS-05…GDS-10 still `⛔ Planned (scaffold only)`; `docs/architecture/adr/` still
+  empty (deferred, `BL-0016`). Stages 04–11 ⛔ unstarted.
+- **Backlog:** 18 open entries. **BL-0017 (new, Low)** → `SCHEDULED`: the "one carrot per zone"
+  rule isn't code-enforced — a future `ZONE_COLLECTS`-touching package should add an explicit
+  checklist item, not a dedicated fix now. **BL-0018 (new, Low)** → `DEFERRED`: `SaveGame` doesn't
+  persist player facing/animation frame or per-zone score-item collected-state — confirm as
+  intended (or not) when `04-requirements-engineering` derives the save/persistence
+  requirements. All other entries unchanged. No `NEW`, no gate.
+- **Next step:** `03-architecture-design-synthesis` again, for **GDS-05 (Functional
+  Requirements)** — capability-level FRs the requirements baseline will elaborate. One level per
+  pass.
 - **Open gates:** none formally raised. Still recommended to the user (unchanged from runs
-  #2–#7): whether to pull BL-0006/BL-0008 (test-suite rewrite) forward out of numeric stage
+  #2–#8): whether to pull BL-0006/BL-0008 (test-suite rewrite) forward out of numeric stage
   order — fully grounded and executable at any time now.
 
 ## Run log
@@ -47,3 +48,4 @@
 | 6 | 2026-07-06 | advance | `03-architecture-design-synthesis` | GDS-01 (Concept of Play) | ✅ Authored as-built directly from `asm_game.py`/`tilemaps.py` (not the stale `Claude.md`, same correction discipline as `01-vision`): the 6-state game-state machine including the auto-load-on-boot bypass, the two-tier collectible core loop (R201), zone-transition edge signaling (R203). Gate closed; merge decision recorded (`Claude.md`'s Known Good Behavior section superseded for these facts, pending the `BL-0007`/`BL-0008` doc-refresh pass). Named (without resolving) the C7 world-scale pacing tension R206 raised. Harvested 1 new finding: **BL-0015** (Medium, `design-question`, DEFERRED — not ripe, becomes `NEEDS-USER` once C7 is actually planned). No drift. | `03-architecture-design-synthesis` again — GDS-02 (System Context), the next unauthored level |
 | 7 | 2026-07-06 | advance | `03-architecture-design-synthesis` | GDS-02 (System Context) | ✅ Authored as-built: the ROM artifact (32768 bytes, MBC1+RAM+BATTERY, single-bank, ~9.6KB headroom), the six-module build pipeline (R101/R302/R303), and the verification harness's real current state — T1 reliable (R304), the rest not (`BL-0006`). States assumption A2 explicitly; names the toolchain-portability gap (R306/`BL-0005`) and the absence of CI as real external constraints. Gate closed; merge decision recorded (supersedes `Claude.md`'s system overview and `test_rom.py`'s header-comment framing, pending the doc-refresh pass). No new findings — referenced existing `BL-0005`/`BL-0006` only. No drift. | `03-architecture-design-synthesis` again — GDS-03 (Architecture), the next unauthored level |
 | 8 | 2026-07-06 | advance | `03-architecture-design-synthesis` | GDS-03 (Architecture) | ✅ Authored as-built: the six-module decomposition (line counts/exports verified directly against source), the one-job-per-file rule, and the patch-point build contract's exact ordering (`build_game_asm` → lay out data → patch `patches[key]` → `rom.resolve()` → `set_header()` → write), per R302. Gate closed; merge decision recorded (supersedes `Claude.md`'s Architecture Overview section — the module list was accurate, the surrounding prose wasn't). Harvested 1 new finding: **BL-0016** (Low, `recommendation`, SCHEDULED) — as-built ADRs (single-bank ROM, Python-assembler-over-RGBDS, 8×16 OBJ, etc.) still owed, deferred to a dedicated future pass rather than folded into this one. No drift. | `03-architecture-design-synthesis` again — GDS-04 (Domain Model), the next unauthored level |
+| 9 | 2026-07-06 | advance | `03-architecture-design-synthesis` | GDS-04 (Domain Model) | ✅ Authored as-built entity model directly from `tilemaps.py`/`asm_game.py`: Zone (×9), Screen (14 = 9 zone + 5 UI), Collectible (ScoreItem abundant tier vs. Carrot scarce tier), Player, Score, CarrotCount, SaveGame, GameState (cross-referenced to GDS-01). Corrected the level's own stale "gifts" scaffold wording to "carrots." Gate closed; merge decision recorded (supersedes `Claude.md`/`memory.md`'s entity-level tables entirely — they describe entities that no longer exist under those names; byte-address tables remain GDS-07's concern). Harvested 2 new findings: **BL-0017** (Low, SCHEDULED) — "one carrot per zone" isn't code-enforced; **BL-0018** (Low, DEFERRED) — `SaveGame` doesn't persist player facing/frame or per-zone score-item state, confirm intended at `04-requirements-engineering`. No drift. | `03-architecture-design-synthesis` again — GDS-05 (Functional Requirements), the next unauthored level |
