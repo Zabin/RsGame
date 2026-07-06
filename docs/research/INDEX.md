@@ -12,16 +12,16 @@ section, 3–8 page band) is embedded in each `02-research-*` skill.
 
 | ID | Topic | Scope (one line) | Status |
 |---|---|---|---|
-| R101 | SM83 instruction set & cycle costs | opcode semantics/timings `gbc_lib.py` emitters must honor | ⛔ Planned |
-| R102 | PPU modes, VBlank & VRAM/OAM access timing | when VRAM/OAM writes are safe; why the VBlank ISR pattern exists | ⛔ Planned |
-| R103 | LCDC/STAT registers | bit meanings, the LCDC=0x93 configuration, mode interrupts | ⛔ Planned |
-| R104 | CGB palette system | BCPS/BCPD, OCPS/OCPD, RGB15 encoding, palette upload discipline | ⛔ Planned |
-| R105 | OAM, sprites & OAM DMA | OAM entry format, shadow-OAM DMA, 8x8 vs 8x16 modes, priority | ⛔ Planned |
-| R106 | MBC1, SRAM enable & battery saves | cart type 0x03, RAM enable sequence, save persistence | ⛔ Planned |
-| R107 | Joypad register & dual-read settling | P1 matrix, settle delays, the v1 bug class | ⛔ Planned |
-| R108 | APU channels & register map | pulse channels, frequency encoding, the music engine's surface | ⛔ Planned |
-| R109 | Cartridge header, checksums & boot | header fields, checksum algorithms, GBC flag | ⛔ Planned |
-| R110 | Interrupt model & ISR conventions | IE/IF, vector table, RETI discipline, VBLANK_FLAG pattern | ⛔ Planned |
+| R101 | [SM83 instruction set & cycle costs](encyclopedia/R101-sm83-instruction-set.md) | opcode semantics/timings `gbc_lib.py` emitters must honor | ✅ |
+| R102 | [PPU modes, VBlank & VRAM/OAM access timing](encyclopedia/R102-ppu-vram-oam-timing.md) | when VRAM/OAM writes are safe; why the VBlank ISR pattern exists | ✅ |
+| R103 | [LCDC/STAT registers](encyclopedia/R103-lcdc-stat-registers.md) | bit meanings, the current LCDC=0x97 configuration (8x16 OBJ), mode interrupts | ✅ |
+| R104 | [CGB palette system](encyclopedia/R104-cgb-palette-system.md) | BCPS/BCPD, OCPS/OCPD, RGB15 encoding, palette upload discipline | ✅ |
+| R105 | [OAM, sprites & OAM DMA](encyclopedia/R105-oam-sprites-dma.md) | OAM entry format, shadow-OAM DMA, 8x8 vs 8x16 modes, priority | ✅ |
+| R106 | [MBC1, SRAM enable & battery saves](encyclopedia/R106-mbc1-sram-battery-saves.md) | cart type 0x03, RAM enable sequence, save persistence, banking (C7 growth path) | ✅ |
+| R107 | [Joypad register & dual-read settling](encyclopedia/R107-joypad-register.md) | P1 matrix, settle delays, the v1 bug class | ✅ |
+| R108 | [APU channels & register map](encyclopedia/R108-apu-channels-registers.md) | pulse channels, frequency encoding, the music engine's surface | ✅ |
+| R109 | [Cartridge header, checksums & boot](encyclopedia/R109-cartridge-header-checksums.md) | header fields, checksum algorithms, GBC flag | ✅ |
+| R110 | [Interrupt model & ISR conventions](encyclopedia/R110-interrupt-model-isr.md) | IE/IF, vector table, RETI discipline, VBLANK_FLAG pattern | ✅ |
 
 ## Tier R200 — Game Design (`02-research-game-design`)
 

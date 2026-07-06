@@ -53,7 +53,7 @@ build order.
 | ID | Document | Path | Depends on | Status |
 |---|---|---|---|---|
 | RS-INDEX | Research index (tier tables) | `docs/research/INDEX.md` | — | ♻️ |
-| R101–R110 | Tier R100 — GBC hardware & SM83 | `docs/research/encyclopedia/` | MSTR-001 | ⛔ |
+| R101–R110 | Tier R100 — GBC hardware & SM83 | `docs/research/encyclopedia/` | MSTR-001 | ✅ (2026-07-06) |
 | R201–R208 | Tier R200 — Game design | `docs/research/encyclopedia/` | MSTR-001 | ⛔ |
 | R301–R306 | Tier R300 — Tooling & verification | `docs/research/encyclopedia/` | MSTR-001 | ⛔ |
 
