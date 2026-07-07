@@ -14,26 +14,30 @@
 
 ## Position
 
-- **Updated:** 2026-07-07 (run #18)
+- **Updated:** 2026-07-07 (run #19)
 - **Increment:** **Bootstrap baseline** — document the shipped game (**Bunny Quest**) as-built
   through stages 01–07, verify the as-built record (09), then drive the widened
   BL-0001/0003/0005/0006/0007 remediation scope (BL-0008's umbrella) through the 07→08→09 loop.
-  See [`BOOTSTRAP.md`](BOOTSTRAP.md). Stage 03 (global ladder + ADRs) closed in runs #14–#16;
-  stage 04 (requirements baseline) closed run #17; this run is a **delta update** to the RQ
-  baseline resolving `BL-0018`'s `NEEDS-USER` gate.
-- **Pipeline state:** Stage 01 ✅. Stage 02 ✅. Stage 03 ✅ (global ladder GDS-00…GDS-10 +
-  eight ADRs). **Stage 04 ✅ — complete, one delta applied**: `RQ-01`…`RQ-04` now include
-  **FR-5220** (new, per-zone ScoreItem persistence, promoted from former CR-01), FR-5210 narrowed
-  to facing/frame only, NFR-5200 widened accordingly. Stages 05–11 ⛔ unstarted.
-- **Backlog:** 19 entries. **`BL-0018` flipped `NEEDS-USER` → `DONE`** — resolved by explicit user
-  decision (facing/frame: not important, no persistence; per-zone ScoreItem state: should persist,
-  now `FR-5220`). `BL-0019`/`BL-0017` unchanged.
-- **Next step:** No open gates remain — advance to **`05-feature-decomposition`** (Release Plan,
-  Epic Catalog, Feature Catalog, Feature Dependency Graph, Feature Review, derived from the
-  RQ-01…RQ-04 baseline, now including FR-5220).
-- **Open gates:** none. The one prior open gate (`BL-0018`) is resolved. Still recommended
-  (unchanged from runs #2–#11): whether to pull BL-0006/BL-0008 (test-suite rewrite) forward out
-  of numeric stage order — fully grounded and executable at any time now.
+  See [`BOOTSTRAP.md`](BOOTSTRAP.md). Stage 03 closed runs #14–#16; stage 04 closed run #17,
+  delta-updated run #18; this run closes **stage 05** entirely (Release Plan, Epic Catalog,
+  Feature Catalog, Dependency Graph, Feature Review).
+- **Pipeline state:** Stage 01 ✅. Stage 02 ✅. Stage 03 ✅. Stage 04 ✅. **Stage 05 ✅ — fully
+  complete**: `FP-01`…`FP-05` authored — 7 Features (`FEAT-1000`…`FEAT-7000`) across 4 Epics; 6
+  Features already-shipped (Baseline bucket), 1 genuinely new (`FEAT-5100`, Release 1 bucket,
+  formalizing `FR-5220`). No circular dependencies. Stages 06–11 ⛔ unstarted.
+- **Backlog:** 21 entries. New: **`BL-0020`** (Low-Medium, SCHEDULED for a future
+  `04-requirements-engineering` delta) — no FR covers sprite/OAM rendering despite it being
+  shipped and tested. New: **`BL-0021`** (Medium, SCHEDULED to ride `06-feature-specification`) —
+  `FEAT-5100`'s two open design questions (SRAM byte layout; save-compatibility default for
+  pre-upgrade saves) must be resolved explicitly when its `FS-xxx` is authored.
+- **Next step:** Advance to **`06-feature-specification`** for **`FEAT-5100`** (Per-Zone
+  ScoreItem Persistence) — the only unblocked, not-yet-specified Feature per the Release Plan and
+  Dependency Graph (its full dependency chain is entirely in the already-shipped Baseline
+  bucket). `BL-0021`'s two open questions ride this step.
+- **Open gates:** none. Still recommended (unchanged from runs #2–#11): whether to pull
+  BL-0006/BL-0008 (test-suite rewrite) forward out of numeric stage order — fully grounded and
+  executable at any time; `FEAT-7000`'s `NFR-7100` non-compliance is the catalog's highest-risk
+  item per FP-01/FP-05, but scheduling it relative to `FEAT-5100` is the user's call, not a gate.
 
 ## Run log
 
@@ -58,3 +62,4 @@
 | 16 | 2026-07-06 | advance (Workflow C, same user-directed iteration) | `03-architecture-design-synthesis` | Deferred as-built ADR pass (`BL-0016`) | ✅ Authored eight ADRs covering every already-made decision `BL-0016` named plus two more surfaced by the ladder itself: **ADR-0001** single-bank ROM/no MBC switching yet (names C7 as its future supersession trigger), **ADR-0002** Python assembler over RGBDS, **ADR-0003** one-job-per-file decomposition, **ADR-0004** patch-point dict linkage contract, **ADR-0005** shadow-OAM DMA every frame, **ADR-0006** MBC1+RAM+BATTERY/`BUNY` save format, **ADR-0007** 8×16 OBJ mode (explicitly notes this project's own docs previously misstated this as "8×8," a second confirmed instance of the doc-staleness risk beyond the MSTR-001 vision correction), **ADR-0008** PyBoy headless as verification target (formalizes assumption A2). `docs/architecture/adr/INDEX.md` populated; `BL-0016` flipped to `DONE`; `ROADMAP.md`'s ADR row flipped. No new findings — the ADRs record existing decisions, none contradicted the as-built record. **Stage 03 (`03-architecture-design-synthesis`) is now fully complete** — global ladder + ADR set both closed. | `04-requirements-engineering` — the requirements baseline (`RQ-01`…`RQ-04`), the next unstarted stage |
 | 17 | 2026-07-06 | advance | `04-requirements-engineering` | RQ-01…RQ-04 (full requirements baseline) | ✅ Authored all four deliverables in order. **RQ-01:** 24 numbered `FR-xxxx` leaves across six groupings (game states, movement/traversal, collectibles/victory, zones/screens, save/load, presentation) formalizing GDS-05's C1–C6, plus 2 Candidates (CR-01 full save-field persistence, CR-02 carrot-invariant enforcement). **RQ-02:** 11 numbered `NFR-xxxx` leaves formalizing GDS-06's N1–N5 with honest compliance status preserved (NFR-1200 score-bar timing and NFR-7100 test-suite currency both recorded **NOT MET**, per BL-0003/BL-0008 and BL-0006 respectively), plus 2 Candidates (CR-03 bank-switching extensibility, CR-04 real-hardware verification). **RQ-03:** reviewed the full baseline — 6 findings, none requiring a baseline rewrite; the highest-severity finding (systemic: most FRs' "Verification Method: Test" cells are unsatisfiable today given BL-0006) and a Medium finding (BL-0018's save-scope question is genuinely open, not resolvable by this stage) were both surfaced honestly rather than papered over. **RQ-04:** populated the row-level traceability matrix GDS-10 deferred here, forward columns correctly `UNASSIGNED` (stages 05–09 haven't run), Test column distinguishing trustworthy/non-compliant/no-check states. Harvested: **BL-0018** flipped `DEFERRED`→`NEEDS-USER` (a real, named open gate); new **BL-0019** (Low, SCHEDULED) — ROM-headroom re-affirmation recommendation. `docs/requirements/INDEX.md` and `ROADMAP.md`'s RQ-01…04 rows flipped. **Closes stage 04 entirely.** No drift. | `05-feature-decomposition` — the next unstarted stage, once the user weighs in on the new `BL-0018` `NEEDS-USER` gate (not blocking, but worth a decision before any future save-system package) |
 | 18 | 2026-07-07 | delta update | `04-requirements-engineering` | RQ-01…RQ-04 delta (BL-0018 resolution) | ✅ Applied a contained delta, not a regeneration, per the user's explicit decision resolving `BL-0018`: facing direction/animation-frame persistence **rejected** ("not important"); per-zone ScoreItem-state persistence **approved** ("should save and persist"). **RQ-01:** added dated changelog entry; split former **CR-01** into its resolved halves; promoted the ScoreItem half to new **FR-5220** (full 20-field template, Must priority); reworded **FR-5210** to cover only facing/frame (no longer ambiguous); cross-referenced FR-3200. **RQ-02:** widened **NFR-5200**'s declared field set and scope statement to include per-zone ScoreItem state, flagged its "Met" status as not yet re-verified against the new field pending FR-5220's future implementation. **RQ-03:** finding #1 marked RESOLVED with the decision date; Candidate Requirements disposition and Summary updated to match. **RQ-04:** added FR-5220's row; updated FR-5210's and CR-01's rows to reflect the split/resolution. Harvested: **BL-0018** flipped `NEEDS-USER`→`DONE`. No architecture-layer files touched (GDS-04/GDS-05 correctly left the question open for this stage to resolve, per design). No drift. | `05-feature-decomposition` — no open gates remain blocking it |
+| 19 | 2026-07-07 | advance | `05-feature-decomposition` | FP-01…FP-05 (full feature-planning set) | ✅ Authored all five deliverables. **FP-03 (Feature Catalog):** 7 Features (`FEAT-1000` state machine, `FEAT-2000` movement/traversal, `FEAT-3000` collectibles/scoring/victory, `FEAT-4000` zone/screen structure, `FEAT-5000` save/load as-built, `FEAT-5100` per-zone ScoreItem persistence — **new, unimplemented**, formalizing `FR-5220` — `FEAT-6000` presentation/HUD, `FEAT-7000` engine quality/build infra), every one of 25 FR + 11 NFR requirements owned exactly once (tallied and verified). **FP-02 (Epics):** 4 Epics — Core Gameplay Loop, World Content & Presentation, Persistence, Engineering Quality & Verification. **FP-04 (Dependency Graph):** Mermaid DAG, no cycles; critical path `FEAT-1000→FEAT-2000→FEAT-3000→FEAT-5000→FEAT-5100` (only the final node unimplemented); `FEAT-1000`/`FEAT-4000` are the highest-fan-out blocking Features. **FP-01 (Release Plan):** Baseline (as-built) bucket holds 6 Features; Release 1 holds `FEAT-5100` alone; Future bucket names C7/`BL-0006`'s remediation without inventing Feature rows for either (no baselined FRs yet); Highest Risk called out as `FEAT-7000`'s `NFR-7100` (Critical, `BL-0006`/`BL-0008`). **FP-05 (Review):** confirmed the requirement tally clean, no oversized/duplicate Features, no cycles; surfaced one real gap (no FR covers sprite/OAM rendering, despite being shipped/tested — routed to `04-requirements-engineering`) and confirmed `FEAT-5100`'s two open design questions are correctly left open for `06-feature-specification`. Harvested: new **BL-0020** (Low-Medium, SCHEDULED) — missing sprite-rendering FR; new **BL-0021** (Medium, SCHEDULED to ride `06`) — `FEAT-5100`'s SRAM-layout and save-compatibility open questions. `docs/feature-planning/INDEX.md` and `ROADMAP.md`'s FP-01…05 rows flipped. **Closes stage 05 entirely.** No drift. | `06-feature-specification` — author `FEAT-5100`'s `FS-xxx` (the only unblocked, not-yet-specified Feature), with `BL-0021`'s two open questions riding along |
