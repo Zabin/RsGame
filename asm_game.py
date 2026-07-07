@@ -154,6 +154,8 @@ def build_game_asm(rom: ROM) -> dict:
     rom.JR_Z('game_loop')
     rom.XOR_A(); rom.LD_nn_A(VBLANK_FLAG)
 
+    rom.CALL('update_status_disp')
+
     rom.LD_A_nn(NEED_REDRAW); rom.OR_A()
     rom.CALL_NZ('do_screen_redraw')
 
@@ -200,7 +202,6 @@ def build_game_asm(rom: ROM) -> dict:
     rom.CALL('check_collisions')
     rom.CALL('check_zone_transition')
     rom.CALL('check_complete')
-    rom.CALL('update_status_disp')
     rom.JP('end_frame')
 
     # ── State: SAVE ──────────────────────────────────────

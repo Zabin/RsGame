@@ -415,6 +415,23 @@ check("T8.9 Carrot deactivated in COLL_DATA", pb.memory[COLL_DATA + 6*4 + 3] == 
       f"active={pb.memory[COLL_DATA + 6*4 + 3]}")
 check("T8.10 Carrot does not touch SCORE", pb.memory[SCORE] == sc1, f"{pb.memory[SCORE]}")
 
+# IP-9020 regression: update_status_disp now runs at frame-top (VBlank-gated,
+# moved out of st_playing) — a dirtied SCORE/CARROTS_COUNT must still reflect
+# in the HUD tiles within 2 frames.
+carrots_pre = pb.memory[CARROTS_COUNT]
+pb.memory[SCORE] = 42; pb.memory[SCORE_DIRTY] = 1
+[pb.tick() for _ in range(2)]
+hi = pb.memory[0x9808] - TL_DIGIT_0; te = pb.memory[0x9809] - TL_DIGIT_0; on = pb.memory[0x980A] - TL_DIGIT_0
+check("T8.10a HUD score digits reflect forced SCORE=42 within 2 frames (IP-9020)",
+      (hi, te, on) == (0, 4, 2), f"digits=({hi},{te},{on})")
+pb.memory[CARROTS_COUNT] = 5; pb.memory[SCORE_DIRTY] = 1
+[pb.tick() for _ in range(2)]
+cd = pb.memory[0x9802] - TL_DIGIT_0
+check("T8.10b HUD carrot-count digit reflects forced CARROTS_COUNT=5 within 2 frames (IP-9020)",
+      cd == 5, f"digit={cd}")
+pb.memory[CARROTS_COUNT] = carrots_pre; pb.memory[SCORE_DIRTY] = 1
+[pb.tick() for _ in range(2)]
+
 # Map hearts (BL-0001 closure): z0 heart full, z1 heart empty.
 # update_map_hearts writes 0x9800 + {6,9,12}*32 + {6,11,16}, LCD off during redraw.
 pb.button('select'); [pb.tick() for _ in range(40)]

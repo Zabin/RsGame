@@ -48,7 +48,7 @@
 | Req ID | Title | Research Source | Architecture Section | ADR | Module | Feature Spec | Implementation Package | Test |
 |---|---|---|---|---|---|---|---|---|
 | NFR-1100 | VBlank-gated PPU access | R102 | GDS-06 N2 | ADR-0005 | `asm_game.py` | UNASSIGNED | UNASSIGNED | UNASSIGNED (inspection-based, no automated check exists) |
-| NFR-1200 | Score-bar write timing (BL-0003/BL-0008) | — | GDS-06 N2 | — | `asm_game.py` | UNASSIGNED | UNASSIGNED | UNASSIGNED — not currently met |
+| NFR-1200 | Score-bar write timing (BL-0003/BL-0008) | — | GDS-06 N2 | — | `asm_game.py` | UNASSIGNED | IP-9020 | **T8.10a, T8.10b** — trustworthy, 111/111 pass |
 | NFR-2100 | Deterministic state-machine behavior | — | GDS-01 §4 (derived) | — | `asm_game.py` | UNASSIGNED | UNASSIGNED | UNASSIGNED |
 | NFR-3100 | One-job-per-file module boundary | — | GDS-03 | ADR-0003 | all six modules | UNASSIGNED | UNASSIGNED | UNASSIGNED (inspection-based) |
 | NFR-4000 | 32768-byte single-bank ROM budget | — | GDS-06 N1; GDS-02 | ADR-0001 | `build_rom.py` | UNASSIGNED | UNASSIGNED | **T1.1** ("ROM size = 32768") — trustworthy, T1 suite |
