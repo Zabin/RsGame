@@ -14,39 +14,30 @@
 
 ## Position
 
-- **Updated:** 2026-07-07 (run #20)
+- **Updated:** 2026-07-07 (run #21)
 - **Increment:** **Bootstrap baseline** — document the shipped game (**Bunny Quest**) as-built
   through stages 01–07, verify the as-built record (09), then drive the widened
   BL-0001/0003/0005/0006/0007 remediation scope (BL-0008's umbrella) through the 07→08→09 loop.
-  See [`BOOTSTRAP.md`](BOOTSTRAP.md). Stage 03 closed runs #14–#16; stage 04 closed run #17,
-  delta-updated run #18; stage 05 closed run #19; this run authors **FS-101**, the first (and
-  currently only-needed) Feature Specification.
-- **Pipeline state:** Stage 01 ✅. Stage 02 ✅. Stage 03 ✅. Stage 04 ✅. Stage 05 ✅. **Stage 06:
-  `FS-101` (Per-Zone ScoreItem Persistence, `FEAT-5100`) ✅ specified** — the only Feature in the
-  catalog needing a spec (6 of 7 are already-shipped Baseline). Stages 07–11 ⛔ unstarted.
-- **Backlog:** 24 entries. **`BL-0021` flipped `SCHEDULED` → `DONE`** — both open design questions
-  answered in `FS-101` (9-byte `SCOREITEM_FLAGS` mirroring `CARROT_FLAGS`; pre-upgrade saves
-  default to "uncollected," version-guarded). New: **`BL-0022`** (Medium, SCHEDULED for a future
-  `04-requirements-engineering` delta) — `FR-3200`'s postcondition is factually wrong as shipped
-  (`ScoreItem`s respawn on zone re-entry, confirmed by direct code read). New: **`BL-0023`**
-  (Medium, SCHEDULED to ride `FEAT-5100`'s implementation) — the same respawn behavior is a real,
-  currently-live farming/overflow-risk bug that `FEAT-5100`'s design fixes as a side effect, so no
-  separate remediation package is needed unless `FEAT-5100` is deprioritized.
-- **Next step:** Advance to **`07-implementation-planning`** for **`FS-101`** — the only spec
-  currently authored and ready to become an Implementation Package. That stage must assign
-  `SCOREITEM_FLAGS`'s exact WRAM address (`FS-101`'s own deferred detail) as part of its normal
-  package-authoring work.
-- **Open gates:** none. `07-implementation-planning` producing an Implementation Package is not
-  itself G3 authorization to *code* it — that gate applies when `08-code-implementation` is
-  invoked, per the pipeline's own rule (G3's bootstrap exception covers as-built baselining and
-  `BL-0001`…`BL-0005` remediation only; `FEAT-5100` is genuinely new work, so **explicit user
-  go-ahead will be needed before `08` runs** — flagged now so it isn't a surprise later). Still
-  recommended (unchanged from runs #2–#11): whether to pull `BL-0006`/`BL-0008` (test-suite
-  rewrite) forward — independent of `FEAT-5100`, executable at any time.
-- **Open gates:** none. Still recommended (unchanged from runs #2–#11): whether to pull
-  BL-0006/BL-0008 (test-suite rewrite) forward out of numeric stage order — fully grounded and
-  executable at any time; `FEAT-7000`'s `NFR-7100` non-compliance is the catalog's highest-risk
-  item per FP-01/FP-05, but scheduling it relative to `FEAT-5100` is the user's call, not a gate.
+  See [`BOOTSTRAP.md`](BOOTSTRAP.md). Stages 03/04/05/06 closed runs #14–#20; this run closes
+  the **first stage-07 pass**: TWBS + five Implementation Packages + live Master Build Plan.
+- **Pipeline state:** Stages 01–06 ✅. **Stage 07 ✅ (first pass):** TWBS authored; packages
+  `IP-9010` (test-suite rewrite, READY), `IP-9020` (score-bar VBlank fix), `IP-9030` (root-doc
+  refresh), `IP-9040` (legacy archival), `IP-1010` (FS-101) — the last four BLOCKED on
+  `IP-9010`, the universal G5 unblocker. Stage 08 ⛔ gated on G3 (see Open gates). Stages 09–11
+  ⛔ unstarted.
+- **Backlog:** 25 entries, 12 open. **`BL-0001` flipped → `DONE`** (re-verified: does not
+  reproduce in the rewrite; permanent check rides IP-9010). `BL-0003`–`BL-0008`, `BL-0017`,
+  `BL-0019`, `BL-0023` dispositions updated to name their packages. New: **`BL-0024`** (High,
+  `gate`, NEEDS-USER) — G3 authorization for IP-9010/IP-9030/IP-1010.
+- **Next step:** **Gated on `BL-0024`.** Once the user authorizes `IP-9010`, advance to
+  **`08-code-implementation` on `IP-9010`** (critical path; restores the G5 gate for every other
+  package). `IP-9020`/`IP-9040` are pre-authorized and follow as soon as `IP-9010` is VERIFIED;
+  `IP-1010` (Release 1) additionally needs its own G3 answer.
+- **Open gates:** **`BL-0024` (G3):** user go-ahead needed for `IP-9010` (BL-0006 Critical +
+  BL-0005 — outside the bootstrap carve-out because BL-0006 post-dates it), `IP-9030` (BL-0007,
+  same reason), and `IP-1010` (FS-101 — genuinely new work, flagged since run #20). IP-9020 and
+  IP-9040 are already authorized via the carve-out but sit behind IP-9010's verification, so
+  **the entire build plan is waiting on this one decision.**
 
 ## Run log
 
@@ -73,3 +64,4 @@
 | 18 | 2026-07-07 | delta update | `04-requirements-engineering` | RQ-01…RQ-04 delta (BL-0018 resolution) | ✅ Applied a contained delta, not a regeneration, per the user's explicit decision resolving `BL-0018`: facing direction/animation-frame persistence **rejected** ("not important"); per-zone ScoreItem-state persistence **approved** ("should save and persist"). **RQ-01:** added dated changelog entry; split former **CR-01** into its resolved halves; promoted the ScoreItem half to new **FR-5220** (full 20-field template, Must priority); reworded **FR-5210** to cover only facing/frame (no longer ambiguous); cross-referenced FR-3200. **RQ-02:** widened **NFR-5200**'s declared field set and scope statement to include per-zone ScoreItem state, flagged its "Met" status as not yet re-verified against the new field pending FR-5220's future implementation. **RQ-03:** finding #1 marked RESOLVED with the decision date; Candidate Requirements disposition and Summary updated to match. **RQ-04:** added FR-5220's row; updated FR-5210's and CR-01's rows to reflect the split/resolution. Harvested: **BL-0018** flipped `NEEDS-USER`→`DONE`. No architecture-layer files touched (GDS-04/GDS-05 correctly left the question open for this stage to resolve, per design). No drift. | `05-feature-decomposition` — no open gates remain blocking it |
 | 19 | 2026-07-07 | advance | `05-feature-decomposition` | FP-01…FP-05 (full feature-planning set) | ✅ Authored all five deliverables. **FP-03 (Feature Catalog):** 7 Features (`FEAT-1000` state machine, `FEAT-2000` movement/traversal, `FEAT-3000` collectibles/scoring/victory, `FEAT-4000` zone/screen structure, `FEAT-5000` save/load as-built, `FEAT-5100` per-zone ScoreItem persistence — **new, unimplemented**, formalizing `FR-5220` — `FEAT-6000` presentation/HUD, `FEAT-7000` engine quality/build infra), every one of 25 FR + 11 NFR requirements owned exactly once (tallied and verified). **FP-02 (Epics):** 4 Epics — Core Gameplay Loop, World Content & Presentation, Persistence, Engineering Quality & Verification. **FP-04 (Dependency Graph):** Mermaid DAG, no cycles; critical path `FEAT-1000→FEAT-2000→FEAT-3000→FEAT-5000→FEAT-5100` (only the final node unimplemented); `FEAT-1000`/`FEAT-4000` are the highest-fan-out blocking Features. **FP-01 (Release Plan):** Baseline (as-built) bucket holds 6 Features; Release 1 holds `FEAT-5100` alone; Future bucket names C7/`BL-0006`'s remediation without inventing Feature rows for either (no baselined FRs yet); Highest Risk called out as `FEAT-7000`'s `NFR-7100` (Critical, `BL-0006`/`BL-0008`). **FP-05 (Review):** confirmed the requirement tally clean, no oversized/duplicate Features, no cycles; surfaced one real gap (no FR covers sprite/OAM rendering, despite being shipped/tested — routed to `04-requirements-engineering`) and confirmed `FEAT-5100`'s two open design questions are correctly left open for `06-feature-specification`. Harvested: new **BL-0020** (Low-Medium, SCHEDULED) — missing sprite-rendering FR; new **BL-0021** (Medium, SCHEDULED to ride `06`) — `FEAT-5100`'s SRAM-layout and save-compatibility open questions. `docs/feature-planning/INDEX.md` and `ROADMAP.md`'s FP-01…05 rows flipped. **Closes stage 05 entirely.** No drift. | `06-feature-specification` — author `FEAT-5100`'s `FS-xxx` (the only unblocked, not-yet-specified Feature), with `BL-0021`'s two open questions riding along |
 | 20 | 2026-07-07 | advance | `06-feature-specification` | FS-101 (FEAT-5100: Per-Zone ScoreItem Persistence) | ✅ Authored the full 20-field spec. **Design Decision 1:** a 9-byte `SCOREITEM_FLAGS` WRAM/SRAM array mirroring `CARROT_FLAGS` exactly (bit = list-position within `ZONE_COLLECTS`), confirmed sufficient by direct tally (max 7 ScoreItems/zone, Zone 7/Plains) — exact WRAM address explicitly deferred to `07-implementation-planning`. **Design Decision 2:** pre-upgrade saves default to "all ScoreItems uncollected," guarded by a new save-format version byte so old saves' garbage bytes are never misread as collected-state — reasoned to a confident recommendation, not escalated to the user. **Significant incidental finding:** direct reading of `setup_zone_collects` confirms `ScoreItem`s currently respawn on every zone re-entry within a session (not just after save/load) — only `Carrot`s are protected today; `FR-3200`'s postcondition is factually wrong as shipped. This Feature's design fixes the behavior as an expected side effect of mirroring the `Carrot` pattern. `docs/features/INDEX.md`, `FEAT-5100`'s forward-reference metadata, and `ROADMAP.md`'s FS-101+ row updated. Harvested: **BL-0021** flipped `SCHEDULED`→`DONE`; new **BL-0022** (Medium, SCHEDULED) — `FR-3200` needs a `04` correction; new **BL-0023** (Medium, SCHEDULED to ride `FEAT-5100`'s implementation) — the respawn behavior is a live farming/overflow-risk bug this Feature already fixes. No drift. | `07-implementation-planning` for `FS-101` — note for the future `08` step: `FEAT-5100` is genuinely new work, so G3 user authorization will be needed before code is written, unlike the bootstrap-exception packages |
+| 21 | 2026-07-07 | advance | `07-implementation-planning` | FS-101 + BL-0008 umbrella (full first stage-07 pass) | ✅ TWBS + five packages authored; Master Build Plan live. **Re-verification (direct code reads): `BL-0001` does NOT reproduce** (`update_map_hearts` rows 6/9/12 × cols 6/11/16 matches `map_screen()` exactly, runs LCD-off) — closed, no package; **`BL-0003` DOES reproduce** (`update_status_disp` writes `0x9802`/`0x9808–0x980A` unguarded from `st_playing`) — packaged. Cut: **IP-9010** (BL-0005+BL-0006 fused — both wholly in `test_rom.py`; READY; blocks everything since the G5 gate is unsatisfiable until the suite is rewritten), **IP-9020** (BL-0003; relocate the status-bar call to frame-top VBlank; authorized via carve-out), **IP-9030** (BL-0007 root-doc refresh; after 9010+9020), **IP-9040** (BL-0004 legacy archival; authorized), **IP-1010** (FS-101; **`SCOREITEM_FLAGS` assigned `0xC060`–`C068`** — resolves FS-101 Open Question 3; SRAM version guard `0xA012`=0x01 + mirror `A013`–`A01B`; BL-0023 rides with test T11.a). Riders honored: BL-0017 (one-carrot-per-zone data check in IP-9010), BL-0019 (headroom items in IP-9020/IP-1010). Critical path: IP-9010 → IP-1010. Harvested: `BL-0001` → DONE; 8 dispositions updated; new **`BL-0024`** (High, `gate`) — G3 authorization for IP-9010/IP-9030/IP-1010. ROADMAP IM/IP rows flipped; FS-101 metadata cross-linked. No drift. | **GATE (`BL-0024`):** user G3 decision; on "authorize IP-9010" → `08-code-implementation` on IP-9010 |
