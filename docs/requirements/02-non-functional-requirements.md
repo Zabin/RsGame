@@ -175,12 +175,13 @@
   held at save time.
 - **Rationale:** GDS-06 N3; FR-5220 (widened field set).
 - **Priority:** Must
-- **Status: MET** for the pre-widening field set (confirmed directly); **not yet independently
-  verified** for the newly-added per-zone ScoreItem field (FR-5220 has no implementation yet — see
-  RQ-04). This NFR remains scoped to *whatever fields are declared persisted*, which as of
-  2026-07-07 explicitly includes per-zone ScoreItem state per the user's decision resolving
-  BL-0018 (now `DONE`) — facing direction and animation frame remain explicitly excluded
-  (FR-5210), not an open question.
+- **Status: MET (2026-07-07, via `IP-1010` — pending independent verification by
+  `09-package-verification`)** for the full widened field set, including the new per-zone
+  ScoreItem field. `test_rom.py` T11.b5/T11.c/T11.e1 (+ the existing T10 suite) round-trip
+  `CurrentZone`/`PlayerPosition`/`Score`/`CarrotFlags`/`SCOREITEM_FLAGS` together in a single
+  save/reload cycle; T11.d confirms the version-guard default (pre-upgrade saves load
+  `SCOREITEM_FLAGS` as all-zero rather than trusting garbage bytes). Facing direction and
+  animation frame remain explicitly excluded (FR-5210), not an open question.
 - **Acceptance Criteria:** For each field in {CurrentZone, PlayerPosition, CarrotCount, Score,
   CarrotFlags[9], per-zone ScoreItem collected-state}, saving then loading yields an identical
   value.

@@ -19,7 +19,7 @@
 | [IP-9020](packages/IP-9020-score-bar-vblank-fix.md) | Score-bar VRAM write timing fix (BL-0003) | `08-code-implementation` | **COMPLETE** | IP-9010 (VERIFIED) | **YES** — G3 bootstrap carve-out (BL-0003 ∈ BL-0001…0005) | **Implemented 2026-07-07:** `update_status_disp` call relocated to frame-top VBlank; NFR-1200 → MET; ROM unchanged at 23148/32768 bytes (BL-0019 headroom re-affirmed); 111/111 pass (T8.10a/T8.10b new). Awaiting `09-package-verification`. |
 | [IP-9030](packages/IP-9030-root-doc-refresh.md) | Root documentation refresh (BL-0007) | `08-code-implementation` | BLOCKED | IP-9010 (VERIFIED), IP-9020 (COMPLETE, not yet VERIFIED) | **YES — explicit user G3, 2026-07-07 (BL-0024)** | Docs-only; must land after the fixes it documents. |
 | [IP-9040](packages/IP-9040-legacy-artifact-archival.md) | Legacy artifact archival (BL-0004) | `08-code-implementation` | **COMPLETE** | IP-9010 (VERIFIED) | **YES** — G3 bootstrap carve-out + explicit user decision (run #1; widened scope run #2) | **Implemented 2026-07-07:** `BunnyGarden_build_rom.py`/`BunnyGarden_logic.json`/`BunnyGarden.gbc` moved to `legacy/` (+ README); root has no `BunnyGarden*` entries; ROM byte-identical; 111/111 pass. Awaiting `09-package-verification`. |
-| [IP-1010](packages/IP-1010-per-zone-scoreitem-persistence.md) | Per-zone ScoreItem persistence (FS-101 / FEAT-5100) | `08-code-implementation` | **READY** | IP-9010 (VERIFIED) | **YES — explicit user G3, 2026-07-07 (BL-0024)** | Release 1's sole Feature. Fixes BL-0023 as designed side effect. Rider: BL-0019 headroom check. |
+| [IP-1010](packages/IP-1010-per-zone-scoreitem-persistence.md) | Per-zone ScoreItem persistence (FS-101 / FEAT-5100) | `08-code-implementation` | **COMPLETE** | IP-9010 (VERIFIED) | **YES — explicit user G3, 2026-07-07 (BL-0024)** | **Implemented 2026-07-07:** `SCOREITEM_FLAGS` (`0xC060`–`C068`) + SRAM version guard/mirror (`A012`–`A01B`); all 5 FS-101 ACs verified by new T11.a–e; ROM 23404/32768 bytes (+256, BL-0019 headroom re-affirmed); 125/125 pass. Fixes BL-0023 as designed side effect. Awaiting `09-package-verification`. |
 
 ## Dependency graph
 
@@ -29,7 +29,7 @@ graph TD
     IP9020["IP-9020 score-bar VBlank fix<br/>(COMPLETE — awaiting VR)"]
     IP9030["IP-9030 root-doc refresh<br/>(BLOCKED)"]
     IP9040["IP-9040 legacy archival<br/>(COMPLETE — awaiting VR)"]
-    IP1010["IP-1010 ScoreItem persistence<br/>(Release 1, READY)"]
+    IP1010["IP-1010 ScoreItem persistence<br/>(Release 1, COMPLETE — awaiting VR)"]
     IP9010 --> IP9020
     IP9010 --> IP9040
     IP9010 --> IP1010
@@ -44,7 +44,10 @@ graph TD
 - IP-9020 is `COMPLETE` (2026-07-07) — downstream `IP-9030` stays `BLOCKED` until it is
   `VERIFIED` by stage 09 (`COMPLETE` is not sufficient).
 - IP-9040 is `COMPLETE` (2026-07-07) — no downstream package depends on it.
-- **Still `READY`:** IP-1010 (independent files/concerns) — may start next.
+- IP-1010 is `COMPLETE` (2026-07-07) — Release 1's sole Feature; the critical path now waits
+  only on stage 09 verification.
+- **All five packages are now `COMPLETE` or `VERIFIED`** — nothing remains `READY`/`BLOCKED`
+  except `IP-9030`, which needs `IP-9020` to reach `VERIFIED` first.
 - **Authorization state summary:** all five packages authorized — IP-9020/IP-9040 via the G3
   bootstrap carve-out; IP-9010/IP-9030/IP-1010 via the user's explicit go-ahead recorded
   2026-07-07 (`BL-0024`, "Authorize all three"). Execution order remains dependency-driven.

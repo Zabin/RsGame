@@ -39,7 +39,12 @@ TMP2           = 0xC014
 CARROT_FLAGS   = 0xC015   # 9 bytes — one per zone, 0/1
 COLL_DATA      = 0xC020
 COLL_COUNT     = 0xC050
+SCOREITEM_FLAGS = 0xC060  # 9 bytes — one bitfield per zone, bit = list-position (FR-5220)
 OAM_BUF        = 0xC300
+
+SAVE_VERSION_ADDR = 0xA012   # save-format version guard (FR-5220 / Design Decision 2)
+SAVE_VERSION_VAL  = 0x01
+SRAM_SCOREITEM    = 0xA013   # 9 bytes, SCOREITEM_FLAGS mirror
 
 J_A=0; J_B=1; J_SELECT=2; J_START=3; J_RIGHT=4; J_LEFT=5; J_UP=6; J_DOWN=7
 
@@ -188,6 +193,9 @@ def build_game_asm(rom: ROM) -> dict:
     # clear CARROT_FLAGS (9 bytes)
     rom.LD_HL_nn(CARROT_FLAGS); rom.LD_B_n(9); rom.XOR_A()
     rom.label('si_clr'); rom.LD_HLI_A(); rom.DEC_B(); rom.JR_NZ('si_clr')
+    # clear SCOREITEM_FLAGS (9 bytes) — FR-5220 new-game reset
+    rom.LD_HL_nn(SCOREITEM_FLAGS); rom.LD_B_n(9); rom.XOR_A()
+    rom.label('si_clr2'); rom.LD_HLI_A(); rom.DEC_B(); rom.JR_NZ('si_clr2')
     rom.LD_A_n(76); rom.LD_nn_A(PLAYER_X)
     rom.LD_A_n(80); rom.LD_nn_A(PLAYER_Y)
     rom.LD_A_n(GS_PLAYING); rom.LD_nn_A(TRANSITION_TO)
@@ -236,6 +244,9 @@ def build_game_asm(rom: ROM) -> dict:
     rom.XOR_A(); rom.LD_nn_A(CARROTS_COUNT); rom.LD_nn_A(SCORE)
     rom.LD_HL_nn(CARROT_FLAGS); rom.LD_B_n(9); rom.XOR_A()
     rom.label('sv_clrf'); rom.LD_HLI_A(); rom.DEC_B(); rom.JR_NZ('sv_clrf')
+    # clear SCOREITEM_FLAGS (9 bytes) — FR-5220 victory progress-clear
+    rom.LD_HL_nn(SCOREITEM_FLAGS); rom.LD_B_n(9); rom.XOR_A()
+    rom.label('sv_clrf2'); rom.LD_HLI_A(); rom.DEC_B(); rom.JR_NZ('sv_clrf2')
     rom.JP('end_frame')
 
     # ── End of frame ─────────────────────────────────────
@@ -384,14 +395,31 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_nn(SCORE); rom.INC_A()
     rom.CP_n(100); rom.JR_C('cc_so'); rom.LD_A_n(99)
     rom.label('cc_so'); rom.LD_nn_A(SCORE)
+
+    # FR-5220: set bit k = COLL_COUNT-B (B still live from this iteration's
+    # PUSH_BC, pre-decrement) in SCOREITEM_FLAGS[CUR_ZONE], mirroring the
+    # carrot branch's push/pop-HL scratch-register discipline.
+    rom.LD_A_nn(COLL_COUNT); rom.SUB_B()
+    rom.LD_C_A()
+    rom.LD_B_n(1)
+    rom.label('cc_si_mkloop')
+    rom.LD_A_C(); rom.OR_A(); rom.JR_Z('cc_si_mkdone')
+    rom.SLA_B(); rom.DEC_C(); rom.JR('cc_si_mkloop')
+    rom.label('cc_si_mkdone')
+    rom.PUSH_HL()
+    rom.LD_A_nn(CUR_ZONE); rom.LD_E_A(); rom.LD_D_n(0)
+    rom.LD_HL_nn(SCOREITEM_FLAGS); rom.ADD_HL_DE()
+    rom.LD_A_HL(); rom.OR_B(); rom.LD_HL_A()
+    rom.POP_HL()
+
     rom.label('cc_dirty')
     rom.LD_A_n(1); rom.LD_nn_A(SCORE_DIRTY)
 
-    rom.POP_BC(); rom.DEC_B(); rom.JR_NZ('cc_loop'); rom.RET()
+    rom.POP_BC(); rom.DEC_B(); rom.JP_NZ('cc_loop'); rom.RET()
 
     rom.label('cc_skip')
     rom.POP_HL(); rom.INC_HL()
-    rom.POP_BC(); rom.DEC_B(); rom.JR_NZ('cc_loop'); rom.RET()
+    rom.POP_BC(); rom.DEC_B(); rom.JP_NZ('cc_loop'); rom.RET()
 
     # ── check_zone_transition ────────────────────────────
     rom.label('check_zone_transition')
@@ -627,7 +655,7 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_n(1); rom.LD_HLI_A()                   # active = 1
     rom.INC_DE()
     # If carrot (type==2) and CARROT_FLAGS[CUR_ZONE] != 0 → mark inactive
-    rom.LD_A_C(); rom.CP_n(2); rom.JR_NZ('szc_sk')
+    rom.LD_A_C(); rom.CP_n(2); rom.JR_NZ('szc_score_chk')
     rom.PUSH_BC(); rom.PUSH_DE(); rom.PUSH_HL()
     rom.LD_A_nn(CUR_ZONE)
     rom.LD_E_A(); rom.LD_D_n(0)
@@ -637,6 +665,28 @@ def build_game_asm(rom: ROM) -> dict:
     rom.OR_A(); rom.JR_Z('szc_sk')
     # mark inactive: HL points one past 'active' field, so HL-1
     rom.DEC_HL(); rom.XOR_A(); rom.LD_HL_A(); rom.INC_HL()
+    rom.JR('szc_sk')
+
+    # FR-5220: non-carrot entry — if bit k = COLL_COUNT-B of
+    # SCOREITEM_FLAGS[CUR_ZONE] is set, this ScoreItem was already collected
+    # (this session or a prior save) — mark inactive, mirroring the carrot
+    # branch's push/pop-scratch discipline exactly.
+    rom.label('szc_score_chk')
+    rom.PUSH_BC(); rom.PUSH_DE(); rom.PUSH_HL()
+    rom.LD_A_nn(COLL_COUNT); rom.SUB_B()
+    rom.LD_C_A()
+    rom.LD_B_n(1)
+    rom.label('szc_si_mkloop')
+    rom.LD_A_C(); rom.OR_A(); rom.JR_Z('szc_si_mkdone')
+    rom.SLA_B(); rom.DEC_C(); rom.JR('szc_si_mkloop')
+    rom.label('szc_si_mkdone')
+    rom.LD_A_nn(CUR_ZONE); rom.LD_E_A(); rom.LD_D_n(0)
+    rom.LD_HL_nn(SCOREITEM_FLAGS); rom.ADD_HL_DE()
+    rom.LD_A_HL(); rom.AND_B()
+    rom.POP_HL(); rom.POP_DE(); rom.POP_BC()
+    rom.OR_A(); rom.JR_Z('szc_sk')
+    rom.DEC_HL(); rom.XOR_A(); rom.LD_HL_A(); rom.INC_HL()
+
     rom.label('szc_sk')
     rom.DEC_B(); rom.JR_NZ('szc_lp'); rom.RET()
 
@@ -678,6 +728,10 @@ def build_game_asm(rom: ROM) -> dict:
     # Save 9 carrot flags A009..A011
     for i in range(9):
         rom.LD_A_nn(CARROT_FLAGS + i); rom.LD_nn_A(0xA009 + i)
+    # FR-5220: save-format version guard + 9 ScoreItem flags A012..A01B
+    rom.LD_A_n(SAVE_VERSION_VAL); rom.LD_nn_A(SAVE_VERSION_ADDR)
+    for i in range(9):
+        rom.LD_A_nn(SCOREITEM_FLAGS + i); rom.LD_nn_A(SRAM_SCOREITEM + i)
     rom.XOR_A(); rom.LD_nn_A(0x0000)
     rom.RET()
 
@@ -685,12 +739,21 @@ def build_game_asm(rom: ROM) -> dict:
     rom.label('try_load_save')
     rom.LD_A_n(0x0A); rom.LD_nn_A(0x0000)
     for addr, val in [(0xA000,0x42),(0xA001,0x55),(0xA002,0x4E),(0xA003,0x59)]:
-        rom.LD_A_nn(addr); rom.CP_n(val); rom.JR_NZ('tls_no')
+        rom.LD_A_nn(addr); rom.CP_n(val); rom.JP_NZ('tls_no')
     for dst, src in [(CUR_ZONE,0xA004),(PLAYER_X,0xA005),(PLAYER_Y,0xA006),
                      (CARROTS_COUNT,0xA007),(SCORE,0xA008)]:
         rom.LD_A_nn(src); rom.LD_nn_A(dst)
     for i in range(9):
         rom.LD_A_nn(0xA009 + i); rom.LD_nn_A(CARROT_FLAGS + i)
+    # FR-5220: version-guarded ScoreItem restore. SCOREITEM_FLAGS is already
+    # all-zero from the boot-time WRAM clear (this routine runs once right
+    # after it) — a pre-upgrade save (version byte != SAVE_VERSION_VAL) is
+    # handled by simply skipping the restore, leaving it at that all-zero
+    # "uncollected" default rather than trusting garbage SRAM bytes.
+    rom.LD_A_nn(SAVE_VERSION_ADDR); rom.CP_n(SAVE_VERSION_VAL); rom.JR_NZ('tls_si_skip')
+    for i in range(9):
+        rom.LD_A_nn(SRAM_SCOREITEM + i); rom.LD_nn_A(SCOREITEM_FLAGS + i)
+    rom.label('tls_si_skip')
     rom.XOR_A(); rom.LD_nn_A(0x0000)
     rom.LD_A_n(GS_PLAYING)
     rom.LD_nn_A(GAMESTATE); rom.LD_nn_A(TRANSITION_TO)
