@@ -29,15 +29,13 @@
   reproduce in the rewrite; permanent check rides IP-9010). `BL-0003`–`BL-0008`, `BL-0017`,
   `BL-0019`, `BL-0023` dispositions updated to name their packages. New: **`BL-0024`** (High,
   `gate`, NEEDS-USER) — G3 authorization for IP-9010/IP-9030/IP-1010.
-- **Next step:** **Gated on `BL-0024`.** Once the user authorizes `IP-9010`, advance to
-  **`08-code-implementation` on `IP-9010`** (critical path; restores the G5 gate for every other
-  package). `IP-9020`/`IP-9040` are pre-authorized and follow as soon as `IP-9010` is VERIFIED;
-  `IP-1010` (Release 1) additionally needs its own G3 answer.
-- **Open gates:** **`BL-0024` (G3):** user go-ahead needed for `IP-9010` (BL-0006 Critical +
-  BL-0005 — outside the bootstrap carve-out because BL-0006 post-dates it), `IP-9030` (BL-0007,
-  same reason), and `IP-1010` (FS-101 — genuinely new work, flagged since run #20). IP-9020 and
-  IP-9040 are already authorized via the carve-out but sit behind IP-9010's verification, so
-  **the entire build plan is waiting on this one decision.**
+- **Next step:** Advance to **`08-code-implementation` on `IP-9010`** (READY + authorized;
+  critical path — restores the G5 gate every other package's verification needs). After
+  IP-9010 is VERIFIED: IP-9020/IP-9040/IP-1010 in parallel, then IP-9030.
+- **Open gates:** none. **`BL-0024` resolved same-day (2026-07-07): the user authorized all
+  three gated packages** (IP-9010, IP-9030, IP-1010) — with the carve-out covering
+  IP-9020/IP-9040, every planned package now has G3 authorization on record. The next human
+  gates are per-package verification findings (09) and the eventual release GO (11).
 
 ## Run log
 

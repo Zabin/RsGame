@@ -15,17 +15,17 @@
 
 | Package | Title | Owner (08 peer) | Status | Depends on | Authorized? | Notes |
 |---|---|---|---|---|---|---|
-| [IP-9010](packages/IP-9010-test-suite-rewrite.md) | Test suite rewrite (BL-0006 + BL-0005) | `08-code-implementation` | READY | — | **NO — needs user G3** (BL-0006 is outside the BL-0001…0005 carve-out; the BL-0005 half alone is carved out, but the package is authorized as a whole or not at all) | The universal unblocker: restores the G5 gate every other package's verification needs. Test-harness-only; ROM must stay byte-identical. Rider: BL-0017 check. |
+| [IP-9010](packages/IP-9010-test-suite-rewrite.md) | Test suite rewrite (BL-0006 + BL-0005) | `08-code-implementation` | READY | — | **YES — explicit user G3, 2026-07-07 (BL-0024)** (BL-0006 is outside the carve-out, so this needed — and received — its own go-ahead) | The universal unblocker: restores the G5 gate every other package's verification needs. Test-harness-only; ROM must stay byte-identical. Rider: BL-0017 check. |
 | [IP-9020](packages/IP-9020-score-bar-vblank-fix.md) | Score-bar VRAM write timing fix (BL-0003) | `08-code-implementation` | BLOCKED | IP-9010 | **YES** — G3 bootstrap carve-out (BL-0003 ∈ BL-0001…0005) | Closes NFR-1200 NOT MET. Rider: BL-0019 headroom check. |
-| [IP-9030](packages/IP-9030-root-doc-refresh.md) | Root documentation refresh (BL-0007) | `08-code-implementation` | BLOCKED | IP-9010, IP-9020 | **NO — needs user G3** (BL-0007 outside the carve-out) | Docs-only; must land after the fixes it documents. |
+| [IP-9030](packages/IP-9030-root-doc-refresh.md) | Root documentation refresh (BL-0007) | `08-code-implementation` | BLOCKED | IP-9010, IP-9020 | **YES — explicit user G3, 2026-07-07 (BL-0024)** | Docs-only; must land after the fixes it documents. |
 | [IP-9040](packages/IP-9040-legacy-artifact-archival.md) | Legacy artifact archival (BL-0004) | `08-code-implementation` | BLOCKED | IP-9010 | **YES** — G3 bootstrap carve-out + explicit user decision (run #1; widened scope run #2) | Pure git-mv hygiene; blocked only by the G5 gate's availability. |
-| [IP-1010](packages/IP-1010-per-zone-scoreitem-persistence.md) | Per-zone ScoreItem persistence (FS-101 / FEAT-5100) | `08-code-implementation` | BLOCKED | IP-9010 | **NO — needs user G3** (genuinely new work; flagged since run #20) | Release 1's sole Feature. Fixes BL-0023 as designed side effect. Rider: BL-0019 headroom check. |
+| [IP-1010](packages/IP-1010-per-zone-scoreitem-persistence.md) | Per-zone ScoreItem persistence (FS-101 / FEAT-5100) | `08-code-implementation` | BLOCKED | IP-9010 | **YES — explicit user G3, 2026-07-07 (BL-0024)** | Release 1's sole Feature. Fixes BL-0023 as designed side effect. Rider: BL-0019 headroom check. |
 
 ## Dependency graph
 
 ```mermaid
 graph TD
-    IP9010["IP-9010 test-suite rewrite<br/>(READY — awaits G3)"]
+    IP9010["IP-9010 test-suite rewrite<br/>(READY + authorized)"]
     IP9020["IP-9020 score-bar VBlank fix"]
     IP9030["IP-9030 root-doc refresh"]
     IP9040["IP-9040 legacy archival"]
@@ -44,6 +44,6 @@ graph TD
 - **IP-9010 blocks everything** because the G5 permanent gate ("full `test_rom.py` suite
   passes") is unsatisfiable until the suite stops asserting pre-rewrite semantics (BL-0006,
   Critical) — sequencing it first is the whole plan's leverage.
-- **Authorization state summary:** IP-9020 and IP-9040 are pre-authorized (carve-out);
-  IP-9010, IP-9030, and IP-1010 await explicit user G3 go-ahead — none of the three may start a
-  stage-08 run until it's on record.
+- **Authorization state summary:** all five packages authorized — IP-9020/IP-9040 via the G3
+  bootstrap carve-out; IP-9010/IP-9030/IP-1010 via the user's explicit go-ahead recorded
+  2026-07-07 (`BL-0024`, "Authorize all three"). Execution order remains dependency-driven.
