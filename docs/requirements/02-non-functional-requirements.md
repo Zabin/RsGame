@@ -217,11 +217,15 @@ functional behavior.)*
   a prior version of the game.
 - **Rationale:** GDS-06 N5; rule G5 (`.claude/skills/README.md`).
 - **Priority:** Must
-- **Status: NOT MET.** `test_rom.py`'s T1 suite (header validation) satisfies this NFR for the
-  facts it covers. Its T2–T10 suites do **not** — they assert pre-rewrite (Bunny Garden Adventure,
-  3-zone/gift-model) semantics against the current 9-zone/carrot-model code. The historical
-  "88/88 passed" figure predates the semantic drift and is **not** evidence this NFR is currently
-  met.
+- **Status: MET (2026-07-07, via IP-9010 — pending independent verification by
+  `09-package-verification`).** `test_rom.py` was rewritten in full against the current, as-built
+  Bunny Quest semantics ([IP-9010](../implementation/packages/IP-9010-test-suite-rewrite.md),
+  closing BL-0006/BL-0005): T1 retained per R304; T2–T10 rewritten against the current WRAM
+  model (GDS-07) and tile/zone data; all paths repo-relative. Current evidence: **109/109 checks
+  pass** against a freshly built, byte-identical ROM (`test_results.txt`, regenerated 2026-07-07).
+  *Historical note (pre-2026-07-07):* the prior suite asserted pre-rewrite (Bunny Garden
+  Adventure, 3-zone/gift-model) semantics, and its "88/88 passed" figure predated the semantic
+  drift — that figure was never evidence of compliance.
 - **Acceptance Criteria:** Every check in `test_rom.py` asserts a behavior that matches the
   current, as-built game semantics (verified independently against direct source reads, not
   against the suite's own historical pass/fail record).
@@ -229,10 +233,10 @@ functional behavior.)*
   check against current source, as GDS-02/GDS-05/GDS-06 already began).
 - **Source Documents:** GDS-06 N5; GDS-02.
 - **Related ADRs:** None.
-- **Notes:** Tracked as **BL-0006** (Critical), folded into **BL-0008**. This is the single most
-  consequential non-compliance in this baseline — every downstream stage-08/09 package inherits it
-  until remediated. Do not cite the historical pass count as compliance evidence in any future
-  document.
+- **Notes:** Was tracked as **BL-0006** (Critical), folded into **BL-0008**; remediated by
+  **IP-9010** (2026-07-07). Do not cite the pre-rewrite historical pass count ("88/88") as
+  compliance evidence in any future document — current evidence is the regenerated
+  `test_results.txt` produced by the rewritten suite.
 
 ## Build Reproducibility
 
