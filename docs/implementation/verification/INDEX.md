@@ -9,3 +9,4 @@ A `RETURNED` result is a normal outcome, recorded here like any other.
 | VR | Package | Date | Result | Headline findings |
 |---|---|---|---|---|
 | [VR-9010](VR-9010-test-suite-rewrite.md) | IP-9010 (test-suite rewrite) | 2026-07-07 | **VERIFIED** | 109/109 checks pass, ROM byte-identical, all DoD/checklist items confirmed independently. One Low finding: package cites nonexistent `NFR-7000` (should be `NFR-6100`), whose RTM Test cell remains unfilled. |
+| [VR-1010](VR-1010-per-zone-scoreitem-persistence.md) | IP-1010 (per-zone ScoreItem persistence) | 2026-07-07 | **VERIFIED** | 125/125 pass independently re-run (fresh container), ROM byte-identical rebuild, all 5 FS-101 ACs confirmed via T11.a–e, BL-0023 farming-bug fix proven (T11.a4/a5). One Low finding: NFR-5200's "pending independent verification" clause in RQ-02 now stale (04 delta). |
