@@ -16,8 +16,8 @@
 | Package | Title | Owner (08 peer) | Status | Depends on | Authorized? | Notes |
 |---|---|---|---|---|---|---|
 | [IP-9010](packages/IP-9010-test-suite-rewrite.md) | Test suite rewrite (BL-0006 + BL-0005) | `08-code-implementation` | **VERIFIED** | — | **YES — explicit user G3, 2026-07-07 (BL-0024)** | **Verified 2026-07-07 ([VR-9010](verification/VR-9010-test-suite-rewrite.md)):** 109/109 pass, ROM byte-identical, all DoD/checklist items confirmed independently. One Low finding: package cites nonexistent `NFR-7000` (should be `NFR-6100`). |
-| [IP-9020](packages/IP-9020-score-bar-vblank-fix.md) | Score-bar VRAM write timing fix (BL-0003) | `08-code-implementation` | **COMPLETE** | IP-9010 (VERIFIED) | **YES** — G3 bootstrap carve-out (BL-0003 ∈ BL-0001…0005) | **Implemented 2026-07-07:** `update_status_disp` call relocated to frame-top VBlank; NFR-1200 → MET; ROM unchanged at 23148/32768 bytes (BL-0019 headroom re-affirmed); 111/111 pass (T8.10a/T8.10b new). Awaiting `09-package-verification`. |
-| [IP-9030](packages/IP-9030-root-doc-refresh.md) | Root documentation refresh (BL-0007) | `08-code-implementation` | BLOCKED | IP-9010 (VERIFIED), IP-9020 (COMPLETE, not yet VERIFIED) | **YES — explicit user G3, 2026-07-07 (BL-0024)** | Docs-only; must land after the fixes it documents. |
+| [IP-9020](packages/IP-9020-score-bar-vblank-fix.md) | Score-bar VRAM write timing fix (BL-0003) | `08-code-implementation` | **VERIFIED** | IP-9010 (VERIFIED) | **YES** — G3 bootstrap carve-out (BL-0003 ∈ BL-0001…0005) | **Verified 2026-07-07 ([VR-9020](verification/VR-9020-score-bar-vblank-fix.md)):** sole call site confirmed at frame-top VBlank, all other VRAM writers LCD-off, T8.10a/b pass, 125/125. One Low finding: stale "pending verification" clauses (04-delta batch). |
+| [IP-9030](packages/IP-9030-root-doc-refresh.md) | Root documentation refresh (BL-0007) | `08-code-implementation` | **READY** | IP-9010 (VERIFIED), IP-9020 (VERIFIED) | **YES — explicit user G3, 2026-07-07 (BL-0024)** | Docs-only; both dependencies now VERIFIED (2026-07-07) — eligible for `08-code-implementation`. |
 | [IP-9040](packages/IP-9040-legacy-artifact-archival.md) | Legacy artifact archival (BL-0004) | `08-code-implementation` | **COMPLETE** | IP-9010 (VERIFIED) | **YES** — G3 bootstrap carve-out + explicit user decision (run #1; widened scope run #2) | **Implemented 2026-07-07:** `BunnyGarden_build_rom.py`/`BunnyGarden_logic.json`/`BunnyGarden.gbc` moved to `legacy/` (+ README); root has no `BunnyGarden*` entries; ROM byte-identical; 111/111 pass. Awaiting `09-package-verification`. |
 | [IP-1010](packages/IP-1010-per-zone-scoreitem-persistence.md) | Per-zone ScoreItem persistence (FS-101 / FEAT-5100) | `08-code-implementation` | **VERIFIED** | IP-9010 (VERIFIED) | **YES — explicit user G3, 2026-07-07 (BL-0024)** | **Verified 2026-07-07 ([VR-1010](verification/VR-1010-per-zone-scoreitem-persistence.md)):** 125/125 pass independently re-run, ROM byte-identical rebuild, all DoD/checklist items confirmed, BL-0023 fix proven (T11.a4/a5). One Low finding: NFR-5200's "pending independent verification" clause now stale (04 delta). |
 
@@ -26,8 +26,8 @@
 ```mermaid
 graph TD
     IP9010["IP-9010 test-suite rewrite<br/>(VERIFIED)"]
-    IP9020["IP-9020 score-bar VBlank fix<br/>(COMPLETE — awaiting VR)"]
-    IP9030["IP-9030 root-doc refresh<br/>(BLOCKED)"]
+    IP9020["IP-9020 score-bar VBlank fix<br/>(VERIFIED)"]
+    IP9030["IP-9030 root-doc refresh<br/>(READY)"]
     IP9040["IP-9040 legacy archival<br/>(COMPLETE — awaiting VR)"]
     IP1010["IP-1010 ScoreItem persistence<br/>(Release 1, VERIFIED)"]
     IP9010 --> IP9020
@@ -41,13 +41,13 @@ graph TD
 - **Critical path (Release 1, per FP-04):** IP-9010 → IP-1010.
 - IP-9010 is `VERIFIED` (2026-07-07, [VR-9010](verification/VR-9010-test-suite-rewrite.md)) —
   the G5 gate is confirmed functional by independent re-run (109/109 pass, ROM byte-identical).
-- IP-9020 is `COMPLETE` (2026-07-07) — downstream `IP-9030` stays `BLOCKED` until it is
-  `VERIFIED` by stage 09 (`COMPLETE` is not sufficient).
+- IP-9020 is `VERIFIED` (2026-07-07, [VR-9020](verification/VR-9020-score-bar-vblank-fix.md)) —
+  `IP-9030`'s last blocking dependency; `IP-9030` is now `READY`.
 - IP-9040 is `COMPLETE` (2026-07-07) — no downstream package depends on it.
 - **IP-1010 is `VERIFIED` (2026-07-07, [VR-1010](verification/VR-1010-per-zone-scoreitem-persistence.md))
   — Release 1's critical path (IP-9010 → IP-1010) is complete end-to-end.**
-- Remaining: `IP-9020`/`IP-9040` await stage-09 verification; `IP-9030` stays `BLOCKED` until
-  `IP-9020` reaches `VERIFIED`.
+- Remaining: `IP-9040` awaits stage-09 verification; `IP-9030` is `READY` for
+  `08-code-implementation` (docs-only package, G3 already on record via BL-0024).
 - **Authorization state summary:** all five packages authorized — IP-9020/IP-9040 via the G3
   bootstrap carve-out; IP-9010/IP-9030/IP-1010 via the user's explicit go-ahead recorded
   2026-07-07 (`BL-0024`, "Authorize all three"). Execution order remains dependency-driven.
