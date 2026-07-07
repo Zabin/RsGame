@@ -14,33 +14,28 @@
 
 ## Position
 
-- **Updated:** 2026-07-07 (run #26)
+- **Updated:** 2026-07-07 (run #27)
 - **Increment:** **Bootstrap baseline** — document the shipped game (**Bunny Quest**) as-built
   through stages 01–07, verify the as-built record (09), then drive the widened
   BL-0001/0003/0005/0006/0007 remediation scope (BL-0008's umbrella) through the 07→08→09 loop.
-  See [`BOOTSTRAP.md`](BOOTSTRAP.md). Stage 07's first pass closed run #21; run #22 implemented
-  `IP-9010`; run #23 verified it. Per the user's explicit instruction to "iterate through all
-  unblocked IPs," runs #24–#26 implemented all three packages `IP-9010`'s verification unblocked
-  (`IP-9020`, `IP-9040`, `IP-1010`) back-to-back in one sitting.
-- **Pipeline state:** Stages 01–07 ✅ (first pass). Stage 08: **`IP-9010` VERIFIED**; **`IP-9020`,
-  `IP-9040`, `IP-1010` all `COMPLETE` (2026-07-07, runs #24–#26)**, none yet independently
-  verified (`COMPLETE` ≠ `VERIFIED`). `IP-9020`: `update_status_disp` relocated to frame-top
-  VBlank, `NFR-1200` → MET, 111/111 pass. `IP-9040`: three legacy artifacts archived to `legacy/`,
-  ROM byte-identical, 111/111 pass. `IP-1010`: `SCOREITEM_FLAGS` (`C060`–`C068`) + SRAM version
-  guard/mirror (`A012`–`A01B`) added, all 5 FS-101 ACs verified by new T11.a–e, 125/125 pass, ROM
-  grew to 23404/32768 bytes. `IP-9030` stays BLOCKED (needs `IP-9020` VERIFIED). Stage 09 ⛔ for
-  all three new packages. Stages 10–11 ⛔.
-- **Backlog:** 29 entries, 11 open. `BL-0023` → **IN PIPELINE** (T11.a4/T11.a5 confirm the
-  farming-bug fix; closes on IP-1010's VR). `BL-0019` re-affirmed (runs #24/#26): ROM headroom
-  still ~9.1KB. New: **`BL-0027`** (Low, SCHEDULED) — `.claude/skills/run-bunnygarden/SKILL.md`
-  still documents pre-`IP-9010` hardcoded paths, not covered by `BL-0007`/`IP-9030`'s scope.
-- **Next step:** **`09-package-verification`** on `IP-9020`, `IP-9040`, and `IP-1010` (one per
-  run, ideally fresh sessions for independence from this implementation work) — recommend
-  `IP-1010` first (Release 1's critical-path Feature), then `IP-9020` (unblocks `IP-9030`), then
-  `IP-9040`.
-- **Open gates:** none. All five packages carry G3 authorization (BL-0024 + carve-out). Next
-  human gates: any Critical/High VR findings on the remaining packages (09), and the eventual
-  release GO (11).
+  See [`BOOTSTRAP.md`](BOOTSTRAP.md). Runs #22–#26 implemented and began verifying the five-package
+  plan; run #27 verified `IP-1010` — **Release 1's critical path (IP-9010 → IP-1010) is complete
+  end-to-end.**
+- **Pipeline state:** Stages 01–07 ✅ (first pass). Stage 08/09: **`IP-9010` VERIFIED (VR-9010)**;
+  **`IP-1010` VERIFIED (run #27, [VR-1010](../implementation/verification/VR-1010-per-zone-scoreitem-persistence.md))**
+  — 125/125 independently re-run in a fresh container, ROM byte-identical, all 5 FS-101 ACs
+  confirmed, BL-0023 farming-bug fix proven. **`IP-9020`, `IP-9040` remain `COMPLETE`** awaiting
+  verification; `IP-9030` stays BLOCKED (needs `IP-9020` VERIFIED). Stages 10–11 ⛔ (integration
+  review becomes available once the tranche's remaining packages verify).
+- **Backlog:** 28 entries, 13 open. Run #27 closed **`BL-0023`** (farming bug — fix independently
+  confirmed by VR-1010) and, at triage, **`BL-0002`** (8×8-bunny issue — already fixed by
+  `9a587ac`/8×16 OBJ, tested by T6) and **`BL-0009`** (palette-budget picture — GDS-08 carried the
+  correction at run #13). New: **`BL-0028`** (Low, SCHEDULED) — NFR-5200's "pending independent
+  verification" clause in RQ-02 now stale; joins the 04-delta batch (BL-0020/0022/0026/0028).
+- **Next step:** **`09-package-verification`** on `IP-9020` (unblocks `IP-9030`), then `IP-9040`
+  (one per run; this session did no implementation work, so independence holds either way).
+- **Open gates:** none. Next human gates: any Critical/High VR findings on the remaining two
+  packages (09), and the eventual release GO (11).
 
 ## Run log
 
@@ -73,3 +68,4 @@
 | 24 | 2026-07-07 | advance (user-directed iteration through all unblocked packages) | `08-code-implementation` | IP-9020 (score-bar VBlank fix) | ✅ **COMPLETE — 111/111 checks pass.** Verified the package's claims still held against the tree (`update_status_disp` at its cited line, self-guarded on `GAMESTATE`/`SCORE_DIRTY`; main loop clears `VBLANK_FLAG` before the `NEED_REDRAW` dispatch — unchanged since the package was authored). Relocated `CALL('update_status_disp')` from `st_playing` to the main loop's frame top, immediately after the VBlank-flag clear and before `do_screen_redraw`'s dispatch. New T8.10a/T8.10b force-dirty `SCORE`/`CARROTS_COUNT` and confirm the HUD tiles update within 2 frames. ROM unchanged (23148/32768 bytes, BL-0019 headroom re-affirmed). Docs: `NFR-1200` → MET (RQ-02), GDS-06 N2 pointer updated, RTM row updated. Ledger: IP-9020 → COMPLETE; IP-9030 stays BLOCKED (needs IP-9020 VERIFIED too). No new findings. No drift. | `08-code-implementation` on IP-9040 (legacy artifact archival) — continuing the user-directed iteration |
 | 25 | 2026-07-07 | advance (same user-directed iteration) | `08-code-implementation` | IP-9040 (legacy artifact archival) | ✅ **COMPLETE — 111/111 checks pass.** Confirmed the three files' current presence at repo root and no live (non-historical) code reference to them (the one Python-level hit was self-referential, inside `BunnyGarden_build_rom.py` itself). `git mv`'d all three to `legacy/` + authored `legacy/README.md`; left the stale root `README.md` untouched per the package's own fallback (its rewrite is `IP-9030`'s scope). ROM rebuilt byte-identical; full suite green. Ledger: IP-9040 → COMPLETE. Harvested: new **BL-0027** (Low, SCHEDULED) — `.claude/skills/run-bunnygarden/SKILL.md` still documents pre-`IP-9010` hardcoded paths, a gap `BL-0007`/`IP-9030` don't cover. No drift. | `08-code-implementation` on IP-1010 (per-zone ScoreItem persistence) — concluding the user-directed iteration |
 | 26 | 2026-07-07 | advance (same user-directed iteration) | `08-code-implementation` | IP-1010 (FS-101: per-zone ScoreItem persistence) | ✅ **COMPLETE — 125/125 checks pass.** Assigned `SCOREITEM_FLAGS` to `0xC060`–`C068` (resolving FS-101 Open Question 3; confirmed 8-aligned, inside the boot WRAM clear, with headroom either side) and `SAVE_VERSION_ADDR`/`SRAM_SCOREITEM` to `0xA012`/`0xA013`–`A01B`. Extended `check_collisions` (sets bit *k*=`COLL_COUNT`-`B` on ScoreItem hit, mirroring the carrot branch's push/pop-HL discipline) and `setup_zone_collects` (tests the same bit on zone entry, mirroring the existing `CARROT_FLAGS` check) — this incidentally fixes `BL-0023`'s score-farming bug, exactly as FS-101 designed. Extended `save_to_sram`/`try_load_save` with the version-guarded restore (Design Decision 2) and both progress-reset paths (`st_intro`/`st_victory`) to clear the new flags. Two `JR`→`JP` conversions needed where the added code pushed existing relative jumps out of range (`check_collisions`' loop-back, `try_load_save`'s magic-check). New suite **T11.a–e** (14 checks) covers all five FS-101 Acceptance Criteria, including a synthetic pre-upgrade SRAM fixture for AC-4. ROM grew to 23404/32768 bytes (+256; BL-0019 re-affirmed, ~9.1KB headroom remains). Docs: GDS-07 WRAM/SRAM tables, NFR-5200 → MET (widened field set), RTM rows (FR-5220/NFR-5200), FS-101 status → Implemented. Ledger: IP-1010 → COMPLETE. Harvested: BL-0023 → IN PIPELINE (T11.a4/T11.a5 confirm the fix); BL-0019 re-affirmed. No drift. **All three packages this iteration targeted are now COMPLETE; the user-directed iteration through all unblocked IPs is done.** | `09-package-verification` on IP-1010, IP-9020, and IP-9040 (one per run) — recommend IP-1010 first (Release 1's critical path), then IP-9020 (unblocks IP-9030), then IP-9040 |
+| 27 | 2026-07-07 | advance | `09-package-verification` | IP-1010 (per-zone ScoreItem persistence) | ✅ **VERIFIED.** Fresh container (PyBoy 2.7.0 + numpy reinstalled — independence clean, no implementation work this session). ROM rebuilt **byte-identical** (sha256 match, 32768 bytes, 23404 used); full suite independently re-run: **125/125 pass, 0 failed**. All 4 DoD + 8 checklist items confirmed by direct code read: bit-index scheme (*k* = `COLL_COUNT−B`) consistent across both hook sites, save/load extensions inside the single MBC1 bracket, both reset paths clear `SCOREITEM_FLAGS`, boot WRAM clear covers `0xC060`, T11.d's synthetic pre-upgrade fixture proves the version guard (garbage `0xFF` mirror bytes ignored). Scope audit clean (two `JR`→`JP` conversions in-scope). Pillow-absent environment note investigated: screenshots are diagnostics-only, T6.7 uses `ndarray` — no check degraded. **[VR-1010](../implementation/verification/VR-1010-per-zone-scoreitem-persistence.md)** written. Ledger: IP-1010 → **VERIFIED**; Release 1 critical path complete. Triage: **BL-0002** → DONE (8×16 fix confirmed by ADR-0007/T6), **BL-0009** → DONE (GDS-08 carried the correction, run #13). Harvested: **BL-0023** → DONE (fix independently confirmed); new **BL-0028** (Low) — NFR-5200's "pending independent verification" clause now stale, rides the 04-delta batch. No drift. | `09-package-verification` on IP-9020 (score-bar VBlank fix) — unblocks IP-9030; then IP-9040 |
