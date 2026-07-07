@@ -1,27 +1,51 @@
 #!/usr/bin/env python3
 """
-test_rom.py — Systematic test suite for BunnyGarden.gbc
-Run: python3 test_rom.py
+test_rom.py — Systematic test suite for BunnyQuest.gbc (Bunny Quest, 3x3 world).
+Run from the repo root: python3 test_rom.py
+Requires: pyboy, numpy (pillow optional, for screenshots).
 
 Suites:
-  T1  ROM header / metadata (no emulator)
+  T1  ROM header / metadata (no emulator) + source-data invariants
   T2  VRAM tile data loaded
-  T3  LCDC / LCD flags
-  T4  State machine transitions
-  T5  BG tilemap content per screen
-  T6  OAM / sprite rendering (bunny + collectibles)
+  T3  LCDC / LCD flags (8x16 OBJ mode)
+  T4  State machine transitions (TITLE/INTRO/PLAYING/SAVE/MAP/VICTORY)
+  T5  BG tilemap content per screen (score bar, title, zone terrain)
+  T6  OAM / sprite rendering (single 8x16 bunny entry + collectibles)
   T7  Joypad movement and boundaries
-  T8  Collision, score, and gift tracking
-  T9  Zone transitions
-  T10 SRAM save/load persistence
+  T8  Collision, score, carrot tracking, map hearts
+  T9  Zone transitions (3x3 grid, all four edges)
+  T10 SRAM save/load persistence (BUNY magic, full field set)
+  (T11 reserved for IP-1010: per-zone ScoreItem persistence)
+
+WRAM model under test (see docs/architecture/07-data-model.md):
+  C000 GAMESTATE (0=TITLE 1=INTRO 2=PLAYING 3=SAVE 4=MAP 5=VICTORY)
+  C001/C002 PLAYER_X/PLAYER_Y   C003 PLAYER_DIR   C004 PLAYER_FRAME
+  C006 SCORE (0-99)   C008 CUR_ZONE (0-8)   C009 CARROTS_COUNT (0-9, victory at 9)
+  C015-C01D CARROT_FLAGS (9 bytes, one per zone)
+  C020 COLL_DATA (4 bytes/entry: x,y,type,active)   C050 COLL_COUNT
 """
-import os, sys, struct, subprocess
+import os, struct
 from pathlib import Path
 
-ROM_PATH = '/mnt/user-data/outputs/BunnyGarden.gbc'
-RAM_PATH = '/mnt/user-data/outputs/BunnyGarden.gbc.ram'   # PyBoy uses .gbc.ram
-SHOT_DIR = '/home/claude/bunnygarden/test_shots'
-os.makedirs(SHOT_DIR, exist_ok=True)
+BASE = Path(__file__).resolve().parent
+ROM_PATH = str(BASE / 'BunnyQuest.gbc')
+RAM_PATH = ROM_PATH + '.ram'          # PyBoy writes <rom>.ram for battery carts
+SHOT_DIR = BASE / 'test_shots'
+SHOT_DIR.mkdir(exist_ok=True)
+RESULTS_PATH = BASE / 'test_results.txt'
+
+# WRAM addresses (must match asm_game.py / GDS-07)
+GAMESTATE = 0xC000; PLAYER_X = 0xC001; PLAYER_Y = 0xC002
+PLAYER_DIR = 0xC003; PLAYER_FRAME = 0xC004; ANIM_CTR = 0xC005
+SCORE = 0xC006; SCORE_DIRTY = 0xC007; CUR_ZONE = 0xC008
+CARROTS_COUNT = 0xC009; NEED_REDRAW = 0xC00A
+CARROT_FLAGS = 0xC015; COLL_DATA = 0xC020; COLL_COUNT = 0xC050
+
+# Tile indices (must match tiles.py)
+TL_BG_BLANK = 0x10; TL_HEART_FULL = 0x11; TL_HEART_EMPTY = 0x12
+TL_CARROT_ICON = 0x13; TL_STAR_ICON_BG = 0x14; TL_BORDER_H = 0x15
+TL_DIGIT_0 = 0x20; TL_FONT_A = 0x40; TL_FONT_COLON = 0x61
+TL_CARROT = 0x04; TL_STAR = 0x06; TL_FLOWER_OBJ = 0x08
 
 results = []
 PASS = 0; FAIL = 0
@@ -37,10 +61,10 @@ def check(name, cond, detail=""):
     print(msg)
 
 def wipe_save():
-    """Remove PyBoy's RAM file so next boot starts clean."""
+    """Remove PyBoy's RAM file so next boot starts clean (no auto-load)."""
     for p in [RAM_PATH, RAM_PATH.replace('.ram', '.sav')]:
         try: os.remove(p)
-        except: pass
+        except OSError: pass
 
 from pyboy import PyBoy
 
@@ -53,25 +77,26 @@ def fresh_boot(frames=180):
     return pb
 
 def advance_to_playing(pb):
-    """From TITLE: Start→Intro, A→Playing."""
-    # Handle both title and already-playing states
-    if pb.memory[0xC000] != 0:  # not at title, might be in playing from save
-        pass
+    """From TITLE: START -> INTRO, A -> PLAYING."""
     pb.button('start'); [pb.tick() for _ in range(80)]
     pb.button('a');     [pb.tick() for _ in range(80)]
 
 def shoot(pb, name):
-    pb.screen.image.save(f"{SHOT_DIR}/{name}.png")
+    try:
+        pb.screen.image.save(str(SHOT_DIR / f"{name}.png"))
+    except Exception:
+        pass   # screenshots are diagnostics, not assertions
 
 def oam_entry(pb, n):
-    """Read OAM entry n from actual OAM registers (0xFE00)."""
+    """Read OAM entry n from actual OAM (0xFE00), not the shadow buffer."""
     base = 0xFE00 + n * 4
     return (pb.memory[base], pb.memory[base+1], pb.memory[base+2], pb.memory[base+3])
 
 # ══════════════════════════════════════════════════════
 # T1 — ROM Header (pure binary checks, no emulator)
+#      + source-data invariants (host-side, no emulator)
 # ══════════════════════════════════════════════════════
-print("\n=== T1: ROM Header ===")
+print("\n=== T1: ROM Header / Data Invariants ===")
 with open(ROM_PATH, 'rb') as f:
     raw = f.read()
 
@@ -88,6 +113,15 @@ check("T1.7 Header checksum valid",        chk == raw[0x14D], f"0x{chk:02X}=0x{r
 check("T1.8 VBlank ISR @ 0x40 = PUSH AF", raw[0x40] == 0xF5, f"0x{raw[0x40]:02X}")
 check("T1.9 VBlank ISR sets VBLANK_FLAG", raw[0x41:0x44] == bytes([0x3E, 0x01, 0xEA]))
 
+# Source-data invariants (BL-0017 rider): exactly one carrot per zone list.
+from tilemaps import ZONE_COLLECTS
+check("T1.10 ZONE_COLLECTS has 9 zones",   len(ZONE_COLLECTS) == 9, f"{len(ZONE_COLLECTS)}")
+carrots_per_zone = [sum(1 for (_, _, t) in z if t == 2) for z in ZONE_COLLECTS]
+check("T1.11 Exactly one carrot per zone", all(c == 1 for c in carrots_per_zone),
+      f"{carrots_per_zone}")
+check("T1.12 No zone exceeds 8 collectibles (1-byte bitfield capacity)",
+      all(len(z) <= 8 for z in ZONE_COLLECTS), f"{[len(z) for z in ZONE_COLLECTS]}")
+
 # ══════════════════════════════════════════════════════
 # T2 — VRAM Tile Data
 # ══════════════════════════════════════════════════════
@@ -95,23 +129,28 @@ print("\n=== T2: VRAM Tile Data ===")
 pb = fresh_boot()
 
 def tile(idx): return [pb.memory[0x8000 + idx*16 + i] for i in range(16)]
-t0  = tile(0x00)   # bunny head
-t4  = tile(0x04)   # gift obj
-t16 = tile(0x10)   # grass plain
-t64 = tile(0x40)   # font A
+t_bunny  = tile(0x00)        # bunny head F1
+t_carrot = tile(TL_CARROT)   # carrot OBJ
+t_star   = tile(TL_STAR)     # star OBJ
+t_flower = tile(TL_FLOWER_OBJ)
+t_font   = tile(TL_FONT_A)   # font 'A'
+t_sand   = tile(0x70)        # beach terrain (TL_SAND)
+t_grass  = tile(0x78)        # forest terrain (TL_GRASS)
 
-check("T2.1 Tile 0x00 (bunny head) non-zero",  any(b != 0 for b in t0),  f"[{t0[:4]}]")
-check("T2.2 Tile 0x04 (gift) non-zero",         any(b != 0 for b in t4),  f"[{t4[:4]}]")
-check("T2.3 Tile 0x10 (grass) non-zero",        any(b != 0 for b in t16), f"[{t16[:4]}]")
-check("T2.4 Tile 0x40 (font A) non-zero",       any(b != 0 for b in t64), f"[{t64[:4]}]")
-check("T2.5 Bunny tile has both bitplanes",     any(t0[i*2] for i in range(8)) and any(t0[i*2+1] for i in range(8)))
-# Font A should have pixel in top-centre (row 0, approximate)
-check("T2.6 Font A tile has outline pixels",    t64[0] != 0 or t64[1] != 0, f"row0={t64[:2]}")
+check("T2.1 Tile 0x00 (bunny head) non-zero",   any(t_bunny),  f"[{t_bunny[:4]}]")
+check("T2.2 Tile 0x04 (carrot) non-zero",       any(t_carrot), f"[{t_carrot[:4]}]")
+check("T2.3 Tile 0x06 (star) non-zero",         any(t_star),   f"[{t_star[:4]}]")
+check("T2.4 Tile 0x08 (flower) non-zero",       any(t_flower), f"[{t_flower[:4]}]")
+check("T2.5 Tile 0x40 (font A) non-zero",       any(t_font),   f"[{t_font[:4]}]")
+check("T2.6 Tile 0x70 (beach sand) non-zero",   any(t_sand),   f"[{t_sand[:4]}]")
+check("T2.7 Tile 0x78 (forest grass) non-zero", any(t_grass),  f"[{t_grass[:4]}]")
+check("T2.8 Bunny tile has both bitplanes",
+      any(t_bunny[i*2] for i in range(8)) and any(t_bunny[i*2+1] for i in range(8)))
 
 pb.stop()
 
 # ══════════════════════════════════════════════════════
-# T3 — LCDC Flags
+# T3 — LCDC Flags (LCDC = 0x97: LCD on, 8x16 OBJ, BG map 0x9800)
 # ══════════════════════════════════════════════════════
 print("\n=== T3: LCDC Flags ===")
 pb = fresh_boot()
@@ -120,361 +159,423 @@ lcdc = pb.memory[0xFF40]
 check("T3.1 LCD enabled (bit 7)",          (lcdc>>7)&1 == 1, f"LCDC=0x{lcdc:02X}")
 check("T3.2 OBJ enabled (bit 1)",          (lcdc>>1)&1 == 1, f"LCDC=0x{lcdc:02X}")
 check("T3.3 BG enabled (bit 0)",           (lcdc>>0)&1 == 1, f"LCDC=0x{lcdc:02X}")
-check("T3.4 Tile data at 0x8000 (bit 4)",  (lcdc>>4)&1 == 1, f"LCDC=0x{lcdc:02X}")
-check("T3.5 BG map at 0x9800 (bit 3=0)",   (lcdc>>3)&1 == 0, f"LCDC=0x{lcdc:02X}")
-check("T3.6 LCDC = 0x93 exactly",          lcdc == 0x93, f"0x{lcdc:02X}")
+check("T3.4 8x16 OBJ mode (bit 2)",        (lcdc>>2)&1 == 1, f"LCDC=0x{lcdc:02X}")
+check("T3.5 Tile data at 0x8000 (bit 4)",  (lcdc>>4)&1 == 1, f"LCDC=0x{lcdc:02X}")
+check("T3.6 BG map at 0x9800 (bit 3=0)",   (lcdc>>3)&1 == 0, f"LCDC=0x{lcdc:02X}")
+check("T3.7 LCDC = 0x97 exactly",          lcdc == 0x97, f"0x{lcdc:02X}")
 
 pb.stop()
 
 # ══════════════════════════════════════════════════════
-# T4 — State Machine
+# T4 — State Machine (GS: 0=TITLE 1=INTRO 2=PLAYING 3=SAVE 4=MAP 5=VICTORY)
 # ══════════════════════════════════════════════════════
 print("\n=== T4: State Machine ===")
 pb = fresh_boot()
 
-check("T4.1 Clean boot → TITLE (GS=0)",   pb.memory[0xC000] == 0, f"GS={pb.memory[0xC000]}")
+check("T4.1 Clean boot -> TITLE (GS=0)",   pb.memory[GAMESTATE] == 0, f"GS={pb.memory[GAMESTATE]}")
 
 pb.button('start'); [pb.tick() for _ in range(80)]
-check("T4.2 START → INTRO (GS=1)",        pb.memory[0xC000] == 1, f"GS={pb.memory[0xC000]}")
+check("T4.2 START -> INTRO (GS=1)",        pb.memory[GAMESTATE] == 1, f"GS={pb.memory[GAMESTATE]}")
 shoot(pb, "T4_intro")
 
 pb.button('a'); [pb.tick() for _ in range(80)]
-check("T4.3 A in INTRO → PLAYING (GS=2)", pb.memory[0xC000] == 2, f"GS={pb.memory[0xC000]}")
+check("T4.3 A in INTRO -> PLAYING (GS=2)", pb.memory[GAMESTATE] == 2, f"GS={pb.memory[GAMESTATE]}")
 shoot(pb, "T4_playing")
 
 pb.button('start'); [pb.tick() for _ in range(40)]
-check("T4.4 START in PLAYING → SAVE (GS=3)", pb.memory[0xC000] == 3)
+check("T4.4 START in PLAYING -> SAVE (GS=3)", pb.memory[GAMESTATE] == 3)
 shoot(pb, "T4_save")
 
 pb.button('b'); [pb.tick() for _ in range(40)]
-check("T4.5 B in SAVE → PLAYING (GS=2)",  pb.memory[0xC000] == 2)
+check("T4.5 B in SAVE -> PLAYING (GS=2)",  pb.memory[GAMESTATE] == 2)
 
 pb.button('select'); [pb.tick() for _ in range(40)]
-check("T4.6 SELECT → MAP (GS=4)",          pb.memory[0xC000] == 4)
+check("T4.6 SELECT -> MAP (GS=4)",          pb.memory[GAMESTATE] == 4)
 shoot(pb, "T4_map")
 
 pb.button('b'); [pb.tick() for _ in range(40)]
-check("T4.7 B in MAP → PLAYING (GS=2)",   pb.memory[0xC000] == 2)
+check("T4.7 B in MAP -> PLAYING (GS=2)",   pb.memory[GAMESTATE] == 2)
 
-# Force victory
-pb.memory[0xC009] = 0x07
-pb.button_press('right'); [pb.tick() for _ in range(5)]; pb.button_release('right')
+# Force victory: the game's check_complete reads CARROTS_COUNT == 9.
+# Per R305's dual-assertion rule, set the flags AND the count so the forced
+# state is internally consistent with what save/zone logic reads.
+for i in range(9): pb.memory[CARROT_FLAGS + i] = 1
+pb.memory[CARROTS_COUNT] = 9
 [pb.tick() for _ in range(40)]
-check("T4.8 GIFTS=7 → VICTORY (GS=5)",   pb.memory[0xC000] == 5, f"GS={pb.memory[0xC000]}")
+check("T4.8 CARROTS=9 -> VICTORY (GS=5)",  pb.memory[GAMESTATE] == 5, f"GS={pb.memory[GAMESTATE]}")
 shoot(pb, "T4_victory")
 
 pb.button('a'); [pb.tick() for _ in range(60)]
-check("T4.9 A in VICTORY → TITLE (GS=0)", pb.memory[0xC000] == 0, f"GS={pb.memory[0xC000]}")
+check("T4.9 A in VICTORY -> TITLE (GS=0)", pb.memory[GAMESTATE] == 0, f"GS={pb.memory[GAMESTATE]}")
+check("T4.10 Victory exit clears progress",
+      pb.memory[CARROTS_COUNT] == 0 and pb.memory[SCORE] == 0
+      and all(pb.memory[CARROT_FLAGS + i] == 0 for i in range(9)),
+      f"carrots={pb.memory[CARROTS_COUNT]} score={pb.memory[SCORE]}")
 
 pb.stop()
 
 # ══════════════════════════════════════════════════════
-# T5 — BG Tilemap Content
+# T5 — BG Tilemap Content (title screen + zone 0 Beach)
 # ══════════════════════════════════════════════════════
 print("\n=== T5: BG Tilemap ===")
-pb = fresh_boot(200)   # enough frames for title to render
+pb = fresh_boot(200)
 
-# Title row 0 = all blank (0x1C UI tiles)
+# Title: row 0 blank, border row 2, "BUNNY QUEST" (font tiles) on row 4
 row0 = [pb.memory[0x9800 + i] for i in range(20)]
-check("T5.1 Title: row 0 has UI blank tiles",    any(b == 0x1C for b in row0), f"row0[0]=0x{row0[0]:02X}")
-
-# Title: BUNNY GARDEN text should appear. Title puts text at row 4 cols 4..15
-# Font B=0x41, U=0x54, N=0x4D, etc.
+check("T5.1 Title: row 0 is BG blank (0x10)",  row0[0] == TL_BG_BLANK, f"0x{row0[0]:02X}")
+row2 = [pb.memory[0x9800 + 2*32 + i] for i in range(2, 18)]
+check("T5.2 Title: border row 2 (0x15)",       all(b == TL_BORDER_H for b in row2),
+      f"row2[2]=0x{row2[0]:02X}")
 row4 = [pb.memory[0x9800 + 4*32 + i] for i in range(4, 16)]
-check("T5.2 Title: font tiles in row 4 (title text)", any(0x40 <= b <= 0x5A for b in row4), f"row4[4..16]={[f'{b:02X}' for b in row4]}")
+check("T5.3 Title: font tiles in row 4 (BUNNY QUEST)",
+      any(TL_FONT_A <= b <= TL_FONT_COLON for b in row4),
+      f"{[f'{b:02X}' for b in row4]}")
+shoot(pb, "T5_title")
 
-# Advance to garden
+# Advance to zone 0 (Beach)
 pb.button('start'); [pb.tick() for _ in range(80)]
 pb.button('a');     [pb.tick() for _ in range(80)]
 
-# Garden score bar (row 0)
+# Score bar (row 0, all zones share the pattern from _score_bar)
 row0 = [pb.memory[0x9800 + i] for i in range(12)]
-check("T5.3 Garden: row 0 blank tiles (score bar)",  row0[0] == 0x1C, f"row0[0]=0x{row0[0]:02X}")
-check("T5.4 Garden: col 1 = gift icon (0x1F)",       row0[1] == 0x1F, f"0x{row0[1]:02X}")
-check("T5.5 Garden: hearts at cols 2-4",             all(row0[c] in (0x1D,0x1E) for c in [2,3,4]))
-check("T5.6 Garden: star icon at col 7 (0x2D)",      row0[7] == 0x2D, f"0x{row0[7]:02X}")
-check("T5.7 Garden: digit tiles at cols 8-10",       all(0x20 <= row0[c] <= 0x29 for c in [8,9,10]))
+check("T5.4 Zone: row 0 col 0 = BG blank",        row0[0] == TL_BG_BLANK, f"0x{row0[0]:02X}")
+check("T5.5 Zone: col 1 = carrot icon (0x13)",    row0[1] == TL_CARROT_ICON, f"0x{row0[1]:02X}")
+check("T5.6 Zone: col 2 = carrot-count digit",    TL_DIGIT_0 <= row0[2] <= TL_DIGIT_0+9, f"0x{row0[2]:02X}")
+check("T5.7 Zone: col 7 = star icon (0x14)",      row0[7] == TL_STAR_ICON_BG, f"0x{row0[7]:02X}")
+check("T5.8 Zone: score digits at cols 8-10",     all(TL_DIGIT_0 <= row0[c] <= TL_DIGIT_0+9 for c in (8, 9, 10)),
+      f"{[f'{row0[c]:02X}' for c in (8,9,10)]}")
 
-# Grass and path
-row3  = [pb.memory[0x9800 +  3*32 + i] for i in range(5)]
-row9  = [pb.memory[0x9800 +  9*32 + i] for i in range(5)]
-row10 = [pb.memory[0x9800 + 10*32 + i] for i in range(5)]
-check("T5.8 Garden: row 3 has grass tiles",         any(b in (0x10,0x11,0x12,0x1B) for b in row3), f"{[f'{b:02X}' for b in row3]}")
-check("T5.9 Garden: row 9 = path-top (0x14)",      row9[0] == 0x14, f"0x{row9[0]:02X}")
-check("T5.10 Garden: row 10 = path-bot (0x15)",    row10[0] == 0x15, f"0x{row10[0]:02X}")
+# Beach terrain: field rows should use the Beach tile family (0x70-0x76)
+field = [pb.memory[0x9800 + r*32 + c] for r in range(2, 17) for c in range(20)]
+beach_tiles = sum(1 for b in field if 0x70 <= b <= 0x76)
+check("T5.9 Zone 0 field uses Beach terrain family (0x70-0x76)", beach_tiles > 40,
+      f"{beach_tiles} beach-family tiles")
 
-shoot(pb, "T5_garden")
+shoot(pb, "T5_beach")
 pb.stop()
 
 # ══════════════════════════════════════════════════════
-# T6 — OAM / Sprite Rendering
-# NOTE: Read from 0xFE00 (actual OAM), NOT 0xC300 (shadow OAM).
-#       PyBoy clears the shadow OAM source buffer after DMA — this is
-#       PyBoy-specific behaviour; the actual hardware OAM is correct.
+# T6 — OAM / Sprite Rendering (8x16 mode: bunny = ONE OAM entry)
+# NOTE: Read from 0xFE00 (actual OAM), NOT 0xC300 (shadow OAM) —
+#       PyBoy-specific: the shadow source reads back cleared after DMA.
 # ══════════════════════════════════════════════════════
 print("\n=== T6: OAM / Sprite Rendering ===")
 pb = fresh_boot()
 advance_to_playing(pb)
-# Set known player position
-pb.memory[0xC001] = 80    # X
-pb.memory[0xC002] = 80    # Y
-pb.memory[0xC003] = 0     # dir: right
-pb.memory[0xC004] = 0     # frame 0
+pb.memory[PLAYER_X] = 80
+pb.memory[PLAYER_Y] = 80
+pb.memory[PLAYER_DIR] = 0
+pb.memory[PLAYER_FRAME] = 0
 for _ in range(5): pb.tick()
 
-y0, x0, t0, a0 = oam_entry(pb, 0)   # bunny head
-y1, x1, t1, a1 = oam_entry(pb, 1)   # bunny body
-print(f"  Player pos: ({pb.memory[0xC001]}, {pb.memory[0xC002]})")
-print(f"  OAM[0] head: Y={y0} X={x0} tile=0x{t0:02X} attr=0x{a0:02X}")
-print(f"  OAM[1] body: Y={y1} X={x1} tile=0x{t1:02X} attr=0x{a1:02X}")
+y0, x0, t0, a0 = oam_entry(pb, 0)   # bunny (single 8x16 entry)
+print(f"  Player pos: ({pb.memory[PLAYER_X]}, {pb.memory[PLAYER_Y]})")
+print(f"  OAM[0] bunny: Y={y0} X={x0} tile=0x{t0:02X} attr=0x{a0:02X}")
 
-check("T6.1 OAM head Y = player_y+16",    y0 == pb.memory[0xC002] + 16, f"{y0} vs {pb.memory[0xC002]+16}")
-check("T6.2 OAM head X = player_x+8",     x0 == pb.memory[0xC001] + 8,  f"{x0} vs {pb.memory[0xC001]+8}")
-check("T6.3 OAM head tile = 0 or 2",      t0 in (0, 2), f"0x{t0:02X}")
-check("T6.4 OAM head attr palette = 0",   a0 & 0x07 == 0, f"attr=0x{a0:02X}")
-check("T6.5 OAM body Y = player_y+24",    y1 == pb.memory[0xC002] + 24, f"{y1} vs {pb.memory[0xC002]+24}")
-check("T6.6 OAM body tile = head+1",      t1 == t0 + 1, f"0x{t1:02X} vs 0x{t0+1:02X}")
-check("T6.7 OAM body X = same as head",   x1 == x0, f"{x1}")
+check("T6.1 Bunny OAM Y = player_y+16",    y0 == pb.memory[PLAYER_Y] + 16, f"{y0} vs {pb.memory[PLAYER_Y]+16}")
+check("T6.2 Bunny OAM X = player_x+8",     x0 == pb.memory[PLAYER_X] + 8,  f"{x0} vs {pb.memory[PLAYER_X]+8}")
+check("T6.3 Bunny tile = frame*2 (0 or 2)", t0 in (0, 2), f"0x{t0:02X}")
+check("T6.4 Bunny attr palette = 0",       a0 & 0x07 == 0, f"attr=0x{a0:02X}")
+check("T6.5 Bunny faces right (no X-flip)", a0 & 0x20 == 0, f"attr=0x{a0:02X}")
 
-# Verify actual rendering: check pixels where bunny should be
+# Face left -> X-flip bit set
+pb.memory[PLAYER_DIR] = 1
+for _ in range(3): pb.tick()
+_, _, _, a_left = oam_entry(pb, 0)
+check("T6.6 DIR=1 sets X-flip (attr bit 5)", a_left & 0x20 == 0x20, f"attr=0x{a_left:02X}")
+pb.memory[PLAYER_DIR] = 0
+for _ in range(3): pb.tick()
+
+# Rendering: the bunny's screen region should differ from background
 import numpy as np
 shoot(pb, "T6_bunny")
-img = np.array(pb.screen.image)
-# Bunny at (80,80) → head rows 80-87, body rows 88-95, cols 80-87
-# White pixels = bunny body, non-background = bunny present
-bg_color = img[5, 5, :3]   # sample a background grass pixel
-head_region = img[80:88, 80:88, :3]
+img = np.asarray(pb.screen.ndarray)
+bg_color = img[5, 5, :3]
+head_region = img[80:96, 80:88, :3]      # 8x16 sprite at (80,80)
 non_bg = np.any(head_region != bg_color, axis=2)
-check("T6.8 Bunny head region has non-BG pixels",  non_bg.sum() > 4, f"non-bg pixels={non_bg.sum()}")
+check("T6.7 Bunny region has non-BG pixels",  int(non_bg.sum()) > 4, f"non-bg pixels={int(non_bg.sum())}")
 
-# Collectibles
-c0 = oam_entry(pb, 2)
-print(f"  OAM[2] collectible: Y={c0[0]} X={c0[1]} tile=0x{c0[2]:02X} attr=0x{c0[3]:02X}")
-check("T6.9 Collectible OAM Y > 15",       c0[0] > 15, f"Y={c0[0]}")
-check("T6.10 Collectible tile = star/flower/gift", c0[2] in (0x04,0x05,0x06), f"tile=0x{c0[2]:02X}")
+# Collectibles occupy OAM entries 1..COLL_COUNT (zone 0 has 7)
+cc = pb.memory[COLL_COUNT]
+check("T6.8 Zone 0 COLL_COUNT = 7",        cc == 7, f"count={cc}")
+c0 = oam_entry(pb, 1)
+print(f"  OAM[1] collectible: Y={c0[0]} X={c0[1]} tile=0x{c0[2]:02X} attr=0x{c0[3]:02X}")
+check("T6.9 Collectible OAM on-screen (Y>15)", c0[0] > 15, f"Y={c0[0]}")
+check("T6.10 Collectible tile = carrot/star/flower",
+      c0[2] in (TL_CARROT, TL_STAR, TL_FLOWER_OBJ), f"tile=0x{c0[2]:02X}")
+check("T6.11 Collectible palette = type+1",  c0[3] & 0x07 in (1, 2, 3), f"attr=0x{c0[3]:02X}")
 
 pb.stop()
 
 # ══════════════════════════════════════════════════════
-# T7 — Joypad and Movement
+# T7 — Joypad and Movement (bounds: X 0..159, Y 17..128)
 # ══════════════════════════════════════════════════════
 print("\n=== T7: Joypad / Movement ===")
 pb = fresh_boot()
 advance_to_playing(pb)
 
-# Reset to known position
-pb.memory[0xC001] = 80; pb.memory[0xC002] = 72
-pb.memory[0xC003] = 0; pb.memory[0xC004] = 0; pb.memory[0xC005] = 0
+pb.memory[PLAYER_X] = 80; pb.memory[PLAYER_Y] = 72
+pb.memory[PLAYER_DIR] = 0; pb.memory[PLAYER_FRAME] = 0; pb.memory[ANIM_CTR] = 0
 [pb.tick() for _ in range(3)]
 
-x0 = pb.memory[0xC001]; y0 = pb.memory[0xC002]
+x0 = pb.memory[PLAYER_X]; y0 = pb.memory[PLAYER_Y]
 
-# RIGHT
 pb.button_press('right'); [pb.tick() for _ in range(20)]; pb.button_release('right')
 [pb.tick() for _ in range(2)]
-x1 = pb.memory[0xC001]
-check("T7.1 RIGHT increases X",           x1 > x0, f"{x0}→{x1}")
-check("T7.2 RIGHT sets DIR=0",            pb.memory[0xC003] == 0)
+x1 = pb.memory[PLAYER_X]
+check("T7.1 RIGHT increases X",           x1 > x0, f"{x0}->{x1}")
+check("T7.2 RIGHT sets DIR=0",            pb.memory[PLAYER_DIR] == 0)
 
-# LEFT
 pb.button_press('left'); [pb.tick() for _ in range(20)]; pb.button_release('left')
 [pb.tick() for _ in range(2)]
-x2 = pb.memory[0xC001]
-check("T7.3 LEFT decreases X",            x2 < x1, f"{x1}→{x2}")
-check("T7.4 LEFT sets DIR=1",             pb.memory[0xC003] == 1)
+x2 = pb.memory[PLAYER_X]
+check("T7.3 LEFT decreases X",            x2 < x1, f"{x1}->{x2}")
+check("T7.4 LEFT sets DIR=1",             pb.memory[PLAYER_DIR] == 1)
 
-# UP
 pb.button_press('up'); [pb.tick() for _ in range(20)]; pb.button_release('up')
 [pb.tick() for _ in range(2)]
-y2 = pb.memory[0xC002]
-check("T7.5 UP decreases Y",              y2 < y0, f"{y0}→{y2}")
+y2 = pb.memory[PLAYER_Y]
+check("T7.5 UP decreases Y",              y2 < y0, f"{y0}->{y2}")
 
-# DOWN
 pb.button_press('down'); [pb.tick() for _ in range(20)]; pb.button_release('down')
 [pb.tick() for _ in range(2)]
-y3 = pb.memory[0xC002]
-check("T7.6 DOWN increases Y",            y3 > y2, f"{y2}→{y3}")
+y3 = pb.memory[PLAYER_Y]
+check("T7.6 DOWN increases Y",            y3 > y2, f"{y2}->{y3}")
 
-# Animation: reset both ANIM_CTR and PLAYER_FRAME
-pb.memory[0xC004] = 0; pb.memory[0xC005] = 0
+# Animation: frame flips after ANIM_CTR reaches 10 moving frames
+pb.memory[PLAYER_FRAME] = 0; pb.memory[ANIM_CTR] = 0
 pb.button_press('right')
-for _ in range(12): pb.tick()   # 12 > 10 threshold
+for _ in range(12): pb.tick()
 pb.button_release('right')
 [pb.tick() for _ in range(2)]
-frame = pb.memory[0xC004]
+frame = pb.memory[PLAYER_FRAME]
 check("T7.7 Frame flips after 10 walk frames", frame == 1, f"frame={frame}")
 
-# Upper Y boundary
-pb.memory[0xC002] = 17; pb.memory[0xC001] = 80
-pb.button_press('up'); [pb.tick() for _ in range(3)]; pb.button_release('up')
+# Upper Y boundary: movement floor is Y=17 (zone 0 = top row, no up-transition)
+pb.memory[PLAYER_Y] = 18; pb.memory[PLAYER_X] = 80
+pb.button_press('up'); [pb.tick() for _ in range(5)]; pb.button_release('up')
 [pb.tick() for _ in range(2)]
-check("T7.8 Can't go above Y=16",         pb.memory[0xC002] >= 16, f"y={pb.memory[0xC002]}")
+check("T7.8 Can't move above Y=17 (zone 0)", pb.memory[PLAYER_Y] >= 17,
+      f"y={pb.memory[PLAYER_Y]} zone={pb.memory[CUR_ZONE]}")
 
-# Left X boundary — must be at zone 0 to not trigger zone transition
-pb.memory[0xC008] = 0   # force zone 0
-pb.memory[0xC001] = 0   # X = 0
-pb.memory[0xC00A] = 0   # clear NEED_REDRAW
+# Left X boundary: zone 0 is col 0 — X=0 must not move or change zone
+pb.memory[CUR_ZONE] = 0; pb.memory[PLAYER_X] = 0; pb.memory[NEED_REDRAW] = 0
 pb.button_press('left'); [pb.tick() for _ in range(3)]; pb.button_release('left')
 [pb.tick() for _ in range(2)]
-check("T7.9 X=0 in zone 0: no move or zone change", pb.memory[0xC001] <= 5 and pb.memory[0xC008] == 0,
-      f"x={pb.memory[0xC001]} zone={pb.memory[0xC008]}")
+check("T7.9 X=0 in zone 0: no move, no zone change",
+      pb.memory[PLAYER_X] <= 5 and pb.memory[CUR_ZONE] == 0,
+      f"x={pb.memory[PLAYER_X]} zone={pb.memory[CUR_ZONE]}")
 
-# Right X boundary
-pb.memory[0xC008] = 2   # force zone 2 (last) to prevent zone change
-pb.memory[0xC001] = 159
-pb.memory[0xC00A] = 0
+# Right X boundary: zone 2 is col 2 — no right-transition, X capped at 159
+pb.memory[CUR_ZONE] = 2; pb.memory[PLAYER_X] = 159; pb.memory[NEED_REDRAW] = 0
 pb.button_press('right'); [pb.tick() for _ in range(3)]; pb.button_release('right')
 [pb.tick() for _ in range(2)]
-check("T7.10 X=159 in zone 2: no overflow", pb.memory[0xC001] <= 159, f"x={pb.memory[0xC001]}")
+check("T7.10 X=159 in zone 2: no overflow, no zone change",
+      pb.memory[PLAYER_X] <= 159 and pb.memory[CUR_ZONE] == 2,
+      f"x={pb.memory[PLAYER_X]} zone={pb.memory[CUR_ZONE]}")
 
 pb.stop()
 
 # ══════════════════════════════════════════════════════
-# T8 — Collision, Score, Gifts
+# T8 — Collision, Score, Carrots, Map Hearts
+#      Zone 0 (Beach) collectibles, from tilemaps.ZONE_COLLECTS[0]:
+#      [0]=(20,32,star) ... [6]=(132,88,CARROT). Hit radius: |dx|<10, |dy|<10.
 # ══════════════════════════════════════════════════════
-print("\n=== T8: Collision / Score / Gifts ===")
+print("\n=== T8: Collision / Score / Carrots ===")
 pb = fresh_boot()
 advance_to_playing(pb)
 
-# Reset state
-pb.memory[0xC006] = 0; pb.memory[0xC009] = 0; pb.memory[0xC007] = 0
+pb.memory[SCORE] = 0; pb.memory[CARROTS_COUNT] = 0
 [pb.tick() for _ in range(5)]
 
-check("T8.1 Score starts 0",  pb.memory[0xC006] == 0, f"{pb.memory[0xC006]}")
-check("T8.2 Gifts starts 0",  pb.memory[0xC009] == 0, f"{pb.memory[0xC009]}")
-check("T8.3 COLL_COUNT > 0",  pb.memory[0xC050] > 0,  f"count={pb.memory[0xC050]}")
+check("T8.1 Score starts 0",   pb.memory[SCORE] == 0, f"{pb.memory[SCORE]}")
+check("T8.2 Carrots start 0",  pb.memory[CARROTS_COUNT] == 0, f"{pb.memory[CARROTS_COUNT]}")
+check("T8.3 COLL_COUNT = 7 in zone 0", pb.memory[COLL_COUNT] == 7, f"count={pb.memory[COLL_COUNT]}")
 
-# Zone 0 collectible 0 is a star at (24,32). Move player there.
-# But ensure player ISN'T already at (24,32) by starting away.
-pb.memory[0xC001] = 80; pb.memory[0xC002] = 80   # start away
+# Collect the star at (20,32) — teleport onto it from a safe spot
+pb.memory[PLAYER_X] = 80; pb.memory[PLAYER_Y] = 80
 [pb.tick() for _ in range(3)]
-pb.memory[0xC001] = 24; pb.memory[0xC002] = 32   # teleport to star
+pb.memory[PLAYER_X] = 20; pb.memory[PLAYER_Y] = 32
 [pb.tick() for _ in range(5)]
-sc1 = pb.memory[0xC006]
-check("T8.4 Score++ on collision",    sc1 > 0, f"score={sc1}")
-check("T8.5 Collectible deactivated", pb.memory[0xC020 + 3] == 0, f"active={pb.memory[0xC020+3]}")
+sc1 = pb.memory[SCORE]
+check("T8.4 Score++ on ScoreItem collision", sc1 > 0, f"score={sc1}")
+check("T8.5 ScoreItem deactivated in COLL_DATA", pb.memory[COLL_DATA + 3] == 0,
+      f"active={pb.memory[COLL_DATA + 3]}")
+check("T8.6 ScoreItem does not touch CARROTS_COUNT", pb.memory[CARROTS_COUNT] == 0,
+      f"{pb.memory[CARROTS_COUNT]}")
 
-# Collect gift: zone 0 gift is at (120,64)
-pb.memory[0xC001] = 120; pb.memory[0xC002] = 64
+# Collect zone 0's carrot at (132,88) — entry index 6
+pb.memory[PLAYER_X] = 132; pb.memory[PLAYER_Y] = 88
 [pb.tick() for _ in range(5)]
-gf = pb.memory[0xC009]
-check("T8.6 Gift sets GIFTS bit 0",   gf & 0x01 == 1, f"gifts=0x{gf:02X}")
+check("T8.7 Carrot sets CARROT_FLAGS[0]", pb.memory[CARROT_FLAGS + 0] == 1,
+      f"flag={pb.memory[CARROT_FLAGS + 0]}")
+check("T8.8 Carrot increments CARROTS_COUNT", pb.memory[CARROTS_COUNT] == 1,
+      f"{pb.memory[CARROTS_COUNT]}")
+check("T8.9 Carrot deactivated in COLL_DATA", pb.memory[COLL_DATA + 6*4 + 3] == 0,
+      f"active={pb.memory[COLL_DATA + 6*4 + 3]}")
+check("T8.10 Carrot does not touch SCORE", pb.memory[SCORE] == sc1, f"{pb.memory[SCORE]}")
 
-# Heart tile updates
-hrt = pb.memory[0x9802]  # row 0 col 2
-check("T8.7 Heart col 2 = full (0x1D)", hrt == 0x1D, f"tile=0x{hrt:02X}")
+# Map hearts (BL-0001 closure): z0 heart full, z1 heart empty.
+# update_map_hearts writes 0x9800 + {6,9,12}*32 + {6,11,16}, LCD off during redraw.
+pb.button('select'); [pb.tick() for _ in range(40)]
+check("T8.11 SELECT -> MAP", pb.memory[GAMESTATE] == 4)
+h_z0 = pb.memory[0x9800 + 6*32 + 6]
+h_z1 = pb.memory[0x9800 + 6*32 + 11]
+check("T8.12 Map heart z0 = FULL (0x11)",  h_z0 == TL_HEART_FULL,  f"0x{h_z0:02X}")
+check("T8.13 Map heart z1 = EMPTY (0x12)", h_z1 == TL_HEART_EMPTY, f"0x{h_z1:02X}")
+shoot(pb, "T8_map_hearts")
+pb.button('b'); [pb.tick() for _ in range(40)]
 
-# All gifts → victory
-pb.memory[0xC009] = 0x07
-pb.button_press('right'); [pb.tick() for _ in range(3)]; pb.button_release('right')
+# Victory at 9 carrots (dual-assert per R305: flags + count)
+for i in range(9): pb.memory[CARROT_FLAGS + i] = 1
+pb.memory[CARROTS_COUNT] = 9
 [pb.tick() for _ in range(40)]
-check("T8.8 GIFTS=7 → VICTORY",       pb.memory[0xC000] == 5, f"GS={pb.memory[0xC000]}")
+check("T8.14 CARROTS_COUNT=9 -> VICTORY", pb.memory[GAMESTATE] == 5, f"GS={pb.memory[GAMESTATE]}")
 
 pb.stop()
 
+# NOTE (BL-0023 / IP-1010): ScoreItems currently respawn on zone re-entry —
+# deliberately not asserted either way here; T11 will assert non-respawn
+# once IP-1010 (per-zone ScoreItem persistence) ships.
+
 # ══════════════════════════════════════════════════════
-# T9 — Zone Transitions
+# T9 — Zone Transitions (3x3 grid)
+#      right: x>=156 (cols 0,1) -> zone+1, X=8
+#      left:  x==0  (cols 1,2) -> zone-1, X=150
+#      up:    y<18  (rows 1,2) -> zone-3, Y=120
+#      down:  y>=128 (rows 0,1) -> zone+3, Y=24
 # ══════════════════════════════════════════════════════
 print("\n=== T9: Zone Transitions ===")
 pb = fresh_boot()
 advance_to_playing(pb)
 
-check("T9.1 Starts zone 0",     pb.memory[0xC008] == 0, f"zone={pb.memory[0xC008]}")
+check("T9.1 Starts in zone 0", pb.memory[CUR_ZONE] == 0, f"zone={pb.memory[CUR_ZONE]}")
 
-# Walk to right edge
-pb.memory[0xC001] = 155; pb.memory[0xC002] = 72
-[pb.tick() for _ in range(3)]
-pb.button_press('right'); [pb.tick() for _ in range(5)]; pb.button_release('right')
-[pb.tick() for _ in range(80)]   # allow redraw
-z1 = pb.memory[0xC008]
-check("T9.2 Right edge → zone 1", z1 == 1, f"zone={z1}")
-check("T9.3 X reset after advance", pb.memory[0xC001] <= 20)
+def settle(pb, frames=80):
+    [pb.tick() for _ in range(frames)]
+
+# Right: z0 -> z1
+pb.memory[PLAYER_X] = 156; pb.memory[PLAYER_Y] = 72
+settle(pb)
+check("T9.2 Right edge z0 -> z1", pb.memory[CUR_ZONE] == 1, f"zone={pb.memory[CUR_ZONE]}")
+check("T9.3 X reset to 8 after right transition", pb.memory[PLAYER_X] <= 20,
+      f"x={pb.memory[PLAYER_X]}")
 shoot(pb, "T9_forest")
 
-# Zone 1 → zone 2
-pb.memory[0xC001] = 155
-[pb.tick() for _ in range(3)]
-pb.button_press('right'); [pb.tick() for _ in range(5)]; pb.button_release('right')
-[pb.tick() for _ in range(80)]
-z2 = pb.memory[0xC008]
-check("T9.4 Right edge → zone 2", z2 == 2, f"zone={z2}")
-shoot(pb, "T9_meadow")
+# Right: z1 -> z2
+pb.memory[PLAYER_X] = 156
+settle(pb)
+check("T9.4 Right edge z1 -> z2", pb.memory[CUR_ZONE] == 2, f"zone={pb.memory[CUR_ZONE]}")
 
-# Can't go past zone 2
-pb.memory[0xC001] = 155
-pb.button_press('right'); [pb.tick() for _ in range(10)]; pb.button_release('right')
-[pb.tick() for _ in range(40)]
-check("T9.5 Zone 2 is last",      pb.memory[0xC008] == 2, f"zone={pb.memory[0xC008]}")
+# Right blocked in col 2: z2 stays z2
+pb.memory[PLAYER_X] = 159
+settle(pb, 40)
+check("T9.5 No right transition from col 2 (z2)", pb.memory[CUR_ZONE] == 2,
+      f"zone={pb.memory[CUR_ZONE]}")
 
-# Go back: zone 2 → zone 1
-pb.memory[0xC001] = 0; pb.memory[0xC00A] = 0
+# Left: z2 -> z1
+pb.memory[PLAYER_X] = 0
+settle(pb)
+check("T9.6 Left edge z2 -> z1", pb.memory[CUR_ZONE] == 1, f"zone={pb.memory[CUR_ZONE]}")
+check("T9.7 X reset to 150 going left", pb.memory[PLAYER_X] >= 140, f"x={pb.memory[PLAYER_X]}")
+
+# Down: z1 -> z4 (row 0 -> row 1)
+pb.memory[PLAYER_Y] = 128
+settle(pb)
+check("T9.8 Bottom edge z1 -> z4", pb.memory[CUR_ZONE] == 4, f"zone={pb.memory[CUR_ZONE]}")
+check("T9.9 Y reset to 24 going down", pb.memory[PLAYER_Y] <= 40, f"y={pb.memory[PLAYER_Y]}")
+shoot(pb, "T9_village")
+
+# Down: z4 -> z7, then blocked at row 2
+pb.memory[PLAYER_Y] = 128
+settle(pb)
+check("T9.10 Bottom edge z4 -> z7", pb.memory[CUR_ZONE] == 7, f"zone={pb.memory[CUR_ZONE]}")
+pb.memory[PLAYER_Y] = 128
+settle(pb, 40)
+check("T9.11 No down transition from row 2 (z7)", pb.memory[CUR_ZONE] == 7,
+      f"zone={pb.memory[CUR_ZONE]}")
+
+# Up: z7 -> z4
+pb.memory[PLAYER_Y] = 17
+settle(pb)
+check("T9.12 Top edge z7 -> z4", pb.memory[CUR_ZONE] == 4, f"zone={pb.memory[CUR_ZONE]}")
+check("T9.13 Y reset to 120 going up", pb.memory[PLAYER_Y] >= 100, f"y={pb.memory[PLAYER_Y]}")
+
+# Up blocked in row 0: force z2, y=17 -> stays z2 (movement floor, no transition)
+pb.memory[CUR_ZONE] = 2; pb.memory[NEED_REDRAW] = 0
 [pb.tick() for _ in range(3)]
-pb.button_press('left'); [pb.tick() for _ in range(5)]; pb.button_release('left')
-[pb.tick() for _ in range(80)]
-z3 = pb.memory[0xC008]
-check("T9.6 Left edge zone 2 → zone 1", z3 == 1, f"zone={z3}")
-check("T9.7 X reset when going back",    pb.memory[0xC001] >= 140)
+pb.memory[PLAYER_Y] = 17
+settle(pb, 40)
+check("T9.14 No up transition from row 0 (z2)", pb.memory[CUR_ZONE] == 2,
+      f"zone={pb.memory[CUR_ZONE]}")
 
 pb.stop()
 
 # ══════════════════════════════════════════════════════
-# T10 — SRAM Save/Load
+# T10 — SRAM Save/Load (magic 'BUNY' at A000; fields A004-A011)
 # ══════════════════════════════════════════════════════
 print("\n=== T10: SRAM Save/Load ===")
 wipe_save()
 
-# 1. Fresh boot must hit TITLE
 pb = PyBoy(ROM_PATH, window='null', sound_emulated=False)
 pb.set_emulation_speed(0)
 for _ in range(180): pb.tick()
-check("T10.1 No save → TITLE (GS=0)", pb.memory[0xC000] == 0, f"GS={pb.memory[0xC000]}")
+check("T10.1 No save -> TITLE (GS=0)", pb.memory[GAMESTATE] == 0, f"GS={pb.memory[GAMESTATE]}")
 
 pb.button('start'); [pb.tick() for _ in range(80)]
 pb.button('a');     [pb.tick() for _ in range(80)]
-check("T10.2 GS=2 (PLAYING) after start→intro→A", pb.memory[0xC000] == 2)
+check("T10.2 PLAYING after START -> A", pb.memory[GAMESTATE] == 2)
 
-# Establish known state, move away from any collectible
-pb.memory[0xC001] = 50; pb.memory[0xC002] = 50
-pb.memory[0xC006] = 7;  pb.memory[0xC009] = 0x01; pb.memory[0xC008] = 0
+# Establish a distinctive state: zone 4, position (60,40), progress markers.
+pb.memory[CUR_ZONE] = 4; pb.memory[NEED_REDRAW] = 1
+[pb.tick() for _ in range(80)]          # redraw into zone 4
+pb.memory[PLAYER_X] = 60; pb.memory[PLAYER_Y] = 40
+pb.memory[SCORE] = 7; pb.memory[CARROTS_COUNT] = 2
+pb.memory[CARROT_FLAGS + 0] = 1; pb.memory[CARROT_FLAGS + 4] = 1
 [pb.tick() for _ in range(5)]
-sc_pre = pb.memory[0xC006]; z_pre = pb.memory[0xC008]
-px_pre = pb.memory[0xC001]; py_pre = pb.memory[0xC002]
-gf_pre = pb.memory[0xC009]
+z_pre  = pb.memory[CUR_ZONE];  px_pre = pb.memory[PLAYER_X]
+py_pre = pb.memory[PLAYER_Y];  sc_pre = pb.memory[SCORE]
+cc_pre = pb.memory[CARROTS_COUNT]
 
-# Save via START→A
 pb.button('start'); [pb.tick() for _ in range(40)]
-check("T10.3 START → SAVE menu",    pb.memory[0xC000] == 3)
+check("T10.3 START -> SAVE menu", pb.memory[GAMESTATE] == 3)
 pb.button('a'); [pb.tick() for _ in range(40)]
-check("T10.4 A saves → PLAYING",    pb.memory[0xC000] == 2)
+check("T10.4 A saves -> PLAYING", pb.memory[GAMESTATE] == 2)
 pb.stop()
-check("T10.5 RAM file created",     os.path.exists(RAM_PATH), RAM_PATH)
+check("T10.5 RAM file created", os.path.exists(RAM_PATH), RAM_PATH)
 
-# Reload
+# Reload: boot auto-loads the save straight into PLAYING
 pb = PyBoy(ROM_PATH, window='null', sound_emulated=False)
 pb.set_emulation_speed(0)
 for _ in range(180): pb.tick()
-check("T10.6 Reload → PLAYING (saved state loaded)", pb.memory[0xC000] == 2, f"GS={pb.memory[0xC000]}")
-check("T10.7 Zone preserved",      pb.memory[0xC008] == z_pre,  f"{z_pre}→{pb.memory[0xC008]}")
-check("T10.8 PLAYER_X preserved",  pb.memory[0xC001] == px_pre, f"{px_pre}→{pb.memory[0xC001]}")
-check("T10.9 PLAYER_Y preserved",  pb.memory[0xC002] == py_pre, f"{py_pre}→{pb.memory[0xC002]}")
-check("T10.10 GIFTS preserved",    pb.memory[0xC009] == gf_pre, f"0x{gf_pre:02X}→0x{pb.memory[0xC009]:02X}")
-check("T10.11 SCORE preserved",    pb.memory[0xC006] == sc_pre, f"{sc_pre}→{pb.memory[0xC006]}")
+check("T10.6 Reload -> PLAYING (auto-load)", pb.memory[GAMESTATE] == 2, f"GS={pb.memory[GAMESTATE]}")
+check("T10.7 Zone preserved",      pb.memory[CUR_ZONE] == z_pre,  f"{z_pre}->{pb.memory[CUR_ZONE]}")
+check("T10.8 PLAYER_X preserved",  pb.memory[PLAYER_X] == px_pre, f"{px_pre}->{pb.memory[PLAYER_X]}")
+check("T10.9 PLAYER_Y preserved",  pb.memory[PLAYER_Y] == py_pre, f"{py_pre}->{pb.memory[PLAYER_Y]}")
+check("T10.10 CARROTS_COUNT preserved", pb.memory[CARROTS_COUNT] == cc_pre,
+      f"{cc_pre}->{pb.memory[CARROTS_COUNT]}")
+check("T10.11 SCORE preserved",    pb.memory[SCORE] == sc_pre, f"{sc_pre}->{pb.memory[SCORE]}")
+check("T10.12 CARROT_FLAGS preserved (z0, z4 set; z1 clear)",
+      pb.memory[CARROT_FLAGS + 0] == 1 and pb.memory[CARROT_FLAGS + 4] == 1
+      and pb.memory[CARROT_FLAGS + 1] == 0,
+      f"flags={[pb.memory[CARROT_FLAGS + i] for i in range(9)]}")
 
-# B cancels save (should not create/update file if we wipe first)
+# B cancels save; previously saved data must survive the cancel
 wipe_save()
 pb.button('start'); [pb.tick() for _ in range(40)]
 pb.button('b');     [pb.tick() for _ in range(40)]
-check("T10.12 B cancels → PLAYING", pb.memory[0xC000] == 2)
+check("T10.13 B cancels -> PLAYING", pb.memory[GAMESTATE] == 2)
 pb.stop()
-# PyBoy always flushes battery RAM on stop() for MBC1+RAM+BAT carts.
-# Correct test: after B-cancel and reload, saved data should be unchanged.
+# PyBoy always flushes battery RAM on stop() for MBC1+RAM+BAT carts, so the
+# correct assertion is: after B-cancel and reload, saved data is unchanged.
 pb2 = PyBoy(ROM_PATH, window='null', sound_emulated=False)
 pb2.set_emulation_speed(0)
 for _ in range(180): pb2.tick()
-check("T10.13 B cancel: reload still has saved data",
-      pb2.memory[0xC001] == px_pre and pb2.memory[0xC006] == sc_pre,
-      f"x={pb2.memory[0xC001]} score={pb2.memory[0xC006]}")
+check("T10.14 B cancel: reload still has saved data",
+      pb2.memory[PLAYER_X] == px_pre and pb2.memory[SCORE] == sc_pre,
+      f"x={pb2.memory[PLAYER_X]} score={pb2.memory[SCORE]}")
 pb2.stop()
+wipe_save()   # leave no runtime save behind
 
 # ══════════════════════════════════════════════════════
 # SUMMARY
@@ -489,7 +590,10 @@ if FAIL:
         if r.startswith("[FAIL]"):
             print(" ", r)
 
-with open('/home/claude/bunnygarden/test_results.txt', 'w') as f:
-    f.write(f"BunnyGarden ROM Tests  PASS={PASS}/{total}  FAIL={FAIL}\n{'='*50}\n")
+with open(RESULTS_PATH, 'w') as f:
+    f.write(f"BunnyQuest ROM Tests  PASS={PASS}/{total}  FAIL={FAIL}\n{'='*50}\n")
     for r in results: f.write(r + "\n")
-print("\nSaved: test_results.txt")
+print(f"\nSaved: {RESULTS_PATH}")
+
+import sys
+sys.exit(1 if FAIL else 0)
