@@ -4,7 +4,9 @@
 > [FEAT-5100](../feature-planning/03-feature-catalog.md#feat-5100--per-zone-scoreitem-persistence-new--not-yet-implemented)
 > (Epic [EP-3000](../feature-planning/02-epic-catalog.md#ep-3000--persistence)). **No shipped
 > implementation exists yet** — this spec is the input to `07-implementation-planning`, not a
-> description of current behavior.
+> description of current behavior. **Planned 2026-07-07:** implemented by
+> [IP-1010](../implementation/packages/IP-1010-per-zone-scoreitem-persistence.md), which also
+> resolves this spec's deferred Open Question 3 (`SCOREITEM_FLAGS` assigned `0xC060`–`0xC068`).
 
 ## Feature ID
 
