@@ -2,3 +2,4 @@ __pycache__/
 *.pyc
 *.gbc.ram
 *.gbc.sav
+test_shots/
