@@ -167,6 +167,9 @@
 
 ## FEAT-5100 — Per-Zone ScoreItem Persistence (new — not yet implemented)
 
+> **Forward reference (metadata only):** specified by
+> [FS-101](../features/FS-101-per-zone-scoreitem-persistence.md) (2026-07-07).
+
 - **Feature ID:** FEAT-5100
 - **Title:** Per-Zone ScoreItem Persistence
 - **Purpose:** Extend the save system so a restored game does not re-present already-collected

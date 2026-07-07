@@ -9,4 +9,4 @@ FEAT↔FS mapping in both directions.
 
 | FS ID | Title | FEAT source | Epic | Status | One-line summary |
 |---|---|---|---|---|---|
-| *(none yet)* | | | | | |
+| [FS-101](FS-101-per-zone-scoreitem-persistence.md) | Per-Zone ScoreItem Persistence | FEAT-5100 | EP-3000 | ✅ Specified (2026-07-07) | Extends the save system to persist which stars/flowers have been collected per zone, plus fixes a confirmed same-session respawn behavior as a side effect. |

@@ -99,7 +99,7 @@ build order.
 
 | ID | Document | Path | Depends on | Status |
 |---|---|---|---|---|
-| FS-101+ | One spec per approved Feature | `docs/features/FS-xxx-*.md` | FP catalog, RQ baseline | ⛔ |
+| FS-101+ | One spec per approved Feature | `docs/features/FS-xxx-*.md` | FP catalog, RQ baseline | 🚧 (FS-101 ✅ 2026-07-07; the only Feature currently needing a spec — 6 of 7 catalog Features are already-shipped Baseline, not queued for FS authoring) |
 
 ## Theme: Implementation (`docs/implementation/`) — owners `07`/`08`/`09`
 
