@@ -89,11 +89,11 @@ build order.
 
 | ID | Document | Path | Depends on | Status |
 |---|---|---|---|---|
-| FP-01 | Release Plan | `docs/feature-planning/01-release-plan.md` | RQ baseline | ⛔ |
-| FP-02 | Epic Catalog | `docs/feature-planning/02-epic-catalog.md` | FP-03 | ⛔ |
-| FP-03 | Feature Catalog (FEAT-xxxx) | `docs/feature-planning/03-feature-catalog.md` | RQ baseline | ⛔ |
-| FP-04 | Feature Dependency Graph | `docs/feature-planning/04-feature-dependency-graph.md` | FP-03 | ⛔ |
-| FP-05 | Feature Review | `docs/feature-planning/05-feature-review.md` | FP-01…04 | ⛔ |
+| FP-01 | Release Plan | `docs/feature-planning/01-release-plan.md` | RQ baseline | ✅ (2026-07-07) |
+| FP-02 | Epic Catalog | `docs/feature-planning/02-epic-catalog.md` | FP-03 | ✅ (2026-07-07) |
+| FP-03 | Feature Catalog (FEAT-xxxx) | `docs/feature-planning/03-feature-catalog.md` | RQ baseline | ✅ (2026-07-07) |
+| FP-04 | Feature Dependency Graph | `docs/feature-planning/04-feature-dependency-graph.md` | FP-03 | ✅ (2026-07-07) |
+| FP-05 | Feature Review | `docs/feature-planning/05-feature-review.md` | FP-01…04 | ✅ (2026-07-07) |
 
 ## Theme: Feature specifications (`docs/features/`) — owner `06-feature-specification`
 
