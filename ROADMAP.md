@@ -53,53 +53,53 @@ build order.
 | ID | Document | Path | Depends on | Status |
 |---|---|---|---|---|
 | RS-INDEX | Research index (tier tables) | `docs/research/INDEX.md` | — | ♻️ |
-| R101–R110 | Tier R100 — GBC hardware & SM83 | `docs/research/encyclopedia/` | MSTR-001 | ⛔ |
-| R201–R208 | Tier R200 — Game design | `docs/research/encyclopedia/` | MSTR-001 | ⛔ |
-| R301–R306 | Tier R300 — Tooling & verification | `docs/research/encyclopedia/` | MSTR-001 | ⛔ |
+| R101–R110 | Tier R100 — GBC hardware & SM83 | `docs/research/encyclopedia/` | MSTR-001 | ✅ (2026-07-06) |
+| R201–R211 | Tier R200 — Game design (incl. R209–R211, pixel art / AI-generation workflow / GBC case studies, filed via `BL-0013`) | `docs/research/encyclopedia/` | MSTR-001 | ✅ (2026-07-06) |
+| R301–R306 | Tier R300 — Tooling & verification | `docs/research/encyclopedia/` | MSTR-001 | ✅ (2026-07-06) |
 
 ## Theme: Architecture (`docs/architecture/`) — owner `03-architecture-design-synthesis` (+ `01-vision` for GDS-00)
 
 | ID | Document | Path | Depends on | Status |
 |---|---|---|---|---|
 | GDS-00 | Vision level | `docs/architecture/00-vision.md` | MSTR-001 | ✅ |
-| GDS-01 | Concept of Play | `docs/architecture/01-concept-of-play.md` | GDS-00 | ⛔ (scaffold) |
-| GDS-02 | System Context | `docs/architecture/02-system-context.md` | GDS-01 | ⛔ (scaffold) |
-| GDS-03 | Architecture | `docs/architecture/03-architecture.md` | GDS-02 | ⛔ (scaffold) |
-| GDS-04 | Domain Model | `docs/architecture/04-domain-model.md` | GDS-03 | ⛔ (scaffold) |
-| GDS-05 | Functional Requirements | `docs/architecture/05-functional-requirements.md` | GDS-04 | ⛔ (scaffold) |
-| GDS-06 | Non-functional Requirements | `docs/architecture/06-non-functional-requirements.md` | GDS-05 | ⛔ (scaffold) |
-| GDS-07 | Data Model | `docs/architecture/07-data-model.md` | GDS-06 | ⛔ (scaffold) |
-| GDS-08 | Presentation Architecture | `docs/architecture/08-presentation-architecture.md` | GDS-07 | ⛔ (scaffold) |
-| GDS-09 | Interface Specification | `docs/architecture/09-interface-specification.md` | GDS-08 | ⛔ (scaffold) |
-| GDS-10 | RTM level | `docs/architecture/10-requirements-traceability-matrix.md` | GDS-09 | ⛔ (scaffold) |
-| AR-ASSUME | Strategic assumptions register | `docs/architecture/strategic-assumptions-register.md` | MSTR-001 | ♻️ (A1–A7 authored 2026-07-06) |
-| ADR-xxxx | Architecture Decision Records | `docs/architecture/adr/` | GDS-03 | ⛔ (as-built set) |
+| GDS-01 | Concept of Play | `docs/architecture/01-concept-of-play.md` | GDS-00 | ✅ (2026-07-06) |
+| GDS-02 | System Context | `docs/architecture/02-system-context.md` | GDS-01 | ✅ (2026-07-06) |
+| GDS-03 | Architecture | `docs/architecture/03-architecture.md` | GDS-02 | ✅ (2026-07-06) |
+| GDS-04 | Domain Model | `docs/architecture/04-domain-model.md` | GDS-03 | ✅ (2026-07-06) |
+| GDS-05 | Functional Requirements | `docs/architecture/05-functional-requirements.md` | GDS-04 | ✅ (2026-07-06) |
+| GDS-06 | Non-functional Requirements | `docs/architecture/06-non-functional-requirements.md` | GDS-05 | ✅ (2026-07-06) |
+| GDS-07 | Data Model | `docs/architecture/07-data-model.md` | GDS-06 | ✅ (2026-07-06) |
+| GDS-08 | Presentation Architecture | `docs/architecture/08-presentation-architecture.md` | GDS-07 | ✅ (2026-07-06) |
+| GDS-09 | Interface Specification | `docs/architecture/09-interface-specification.md` | GDS-08 | ✅ (2026-07-06) |
+| GDS-10 | RTM level | `docs/architecture/10-requirements-traceability-matrix.md` | GDS-09 | ✅ (2026-07-06) |
+| AR-ASSUME | Strategic assumptions register | `docs/architecture/strategic-assumptions-register.md` | MSTR-001 | ♻️ (A1–A8, revised 2026-07-06) |
+| ADR-xxxx | Architecture Decision Records | `docs/architecture/adr/` | GDS-03 | ✅ (as-built set, ADR-0001…0008, 2026-07-06) |
 | ADS-xxx | Per-cluster design syntheses | `docs/architecture/` | research tiers | ⛔ (zero-or-more, on demand) |
 
 ## Theme: Requirements (`docs/requirements/`) — owner `04-requirements-engineering`
 
 | ID | Document | Path | Depends on | Status |
 |---|---|---|---|---|
-| RQ-01 | Functional Requirements | `docs/requirements/01-functional-requirements.md` | GDS-01…05, ADRs | ⛔ |
-| RQ-02 | Non-Functional Requirements | `docs/requirements/02-non-functional-requirements.md` | GDS-06 | ⛔ |
-| RQ-03 | Requirements Review | `docs/requirements/03-requirements-review.md` | RQ-01, RQ-02 | ⛔ |
-| RQ-04 | Requirements Traceability Matrix | `docs/requirements/04-requirements-traceability-matrix.md` | RQ-01…03 | ⛔ |
+| RQ-01 | Functional Requirements | `docs/requirements/01-functional-requirements.md` | GDS-01…05, ADRs | ✅ (2026-07-06) |
+| RQ-02 | Non-Functional Requirements | `docs/requirements/02-non-functional-requirements.md` | GDS-06 | ✅ (2026-07-06) |
+| RQ-03 | Requirements Review | `docs/requirements/03-requirements-review.md` | RQ-01, RQ-02 | ✅ (2026-07-06) |
+| RQ-04 | Requirements Traceability Matrix | `docs/requirements/04-requirements-traceability-matrix.md` | RQ-01…03 | ✅ (2026-07-06) |
 
 ## Theme: Feature planning (`docs/feature-planning/`) — owner `05-feature-decomposition`
 
 | ID | Document | Path | Depends on | Status |
 |---|---|---|---|---|
-| FP-01 | Release Plan | `docs/feature-planning/01-release-plan.md` | RQ baseline | ⛔ |
-| FP-02 | Epic Catalog | `docs/feature-planning/02-epic-catalog.md` | FP-03 | ⛔ |
-| FP-03 | Feature Catalog (FEAT-xxxx) | `docs/feature-planning/03-feature-catalog.md` | RQ baseline | ⛔ |
-| FP-04 | Feature Dependency Graph | `docs/feature-planning/04-feature-dependency-graph.md` | FP-03 | ⛔ |
-| FP-05 | Feature Review | `docs/feature-planning/05-feature-review.md` | FP-01…04 | ⛔ |
+| FP-01 | Release Plan | `docs/feature-planning/01-release-plan.md` | RQ baseline | ✅ (2026-07-07) |
+| FP-02 | Epic Catalog | `docs/feature-planning/02-epic-catalog.md` | FP-03 | ✅ (2026-07-07) |
+| FP-03 | Feature Catalog (FEAT-xxxx) | `docs/feature-planning/03-feature-catalog.md` | RQ baseline | ✅ (2026-07-07) |
+| FP-04 | Feature Dependency Graph | `docs/feature-planning/04-feature-dependency-graph.md` | FP-03 | ✅ (2026-07-07) |
+| FP-05 | Feature Review | `docs/feature-planning/05-feature-review.md` | FP-01…04 | ✅ (2026-07-07) |
 
 ## Theme: Feature specifications (`docs/features/`) — owner `06-feature-specification`
 
 | ID | Document | Path | Depends on | Status |
 |---|---|---|---|---|
-| FS-101+ | One spec per approved Feature | `docs/features/FS-xxx-*.md` | FP catalog, RQ baseline | ⛔ |
+| FS-101+ | One spec per approved Feature | `docs/features/FS-xxx-*.md` | FP catalog, RQ baseline | 🚧 (FS-101 ✅ 2026-07-07; the only Feature currently needing a spec — 6 of 7 catalog Features are already-shipped Baseline, not queued for FS authoring) |
 
 ## Theme: Implementation (`docs/implementation/`) — owners `07`/`08`/`09`
 

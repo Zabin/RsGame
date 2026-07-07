@@ -9,8 +9,8 @@ templates.
 
 | # | Document | File | Status |
 |---|---|---|---|
-| 1 | Release Plan (buckets: Baseline (as-built) / MVP / Release 1 / Release 2 / Future) | `01-release-plan.md` | ⛔ Planned |
-| 2 | Epic Catalog (EP-xxxx) | `02-epic-catalog.md` | ⛔ Planned |
-| 3 | Feature Catalog (FEAT-xxxx) | `03-feature-catalog.md` | ⛔ Planned |
-| 4 | Feature Dependency Graph (Mermaid) | `04-feature-dependency-graph.md` | ⛔ Planned |
-| 5 | Feature Review | `05-feature-review.md` | ⛔ Planned |
+| 1 | Release Plan (buckets: Baseline (as-built) / MVP / Release 1 / Release 2 / Future) | `01-release-plan.md` | ✅ Authored (2026-07-07) |
+| 2 | Epic Catalog (EP-xxxx) | `02-epic-catalog.md` | ✅ Authored (2026-07-07) |
+| 3 | Feature Catalog (FEAT-xxxx) | `03-feature-catalog.md` | ✅ Authored (2026-07-07) |
+| 4 | Feature Dependency Graph (Mermaid) | `04-feature-dependency-graph.md` | ✅ Authored (2026-07-07) |
+| 5 | Feature Review | `05-feature-review.md` | ✅ Authored (2026-07-07) |

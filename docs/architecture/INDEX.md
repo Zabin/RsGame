@@ -13,17 +13,17 @@ is closed with its decision recorded in prose. Status here and in `ROADMAP.md` m
 
 | Level | Title | File | Status |
 |---|---|---|---|
-| GDS-00 | Vision (owned by `01-vision`) | [00-vision.md](00-vision.md) | ✅ Authored (gate closed 2026-07-06) |
-| GDS-01 | Concept of Play | [01-concept-of-play.md](01-concept-of-play.md) | ⛔ Planned (scaffold only) |
-| GDS-02 | System Context | [02-system-context.md](02-system-context.md) | ⛔ Planned (scaffold only) |
-| GDS-03 | Architecture | [03-architecture.md](03-architecture.md) | ⛔ Planned (scaffold only) |
-| GDS-04 | Domain Model | [04-domain-model.md](04-domain-model.md) | ⛔ Planned (scaffold only) |
-| GDS-05 | Functional Requirements | [05-functional-requirements.md](05-functional-requirements.md) | ⛔ Planned (scaffold only) |
-| GDS-06 | Non-functional Requirements | [06-non-functional-requirements.md](06-non-functional-requirements.md) | ⛔ Planned (scaffold only) |
-| GDS-07 | Data Model | [07-data-model.md](07-data-model.md) | ⛔ Planned (scaffold only) |
-| GDS-08 | Presentation Architecture | [08-presentation-architecture.md](08-presentation-architecture.md) | ⛔ Planned (scaffold only) |
-| GDS-09 | Interface Specification | [09-interface-specification.md](09-interface-specification.md) | ⛔ Planned (scaffold only) |
-| GDS-10 | Requirements Traceability Matrix level | [10-requirements-traceability-matrix.md](10-requirements-traceability-matrix.md) | ⛔ Planned (scaffold only) |
+| GDS-00 | Vision (owned by `01-vision`) | [00-vision.md](00-vision.md) | ✅ Authored (gate closed 2026-07-06; content revised same day, see MSTR-001 §8) |
+| GDS-01 | Concept of Play | [01-concept-of-play.md](01-concept-of-play.md) | ✅ Authored (gate closed 2026-07-06) |
+| GDS-02 | System Context | [02-system-context.md](02-system-context.md) | ✅ Authored (gate closed 2026-07-06) |
+| GDS-03 | Architecture | [03-architecture.md](03-architecture.md) | ✅ Authored (gate closed 2026-07-06) |
+| GDS-04 | Domain Model | [04-domain-model.md](04-domain-model.md) | ✅ Authored (gate closed 2026-07-06) |
+| GDS-05 | Functional Requirements | [05-functional-requirements.md](05-functional-requirements.md) | ✅ Authored (gate closed 2026-07-06) |
+| GDS-06 | Non-functional Requirements | [06-non-functional-requirements.md](06-non-functional-requirements.md) | ✅ Authored (gate closed 2026-07-06) |
+| GDS-07 | Data Model | [07-data-model.md](07-data-model.md) | ✅ Authored (gate closed 2026-07-06) |
+| GDS-08 | Presentation Architecture | [08-presentation-architecture.md](08-presentation-architecture.md) | ✅ Authored (gate closed 2026-07-06) |
+| GDS-09 | Interface Specification | [09-interface-specification.md](09-interface-specification.md) | ✅ Authored (gate closed 2026-07-06) |
+| GDS-10 | Requirements Traceability Matrix level | [10-requirements-traceability-matrix.md](10-requirements-traceability-matrix.md) | ✅ Authored (gate closed 2026-07-06) |
 
 ## §2 — Per-cluster design syntheses (ADS-xxx)
 
@@ -39,7 +39,7 @@ file.
 
 | Artifact | File | Status |
 |---|---|---|
-| Strategic assumptions register | [strategic-assumptions-register.md](strategic-assumptions-register.md) | ✅ Authored 2026-07-06 (A1–A7, ♻️ living) |
+| Strategic assumptions register | [strategic-assumptions-register.md](strategic-assumptions-register.md) | ✅ Authored 2026-07-06 (A1–A8, revised same day — A1/A6 corrected, A8 added, ♻️ living) |
 
 ## §4 — Architecture Decision Records
 
