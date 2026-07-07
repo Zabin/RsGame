@@ -35,11 +35,12 @@
 | FR-4200 | Fourteen total screens | — | GDS-04; GDS-05 C6 | — | `tilemaps.py` | UNASSIGNED | UNASSIGNED | UNASSIGNED |
 | FR-5100 | Explicit player-initiated save | R106; R205 | GDS-05 C5; GDS-06 N3 | ADR-0006 | `asm_game.py` | UNASSIGNED | UNASSIGNED | UNASSIGNED |
 | FR-5200 | Restore save-field set on valid-save boot | R106 | GDS-05 C5; GDS-06 N3 | ADR-0006 | `asm_game.py` | UNASSIGNED | UNASSIGNED | UNASSIGNED |
-| FR-5210 | Fields explicitly outside the persisted save set | — | GDS-05 C5; BL-0018 | — | `asm_game.py` | UNASSIGNED | UNASSIGNED | UNASSIGNED |
+| FR-5210 | Fields explicitly outside the persisted save set (facing/frame only, as of 2026-07-07) | — | GDS-05 C5; BL-0018 (resolved) | — | `asm_game.py` | UNASSIGNED | UNASSIGNED | UNASSIGNED |
+| FR-5220 | Persist per-zone ScoreItem collected-state (new, 2026-07-07) | — | user decision 2026-07-07; BL-0018 (resolved) | ADR-0006 | `asm_game.py` | UNASSIGNED | UNASSIGNED | UNASSIGNED |
 | FR-6100 | Zone screen composition | R203 | GDS-05 C6; GDS-08 §1 | — | `tilemaps.py` | UNASSIGNED | UNASSIGNED | T5.8/T5.9/T5.10 exist, non-compliant suite — UNASSIGNED |
 | FR-6200 | Persistent row-0 HUD | R204 | GDS-05 C6; GDS-08 §3 | — | `asm_game.py`/`tilemaps.py` | UNASSIGNED | UNASSIGNED | T5.3–T5.7 exist (stale "gift"/"heart" icon references), non-compliant suite — UNASSIGNED |
 | FR-6300 | Five non-zone UI screens | — | GDS-05 C6; GDS-04 | — | `tilemaps.py` | UNASSIGNED | UNASSIGNED | T5.1/T5.2 exist, non-compliant suite — UNASSIGNED |
-| CR-01 | Full save-field persistence | — | GDS-05 C5; BL-0018 | — | `asm_game.py` | `CANDIDATE — NOT BASELINED` | `CANDIDATE — NOT BASELINED` | `CANDIDATE — NOT BASELINED` |
+| CR-01 | Full save-field persistence — **RESOLVED/SPLIT 2026-07-07**: facing/frame half REJECTED (no row — see FR-5210); ScoreItem half APPROVED → see **FR-5220** row above | — | GDS-05 C5; BL-0018 (resolved) | — | `asm_game.py` | `RESOLVED — SEE FR-5220` | `RESOLVED — SEE FR-5220` | `RESOLVED — SEE FR-5220` |
 | CR-02 | Carrot-invariant enforcement | — | GDS-04; BL-0017 | — | `tilemaps.py` | `CANDIDATE — NOT BASELINED` | `CANDIDATE — NOT BASELINED` | `CANDIDATE — NOT BASELINED` |
 
 ## Non-Functional Requirements

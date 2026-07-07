@@ -10,6 +10,16 @@
 > (not applicable to any requirement below — no optional-scope FRs exist in the as-built
 > baseline).
 
+## Changelog
+
+- **2026-07-07 — BL-0018 resolved by explicit user decision.** The user determined: (1) player
+  facing direction and animation frame are **not important** — no persistence requirement added;
+  (2) per-zone `ScoreItem` collected-state **should persist** across save/load. Accordingly:
+  CR-01 (below) is split — its facing/frame half is **REJECTED**, its ScoreItem half is
+  **APPROVED** and promoted to **FR-5220** (new). FR-5210 is reworded to reflect that only
+  facing/frame remain outside the persisted save set. See `BL-0018` in
+  `docs/pipeline/backlog.md` (now `DONE`).
+
 ## FR-1000 — Game states & transitions
 
 *(formalizes [GDS-05](../architecture/05-functional-requirements.md) C1, [GDS-01](../architecture/01-concept-of-play.md) §4)*
@@ -328,7 +338,7 @@
 - **Outputs:** Score incremented; the collected ScoreItem no longer rendered or collectible.
 - **Preconditions:** The ScoreItem is active.
 - **Postconditions:** Score reflects the increment; the ScoreItem is permanently inactive for the
-  remainder of that play session (see FR-5210/BL-0018 regarding persistence across save/load).
+  remainder of that play session, and across save/load per FR-5220 (see BL-0018, resolved).
 - **Acceptance Criteria:** Collecting a ScoreItem increases Score by its defined value and the
   item is not collectible again in the same session.
 - **Dependencies:** FR-3100.
@@ -488,30 +498,62 @@ FR-6000 for the presentation half)*
 ### FR-5210 — Fields explicitly outside the persisted save set
 
 - **ID:** FR-5210
-- **Title:** The system shall leave player facing direction, animation frame, and per-zone
-  ScoreItem collected-state to their default values on every restore.
+- **Title:** The system shall leave player facing direction and animation frame to their default
+  values on every restore.
 - **Description:** Because these fields are not part of the save-field set (FR-5100/FR-5200), a
-  restore shall always yield a default facing direction and animation frame, and every zone's
-  ScoreItems shall be restored to "all present" regardless of pre-save collection state.
-- **Rationale:** GDS-05 C5 (explicitly flags this as not persisted); direct read of the save
-  routine's field list.
-- **Priority:** Must (as-built behavior) — **flagged Should-revisit**: whether this is the
-  *intended* scope is unresolved; see RQ-03 and BL-0018.
+  restore shall always yield a default facing direction and animation frame.
+- **Rationale:** GDS-05 C5 (originally flagged all three fields as not persisted; per the
+  2026-07-07 user decision recorded in this document's Changelog, facing/frame are confirmed
+  **not important** and intentionally excluded, while per-zone ScoreItem state is promoted to
+  FR-5220 below).
+- **Priority:** Must — no longer ambiguous; the user has confirmed this is intended scope, not an
+  oversight (BL-0018, closed).
 - **Inputs:** A completed restore (FR-5200).
-- **Outputs:** Default facing/animation frame; all zones' ScoreItems marked present.
+- **Outputs:** Default facing direction and animation frame.
 - **Preconditions:** A restore has just completed.
-- **Postconditions:** Facing/frame equal their boot-time defaults; every ScoreItem in every zone
-  is active regardless of prior collection.
+- **Postconditions:** Facing/frame equal their boot-time defaults.
 - **Acceptance Criteria:** After a restore, the player's facing direction and animation frame
-  equal their documented defaults, and every ScoreItem in every zone is collectible again even if
-  it was collected before the save.
+  equal their documented defaults.
 - **Dependencies:** FR-5200.
 - **Verification Method:** Test.
-- **Source Documents:** GDS-05 C5; BL-0018.
+- **Source Documents:** GDS-05 C5; BL-0018 (resolved).
 - **Related ADRs:** None.
-- **Notes:** **This requirement documents current as-built behavior, not an endorsed design.**
-  RQ-03 flags the open question of whether this is intended scope. Do not treat this FR as license
-  to close BL-0018 without a user/design decision.
+- **Notes:** Prior to 2026-07-07 this requirement also excluded per-zone ScoreItem state; that
+  scope moved to FR-5220 (now a Must-persist requirement) per the user's explicit decision. See
+  this document's Changelog.
+
+### FR-5220 — Persist per-zone ScoreItem collected-state
+
+- **ID:** FR-5220
+- **Title:** The system shall persist each zone's ScoreItem collected-state across save/load.
+- **Description:** In addition to the FR-5100/FR-5200 save-field set, the system shall save and
+  restore, per zone, which ScoreItems (stars/flowers) have already been collected, so that a
+  restored game does not re-present previously-collected ScoreItems as available.
+- **Rationale:** Explicit user decision, 2026-07-07 (see this document's Changelog): "Zone score
+  item state should save and persist," resolving BL-0018's previously-open question in favor of
+  widening the persisted save-field set.
+- **Priority:** Must
+- **Inputs:** Player save-confirm action (in SAVE, FR-5100); per-zone ScoreItem active/collected
+  state at save time.
+- **Outputs:** SRAM updated with per-zone ScoreItem collected-state; on restore, each zone's
+  ScoreItems reflect that saved state rather than defaulting to "all present."
+- **Preconditions:** State is SAVE and the save-confirm input is received (for persisting); a
+  valid save is being restored (for loading).
+- **Postconditions:** After a save, SRAM's per-zone ScoreItem collected-state matches the
+  in-memory state at save time. After a restore, in-memory per-zone ScoreItem collected-state
+  exactly matches what was last saved.
+- **Acceptance Criteria:** Given a ScoreItem was collected before a save, after a subsequent
+  restore that same ScoreItem is **not** re-collectible (remains marked collected). Given a
+  ScoreItem was never collected before a save, after a restore it remains collectible.
+- **Dependencies:** FR-5100, FR-5200, FR-3200 (ScoreItem collection).
+- **Verification Method:** Test.
+- **Source Documents:** User decision, 2026-07-07; BL-0018.
+- **Related ADRs:** ADR-0006 (MBC1+RAM+BATTERY save format — this requirement widens the
+  persisted field set within that same save mechanism, not a new one).
+- **Notes:** This requirement was a Candidate (part of former CR-01) until the user's decision
+  promoted it to the numbered baseline. Implementation scope (e.g. the exact SRAM bytes/bitfield
+  used to represent per-zone ScoreItem state) is a Data Model (GDS-07)/future implementation
+  concern, not stated here — this FR states only the observable persistence behavior required.
 
 ## FR-6000 — Presentation
 
@@ -589,15 +631,18 @@ FR-6000 for the presentation half)*
 *(untraceable to a current source, or contingent on an unresolved design decision — explicitly
 excluded from the numbered baseline above; marked `CANDIDATE — NOT BASELINED` in RQ-04)*
 
-### CR-01 — Full save-field persistence (facing/frame/per-zone ScoreItem state)
+### CR-01 — Full save-field persistence (facing/frame/per-zone ScoreItem state) — RESOLVED, SPLIT 2026-07-07
 
 - **Description:** Extend the persisted save-field set (FR-5100/FR-5200) to also include player
   facing direction, animation frame, and per-zone ScoreItem collected-state.
-- **Why excluded:** No source document states this as required; FR-5210 documents the opposite
-  as current as-built behavior. This is a plausible *future* requirement contingent on BL-0018
-  being resolved toward "yes, persist it" rather than "no, this is intentional."
-- **Disposition:** Held pending a design decision (RQ-03 flags this; owner: the user, or
-  `03-architecture-design-synthesis` if reopened at the architecture level).
+- **Resolution (2026-07-07, explicit user decision):** Split into two independent halves —
+  - **Facing direction / animation frame persistence — REJECTED.** User's stated reason: "not
+    important." No FR added; FR-5210 continues to document these as intentionally excluded.
+  - **Per-zone ScoreItem collected-state persistence — APPROVED.** User's stated decision: "Zone
+    score item state should save and persist." Promoted to the numbered baseline as **FR-5220**.
+- **Disposition:** CLOSED — no longer a live Candidate. Kept here (not deleted) as the historical
+  record of the original untraceable request and its resolution, per this document's append-only
+  changelog discipline.
 
 ### CR-02 — Build-time or runtime enforcement of "exactly one Carrot per zone"
 

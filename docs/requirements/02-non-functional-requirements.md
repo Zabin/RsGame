@@ -158,21 +158,26 @@
 - **ID:** NFR-5200
 - **Title:** Whatever field set the system declares persisted shall round-trip correctly through
   a save/load cycle.
-- **Description:** For the currently-declared save-field set {CurrentZone, PlayerPosition,
-  CarrotCount, Score, CarrotFlags[9]}, a save followed by a load shall restore each field to
-  exactly the value it held at save time.
-- **Rationale:** GDS-06 N3.
+- **Description:** For the currently-declared save-field set — {CurrentZone, PlayerPosition,
+  CarrotCount, Score, CarrotFlags[9], per-zone ScoreItem collected-state} as of the 2026-07-07
+  widening (FR-5220) — a save followed by a load shall restore each field to exactly the value it
+  held at save time.
+- **Rationale:** GDS-06 N3; FR-5220 (widened field set).
 - **Priority:** Must
-- **Status: MET** for the currently-declared field set. This NFR is explicitly scoped to *whatever
-  fields are declared persisted* — it does not require that facing/frame/per-zone ScoreItem state
-  be included (see FR-5210, BL-0018, and RQ-03's open question on whether the declared set itself
-  should be widened).
+- **Status: MET** for the pre-widening field set (confirmed directly); **not yet independently
+  verified** for the newly-added per-zone ScoreItem field (FR-5220 has no implementation yet — see
+  RQ-04). This NFR remains scoped to *whatever fields are declared persisted*, which as of
+  2026-07-07 explicitly includes per-zone ScoreItem state per the user's decision resolving
+  BL-0018 (now `DONE`) — facing direction and animation frame remain explicitly excluded
+  (FR-5210), not an open question.
 - **Acceptance Criteria:** For each field in {CurrentZone, PlayerPosition, CarrotCount, Score,
-  CarrotFlags[9]}, saving then loading yields an identical value.
+  CarrotFlags[9], per-zone ScoreItem collected-state}, saving then loading yields an identical
+  value.
 - **Verification Method:** Test.
-- **Source Documents:** GDS-06 N3.
+- **Source Documents:** GDS-06 N3; FR-5220.
 - **Related ADRs:** ADR-0006.
-- **Notes:** None.
+- **Notes:** Re-verify this NFR's "Met" status once FR-5220 is implemented (stage 08) — its
+  compliance claim currently covers only the pre-widening field set.
 
 ## Portability
 
