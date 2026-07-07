@@ -26,12 +26,13 @@ other.
 ### N2 — VBlank timing discipline
 
 Every VRAM/OAM write **shall** occur either with the LCD off or within a confirmed-VBlank window
-([R102](../research/encyclopedia/R102-ppu-vram-oam-timing.md)). **Status: not fully met.** The
-score-bar VRAM write is suspected (per `Claude.md`'s original bug note, re-flagged as
-[`BL-0003`](../pipeline/backlog.md), folded into [`BL-0008`](../pipeline/backlog.md)) to occur
-outside this discipline — currently invisible on PyBoy but a real correctness gap against actual
-hardware timing. **This NFR is stated as a requirement the system must meet, not evidence that it
-currently does** — the gap is tracked, not hidden.
+([R102](../research/encyclopedia/R102-ppu-vram-oam-timing.md)). **Status: met (2026-07-07).** The
+score-bar VRAM write (`Claude.md`'s original bug note, re-flagged as
+[`BL-0003`](../pipeline/backlog.md), folded into [`BL-0008`](../pipeline/backlog.md)) was
+relocated to the main loop's frame top by
+[`IP-9020`](../implementation/packages/IP-9020-score-bar-vblank-fix.md) — see
+[`NFR-1200`](../requirements/02-non-functional-requirements.md) for the full remediation record
+and test evidence (pending independent verification by `09-package-verification`).
 
 ### N3 — Save integrity
 

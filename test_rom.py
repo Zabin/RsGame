@@ -40,6 +40,14 @@ PLAYER_DIR = 0xC003; PLAYER_FRAME = 0xC004; ANIM_CTR = 0xC005
 SCORE = 0xC006; SCORE_DIRTY = 0xC007; CUR_ZONE = 0xC008
 CARROTS_COUNT = 0xC009; NEED_REDRAW = 0xC00A
 CARROT_FLAGS = 0xC015; COLL_DATA = 0xC020; COLL_COUNT = 0xC050
+SCOREITEM_FLAGS = 0xC060   # 9 bytes — one bitfield per zone (FR-5220, IP-1010)
+
+# SRAM save-format addresses (must match asm_game.py's save_to_sram/try_load_save)
+SRAM_MAGIC = 0xA000; SRAM_CUR_ZONE = 0xA004; SRAM_PLAYER_X = 0xA005
+SRAM_PLAYER_Y = 0xA006; SRAM_CARROTS_COUNT = 0xA007; SRAM_SCORE = 0xA008
+SRAM_CARROT_FLAGS = 0xA009   # 9 bytes, A009-A011
+SAVE_VERSION_ADDR = 0xA012; SAVE_VERSION_VAL = 0x01
+SRAM_SCOREITEM = 0xA013      # 9 bytes, A013-A01B
 
 # Tile indices (must match tiles.py)
 TL_BG_BLANK = 0x10; TL_HEART_FULL = 0x11; TL_HEART_EMPTY = 0x12
@@ -415,6 +423,23 @@ check("T8.9 Carrot deactivated in COLL_DATA", pb.memory[COLL_DATA + 6*4 + 3] == 
       f"active={pb.memory[COLL_DATA + 6*4 + 3]}")
 check("T8.10 Carrot does not touch SCORE", pb.memory[SCORE] == sc1, f"{pb.memory[SCORE]}")
 
+# IP-9020 regression: update_status_disp now runs at frame-top (VBlank-gated,
+# moved out of st_playing) — a dirtied SCORE/CARROTS_COUNT must still reflect
+# in the HUD tiles within 2 frames.
+carrots_pre = pb.memory[CARROTS_COUNT]
+pb.memory[SCORE] = 42; pb.memory[SCORE_DIRTY] = 1
+[pb.tick() for _ in range(2)]
+hi = pb.memory[0x9808] - TL_DIGIT_0; te = pb.memory[0x9809] - TL_DIGIT_0; on = pb.memory[0x980A] - TL_DIGIT_0
+check("T8.10a HUD score digits reflect forced SCORE=42 within 2 frames (IP-9020)",
+      (hi, te, on) == (0, 4, 2), f"digits=({hi},{te},{on})")
+pb.memory[CARROTS_COUNT] = 5; pb.memory[SCORE_DIRTY] = 1
+[pb.tick() for _ in range(2)]
+cd = pb.memory[0x9802] - TL_DIGIT_0
+check("T8.10b HUD carrot-count digit reflects forced CARROTS_COUNT=5 within 2 frames (IP-9020)",
+      cd == 5, f"digit={cd}")
+pb.memory[CARROTS_COUNT] = carrots_pre; pb.memory[SCORE_DIRTY] = 1
+[pb.tick() for _ in range(2)]
+
 # Map hearts (BL-0001 closure): z0 heart full, z1 heart empty.
 # update_map_hearts writes 0x9800 + {6,9,12}*32 + {6,11,16}, LCD off during redraw.
 pb.button('select'); [pb.tick() for _ in range(40)]
@@ -576,6 +601,96 @@ check("T10.14 B cancel: reload still has saved data",
       f"x={pb2.memory[PLAYER_X]} score={pb2.memory[SCORE]}")
 pb2.stop()
 wipe_save()   # leave no runtime save behind
+
+# ══════════════════════════════════════════════════════
+# T11 — Per-Zone ScoreItem Persistence (IP-1010 / FR-5220)
+#       Zone 0 (Beach) ZONE_COLLECTS: [0]=(20,32,star) [1]=(52,40,*)
+#       [4]=(32,80,*) ... [6]=(132,88,CARROT).
+# ══════════════════════════════════════════════════════
+print("\n=== T11: Per-Zone ScoreItem Persistence ===")
+
+# T11.a — same-session: collect, leave the zone, return; item stays inactive
+# and SCORE does not re-increment (AC-1; BL-0023's farming-bug regression).
+pb = fresh_boot()
+advance_to_playing(pb)
+pb.memory[PLAYER_X] = 20; pb.memory[PLAYER_Y] = 32
+[pb.tick() for _ in range(5)]
+sc_after = pb.memory[SCORE]
+check("T11.a1 Star (index 0) collected", sc_after > 0, f"score={sc_after}")
+
+pb.memory[PLAYER_X] = 156; pb.memory[PLAYER_Y] = 72
+[pb.tick() for _ in range(80)]
+check("T11.a2 Transitioned out of zone 0", pb.memory[CUR_ZONE] == 1, f"zone={pb.memory[CUR_ZONE]}")
+pb.memory[PLAYER_X] = 0
+[pb.tick() for _ in range(80)]
+check("T11.a3 Back in zone 0", pb.memory[CUR_ZONE] == 0, f"zone={pb.memory[CUR_ZONE]}")
+check("T11.a4 Collected item (index 0) stays inactive on re-entry (AC-1)",
+      pb.memory[COLL_DATA + 3] == 0, f"active={pb.memory[COLL_DATA + 3]}")
+check("T11.a5 SCORE did not re-increment on re-entry (BL-0023 fix)",
+      pb.memory[SCORE] == sc_after, f"{sc_after}->{pb.memory[SCORE]}")
+pb.stop()
+
+# T11.b/c/e — save/reload: collected item stays inactive (AC-2), a
+# never-collected item (index 1) stays active (AC-3), and the pre-existing
+# save fields still round-trip exactly (AC-5, alongside IP-9010's T10).
+wipe_save()
+pb = fresh_boot()
+advance_to_playing(pb)
+pb.memory[PLAYER_X] = 32; pb.memory[PLAYER_Y] = 80   # index 4
+[pb.tick() for _ in range(5)]
+sc_pre = pb.memory[SCORE]
+check("T11.b1 Star (index 4) collected", sc_pre > 0, f"score={sc_pre}")
+zone_pre = pb.memory[CUR_ZONE]; x_pre = pb.memory[PLAYER_X]; y_pre = pb.memory[PLAYER_Y]
+pb.button('start'); [pb.tick() for _ in range(40)]
+pb.button('a');     [pb.tick() for _ in range(40)]
+check("T11.b2 Saved -> PLAYING", pb.memory[GAMESTATE] == 2)
+pb.stop()
+
+pb2 = PyBoy(ROM_PATH, window='null', sound_emulated=False)
+pb2.set_emulation_speed(0)
+for _ in range(180): pb2.tick()
+check("T11.b3 Reload -> PLAYING (auto-load)", pb2.memory[GAMESTATE] == 2, f"GS={pb2.memory[GAMESTATE]}")
+check("T11.e1 Legacy fields still round-trip (zone/x/y/score, AC-5)",
+      pb2.memory[CUR_ZONE] == zone_pre and pb2.memory[PLAYER_X] == x_pre
+      and pb2.memory[PLAYER_Y] == y_pre and pb2.memory[SCORE] == sc_pre,
+      f"zone={pb2.memory[CUR_ZONE]} x={pb2.memory[PLAYER_X]} y={pb2.memory[PLAYER_Y]} score={pb2.memory[SCORE]}")
+check("T11.b5 Collected item (index 4) stays inactive after save/reload (AC-2)",
+      pb2.memory[COLL_DATA + 4*4 + 3] == 0, f"active={pb2.memory[COLL_DATA + 4*4 + 3]}")
+check("T11.c Never-collected item (index 1) remains active (AC-3)",
+      pb2.memory[COLL_DATA + 1*4 + 3] == 1, f"active={pb2.memory[COLL_DATA + 1*4 + 3]}")
+pb2.stop()
+wipe_save()
+
+# T11.d — pre-upgrade save fixture: valid magic + legacy fields, but the
+# version-guard byte doesn't match and SCOREITEM_FLAGS mirror bytes are
+# garbage; every ScoreItem must load as uncollected, no crash (AC-4).
+fixture = bytearray(8192)
+fixture[0:4] = bytes([0x42, 0x55, 0x4E, 0x59])          # 'BUNY' magic
+fixture[SRAM_CUR_ZONE - 0xA000] = 0
+fixture[SRAM_PLAYER_X - 0xA000] = 76
+fixture[SRAM_PLAYER_Y - 0xA000] = 80
+fixture[SRAM_CARROTS_COUNT - 0xA000] = 0
+fixture[SRAM_SCORE - 0xA000] = 0
+for i in range(9): fixture[SRAM_CARROT_FLAGS - 0xA000 + i] = 0
+fixture[SAVE_VERSION_ADDR - 0xA000] = 0x00              # mismatched version
+for i in range(9): fixture[SRAM_SCOREITEM - 0xA000 + i] = 0xFF   # garbage
+with open(RAM_PATH, 'wb') as f:
+    f.write(bytes(fixture))
+
+pb = PyBoy(ROM_PATH, window='null', sound_emulated=False)
+pb.set_emulation_speed(0)
+for _ in range(180): pb.tick()
+check("T11.d1 Pre-upgrade save loads without crash -> PLAYING",
+      pb.memory[GAMESTATE] == 2, f"GS={pb.memory[GAMESTATE]}")
+check("T11.d2 SCOREITEM_FLAGS all zero (garbage ignored)",
+      all(pb.memory[SCOREITEM_FLAGS + i] == 0 for i in range(9)),
+      f"flags={[pb.memory[SCOREITEM_FLAGS + i] for i in range(9)]}")
+cc = pb.memory[COLL_COUNT]
+check("T11.d3 Every zone-0 collectible loads active (uncollected default)",
+      all(pb.memory[COLL_DATA + i*4 + 3] == 1 for i in range(cc)),
+      f"count={cc} actives={[pb.memory[COLL_DATA + i*4 + 3] for i in range(cc)]}")
+pb.stop()
+wipe_save()
 
 # ══════════════════════════════════════════════════════
 # SUMMARY

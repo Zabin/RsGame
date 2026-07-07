@@ -36,7 +36,7 @@
 | FR-5100 | Explicit player-initiated save | R106; R205 | GDS-05 C5; GDS-06 N3 | ADR-0006 | `asm_game.py` | UNASSIGNED | UNASSIGNED | T10.3–T10.5, T10.13/T10.14 |
 | FR-5200 | Restore save-field set on valid-save boot | R106 | GDS-05 C5; GDS-06 N3 | ADR-0006 | `asm_game.py` | UNASSIGNED | UNASSIGNED | T10.6–T10.12 |
 | FR-5210 | Fields explicitly outside the persisted save set (facing/frame only, as of 2026-07-07) | — | GDS-05 C5; BL-0018 (resolved) | — | `asm_game.py` | UNASSIGNED | UNASSIGNED | UNASSIGNED |
-| FR-5220 | Persist per-zone ScoreItem collected-state (new, 2026-07-07) | — | user decision 2026-07-07; BL-0018 (resolved) | ADR-0006 | `asm_game.py` | UNASSIGNED | UNASSIGNED | UNASSIGNED |
+| FR-5220 | Persist per-zone ScoreItem collected-state (new, 2026-07-07) | — | user decision 2026-07-07; BL-0018 (resolved) | ADR-0006 | `asm_game.py` | FS-101 | IP-1010 | **T11.a–e** — trustworthy, 125/125 pass |
 | FR-6100 | Zone screen composition | R203 | GDS-05 C6; GDS-08 §1 | — | `tilemaps.py` | UNASSIGNED | UNASSIGNED | T5.9 |
 | FR-6200 | Persistent row-0 HUD | R204 | GDS-05 C6; GDS-08 §3 | — | `asm_game.py`/`tilemaps.py` | UNASSIGNED | UNASSIGNED | T5.4–T5.8 |
 | FR-6300 | Five non-zone UI screens | — | GDS-05 C6; GDS-04 | — | `tilemaps.py` | UNASSIGNED | UNASSIGNED | T5.1–T5.3, T4.4/T4.6/T4.8 (screens reached) |
@@ -48,13 +48,13 @@
 | Req ID | Title | Research Source | Architecture Section | ADR | Module | Feature Spec | Implementation Package | Test |
 |---|---|---|---|---|---|---|---|---|
 | NFR-1100 | VBlank-gated PPU access | R102 | GDS-06 N2 | ADR-0005 | `asm_game.py` | UNASSIGNED | UNASSIGNED | UNASSIGNED (inspection-based, no automated check exists) |
-| NFR-1200 | Score-bar write timing (BL-0003/BL-0008) | — | GDS-06 N2 | — | `asm_game.py` | UNASSIGNED | UNASSIGNED | UNASSIGNED — not currently met |
+| NFR-1200 | Score-bar write timing (BL-0003/BL-0008) | — | GDS-06 N2 | — | `asm_game.py` | UNASSIGNED | IP-9020 | **T8.10a, T8.10b** — trustworthy, 111/111 pass |
 | NFR-2100 | Deterministic state-machine behavior | — | GDS-01 §4 (derived) | — | `asm_game.py` | UNASSIGNED | UNASSIGNED | UNASSIGNED |
 | NFR-3100 | One-job-per-file module boundary | — | GDS-03 | ADR-0003 | all six modules | UNASSIGNED | UNASSIGNED | UNASSIGNED (inspection-based) |
 | NFR-4000 | 32768-byte single-bank ROM budget | — | GDS-06 N1; GDS-02 | ADR-0001 | `build_rom.py` | UNASSIGNED | UNASSIGNED | **T1.1** ("ROM size = 32768") — trustworthy, T1 suite |
 | NFR-4100 | CGB palette budget | R104 | GDS-06 N1; GDS-07; GDS-08 §4 | — | `build_rom.py`/`tiles.py` | UNASSIGNED | UNASSIGNED | UNASSIGNED (inspection-based) |
 | NFR-5100 | MBC1 SRAM enable/disable bracketing | R106 | GDS-06 N3 | ADR-0006 | `asm_game.py` | UNASSIGNED | UNASSIGNED | UNASSIGNED (inspection-based) |
-| NFR-5200 | Save-field round-trip integrity | — | GDS-06 N3 | ADR-0006 | `asm_game.py` | UNASSIGNED | UNASSIGNED | T10.7–T10.12 (current field set; FR-5220's new field pending IP-1010/T11) |
+| NFR-5200 | Save-field round-trip integrity | — | GDS-06 N3 | ADR-0006 | `asm_game.py` | FS-101 | IP-1010 | **T10.7–T10.12, T11.b5/T11.c/T11.e1/T11.d** — trustworthy, full field set incl. SCOREITEM_FLAGS, 125/125 pass |
 | NFR-6100 | PyBoy headless as verification target | R301 | GDS-02; A2 | ADR-0008 | `run-bunnygarden` harness | UNASSIGNED | UNASSIGNED | UNASSIGNED (inspection-based) |
 | NFR-7100 | Full, currently-accurate test suite as completion gate | — | GDS-06 N5 | — | `test_rom.py` | UNASSIGNED | UNASSIGNED | **T1–T10, 109/109 pass** (IP-9010, 2026-07-07 — this NFR's own remediation; was BL-0006) |
 | NFR-8100 | Byte-identical deterministic rebuild | — | GDS-06 N4 | ADR-0002 | `build_rom.py` | UNASSIGNED | UNASSIGNED | Confirmed by direct rebuild-and-diff during MSTR-001 §8's correction — not a `test_rom.py` check; UNASSIGNED as an automated Test cell |

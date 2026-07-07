@@ -59,6 +59,7 @@ Confirmed directly against `asm_game.py`'s constant declarations:
 | `C015`–`C01D` | `CARROT_FLAGS` | **9 bytes**, one per zone, 0/1 |
 | `C020` | `COLL_DATA` | working collectible struct |
 | `C050` | `COLL_COUNT` | collectible count for current zone |
+| `C060`–`C068` | `SCOREITEM_FLAGS` | **9 bytes** — one bitfield per zone, bit *N* = the *N*th `ZONE_COLLECTS` list entry ([FR-5220](../requirements/01-functional-requirements.md), [IP-1010](../implementation/packages/IP-1010-per-zone-scoreitem-persistence.md), 2026-07-07). Assigned here (deferred by [FS-101](../features/FS-101-per-zone-scoreitem-persistence.md) Open Question 3): sits inside the boot clear of `C000`–`C2FF`, 8-aligned, with headroom to `COLL_COUNT` on one side and `OAM_BUF` on the other. |
 | `C300` | `OAM_BUF` | 160 bytes, shadow OAM ([R105](../research/encyclopedia/R105-oam-sprites-dma.md)) |
 
 ### 3. SRAM save format (`0xA000`+)
@@ -73,11 +74,13 @@ Confirmed directly against `try_load_save`/the save routine:
 | `A007` | `CARROTS_COUNT` |
 | `A008` | `SCORE` |
 | `A009`–`A011` | `CARROT_FLAGS` (9 bytes) |
+| `A012` | Save-format version guard ([FR-5220](../requirements/01-functional-requirements.md); `SAVE_VERSION_VAL = 0x01`) — added 2026-07-07 by [IP-1010](../implementation/packages/IP-1010-per-zone-scoreitem-persistence.md), the first save-format change since ship (`ADR-0006`). A save lacking this byte or not matching it is treated as pre-upgrade: `SCOREITEM_FLAGS` loads as all-zero (all uncollected) rather than trusting whatever garbage occupies `A013`–`A01B`. |
+| `A013`–`A01B` | `SCOREITEM_FLAGS` mirror (9 bytes) — same addition. |
 
-**This is exactly the field set [`BL-0018`](../pipeline/backlog.md) already identified at entity
-altitude** ([GDS-04](04-domain-model.md)), now confirmed at the byte level: `PLAYER_DIR`/
-`PLAYER_FRAME` and any per-zone ScoreItem state are absent from this list, byte for byte. Still an
-open question for `04-requirements-engineering`, not resolved here.
+**This updates `BL-0018`'s prior field-set finding** ([GDS-04](04-domain-model.md)): per-zone
+ScoreItem state is no longer absent — `A012`–`A01B` now cover it (per the user's 2026-07-07
+decision recorded at [RQ-01](../requirements/01-functional-requirements.md) FR-5220). `PLAYER_DIR`/
+`PLAYER_FRAME` remain absent, per the same decision (explicitly rejected as "not important").
 
 ### 4. Tile index map (`0x00`–`0xFF`, 83 of 256 slots used)
 

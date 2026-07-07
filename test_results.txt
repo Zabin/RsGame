@@ -1,4 +1,4 @@
-BunnyQuest ROM Tests  PASS=109/109  FAIL=0
+BunnyQuest ROM Tests  PASS=125/125  FAIL=0
 ==================================================
 [PASS] T1.1 ROM size = 32768  (32768)
 [PASS] T1.2 Entry = NOP; JP
@@ -77,6 +77,8 @@ BunnyQuest ROM Tests  PASS=109/109  FAIL=0
 [PASS] T8.8 Carrot increments CARROTS_COUNT  (1)
 [PASS] T8.9 Carrot deactivated in COLL_DATA  (active=0)
 [PASS] T8.10 Carrot does not touch SCORE  (1)
+[PASS] T8.10a HUD score digits reflect forced SCORE=42 within 2 frames (IP-9020)  (digits=(0,4,2))
+[PASS] T8.10b HUD carrot-count digit reflects forced CARROTS_COUNT=5 within 2 frames (IP-9020)  (digit=5)
 [PASS] T8.11 SELECT -> MAP
 [PASS] T8.12 Map heart z0 = FULL (0x11)  (0x11)
 [PASS] T8.13 Map heart z1 = EMPTY (0x12)  (0x12)
@@ -109,3 +111,17 @@ BunnyQuest ROM Tests  PASS=109/109  FAIL=0
 [PASS] T10.12 CARROT_FLAGS preserved (z0, z4 set; z1 clear)  (flags=[1, 0, 0, 0, 1, 0, 0, 0, 0])
 [PASS] T10.13 B cancels -> PLAYING
 [PASS] T10.14 B cancel: reload still has saved data  (x=60 score=7)
+[PASS] T11.a1 Star (index 0) collected  (score=1)
+[PASS] T11.a2 Transitioned out of zone 0  (zone=1)
+[PASS] T11.a3 Back in zone 0  (zone=0)
+[PASS] T11.a4 Collected item (index 0) stays inactive on re-entry (AC-1)  (active=0)
+[PASS] T11.a5 SCORE did not re-increment on re-entry (BL-0023 fix)  (1->1)
+[PASS] T11.b1 Star (index 4) collected  (score=1)
+[PASS] T11.b2 Saved -> PLAYING
+[PASS] T11.b3 Reload -> PLAYING (auto-load)  (GS=2)
+[PASS] T11.e1 Legacy fields still round-trip (zone/x/y/score, AC-5)  (zone=0 x=32 y=80 score=1)
+[PASS] T11.b5 Collected item (index 4) stays inactive after save/reload (AC-2)  (active=0)
+[PASS] T11.c Never-collected item (index 1) remains active (AC-3)  (active=1)
+[PASS] T11.d1 Pre-upgrade save loads without crash -> PLAYING  (GS=2)
+[PASS] T11.d2 SCOREITEM_FLAGS all zero (garbage ignored)  (flags=[0, 0, 0, 0, 0, 0, 0, 0, 0])
+[PASS] T11.d3 Every zone-0 collectible loads active (uncollected default)  (count=7 actives=[1, 1, 1, 1, 1, 1, 1])

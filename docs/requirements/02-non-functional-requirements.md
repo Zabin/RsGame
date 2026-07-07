@@ -37,18 +37,29 @@
   confirmed-VBlank window, consistent with every other VRAM write in the system.
 - **Rationale:** GDS-06 N2, citing `Claude.md`'s original bug note.
 - **Priority:** Must
-- **Status: NOT MET.** The score-bar VRAM write is suspected to occur outside the VBlank
-  discipline NFR-1100 requires — currently invisible on PyBoy (no observable corruption under
-  headless emulation) but a real correctness gap against actual hardware timing.
+- **Status: MET (2026-07-07, via `IP-9020` — pending independent verification by
+  `09-package-verification`).** The `CALL('update_status_disp')` was relocated from `st_playing`
+  (an unbounded distance into the frame) to the main loop's frame top, immediately after
+  `VBLANK_FLAG` is cleared and before the `NEED_REDRAW`/`do_screen_redraw` dispatch —
+  guaranteeing the write lands within the VBlank window (R102). The routine's existing internal
+  `GAMESTATE`/`SCORE_DIRTY` guards make the unconditional call-site safe in every state. Accepted
+  side effect: `SCORE_DIRTY` set during frame N is now drawn at the top of frame N+1 (previously
+  same-frame) — no requirement states same-frame HUD latency. Evidence:
+  [IP-9020](../implementation/packages/IP-9020-score-bar-vblank-fix.md); `test_rom.py` T8.10a/
+  T8.10b force-dirty the HUD fields and confirm the digit tiles reflect the new values within 2
+  frames; full suite **111/111 pass** (`test_results.txt`, regenerated 2026-07-07).
+  *Historical note (pre-2026-07-07):* the write was called from `st_playing`, at an unbounded
+  distance from the VBlank wake-up — a real correctness gap against actual hardware timing, even
+  though it produced no observable corruption under headless PyBoy emulation.
 - **Acceptance Criteria:** The score-bar write occurs only inside a confirmed-VBlank/LCD-off
   window, verified by static inspection of the write site.
-- **Verification Method:** Inspection.
+- **Verification Method:** Test (`test_rom.py` T8.10a/T8.10b) / Inspection (call-site relocation
+  confirmed directly against `asm_game.py`).
 - **Source Documents:** GDS-06 N2; `Claude.md`'s "Remaining Known Issues" note (credited as this
   finding's origin, per GDS-06's merge decision).
 - **Related ADRs:** None.
-- **Notes:** Tracked as **BL-0003**, folded into the umbrella remediation entry **BL-0008**. This
-  NFR is stated as a standard the system must meet, not evidence that it currently does — do not
-  close this NFR's non-compliance without a remediation package that fixes the write site itself.
+- **Notes:** Remediated by **IP-9020** (closes **BL-0003**, part of the umbrella remediation
+  entry **BL-0008**).
 
 ## Reliability
 
@@ -164,12 +175,13 @@
   held at save time.
 - **Rationale:** GDS-06 N3; FR-5220 (widened field set).
 - **Priority:** Must
-- **Status: MET** for the pre-widening field set (confirmed directly); **not yet independently
-  verified** for the newly-added per-zone ScoreItem field (FR-5220 has no implementation yet — see
-  RQ-04). This NFR remains scoped to *whatever fields are declared persisted*, which as of
-  2026-07-07 explicitly includes per-zone ScoreItem state per the user's decision resolving
-  BL-0018 (now `DONE`) — facing direction and animation frame remain explicitly excluded
-  (FR-5210), not an open question.
+- **Status: MET (2026-07-07, via `IP-1010` — pending independent verification by
+  `09-package-verification`)** for the full widened field set, including the new per-zone
+  ScoreItem field. `test_rom.py` T11.b5/T11.c/T11.e1 (+ the existing T10 suite) round-trip
+  `CurrentZone`/`PlayerPosition`/`Score`/`CarrotFlags`/`SCOREITEM_FLAGS` together in a single
+  save/reload cycle; T11.d confirms the version-guard default (pre-upgrade saves load
+  `SCOREITEM_FLAGS` as all-zero rather than trusting garbage bytes). Facing direction and
+  animation frame remain explicitly excluded (FR-5210), not an open question.
 - **Acceptance Criteria:** For each field in {CurrentZone, PlayerPosition, CarrotCount, Score,
   CarrotFlags[9], per-zone ScoreItem collected-state}, saving then loading yields an identical
   value.
