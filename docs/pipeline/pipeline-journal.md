@@ -14,16 +14,15 @@
 
 ## Position
 
-- **Updated:** 2026-07-09 (run #40)
+- **Updated:** 2026-07-09 (run #41)
 - **Increment:** **Two increments in flight, user is driving both via an explicit loop +
   override.** (1) **Bootstrap baseline** — 01–07 ✅, all five packages **implemented** (four
   VERIFIED, `IP-9030` COMPLETE); only `IP-9030`'s verification and stages 10–11 remain, deferred
   behind a fresh-session requirement, not abandoned. (2) **Aesthetics / visual-story-narrative /
   procgen-world-map** — adopted 2026-07-09
   ([PLAN-requirements-aesthetics-story-map.md](PLAN-requirements-aesthetics-story-map.md), v5,
-  owner decisions D1–D10). **Stage 01 ✅. Stage 02 ✅. Stage 03 decisions phase ✅** (ADR-0009/
-  0010/0011). **Stage 03 GDS-ladder-delta phase:** GDS-01/04/07/08/09 ✅ (run #40 completes
-  GDS-09); GDS-10 (the last level) remains.
+  owner decisions D1–D10). **Stage 01 ✅. Stage 02 ✅. Stage 03 ✅ in full** (3 ADRs + all six
+  GDS deltas, run #41 closes GDS-10). **Stage 04 next — the increment's terminal deliverable.**
 - **Pipeline state:** Bootstrap: stages 01–07 ✅ (first pass). Stage 08/09: **all five packages
   implemented** — `IP-9010`/`IP-1010`/`IP-9020`/`IP-9040` **VERIFIED**
   ([VR-9010](../implementation/verification/VR-9010-test-suite-rewrite.md) /
@@ -31,14 +30,24 @@
   [VR-9020](../implementation/verification/VR-9020-score-bar-vblank-fix.md) /
   [VR-9040](../implementation/verification/VR-9040-legacy-artifact-archival.md)); `IP-9030`
   **COMPLETE**, awaiting `09-package-verification` in a **fresh session**. Stages 10–11 ⛔.
-  **New increment:** stage 01 ✅; stage 02 ✅; stage 03 🚧 (3 ADRs ✅, GDS-01/04/07/08/09 ✅,
-  GDS-10 ⛔ — last level).
-- **Backlog:** 33 entries, 14 open. Run #40: no backlog changes. The 04-delta batch
-  (BL-0020/0022/0026/0028/0033) remains the largest open cluster, entirely within the bootstrap
-  increment.
-- **Next step:** **`03-architecture-design-synthesis`** again — **GDS-10** (RTM-level refresh),
-  the last remaining level; closes stage 03 for this increment and advances to stage 04
-  (`04-requirements-engineering`, the increment's terminal deliverable) once done.
+  **New increment:** stage 01 ✅; stage 02 ✅; stage 03 ✅ (3 ADRs + GDS-01/04/07/08/09/10, all
+  dated deltas); **stage 04 not yet started — next.**
+- **Backlog:** 34 entries, 15 open. Run #41 harvest: new **BL-0034** (Low, SCHEDULED) — GDS-10's
+  own 2026-07-06 merge decision (§3/§4 should point to `RQ-04` once authored) was never
+  executed; noticed while confirming the ID scheme, out of this light delta's scope. **BL-0029/
+  0030/0031** dispositions updated — stage 03 fully done for all three, each naming its specific
+  stage-04 target (aesthetic NFRs / visual-narrative FRs / world-generation FRs). The 04-delta
+  batch (BL-0020/0022/0026/0028/0033/0034) remains the largest open cluster, entirely within the
+  bootstrap increment (note: unrelated to *this* increment's own stage-04 work, which is new
+  requirements, not a correction batch).
+- **Next step:** **`04-requirements-engineering`** — the adopted plan's Phase 4, its **terminal
+  deliverable**: derive FR/NFR requirements per stream (C8 aesthetic NFRs from GDS-08 §7; C9
+  visual-narrative FRs — the R212/GDS-01 §3a/GDS-04 adjacency grammar and item-agnostic
+  collect-goal as numbered requirements; C10 world-generation FRs — determinism, seed/scale
+  entry per ADR-0010, generator invariants per GDS-04's new domain rules), then RQ-03 review and
+  RQ-04 RTM rows. Definition of done per the plan §2 Phase 4: every new FR/NFR traces to a
+  GDS-ladder section and an R-topic; §0's ten decisions each have visible requirement-level
+  descendants.
 - **Open gates:** none blocking the current path. Deferred, not skipped: `IP-9030`'s
   verification (needs a fresh session — the loop's likely eventual stopping point) and Release
   1's GO/NO-GO (11). No open human gates remain in the new increment's gate table (§5) — every
@@ -89,3 +98,4 @@
 | 38 | 2026-07-09 | advance (loop, run 9) | `03-architecture-design-synthesis` | GDS-07 delta (proposed WRAM/SRAM layout for seed/scale/region graph) | ✅ **Delta authored (proposed addresses, per the FS-101/`IP-1010` confidence precedent).** WRAM: `SEED` (2B)/`WORLD_SCALE` (1B) at `C069`–`C06B`, `REGION_GRAPH` (5B/region × ≤81 regions = ≤405B) + `KEYITEM_FLAGS` (≤81B) from `C070` — ~489 bytes worst-case, comfortably inside R111's confirmed ~3.1KB bank-0 headroom, no `SVBK` triggered. SRAM: new version value + `SEED`/`WORLD_SCALE` mirrors + 81-byte worst-case `KEYITEM_FLAGS` mirror (~84 bytes against 8KB) extending the `FS-101`/`IP-1010` pattern — the generated world itself is not persisted, only `(seed, scale, flags)`; `REGION_GRAPH` regenerates on load. Tile-index-map implication cross-referenced to GDS-08 (next level), not decided here. **Also corrected a now-stale note**: the original merge decision said `Claude.md`/`memory.md` "remain flagged stale... until" a doc-refresh lands — `IP-9030` already landed it (2026-07-09), text updated to reflect the merge is complete. `docs/architecture/INDEX.md`/`ROADMAP.md` updated. No new findings; no drift. | `03-architecture-design-synthesis` again — GDS-08 (normative aesthetic standard for C8, biome-transition presentation for C9 — the biome-family tile/palette strategy GDS-07's §8 cross-referenced forward), the next unclosed level |
 | 39 | 2026-07-09 | advance (loop, run 10) | `03-architecture-design-synthesis` | GDS-08 delta (normative aesthetic standard, biome-transition strategy) | ✅ **Delta authored — the increment's content-heaviest level.** §7: reviewable checklist grounded in R209 (silhouette-first, per-part color budget, outlines-on-characters-never-terrain, no anti-aliasing, consistent terrain-variant pattern) plus newly-operationalized clean-screen rules (no undefined tiles, no illegal seam pairs, correct transition-edge neighbors) and a smoothness bar tied to the existing LCD-off redraw budget (GDS-07/R102) — this is the artifact `09-content-review` will judge future content against. §8: biome-transition palette-stepping strategy (grammar-adjacent biomes should read as color-family-adjacent, e.g. blues→sands→greens) extending rather than replacing the existing terrain-family reuse pattern; **explicitly confirms the palette ceiling binds biome-family count, not blending**, since D2 rules out intra-screen mixing — the existing palette-4-serves-three-zones reuse cited as direct headroom evidence; exact biome-family count/assignment deferred to the sizing package. §9: closes the loop GDS-07's delta opened (biome families reuse the existing 8-tile-aligned terrain-block convention). `docs/architecture/INDEX.md`/`ROADMAP.md` updated. No new findings; no drift. **All four content-bearing GDS deltas this increment needs are now authored (01/04/07/08).** | `03-architecture-design-synthesis` again — GDS-09 (interface/patch-point deltas: generator module boundary, seed/scale patch points) and GDS-10 (RTM-level refresh), the two remaining, lighter levels before stage 03 fully closes |
 | 40 | 2026-07-09 | advance (loop, run 11) | `03-architecture-design-synthesis` | GDS-09 delta (worldgen.py contract, new patch points) | ✅ **Delta authored.** New module contract: `worldgen.py` (proposed) — `generate(seed, scale) -> RegionGraph`, a build-side Python mirror of the SM83 generator, consumed only by `test_rom.py` as R305's reference-generator oracle (never imported by `build_rom.py`/`asm_game.py` — mirrors, doesn't share code with, the runtime routine). The byte-identical-output contract between the two implementations is named explicitly as the load-bearing property R305's determinism-testing strategy depends on. Extended contracts: `build_game_asm`'s `patches` dict gains new keys (seed/scale-entry screen, generator-data pointers) via the existing mechanism, no new resolution machinery — exactly what R302's own guidance already anticipated; `ALL_SCREENS` generalizes to one `fn()` per biome family (not per fixed zone), contract shape unchanged, only the caller's iteration source changes. Confirmed unaffected: `class ROM`, `build_tile_data()`, `ZONE_COLLECTS`'s shape, `music_data()`. `docs/architecture/INDEX.md`/`ROADMAP.md` updated. No new findings; no drift. | `03-architecture-design-synthesis` again — **GDS-10** (RTM-level refresh), the last remaining level; closes stage 03 for this increment once done |
+| 41 | 2026-07-09 | advance (loop, run 12) | `03-architecture-design-synthesis` | GDS-10 delta (ID-scheme confirmation) | ✅ **Delta authored — closes stage 03's GDS-ladder-delta phase.** Refreshed the ID-namespace table (§2), stale since the bootstrap increment shipped through 04–09 without it being updated (`ADR-xxxx`/`RQ-0x`/`FP-0x`/`FS-xxx`/`IP-xxxx`/`VR-xxxx` all showed "not yet authored" despite being populated back at runs #16–#29). New "Scheme confirmation" subsection: no new ID prefix needed for this increment's artifacts — `MSTR-001` C8/C9/C10 are ordinary lettered commitments, `ADR-0009`/`0010`/`0011` are ordinary sequential ADRs (the first instance of one superseding another, handled by existing prose convention), the GDS-01/04/07/08/09 "delta section" pattern is an editing convention within existing documents, not a new ID class. **Incidental finding, harvested as new BL-0034** (Low, SCHEDULED): GDS-10's own 2026-07-06 merge decision said §3/§4 should become pointers to `RQ-04` once it was authored (it was, same day, run #17) — never executed; out of this light delta's scope, filed rather than restructured inline. `docs/architecture/INDEX.md`/`ROADMAP.md` updated. **All six GDS levels this increment touches (01/04/07/08/09/10) now carry a dated delta — stage 03 is fully closed for this increment** (the three ADRs + six deltas together satisfy the adopted plan's Phase 3 in full). | `04-requirements-engineering` — Phase 4 of the adopted plan, the increment's **terminal deliverable**: derive FR/NFR requirements per stream (aesthetic NFRs for C8; visual-narrative FRs incl. the biome-adjacency grammar as requirements, item-agnostic collect-goal for C9; world-generation FRs incl. determinism, seed/scale entry behavior, generator invariants for C10), RQ-03 review, RQ-04 RTM rows |
