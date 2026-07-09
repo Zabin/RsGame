@@ -2,12 +2,13 @@
 
 - **Document type:** increment plan (pipeline run-book companion, like
   [`BOOTSTRAP.md`](BOOTSTRAP.md))
-- **Date:** 2026-07-08 · **Revised:** 2026-07-09 (v4 — §0 gains D7/D8: seed & scale are
-  new-game-only parameters; the in-game save menu gains an exit-to-main-menu option. v3 added
-  the D2 clarification and D5/D6; v2 incorporated D1–D4 and superseded v1's dialog-centric
-  story stream and handcrafted-map assumption)
-- **Status:** proposed — awaiting user adoption; nothing in this plan is itself an
-  authorization to do work (see §8)
+- **Date:** 2026-07-08 · **Revised:** 2026-07-09 (v5 — §0 gains D9/D10: no auto-load at
+  boot, main menu confirmed in the flow; exit-to-main-menu auto-saves. v4 added D7/D8; v3
+  added the D2 clarification and D5/D6; v2 incorporated D1–D4 and superseded v1's
+  dialog-centric story stream and handcrafted-map assumption)
+- **Status:** **ADOPTED — owner decision, 2026-07-09** ("Adopt the plan for pipeline
+  implementation"). Adoption makes this the pipeline's next increment after Release 1 closes;
+  it is **not** a G3 authorization for any implementation package (see §8)
 - **Goal:** a traceable, reviewed **requirements baseline delta** (RQ-01…RQ-04 under
   `docs/requirements/`) covering three new work streams — **(A) aesthetic quality**, **(B) a
   visual story narrative**, **(C) a deterministic, seed- and scale-driven procedurally
@@ -60,14 +61,25 @@ first so no phase re-litigates them:
   are entered/adjusted in the new-game flow and are **immutable for the life of that save** —
   no mid-run modification. Changing them means starting a new game.
 - **D8 — The start-button save menu includes an "exit to main menu" option** (owner,
-  2026-07-09). Implication accepted by this plan: the title flow grows a proper **main menu**
+  2026-07-09). Implication (confirmed by D9): the title flow grows a proper **main menu**
   (continue / new game → seed & scale entry), since D7 makes it the only place a new world can
   be configured, and D8 gives the player a path back to it without power-cycling.
+- **D9 — The main menu is confirmed in the flow, and a saved game no longer auto-loads at
+  boot** (owner, 2026-07-09). Boot goes title → **main menu**; loading the save is a player
+  choice (continue) beside new game. This **deliberately supersedes shipped baseline
+  behavior**: MSTR-001 **C2**'s "a valid save auto-loads on boot" clause is amended
+  (persistence across power-off stays; the *load* becomes player-initiated), with blast
+  radius in the auto-load requirement (RQ-01's save/load group) and the tests that assert
+  auto-load-on-boot.
+- **D10 — Exiting to the main menu via the start-button menu auto-saves first** (owner,
+  2026-07-09). No progress is lost by exiting; this resolves the exit option's save-safety
+  semantics (the question Phase 4 had carried) in favor of save-then-exit.
 
 D1/D2 resolve v1's open "story shape & tone" user gate. D5 resolves v2's open "fate of the
 handcrafted world" gate. D3+D6 together effectively close BL-0015's "wider vs deeper" question
-(see §6). D7/D8 resolve the seed & scale *timing* and the menu-flow shape, leaving only
-presentation details to the Phase-3 ADR. D4 is the seed of this increment's headline NFRs.
+(see §6). D7–D10 fully resolve the seed & scale *timing*, the menu-flow shape, and the exit
+save semantics, leaving only presentation details (entry screens, scale bounds/defaults) to
+the Phase-3 ADR. D4 is the seed of this increment's headline NFRs.
 
 ## §1 Where each stream must enter the pipeline
 
@@ -115,9 +127,13 @@ Unchanged from v1. Before extending the baseline:
      "not ruled out" phrasing preserved).
    - **Aesthetics (D4):** a quality commitment — presentation is a first-class, reviewed
      deliverable; every screen/room/view clean; the experience smooth.
-   - **Map (D3/D5/D6/D7):** C7 gains its first concrete shape — the world is
+   - **Map (D3/D5/D6/D7/D9):** C7 gains its first concrete shape — the world is
      **deterministically generated from a user-modifiable seed and a user-adjustable world
-     scale, both fixed at new-game creation** (D7). The amendment
+     scale, both fixed at new-game creation** (D7). **C2 is amended per D9**: persistence
+     across power-off stays a commitment, but "a valid save auto-loads on boot" becomes
+     "loading is player-initiated from the main menu" — a second deliberate
+     protected-baseline change alongside D5's, with its own enumerated blast radius
+     (auto-load FRs, boot-flow tests). The amendment
      records **D5's C5 consequence explicitly**: the shipped handcrafted 3×3 world is
      superseded and archived (the `legacy/` precedent, BL-0004/IP-9040) — a deliberate,
      recorded protected-baseline change, with the blast radius enumerated (tilemaps, tests
@@ -166,10 +182,12 @@ The GDS ladder exists; this phase is **deltas plus ADRs**, per level, in ladder 
 - **GDS-01 (Concept of Play):** the play loop over a generated world — how the biome flow
   (D2) structures exploration (the grammar makes travel legible: heading inland/upland *is*
   the narrative), session shape across the D6 scale range, and the **revised game flow
-  (D7/D8)**: title → main menu (continue / new game → seed & scale entry) → play; the
-  in-game start-button save menu gains **exit to main menu**, closing the loop back to
-  new-game configuration without a power cycle. This is a delta to the shipped state machine
-  (FEAT-1000/GDS-05's title→intro→play flow and the existing save-menu states).
+  (D7/D8/D9/D10)**: boot → title → **main menu** (continue / new game → seed & scale entry)
+  → play, with **no auto-load at boot** (D9); the in-game start-button save menu gains
+  **exit to main menu**, which **auto-saves before returning** (D10), closing the loop back
+  to new-game configuration without a power cycle and without progress loss. This is a delta
+  to the shipped state machine (FEAT-1000/GDS-05's title→intro→auto-load→play flow and the
+  existing save-menu states).
 - **GDS-04 (Domain Model):** new/changed entities — **Seed**, **WorldScale** (D6),
   **Region/Biome** with the **adjacency grammar as a domain rule** (D2), **KeyItem**
   (item-agnostic, per D2), generator invariants as domain rules (exactly one KeyItem per
@@ -213,8 +231,9 @@ One `04-requirements-engineering` increment pass deriving, per stream:
 - **C:** world-generation **FRs/NFRs** — determinism ("identical (seed, scale) ⇒ identical
   world, every boot, every run"), **seed and scale entry behavior** (new-game-only entry with
   per-save immutability — D6/D7; bounds and defaults), **menu-flow FRs** (main menu with
-  continue/new-game; the save menu's exit-to-main-menu option, including its save-safety
-  semantics — D8), seed+scale+flags persistence, the handcrafted-world **archival
+  continue/new-game and **no auto-load at boot** — D9, superseding the shipped auto-load FR;
+  the save menu's exit-to-main-menu option with **auto-save-then-exit** semantics — D8/D10),
+  seed+scale+flags persistence, the handcrafted-world **archival
   requirement** (D5, packaged later per the IP-9040 precedent),
   generator invariants as testable requirements (reachability, one KeyItem per region,
   grammar validity), generation-time budget across the scale range (smoothness — D4),
@@ -226,7 +245,7 @@ One `04-requirements-engineering` increment pass deriving, per stream:
   section and forward to (initially UNASSIGNED) tests.
 
 **Definition of done for this plan:** RQ-01…04 updated and internally reviewed; every new
-FR/NFR traces to a GDS-ladder section and an R-topic; §0's eight decisions each have visible
+FR/NFR traces to a GDS-ladder section and an R-topic; §0's ten decisions each have visible
 requirement-level descendants; open questions resolved or carried as dispositioned backlog
 entries; the pipeline journal records the increment. Stage 05 then decomposes the delta into
 FEAT-xxxx rows and populates FP-01's currently-empty Release 2+ buckets — outside this plan.
@@ -238,7 +257,7 @@ Phase 0   IP-9030 → 10-integration-review → 11-release-readiness ─┐
           04-delta batch (BL-0020/0022/0026/0028) ────────────────┤
                                                                   ▼
 Phase 1   00-intake (3 BL entries) → triage → 01-vision v3.0
-          (records D1–D8 incl. D5's archival of the handcrafted 3×3 world)
+          (records D1–D10 incl. the D5/D9 protected-baseline changes)
                                                                   ▼
 Phase 2   02-research: R212 (biome-flow grammar) · R213 (procgen algorithms) ·
           R214 (GBC homebrew procgen) + hardware/tooling extensions
@@ -300,12 +319,12 @@ user story for aesthetics/story/map goes through the same door:
 
 | Gate | Phase | Decision | State |
 |---|---|---|---|
-| Adopt this plan | now | Whether to run Phases 0–4 as the next increment after Release 1 closes. | open |
+| Adopt this plan | now | ~~Whether to run Phases 0–4 as the next increment after Release 1 closes~~ | **decided 2026-07-09: ADOPTED** ("Adopt the plan for pipeline implementation") |
 | Release 1 GO/NO-GO (G4) | 0 | Normal `11-release-readiness` gate. | open |
 | Story shape & tone | 1 | ~~Premise, dialog, tone~~ | **decided 2026-07-08 (D1/D2):** visual narrative via logical biome flow, no dialogue requirement; agent constructs the grammar from research |
 | Map paradigm | 1–3 | ~~Wider vs deeper (BL-0015 as filed)~~ | **decided 2026-07-08 (D3/D6):** procgen world from (seed, scale); scale is a *user-runtime parameter*, so the design fork dissolves — §6 |
 | Fate of the handcrafted 3×3 world | 1 | ~~Does a default seed ship / is the current world kept?~~ | **decided 2026-07-08 (D5):** archived, per the `legacy/` precedent |
-| Seed & scale timing + menu flow | 1–3 | ~~Where/when the user edits seed and scale~~ | **decided 2026-07-09 (D7/D8):** new-game-only entry, immutable per save; save menu gains exit-to-main-menu (implying a main menu with continue/new-game). Remaining at the ADR: entry-screen presentation and scale bounds/defaults — the agent's call within hardware budgets per D6. |
+| Seed & scale timing + menu flow | 1–3 | ~~Where/when the user edits seed and scale; boot/exit semantics~~ | **decided 2026-07-09 (D7/D8/D9/D10):** new-game-only entry, immutable per save; main menu confirmed with no auto-load at boot; exit-to-main-menu auto-saves. Remaining at the ADR: entry-screen presentation and scale bounds/defaults — the agent's call within hardware budgets per D6. |
 | G3 package authorization | after 4 | Unchanged: no stage-08 work from this increment starts without explicit authorization. | standing |
 
 ## §6 Disposition of BL-0015 (wider vs deeper)
@@ -355,11 +374,15 @@ close BL-0015 with this rationale when the stream-C intake row is filed.
 - **C6:** all items, themes, and imagery stay family-friendly, all-ages (bounds D2's item
   theming).
 
-## §8 What this plan is not
+## §8 What this plan is (and is not) now that it's adopted
 
-It is a **map, not a mandate**: it does not file backlog entries (that's `00-intake`'s write
-scope), does not amend the vision (that's a deliberate `01-vision` run — §0's decisions are
-*inputs* to it, recorded here so they survive verbatim), does not close BL-0015 (the
-manager's call, §6), and does not authorize any package (G3). Adopting it means: finish Phase
-0, then feed §4's three seed rows to `00-intake` and let `00-pipeline-manager` drive the
-phases one step at a time, journaled as always.
+Adopted 2026-07-09 (§5). Adoption means: this is the pipeline's next increment after Release
+1 closes — §4's three seed rows are filed with `00-intake`, and `00-pipeline-manager` drives
+the phases one step at a time, journaled as always, starting with Phase 0's remaining
+bootstrap work.
+
+It remains a **map, not a mandate**: it does not itself amend the vision (that's the
+deliberate `01-vision` run of Phase 1 — §0's decisions are *inputs* to it, recorded here so
+they survive verbatim), does not close BL-0015 (the manager's call, §6), and does not
+authorize any implementation package — **G3 authorization is still required per package**
+when stage 07 eventually produces them.
