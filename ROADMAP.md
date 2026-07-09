@@ -40,7 +40,7 @@ build order.
 |---|---|---|---|---|
 | PL-JOURNAL | Pipeline journal | `docs/pipeline/pipeline-journal.md` | — | ♻️ |
 | PL-BACKLOG | Pipeline backlog | `docs/pipeline/backlog.md` | — | ♻️ |
-| PL-PLAN-ASM | Increment plan: requirements for aesthetics / visual story / procgen map | `docs/pipeline/PLAN-requirements-aesthetics-story-map.md` | MSTR-001, PL-BACKLOG, RQ baseline | ✅ **ADOPTED** (2026-07-09, owner decision; v5 carries owner direction D1–D10) |
+| PL-PLAN-ASM | Increment plan: requirements for aesthetics / visual story / procgen map | `docs/pipeline/PLAN-requirements-aesthetics-story-map.md` | MSTR-001, PL-BACKLOG, RQ baseline | ✅ **PHASE 4 COMPLETE** (adopted 2026-07-09; all 4 phases executed same day, runs #31–#42 — RQ-01…04 delta is the terminal deliverable) |
 
 ## Theme: Master (`docs/master/`) — owner `01-vision` (+ `03`)
 

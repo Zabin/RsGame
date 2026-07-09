@@ -6,9 +6,15 @@
   boot, main menu confirmed in the flow; exit-to-main-menu auto-saves. v4 added D7/D8; v3
   added the D2 clarification and D5/D6; v2 incorporated D1–D4 and superseded v1's
   dialog-centric story stream and handcrafted-map assumption)
-- **Status:** **ADOPTED — owner decision, 2026-07-09** ("Adopt the plan for pipeline
-  implementation"). Adoption makes this the pipeline's next increment after Release 1 closes;
-  it is **not** a G3 authorization for any implementation package (see §8)
+- **Status:** **ADOPTED (2026-07-09) → PHASE 4 COMPLETE (2026-07-09).** All four phases executed
+  in one continuous pipeline run (`00-pipeline-manager` runs #31–#42): Phase 1 vision amendment
+  (MSTR-001 v3.0), Phase 2 research (new topics R111/R212/R213/R214 plus R102/R106/R302/R305
+  extensions), Phase 3 architecture (ADR-0009/0010/0011 plus six GDS deltas — 01/04/07/08/09/10),
+  Phase 4 requirements (RQ-01…04 delta, 16 new target requirements). **This document's own
+  stated terminal deliverable (§2 Phase 4) is reached.** Adoption was **not** a G3 authorization
+  for any implementation package (see §8) — nothing described by the new FR/NFR baseline has
+  been built; stage 05 (`05-feature-decomposition`) onward continues under the pipeline's normal
+  cadence, outside this plan's own stated scope.
 - **Goal:** a traceable, reviewed **requirements baseline delta** (RQ-01…RQ-04 under
   `docs/requirements/`) covering three new work streams — **(A) aesthetic quality**, **(B) a
   visual story narrative**, **(C) a deterministic, seed- and scale-driven procedurally
