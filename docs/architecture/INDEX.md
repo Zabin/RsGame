@@ -17,7 +17,7 @@ is closed with its decision recorded in prose. Status here and in `ROADMAP.md` m
 | GDS-01 | Concept of Play | [01-concept-of-play.md](01-concept-of-play.md) | ✅ Authored (gate closed 2026-07-06; delta 2026-07-09 for procgen-world increment, §§2a/3a/4a/4b) |
 | GDS-02 | System Context | [02-system-context.md](02-system-context.md) | ✅ Authored (gate closed 2026-07-06) |
 | GDS-03 | Architecture | [03-architecture.md](03-architecture.md) | ✅ Authored (gate closed 2026-07-06) |
-| GDS-04 | Domain Model | [04-domain-model.md](04-domain-model.md) | ✅ Authored (gate closed 2026-07-06) |
+| GDS-04 | Domain Model | [04-domain-model.md](04-domain-model.md) | ✅ Authored (gate closed 2026-07-06; delta 2026-07-09 for procgen-world increment — Seed/WorldScale/Region/KeyItem) |
 | GDS-05 | Functional Requirements | [05-functional-requirements.md](05-functional-requirements.md) | ✅ Authored (gate closed 2026-07-06) |
 | GDS-06 | Non-functional Requirements | [06-non-functional-requirements.md](06-non-functional-requirements.md) | ✅ Authored (gate closed 2026-07-06) |
 | GDS-07 | Data Model | [07-data-model.md](07-data-model.md) | ✅ Authored (gate closed 2026-07-06) |
