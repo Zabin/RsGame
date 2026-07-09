@@ -14,31 +14,40 @@
 
 ## Position
 
-- **Updated:** 2026-07-07 (run #29)
-- **Increment:** **Bootstrap baseline** — document the shipped game (**Bunny Quest**) as-built
-  through stages 01–07, verify the as-built record (09), then drive the widened
-  BL-0001/0003/0005/0006/0007 remediation scope (BL-0008's umbrella) through the 07→08→09 loop.
-  See [`BOOTSTRAP.md`](BOOTSTRAP.md). Runs #27–#29 (user-directed verification iteration)
-  verified `IP-1010`, `IP-9020`, and `IP-9040` — **four of five packages VERIFIED**; Release 1's
-  critical path complete end-to-end.
-- **Pipeline state:** Stages 01–07 ✅ (first pass). Stage 08/09: **`IP-9010`, `IP-1010`,
-  `IP-9020`, `IP-9040` all VERIFIED**
+- **Updated:** 2026-07-09 (run #30)
+- **Increment:** **Two increments now in flight.** (1) **Bootstrap baseline** — document the
+  shipped game as-built (01–07 ✅), verify the as-built record (09). All five packages now
+  **implemented** (four VERIFIED, `IP-9030` COMPLETE 2026-07-09); only `IP-9030`'s verification
+  and stages 10–11 remain to fully close it. (2) **Aesthetics / visual-story-narrative /
+  procgen-world-map** — user-adopted 2026-07-09
+  ([PLAN-requirements-aesthetics-story-map.md](PLAN-requirements-aesthetics-story-map.md), v5,
+  owner decisions D1–D10), seeded as **BL-0029/BL-0030/BL-0031**. **User override (run #30,
+  same message): work this increment's Phase 1 (`01-vision`) next, ahead of finishing Phase 0**
+  (`IP-9030` verification / 10 / 11) — journaled as an override, not the plan's own recommended
+  order.
+- **Pipeline state:** Stages 01–07 ✅ (first pass, bootstrap). Stage 08/09 (bootstrap): **all
+  five packages implemented** — `IP-9010`/`IP-1010`/`IP-9020`/`IP-9040` **VERIFIED**
   ([VR-9010](../implementation/verification/VR-9010-test-suite-rewrite.md) /
   [VR-1010](../implementation/verification/VR-1010-per-zone-scoreitem-persistence.md) /
   [VR-9020](../implementation/verification/VR-9020-score-bar-vblank-fix.md) /
-  [VR-9040](../implementation/verification/VR-9040-legacy-artifact-archival.md)). **`IP-9030`
-  (root-doc refresh) is the sole remaining package — `READY`** (both dependencies VERIFIED,
-  docs-only, G3 on record via BL-0024). Stages 10–11 ⛔ (integration review available once
-  IP-9030 implements+verifies — or runnable early on the four VERIFIED packages if desired).
-- **Backlog:** 28 entries, 11 open. Run #29 closed **`BL-0004`** (legacy archival —
-  independently confirmed by VR-9040, no findings). **`BL-0008`** umbrella narrowed: only
-  IP-9030 (BL-0007) still owed. The 04-delta batch (BL-0020/0022/0026/0028) remains the largest
-  open cluster.
-- **Next step:** **`08-code-implementation`** on `IP-9030` (root-doc refresh) — the last
-  package; with `BL-0027` a natural rider candidate the user may fold in (currently scheduled
-  for a separate 07 hygiene pass).
-- **Open gates:** none. Next human gates: any Critical/High VR findings on IP-9030's eventual
-  verification (09), and the eventual release GO (11).
+  [VR-9040](../implementation/verification/VR-9040-legacy-artifact-archival.md)); `IP-9030`
+  **COMPLETE** (2026-07-09, this run), awaiting `09-package-verification` in a **fresh session**
+  (same-session independence rule). Stages 10–11 ⛔, unblocked once IP-9030 verifies. **New
+  increment:** stage 01 about to run its v3.0 amendment (D1–D10); 02/03/04 not yet started.
+- **Backlog:** 31 entries, 12 open. Run #30 (pre-step triage): **`BL-0015` → DONE** (closed —
+  D3/D6's user-adjustable world scale dissolves "wider vs deeper" into a runtime parameter, no
+  fork left to adjudicate); **`BL-0029`/`BL-0030`/`BL-0031` → SCHEDULED**, riding the new
+  increment's `01-vision` amendment (about to execute per the user's override). The 04-delta
+  batch (BL-0020/0022/0026/0028) remains the largest open cluster in the bootstrap increment.
+- **Next step:** **`01-vision`** — v3.0 amendment for the aesthetics/visual-story/procgen-map
+  increment, carrying BL-0029/BL-0030/BL-0031 and owner decisions D1–D10 verbatim (per the
+  adopted plan §2 Phase 1). Executing now per the user's explicit override of the plan's own
+  Phase-0-first sequencing.
+- **Open gates:** none blocking the override. Deferred, not skipped: `IP-9030`'s verification
+  (needs a fresh session) and Release 1's GO/NO-GO (11) — both still owed before the bootstrap
+  increment can close. Next human gates on the new increment: the vision amendment itself needs
+  no gate (01 has none), but BL-0031's plan-level open items (seed/scale entry-screen
+  presentation, scale bounds/defaults) surface at the eventual seed & scale ADR (Phase 3).
 
 ## Run log
 
@@ -74,3 +83,4 @@
 | 27 | 2026-07-07 | advance | `09-package-verification` | IP-1010 (per-zone ScoreItem persistence) | ✅ **VERIFIED.** Fresh container (PyBoy 2.7.0 + numpy reinstalled — independence clean, no implementation work this session). ROM rebuilt **byte-identical** (sha256 match, 32768 bytes, 23404 used); full suite independently re-run: **125/125 pass, 0 failed**. All 4 DoD + 8 checklist items confirmed by direct code read: bit-index scheme (*k* = `COLL_COUNT−B`) consistent across both hook sites, save/load extensions inside the single MBC1 bracket, both reset paths clear `SCOREITEM_FLAGS`, boot WRAM clear covers `0xC060`, T11.d's synthetic pre-upgrade fixture proves the version guard (garbage `0xFF` mirror bytes ignored). Scope audit clean (two `JR`→`JP` conversions in-scope). Pillow-absent environment note investigated: screenshots are diagnostics-only, T6.7 uses `ndarray` — no check degraded. **[VR-1010](../implementation/verification/VR-1010-per-zone-scoreitem-persistence.md)** written. Ledger: IP-1010 → **VERIFIED**; Release 1 critical path complete. Triage: **BL-0002** → DONE (8×16 fix confirmed by ADR-0007/T6), **BL-0009** → DONE (GDS-08 carried the correction, run #13). Harvested: **BL-0023** → DONE (fix independently confirmed); new **BL-0028** (Low) — NFR-5200's "pending independent verification" clause now stale, rides the 04-delta batch. No drift. | `09-package-verification` on IP-9020 (score-bar VBlank fix) — unblocks IP-9030; then IP-9040 |
 | 28 | 2026-07-07 | advance (user-directed iteration through unblocked verifications) | `09-package-verification` | IP-9020 (score-bar VBlank fix) | ✅ **VERIFIED.** Direct code read confirmed: exactly one `CALL('update_status_disp')` in the tree, at the main loop's frame top between the `VBLANK_FLAG` clear and the `NEED_REDRAW` dispatch; `st_playing` no longer calls it; internal `GAMESTATE`/`SCORE_DIRTY` guards present (safe unconditional call-site). Full VRAM-writer sweep: every other `0x9800`-region writer (576-byte tilemap copy, `update_map_hearts`) runs only under `do_screen_redraw`'s LCD-off bracket — DoD item 1 proven exhaustively, not sampled. ROM rebuilt byte-identical (23404/32768 — this package's own delta was 0; the +256 is IP-1010's, already VERIFIED); suite **125/125** incl. T8.10a/b digit-timing checks. Scope audit clean. **[VR-9020](../implementation/verification/VR-9020-score-bar-vblank-fix.md)** written. Ledger: IP-9020 → **VERIFIED**; **IP-9030 BLOCKED → READY** (both dependencies now VERIFIED). Harvested: **BL-0003** → DONE; **BL-0028** widened (NFR-1200/GDS-06 N2 stale clauses + RTM snapshot count join NFR-5200's instance). No drift. | `09-package-verification` on IP-9040 (legacy artifact archival) — concluding the user-directed verification iteration |
 | 29 | 2026-07-07 | advance (same user-directed iteration) | `09-package-verification` | IP-9040 (legacy artifact archival) | ✅ **VERIFIED — no findings.** Direct audit: repo root has zero `BunnyGarden*` entries; `legacy/` holds exactly the three artifacts + README (history-preserving `git mv` confirmed via `git log --follow`); tree-wide reference grep: **zero hits in any `.py` file**, all 14 doc/skill hits classified historical or already-tracked (`memory.md` → BL-0007/IP-9030; run-bunnygarden skill → BL-0027). ROM rebuilt byte-identical (sha256 match, 23404/32768); suite **125/125** from the repo root. Scope audit clean (pure renames + README + two ledger rows; root README correctly left to IP-9030). **[VR-9040](../implementation/verification/VR-9040-legacy-artifact-archival.md)** written. Ledger: IP-9040 → **VERIFIED** — **four of five packages VERIFIED; IP-9030 (READY) is all that remains.** Harvested: **BL-0004** → DONE; BL-0008 umbrella narrowed to IP-9030 only. No drift. **User-directed verification iteration complete.** | `08-code-implementation` on IP-9030 (root-doc refresh) — the last package of the bootstrap tranche |
+| 30 | 2026-07-09 | advance (loop, run 1) | `08-code-implementation` | IP-9030 (root-doc refresh) | ✅ **COMPLETE — 125/125 checks pass.** Pre-step triage (mandatory before step 3): dispositioned the three increment seed entries **`00-intake`** filed for the adopted aesthetics/visual-story/procgen-map plan — **BL-0029/BL-0030/BL-0031 → SCHEDULED**, all riding the plan's Phase 1 `01-vision` v3.0 amendment once Phase 0 (this bootstrap tranche) closes; **BL-0015 → DONE (closed, not just re-triaged)** — BL-0031/the adopted plan's D3/D6 (seed *and* user-adjustable world scale) make "wider vs deeper" a runtime player choice, not an architecture fork, so no decision remains to adjudicate. Then executed IP-9030: PyBoy 2.7.0 + numpy reinstalled (fresh container, no memory of prior installs). Verified `Claude.md`/`memory.md`/`README.md` against the current tree and rewrote all three — replaced pre-rewrite "Bunny Garden Adventure" content (3-zone/"gifts" WRAM layout, wrong tile map, "v2.1"/"88/88" claims) with current facts; byte-level tables in `Claude.md`/`memory.md` replaced with pointers to **GDS-07/GDS-08** per those levels' own recorded merge decisions, rather than re-duplicated (the structural fix the package exists to make); Known Good Behavior/Known Issues sections rewritten to current truth (BL-0001 not-reproducing, BL-0003 fixed by IP-9020, both independently verified); README's quick-start commands corrected to the repo-relative form and **actually executed** to confirm (`build_rom.py` → 32768 bytes byte-identical; `test_rom.py` → 125/125). Stale-term sweep (`gifts`/`88/88`/`BunnyGarden Adventure`/3-zone/`BunnyGarden.gbc`) returns clean across all three docs. `ROADMAP.md`'s RT-CLAUDE/RT-MEMORY/RT-README rows and the Master Build Plan's IP-9030 row/graph/critical-path text updated to **COMPLETE**. No FR/NFR coverage (doc-defect remediation only) — RTM correctly unaffected. No new findings; no drift beyond the increment seed rows. **All five bootstrap-tranche packages now implemented** (four VERIFIED, IP-9030 COMPLETE). | **Independence stop:** `09-package-verification` on IP-9030 is the correct next step, but this same session just implemented it — 09's own rule forbids verifying same-session implementation work. Requires a fresh session. |
