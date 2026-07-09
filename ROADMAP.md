@@ -46,7 +46,7 @@ build order.
 
 | ID | Document | Path | Depends on | Status |
 |---|---|---|---|---|
-| MSTR-001 | Program vision | `docs/master/MSTR-001-program-vision.md` | — | ✅ |
+| MSTR-001 | Program vision | `docs/master/MSTR-001-program-vision.md` | — | ✅ v3.0 (2026-07-09 — adds C8/C9/C10, amends C2; see §8) |
 | MSTR-002…007 | Optional principle docs (see `docs/master/INDEX.md`) | `docs/master/` | MSTR-001 | ⛔ (on demand) |
 
 ## Theme: Research (`docs/research/`) — owners: the three `02-research-*` skills
@@ -62,7 +62,7 @@ build order.
 
 | ID | Document | Path | Depends on | Status |
 |---|---|---|---|---|
-| GDS-00 | Vision level | `docs/architecture/00-vision.md` | MSTR-001 | ✅ |
+| GDS-00 | Vision level | `docs/architecture/00-vision.md` | MSTR-001 | ✅ (revised 2026-07-09 for MSTR-001 v3.0) |
 | GDS-01 | Concept of Play | `docs/architecture/01-concept-of-play.md` | GDS-00 | ✅ (2026-07-06) |
 | GDS-02 | System Context | `docs/architecture/02-system-context.md` | GDS-01 | ✅ (2026-07-06) |
 | GDS-03 | Architecture | `docs/architecture/03-architecture.md` | GDS-02 | ✅ (2026-07-06) |
@@ -73,7 +73,7 @@ build order.
 | GDS-08 | Presentation Architecture | `docs/architecture/08-presentation-architecture.md` | GDS-07 | ✅ (2026-07-06) |
 | GDS-09 | Interface Specification | `docs/architecture/09-interface-specification.md` | GDS-08 | ✅ (2026-07-06) |
 | GDS-10 | RTM level | `docs/architecture/10-requirements-traceability-matrix.md` | GDS-09 | ✅ (2026-07-06) |
-| AR-ASSUME | Strategic assumptions register | `docs/architecture/strategic-assumptions-register.md` | MSTR-001 | ♻️ (A1–A8, revised 2026-07-06) |
+| AR-ASSUME | Strategic assumptions register | `docs/architecture/strategic-assumptions-register.md` | MSTR-001 | ♻️ (A1–A10, revised 2026-07-09) |
 | ADR-xxxx | Architecture Decision Records | `docs/architecture/adr/` | GDS-03 | ✅ (as-built set, ADR-0001…0008, 2026-07-06) |
 | ADS-xxx | Per-cluster design syntheses | `docs/architecture/` | research tiers | ⛔ (zero-or-more, on demand) |
 

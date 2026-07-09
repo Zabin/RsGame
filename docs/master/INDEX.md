@@ -8,7 +8,7 @@ stages share" (rules G1–G5).
 
 | ID | Document | Owned by | Status |
 |---|---|---|---|
-| MSTR-001 | Program vision — game is **Bunny Quest** ([`MSTR-001-program-vision.md`](MSTR-001-program-vision.md)) | `01-vision` | ✅ v2.0, 2026-07-06 (corrects v1.0's stale 3-zone description; see §8 amendment log) |
+| MSTR-001 | Program vision — game is **Bunny Quest** ([`MSTR-001-program-vision.md`](MSTR-001-program-vision.md)) | `01-vision` | ✅ v3.0, 2026-07-09 (adds C8 presentation quality, C9 visual story narrative, C10 procgen world; amends C2 to player-initiated load; see §8 amendment log) |
 | MSTR-002 | Architecture principles (`MSTR-002-architecture-principles.md`) | `03-architecture-design-synthesis` (optional; author when GDS-03's merge gate wants a home for cross-cutting principles) | ⛔ Planned |
 | MSTR-003 | Design philosophy (`MSTR-003-design-philosophy.md`) | `01-vision`/`03` (optional) | ⛔ Planned |
 | MSTR-004 | Glossary (`MSTR-004-glossary.md`) | any stage skill may add terms; `03` curates (optional) | ⛔ Planned |
