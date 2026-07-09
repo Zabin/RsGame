@@ -324,7 +324,7 @@ user story for aesthetics/story/map goes through the same door:
 | Story shape & tone | 1 | ~~Premise, dialog, tone~~ | **decided 2026-07-08 (D1/D2):** visual narrative via logical biome flow, no dialogue requirement; agent constructs the grammar from research |
 | Map paradigm | 1–3 | ~~Wider vs deeper (BL-0015 as filed)~~ | **decided 2026-07-08 (D3/D6):** procgen world from (seed, scale); scale is a *user-runtime parameter*, so the design fork dissolves — §6 |
 | Fate of the handcrafted 3×3 world | 1 | ~~Does a default seed ship / is the current world kept?~~ | **decided 2026-07-08 (D5):** archived, per the `legacy/` precedent |
-| Seed & scale timing + menu flow | 1–3 | ~~Where/when the user edits seed and scale; boot/exit semantics~~ | **decided 2026-07-09 (D7/D8/D9/D10):** new-game-only entry, immutable per save; main menu confirmed with no auto-load at boot; exit-to-main-menu auto-saves. Remaining at the ADR: entry-screen presentation and scale bounds/defaults — the agent's call within hardware budgets per D6. |
+| Seed & scale timing + menu flow | 1–3 | ~~Where/when the user edits seed and scale; boot/exit semantics; entry-screen presentation; scale bounds/defaults~~ | **fully decided:** timing/menu flow 2026-07-09 (D7/D8/D9/D10); entry-screen presentation and scale bounds/defaults resolved at [ADR-0010](../architecture/adr/ADR-0010-seed-scale-model.md) (2026-07-09) — 16-bit seed, scale 2–9 (default 3), digit-cursor entry UI, no text engine. |
 | G3 package authorization | after 4 | Unchanged: no stage-08 work from this increment starts without explicit authorization. | standing |
 
 ## §6 Disposition of BL-0015 (wider vs deeper)
