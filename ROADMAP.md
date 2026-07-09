@@ -27,9 +27,9 @@ build order.
 
 | ID | Document | Path | Depends on | Status |
 |---|---|---|---|---|
-| RT-README | Project overview & quick start | `README.md` | — | ♻️ |
-| RT-CLAUDE | Durable developer/agent quick-reference | `Claude.md` | GDS ladder merge decisions | ♻️ |
-| RT-MEMORY | Runtime notes & quick-ref tables | `memory.md` | — | ♻️ |
+| RT-README | Project overview & quick start | `README.md` | — | ♻️ (refreshed 2026-07-09, IP-9030) |
+| RT-CLAUDE | Durable developer/agent quick-reference | `Claude.md` | GDS ladder merge decisions | ♻️ (refreshed 2026-07-09, IP-9030 — byte-level tables now supersede to GDS-07/08) |
+| RT-MEMORY | Runtime notes & quick-ref tables | `memory.md` | — | ♻️ (refreshed 2026-07-09, IP-9030) |
 | RT-ROADMAP | This file | `ROADMAP.md` | all IDs below | ♻️ |
 | RT-INDEX | Master docs router | `docs/INDEX.md` | all theme indexes | ♻️ |
 | RT-BOOTSTRAP | Bootstrap run-book | `docs/pipeline/BOOTSTRAP.md` | pipeline README | ✅ |

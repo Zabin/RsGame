@@ -1,4 +1,4 @@
-# Bunny Garden Adventure — Developer Guide
+# Bunny Quest — Developer Guide
 
 ## Development pipeline (read this first for any non-trivial change)
 
@@ -26,61 +26,20 @@ asm_game.py    — Game logic: ISRs, main loop, all subroutines, WRAM/IO constan
 build_rom.py   — Master: imports all modules, lays out ROM sections, patches pointers
 ```
 
-### Data layout in ROM (32KB)
-```
-0x0000-0x003F  RST vectors (RETI)
-0x0040-0x0047  VBlank ISR
-0x0048-0x006F  Other ISRs (RETI)
-0x0100-0x0103  Entry point (NOP; JP main)
-0x0150-0x0800  Game code (from asm_game.py)
-0x0800-0x17FF  Tile data (256 tiles × 16 bytes = 4096 bytes)
-0x1800-0x183F  BG palettes  (8 palettes × 4 colors × 2 bytes)
-0x1840-0x187F  OBJ palettes (8 palettes × 4 colors × 2 bytes)
-0x1880-...     Music data
-...            Screen tilemaps (tiles + attrs, 576 bytes each × 8 screens)
-...            Zone collectible tables
-```
+### Data layout, WRAM map, SRAM save format
 
-### WRAM map (C000-C2FF)
-```
-C000  GAMESTATE      0=TITLE 1=INTRO 2=PLAYING 3=SAVE 4=MAP 5=VICTORY
-C001  PLAYER_X       pixel x (0-159)
-C002  PLAYER_Y       pixel y (16-143, row 0 is UI bar)
-C003  PLAYER_DIR     0=right 1=left
-C004  PLAYER_FRAME   0 or 1
-C005  ANIM_CTR       counts up to 10 then flips frame
-C006  SCORE          0-99
-C007  SCORE_DIRTY    1=needs redraw
-C008  CUR_ZONE       0=garden 1=forest 2=meadow
-C009  GIFTS          bit 0=zone0 bit 1=zone1 bit 2=zone2
-C00A  NEED_REDRAW    1=call do_screen_redraw next frame
-C00B  TRANSITION_TO  state to transition to
-C00C  JOY_CUR        bitmask: bit0=A 1=B 2=SELECT 3=START 4=RIGHT 5=LEFT 6=UP 7=DOWN
-C00D  JOY_PREV       previous frame joypad
-C00E  JOY_NEW        newly pressed this frame
-C00F  MUSIC_CTR      countdown timer per note
-C010  MUSIC_PTR_LO   ROM pointer to current music byte (low)
-C011  MUSIC_PTR_HI   ROM pointer to current music byte (high)
-C012  VBLANK_FLAG    set by ISR, cleared by main loop
-C013  TMP1           scratch
-C014  TMP2           scratch
-C020  COLL_DATA      collectible structs: 4 bytes each (x, y, type, active)
-C050  COLL_COUNT     number of collectibles loaded for current zone
-C300  OAM_BUF        shadow OAM (160 bytes), DMA'd each frame
-```
+**Superseded here — authoritative source is
+[`docs/architecture/07-data-model.md`](docs/architecture/07-data-model.md) (GDS-07).** GDS-07
+states exact byte addresses (ROM section layout, the `0xC000`–`0xC3A0` WRAM map, the `0xA000`+
+SRAM save format including the magic `BUNY` header and the `SAVE_VERSION_VAL` guard) confirmed
+directly against `build_rom.py`/`asm_game.py`. Duplicating those tables back into this file is
+exactly what went stale last time (see `docs/pipeline/backlog.md` BL-0007/BL-0008) — don't; edit
+GDS-07 when the layout changes, and this file's pointer stays correct with zero maintenance.
 
-### SRAM save format (0xA000)
-```
-A000  Magic 'B' (0x42)
-A001  Magic 'U' (0x55)
-A002  Magic 'N' (0x4E)
-A003  Magic 'Y' (0x59)
-A004  CUR_ZONE
-A005  PLAYER_X
-A006  PLAYER_Y
-A007  GIFTS
-A008  SCORE
-```
+Quick orientation only (see GDS-07 for the real tables): the game is **Bunny Quest** — 9 zones
+(Beach, Forest, Mountain, Lake, Village, Cave, Desert, Plains, Castle) in a 3×3 grid, one carrot
+per zone, victory at `CARROTS_COUNT == 9`. `CUR_ZONE` is `0–8`; `CARROT_FLAGS` and
+`SCOREITEM_FLAGS` are each 9-byte per-zone arrays.
 
 ---
 
@@ -92,7 +51,9 @@ A008  SCORE
 3. Reference `TL_NEW` from `tilemaps.py` or `asm_game.py`
 
 ### Edit a screen layout
-1. Edit the function in `tilemaps.py` (e.g. `garden_screen()`)
+1. Edit the function in `tilemaps.py` (e.g. `beach_screen()`, `forest_screen()` — one function
+   per zone, plus `title_screen()`/`intro_screen()`/`save_screen()`/`map_screen()`/
+   `victory_screen()` for the non-zone screens)
 2. No changes needed elsewhere — it auto-rebuilds
 3. Collectible positions are in `ZONE_COLLECTS` at bottom of `tilemaps.py`
 
@@ -115,24 +76,41 @@ A008  SCORE
 
 ---
 
-## Known Good Behavior (v2)
-- Title → START → Intro → A → Garden gameplay
-- D-pad moves bunny (held), animation works
-- Collectibles detected by proximity (10px)
-- Gift collected → GIFTS bit set, heart fills in score bar
-- All 3 gifts → VICTORY screen
+## Known Good Behavior
+
+Confirmed by the current `test_rom.py` suite (125/125 checks pass;
+[`docs/architecture/01-concept-of-play.md`](docs/architecture/01-concept-of-play.md) (GDS-01) is
+the authoritative narrative description of the state machine below):
+
+- Title → START → Intro → A → gameplay in the boot zone
+- D-pad moves the bunny (held), 8×16-OBJ walk animation works
+- Collectibles detected by proximity; stars/flowers add to `SCORE` (0–99, no completion
+  requirement); one carrot per zone sets a `CARROT_FLAGS` bit and increments `CARROTS_COUNT`
+- All 9 carrots collected → VICTORY screen
 - START in game → SAVE menu → A saves to SRAM, B cancels
-- SELECT in game → MAP screen → B exits
-- SRAM save persists across sessions (battery save, MBC1+RAM+BATTERY cart type 0x03)
-- Zone transition: walk off right edge → next zone, left edge → previous zone
-- Saved game auto-loads on boot (skips title if valid save found)
+- SELECT in game → MAP screen (3×3 grid, shows which zones' carrots are collected) → B exits
+- SRAM save persists across sessions (battery save, MBC1+RAM+BATTERY cart type `0x03`); a valid
+  save auto-loads on boot, skipping the title screen
+- Zone transition: walking off any screen edge with a valid 3×3-grid neighbor (signaled by a
+  directional arrow) enters that zone
+- A collected star/flower (`ScoreItem`) stays inactive across a save/reload of the same session,
+  and does not re-award `SCORE` on zone re-entry ([FR-5220](docs/requirements/01-functional-requirements.md), `BL-0023` fix, `IP-1010`)
 
-## Bugs Fixed vs v1
-- Joypad dual-read with settle delay (was wrong button bits before)
-- LCDC = 0x93 (was 0x91, bit 1=OBJ enable was missing)
-- Gift collectible positions don't overlap player spawn
+## Known Issues
 
-## Remaining Known Issues
-- Map screen hearts: address calculation was off (fixed in memory.md)
-- Bunny render: OBJ 8x8 mode, head+body = 2 separate OAM entries; looks small
-- Score display writes during LCD-on (works in practice, but should be VBlank-gated)
+None currently reproducing against the shipped code. Two items from this file's earlier,
+pre-rewrite content were re-verified and closed:
+
+- **Map screen hearts / wrong BG addresses (`BL-0001`):** does not reproduce —
+  `update_map_hearts` matches `map_screen()`'s heart placement exactly; a permanent regression
+  check rides the test suite.
+- **Score display writing during LCD-on (`BL-0003`):** fixed by `IP-9020` (2026-07-07) — the
+  write is now VBlank-gated at frame top; verified independently
+  ([VR-9020](docs/implementation/verification/VR-9020-score-bar-vblank-fix.md)).
+
+The bunny's two-separate-OAM-entry rendering issue from the pre-rewrite game is also resolved —
+the shipped sprite uses 8×16 OBJ mode, a single OAM pair per frame (commit `9a587ac`,
+[ADR-0007](docs/architecture/adr/ADR-0007-8x16-obj-sprite-mode.md)).
+
+Any currently open item lives in [`docs/pipeline/backlog.md`](docs/pipeline/backlog.md), not
+here — this file is a snapshot at last refresh, not a live tracker.
