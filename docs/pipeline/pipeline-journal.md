@@ -14,7 +14,7 @@
 
 ## Position
 
-- **Updated:** 2026-07-09 (run #38)
+- **Updated:** 2026-07-09 (run #39)
 - **Increment:** **Two increments in flight, user is driving both via an explicit loop +
   override.** (1) **Bootstrap baseline** — 01–07 ✅, all five packages **implemented** (four
   VERIFIED, `IP-9030` COMPLETE); only `IP-9030`'s verification and stages 10–11 remain, deferred
@@ -22,8 +22,8 @@
   procgen-world-map** — adopted 2026-07-09
   ([PLAN-requirements-aesthetics-story-map.md](PLAN-requirements-aesthetics-story-map.md), v5,
   owner decisions D1–D10). **Stage 01 ✅. Stage 02 ✅. Stage 03 decisions phase ✅** (ADR-0009/
-  0010/0011). **Stage 03 GDS-ladder-delta phase in progress:** GDS-01 ✅, GDS-04 ✅, GDS-07 ✅
-  (run #38); GDS-08/09/10 deltas remain.
+  0010/0011). **Stage 03 GDS-ladder-delta phase:** GDS-01/04/07/08 ✅ (run #39 completes GDS-08);
+  GDS-09/10 remain — the two lightest levels.
 - **Pipeline state:** Bootstrap: stages 01–07 ✅ (first pass). Stage 08/09: **all five packages
   implemented** — `IP-9010`/`IP-1010`/`IP-9020`/`IP-9040` **VERIFIED**
   ([VR-9010](../implementation/verification/VR-9010-test-suite-rewrite.md) /
@@ -31,15 +31,14 @@
   [VR-9020](../implementation/verification/VR-9020-score-bar-vblank-fix.md) /
   [VR-9040](../implementation/verification/VR-9040-legacy-artifact-archival.md)); `IP-9030`
   **COMPLETE**, awaiting `09-package-verification` in a **fresh session**. Stages 10–11 ⛔.
-  **New increment:** stage 01 ✅; stage 02 ✅; stage 03 🚧 (3 ADRs ✅, GDS-01 ✅, GDS-04 ✅,
-  GDS-07 ✅, GDS-08/09/10 deltas ⛔).
-- **Backlog:** 33 entries, 14 open. Run #38: no backlog changes. The 04-delta batch
+  **New increment:** stage 01 ✅; stage 02 ✅; stage 03 🚧 (3 ADRs ✅, GDS-01/04/07/08 ✅,
+  GDS-09/10 ⛔).
+- **Backlog:** 33 entries, 14 open. Run #39: no backlog changes. The 04-delta batch
   (BL-0020/0022/0026/0028/0033) remains the largest open cluster, entirely within the bootstrap
   increment.
-- **Next step:** **`03-architecture-design-synthesis`** again — **GDS-08** (normative aesthetic
-  standard for C8, biome-transition presentation for C9 — the biome-family tile/palette strategy
-  GDS-07's delta cross-referenced forward), the next unclosed level. Then GDS-09/10
-  (interface/RTM refresh), one level per pass.
+- **Next step:** **`03-architecture-design-synthesis`** again — **GDS-09** (interface-spec
+  delta: generator module boundary, seed/scale patch points, new data contracts), then **GDS-10**
+  (RTM-level refresh) — the two remaining, lightest levels; stage 03 closes once both land.
 - **Open gates:** none blocking the current path. Deferred, not skipped: `IP-9030`'s
   verification (needs a fresh session — the loop's likely eventual stopping point) and Release
   1's GO/NO-GO (11). No open human gates remain in the new increment's gate table (§5) — every
@@ -88,3 +87,4 @@
 | 36 | 2026-07-09 | advance (loop, run 7) | `03-architecture-design-synthesis` | GDS-01 delta (game-flow, core loop, state machine) | ✅ **Delta authored, one level per pass per Workflow A discipline.** Added §2a (main menu replaces auto-load-on-boot; exit-to-main-menu auto-saves, D7–D10/C2), §3a (carrot generalizes to item-agnostic key item per D2; region count generalizes to `scale×scale` per ADR-0010; adjacency becomes generated/grammar-constrained per ADR-0009/R212 — traveling the world *is* the narrative), §4a (two new states: MAIN MENU, SEED/SCALE ENTRY; TITLE's auto-load bypass retracted; VICTORY returns to MAIN MENU not TITLE), §4b (informational ADR-0011 cross-reference). §5's former "wider vs deeper" Open Question recorded as **resolved** (not picked-a-side — `BL-0015`'s closure rationale restated in the document itself: scale is now a player-chosen per-save parameter). Explicit throughout: §§1–5 remain the accurate *as-shipped* description; §§2a/3a/4a/4b are the *target* this increment's future packages build toward, unbuilt today — same pattern C7 established at v2.0, no confusion between shipped and planned. Merge gate not reopened (delta record appended, no box unchecked). `docs/architecture/INDEX.md`/`ROADMAP.md` updated. No new findings; no drift. | `03-architecture-design-synthesis` again — GDS-04 (Seed/WorldScale/Region/KeyItem domain entities, generator invariants as domain rules), the next unclosed level this increment needs |
 | 37 | 2026-07-09 | advance (loop, run 8) | `03-architecture-design-synthesis` | GDS-04 delta (Seed/WorldScale/Region/KeyItem entities, generator invariants) | ✅ **Delta authored.** New entities: `Seed` (16-bit, zero normalized to 1), `WorldScale` (byte 2–9). `Region` replaces `Zone` (biome identity + generated adjacency edges instead of fixed grid-index arithmetic); `KeyItem` replaces `Carrot` (item-agnostic per D2 — Carrot becomes one shipped theming instance, not the entity's identity; `ScoreItem`/`Score` unaffected). Two new domain rules: exactly one `KeyItem` per `Region` (generalizes the existing carrot-per-zone rule — now *generator-guaranteed*, stronger than the shipped convention-only version) and full reachability (new — the fixed grid never needed this guard); grammar-valid adjacency (R212) restated as a domain rule alongside them. Updated target-state ER diagram. `docs/architecture/INDEX.md`/`ROADMAP.md` updated. **Incidental finding, harvested as new BL-0033** (Low-Medium, SCHEDULED): GDS-04's existing "Relationships worth naming explicitly" §3rd bullet is stale — it says `ScoreItem` per-zone collected-state "is not persisted," but `IP-1010`/`FS-101` (2026-07-07) added exactly that persistence (`SCOREITEM_FLAGS`, `FR-5220`); noticed while authoring this delta, out of its scope to fix, filed rather than silently corrected. No drift otherwise. | `03-architecture-design-synthesis` again — GDS-07 (WRAM/SRAM layout delta per ADR-0010's save format: seed+scale+region-flags fields), the next unclosed level |
 | 38 | 2026-07-09 | advance (loop, run 9) | `03-architecture-design-synthesis` | GDS-07 delta (proposed WRAM/SRAM layout for seed/scale/region graph) | ✅ **Delta authored (proposed addresses, per the FS-101/`IP-1010` confidence precedent).** WRAM: `SEED` (2B)/`WORLD_SCALE` (1B) at `C069`–`C06B`, `REGION_GRAPH` (5B/region × ≤81 regions = ≤405B) + `KEYITEM_FLAGS` (≤81B) from `C070` — ~489 bytes worst-case, comfortably inside R111's confirmed ~3.1KB bank-0 headroom, no `SVBK` triggered. SRAM: new version value + `SEED`/`WORLD_SCALE` mirrors + 81-byte worst-case `KEYITEM_FLAGS` mirror (~84 bytes against 8KB) extending the `FS-101`/`IP-1010` pattern — the generated world itself is not persisted, only `(seed, scale, flags)`; `REGION_GRAPH` regenerates on load. Tile-index-map implication cross-referenced to GDS-08 (next level), not decided here. **Also corrected a now-stale note**: the original merge decision said `Claude.md`/`memory.md` "remain flagged stale... until" a doc-refresh lands — `IP-9030` already landed it (2026-07-09), text updated to reflect the merge is complete. `docs/architecture/INDEX.md`/`ROADMAP.md` updated. No new findings; no drift. | `03-architecture-design-synthesis` again — GDS-08 (normative aesthetic standard for C8, biome-transition presentation for C9 — the biome-family tile/palette strategy GDS-07's §8 cross-referenced forward), the next unclosed level |
+| 39 | 2026-07-09 | advance (loop, run 10) | `03-architecture-design-synthesis` | GDS-08 delta (normative aesthetic standard, biome-transition strategy) | ✅ **Delta authored — the increment's content-heaviest level.** §7: reviewable checklist grounded in R209 (silhouette-first, per-part color budget, outlines-on-characters-never-terrain, no anti-aliasing, consistent terrain-variant pattern) plus newly-operationalized clean-screen rules (no undefined tiles, no illegal seam pairs, correct transition-edge neighbors) and a smoothness bar tied to the existing LCD-off redraw budget (GDS-07/R102) — this is the artifact `09-content-review` will judge future content against. §8: biome-transition palette-stepping strategy (grammar-adjacent biomes should read as color-family-adjacent, e.g. blues→sands→greens) extending rather than replacing the existing terrain-family reuse pattern; **explicitly confirms the palette ceiling binds biome-family count, not blending**, since D2 rules out intra-screen mixing — the existing palette-4-serves-three-zones reuse cited as direct headroom evidence; exact biome-family count/assignment deferred to the sizing package. §9: closes the loop GDS-07's delta opened (biome families reuse the existing 8-tile-aligned terrain-block convention). `docs/architecture/INDEX.md`/`ROADMAP.md` updated. No new findings; no drift. **All four content-bearing GDS deltas this increment needs are now authored (01/04/07/08).** | `03-architecture-design-synthesis` again — GDS-09 (interface/patch-point deltas: generator module boundary, seed/scale patch points) and GDS-10 (RTM-level refresh), the two remaining, lighter levels before stage 03 fully closes |
