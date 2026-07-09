@@ -23,7 +23,7 @@ is closed with its decision recorded in prose. Status here and in `ROADMAP.md` m
 | GDS-07 | Data Model | [07-data-model.md](07-data-model.md) | ✅ Authored (gate closed 2026-07-06; delta 2026-07-09 for procgen-world increment — proposed WRAM/SRAM fields for seed/scale/region graph) |
 | GDS-08 | Presentation Architecture | [08-presentation-architecture.md](08-presentation-architecture.md) | ✅ Authored (gate closed 2026-07-06; delta 2026-07-09 for procgen-world increment — normative aesthetic standard + biome-transition palette strategy) |
 | GDS-09 | Interface Specification | [09-interface-specification.md](09-interface-specification.md) | ✅ Authored (gate closed 2026-07-06; delta 2026-07-09 for procgen-world increment — worldgen.py contract, new patch points) |
-| GDS-10 | Requirements Traceability Matrix level | [10-requirements-traceability-matrix.md](10-requirements-traceability-matrix.md) | ✅ Authored (gate closed 2026-07-06) |
+| GDS-10 | Requirements Traceability Matrix level | [10-requirements-traceability-matrix.md](10-requirements-traceability-matrix.md) | ✅ Authored (gate closed 2026-07-06; ID-scheme table refreshed 2026-07-09 — no new prefix needed for procgen-world increment) |
 
 ## §2 — Per-cluster design syntheses (ADS-xxx)
 

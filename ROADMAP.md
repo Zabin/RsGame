@@ -72,7 +72,7 @@ build order.
 | GDS-07 | Data Model | `docs/architecture/07-data-model.md` | GDS-06 | ✅ (2026-07-06; delta 2026-07-09 for procgen-world increment) |
 | GDS-08 | Presentation Architecture | `docs/architecture/08-presentation-architecture.md` | GDS-07 | ✅ (2026-07-06; delta 2026-07-09 — normative aesthetic standard + biome-transition strategy for C8/C9) |
 | GDS-09 | Interface Specification | `docs/architecture/09-interface-specification.md` | GDS-08 | ✅ (2026-07-06; delta 2026-07-09 — worldgen.py contract, new patch points) |
-| GDS-10 | RTM level | `docs/architecture/10-requirements-traceability-matrix.md` | GDS-09 | ✅ (2026-07-06) |
+| GDS-10 | RTM level | `docs/architecture/10-requirements-traceability-matrix.md` | GDS-09 | ✅ (2026-07-06; ID-scheme refreshed 2026-07-09 — confirms no new prefix needed for procgen-world increment) |
 | AR-ASSUME | Strategic assumptions register | `docs/architecture/strategic-assumptions-register.md` | MSTR-001 | ♻️ (A1–A10, revised 2026-07-09) |
 | ADR-xxxx | Architecture Decision Records | `docs/architecture/adr/` | GDS-03 | ✅ (as-built set ADR-0001…0008, 2026-07-06; ADR-0009…0011 added 2026-07-09 for the procgen-world increment, ADR-0009 supersedes ADR-0001) |
 | ADS-xxx | Per-cluster design syntheses | `docs/architecture/` | research tiers | ⛔ (zero-or-more, on demand) |
