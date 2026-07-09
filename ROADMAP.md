@@ -81,10 +81,10 @@ build order.
 
 | ID | Document | Path | Depends on | Status |
 |---|---|---|---|---|
-| RQ-01 | Functional Requirements | `docs/requirements/01-functional-requirements.md` | GDS-01…05, ADRs | ✅ (2026-07-06) |
-| RQ-02 | Non-Functional Requirements | `docs/requirements/02-non-functional-requirements.md` | GDS-06 | ✅ (2026-07-06) |
-| RQ-03 | Requirements Review | `docs/requirements/03-requirements-review.md` | RQ-01, RQ-02 | ✅ (2026-07-06) |
-| RQ-04 | Requirements Traceability Matrix | `docs/requirements/04-requirements-traceability-matrix.md` | RQ-01…03 | ✅ (2026-07-06) |
+| RQ-01 | Functional Requirements | `docs/requirements/01-functional-requirements.md` | GDS-01…05, ADRs | ✅ (2026-07-06; delta 2026-07-09, FR-1170–FR-9200, procgen-world increment) |
+| RQ-02 | Non-Functional Requirements | `docs/requirements/02-non-functional-requirements.md` | GDS-06 | ✅ (2026-07-06; delta 2026-07-09, NFR-1300–NFR-6510, procgen-world increment) |
+| RQ-03 | Requirements Review | `docs/requirements/03-requirements-review.md` | RQ-01, RQ-02 | ✅ (2026-07-06; delta 2026-07-09, findings #7–10) |
+| RQ-04 | Requirements Traceability Matrix | `docs/requirements/04-requirements-traceability-matrix.md` | RQ-01…03 | ✅ (2026-07-06; delta 2026-07-09, 16 new rows) |
 
 ## Theme: Feature planning (`docs/feature-planning/`) — owner `05-feature-decomposition`
 
