@@ -4,7 +4,8 @@
 - **Dependencies:** R212 (biome-adjacency grammar this generator must satisfy), R106 (MBC1/SRAM,
   banking headroom), R111 (WRAM budget and SM83 PRNG implementation this recommendation assumes),
   R302 (Python-assembler codegen patterns), R305 (emulator-based test design)
-- **Referenced By:** R111 (grounds this topic's PRNG/WRAM feasibility in hardware terms)
+- **Referenced By:** R111 (grounds this topic's PRNG/WRAM feasibility in hardware terms), R305
+  (this topic's recommended algorithm is what the reference-generator oracle mirrors)
 - **Produces:** a costed, evidence-grounded recommendation for the world-generation algorithm
   approach `03-architecture-design-synthesis` decides in its Phase 3 ADR (per MSTR-001 C10/D3 —
   the owner explicitly delegates the algorithm choice to this research, not to a fiat pick)
