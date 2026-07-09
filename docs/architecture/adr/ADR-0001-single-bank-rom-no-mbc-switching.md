@@ -1,6 +1,9 @@
 # ADR-0001 — Single 32KB ROM bank, no MBC bank switching (yet)
 
-**Status:** Accepted (as-built, mined 2026-07-06)
+**Status:** **Superseded 2026-07-09 by [ADR-0011](ADR-0011-bank-switching-mbc1-default-wiring.md)**
+(Accepted, as-built, mined 2026-07-06 — accurate for the bootstrap-through-v2.0 increment; this
+document's content is retained unmodified as history, per this project's append-only ADR
+discipline — see ADR-0011's Context for why supersession happened now.)
 
 ## Context
 
