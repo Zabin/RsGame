@@ -1,8 +1,14 @@
 # GDS-08 — Presentation Architecture
 
-> **Status: ✅ Authored (bootstrap as-built, 2026-07-06).** Owned by
+> **Status: ✅ Authored (bootstrap as-built, 2026-07-06; delta 2026-07-09 for the procgen-world
+> increment — see "Presentation Architecture delta" below).** Owned by
 > `03-architecture-design-synthesis`. Builds on [GDS-07](07-data-model.md); the next level,
 > [GDS-09 Interface Specification](09-interface-specification.md), builds on this one.
+>
+> **Reading this document:** §§1–6 below describe presentation **as currently shipped** and
+> remain accurate. The delta section is the **normative standard** [MSTR-001](../master/MSTR-001-program-vision.md)
+> **C8** requires and the **C9** biome-transition strategy — the target `09-content-review` will
+> judge future content against, not a description of what exists today.
 
 ## Purpose
 
@@ -82,6 +88,85 @@ palette ceilings this level documents (§2/§4), then rendered and visually revi
 committed to code in one step. This is a process convention for `08-content-authoring` to follow,
 not new content itself.
 
+## Presentation Architecture delta (2026-07-09 — normative standard, grounds C8/C9)
+
+### 7. The normative aesthetic standard (MSTR-001 C8)
+
+C8 requires presentation be "a first-class, reviewed quality commitment... checked against a
+normative standard, not left as an unstated craft preference." This section **is** that standard
+— the checklist `09-content-review` judges future content against, and the criteria
+`07-implementation-planning` packages should cite in their Verification Checklists. Grounded
+directly in [R209](../research/encyclopedia/R209-pixel-art-technique.md)'s craft rules (already
+partially honored by the shipped art, per R209's own Operational Context) and D4's "smooth,
+every screen/room/view clean" language:
+
+**Tile/sprite craft (per R209):**
+- [ ] Every new tile/sprite is **silhouette-first**: recognizable as a solid shape before color
+  is assigned (R209 §"Implementation Guidance").
+- [ ] Color budget follows **background + base + shadow (+ highlight)** — no unplanned
+  even-spread across all 4 palette slots.
+- [ ] **Outlines on characters/objects, never on tiling terrain** (an outlined terrain tile
+  creates a visible seam when repeated — R209's explicit rule, already honored by the shipped
+  terrain set).
+- [ ] **No anti-aliased/gradient edges** at 8×8 scale — hard color-index boundaries only.
+- [ ] New terrain variants extend the existing two-variant seeded-sprinkle pattern (`_fill()`,
+  R203) rather than introducing an inconsistent third variant.
+
+**Clean-screen rules (per D4, newly operationalized — no shipped precedent needed before now,
+since every existing screen is hand-authored and reviewed once):**
+- [ ] No undefined/blank-placeholder tile indices anywhere in a rendered screen.
+- [ ] No illegal tile-adjacency pairs within a screen (a terrain tile from one biome family never
+  directly abuts a structurally incompatible tile from an unrelated family within the same
+  screen's fill).
+- [ ] Every screen edge that signals a transition (directional arrow, per GDS-01) has a
+  consistent, correctly-rendered neighbor on the far side once generated (a generated-world
+  instance of the same "does the seam look right" check `09-content-review` already performs on
+  hand-authored screens).
+
+**Smoothness (per D4, generated-world-specific — extends R102's redraw-cost analysis, GDS-07's
+delta):** a screen transition (generated or hand-authored) completes within the existing
+LCD-off `do_screen_redraw`/`copy_screen` budget (GDS-07/R102) — no new, slower transition
+mechanism is introduced by generated content; generation itself (ADR-0009, at new-game creation
+only, not per-transition) does not block the smoothness bar for in-session travel.
+
+### 8. Biome-transition presentation strategy (MSTR-001 C9, grounds ADR-0009's grammar)
+
+Per [R212](../research/encyclopedia/R212-wordless-environmental-storytelling-biome-grammar.md)'s
+grounding and **D2's clarification** (one biome per screen — no intra-screen blending): the
+existing **terrain-family palette strategy (§4 above)** already has the right shape to extend,
+not replace. Today, 5 of 8 BG palettes serve zone terrain (grass, sand/dirt, water, stone,
+brick/red), each a single, consistent per-family color identity. Biome-transition presentation
+adds one requirement to that existing strategy: **palettes for grammar-adjacent biome families
+should step coherently**, not be assigned arbitrarily. Concretely — following R212's own cited
+precedent (Minecraft's temperature-based adjacency smoothing) applied at the *palette* rather
+than *terrain* level — a biome sequence like water → beach → grassland → hills → mountains → sky
+should read, in palette terms, as **blues stepping toward sands stepping toward greens stepping
+toward grays stepping toward whites/light-blues**, each adjacent pair sharing a plausible
+color-family relationship, rather than two arbitrary, unrelated palettes placed next to each
+other. This is a **content-authoring guideline for whichever future biome-family palette
+assignments are made**, not a change to the 8-palette budget itself.
+
+**The palette ceiling binds biome-family *count*, not blending — confirmed, not merely
+asserted.** Because D2 rules out any two biomes sharing a single screen, there is no
+per-screen palette-mixing problem for this increment to solve (unlike, say, a smooth-scrolling
+game that blends adjacent screens' colors mid-frame). The existing terrain-family reuse pattern
+(§4/§5) — palette 4 alone already serving three zones (Mountain, Village, Cave) — demonstrates
+the ceiling has real headroom for a *generated* world's likely biome-family count too, provided
+biome families continue to be defined at the same granularity today's zones are (a handful of
+distinct visual families, not one family per generated region). **Exact biome-family count and
+palette assignment for a specific `WorldScale` is deferred to the implementation package that
+sizes it** — this level confirms the *strategy* (family-based reuse, adjacency-aware stepping),
+not a final palette table.
+
+### 9. Cross-reference: tile index budget (informational, per GDS-07's delta)
+
+[GDS-07](07-data-model.md)'s delta forward-referenced this section for the actual biome-family
+tile/palette strategy. §§7–8 above are that answer: biome families reuse the existing
+terrain-family tile-block convention (§4 above: 8-tile-aligned blocks, `0x70`–`0xB5` today, next
+free block `0xB8`) — a generated world's biome families draw from this same convention, sized to
+however many distinct families the eventual content package defines, not a new tile-allocation
+scheme.
+
 ## Merge gate
 
 - [x] Stub body replaced with real content addressing the stated Purpose.
@@ -100,3 +185,8 @@ above, confirmed by direct read. **Decision: this level supersedes `memory.md`'s
 strategy framing entirely** (its palette table already superseded at GDS-07; this closes the loop
 for the remaining strategy-level prose). The level's own scaffolded Purpose text ("8×8 OBJ
 pairs") is corrected to 8×16 in this authoring pass, matching the shipped `LCDC=0x97` fact.
+
+**Delta record (2026-07-09):** §§7–9 ("Presentation Architecture delta") added, per the adopted
+increment plan's Phase 3 and MSTR-001 C8/C9. Delta, not re-authoring — §§1–6 remain the accurate
+as-shipped description; §§7–9 are the normative standard/strategy content downstream stage-06/08
+work and `09-content-review` will apply once built. No merge-gate box above is reopened.
