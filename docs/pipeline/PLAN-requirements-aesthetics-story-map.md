@@ -2,9 +2,10 @@
 
 - **Document type:** increment plan (pipeline run-book companion, like
   [`BOOTSTRAP.md`](BOOTSTRAP.md))
-- **Date:** 2026-07-08 · **Revised:** 2026-07-08 (v3 — §0 gains the D2 clarification and
-  decisions D5/D6; v2 incorporated D1–D4 and superseded v1's dialog-centric story stream and
-  handcrafted-map assumption)
+- **Date:** 2026-07-08 · **Revised:** 2026-07-09 (v4 — §0 gains D7/D8: seed & scale are
+  new-game-only parameters; the in-game save menu gains an exit-to-main-menu option. v3 added
+  the D2 clarification and D5/D6; v2 incorporated D1–D4 and superseded v1's dialog-centric
+  story stream and handcrafted-map assumption)
 - **Status:** proposed — awaiting user adoption; nothing in this plan is itself an
   authorization to do work (see §8)
 - **Goal:** a traceable, reviewed **requirements baseline delta** (RQ-01…RQ-04 under
@@ -55,10 +56,18 @@ first so no phase re-litigates them:
   **enter/adjust a world scale parameter**. The generated world is a deterministic function of
   **(seed, scale)**; parameter bounds and defaults are architecture's call within hardware
   budgets, not dictated by the owner.
+- **D7 — Seed and scale are set only at the start of a new game** (owner, 2026-07-09). They
+  are entered/adjusted in the new-game flow and are **immutable for the life of that save** —
+  no mid-run modification. Changing them means starting a new game.
+- **D8 — The start-button save menu includes an "exit to main menu" option** (owner,
+  2026-07-09). Implication accepted by this plan: the title flow grows a proper **main menu**
+  (continue / new game → seed & scale entry), since D7 makes it the only place a new world can
+  be configured, and D8 gives the player a path back to it without power-cycling.
 
 D1/D2 resolve v1's open "story shape & tone" user gate. D5 resolves v2's open "fate of the
 handcrafted world" gate. D3+D6 together effectively close BL-0015's "wider vs deeper" question
-(see §6). D4 is the seed of this increment's headline NFRs.
+(see §6). D7/D8 resolve the seed & scale *timing* and the menu-flow shape, leaving only
+presentation details to the Phase-3 ADR. D4 is the seed of this increment's headline NFRs.
 
 ## §1 Where each stream must enter the pipeline
 
@@ -69,7 +78,7 @@ extends. The three streams are *not* at the same altitude:
 |---|---|---|---|
 | **A — Aesthetic quality** | Research is substantially done: [R202](../research/encyclopedia/R202-8bit-game-feel.md) (game feel), [R203](../research/encyclopedia/R203-screen-composition-tile-grid.md) (composition), [R208](../research/encyclopedia/R208-palette-color-design.md) (palette design), [R209](../research/encyclopedia/R209-pixel-art-technique.md) (pixel-art technique), [R210](../research/encyclopedia/R210-ai-assisted-tile-art-workflow.md) (agent art workflow), [R211](../research/encyclopedia/R211-acclaimed-gbc-visual-design-case-studies.md) (GBC case studies) — all filed via BL-0013. [GDS-08](../architecture/08-presentation-architecture.md) documents presentation *as built*. | A **vision-level quality commitment** (MSTR-001 has no "the game must look good" commitment), a **normative** presentation standard (GDS-08 describes what is, not what "good" must mean), and measurable **NFRs** derived from R209/R211's heuristics plus D4's smooth/clean bar. | **01** (commitment) → **03** (GDS-08 delta) → **04** |
 | **B — Visual story narrative** | Zones are visually distinct but their 3×3 adjacency is arbitrary (desert beside lake beside castle) — exactly what D2's biome-flow grammar replaces. No narrative framing exists; MSTR-001 §1/§3 never mention story, so narrative is **new vision-level scope** (MSTR-001 §7). Adjacent research exists (R203 composition, R208 palettes, R211 case studies) but no topic covers **wordless environmental storytelling** or **biome adjacency grammars**. Per D1, no text/dialog engine is needed. | Vision amendment naming the visual narrative; research on how tile-based games tell stories without words (biome ordering/elevation logic, landmark beats, item theming); the **adjacency grammar itself** (which biomes may border which — the D2 clarification makes this a hard generator constraint, not a soft aesthetic); **item-agnostic** re-statement of the collect-goal. | **01** (vision amendment) → **02** → **03** → **04** |
-| **C — Procedural world map** | MSTR-001 **C7** already commits to a much larger world; bank-switching is already un-non-goaled ([ADR-0001](../architecture/adr/ADR-0001-single-bank-rom-no-mbc-switching.md) names its own supersession trigger); [R106](../research/encyclopedia/R106-mbc1-sram-battery-saves.md) grounds banking. **Nothing** covers procedural generation: no research on seeded generation under 8-bit constraints, no PRNG in the codebase, and the current world is a hand-authored 3×3 grid with hardcoded adjacency (`_zone_arrows()`, R203) — which D5 archives. | D3's named research (procgen algorithms; GBC homebrew procgen case studies), a **generator architecture decision** (agent-decided per D3, recorded as an ADR), a **(seed, scale) parameter model** (D6 — user modification surface, bounds, persistence in the save), determinism guarantees, and the archival package for the handcrafted world (D5). | **02** (research first — the algorithm decision is downstream of it) → **03** → **04** |
+| **C — Procedural world map** | MSTR-001 **C7** already commits to a much larger world; bank-switching is already un-non-goaled ([ADR-0001](../architecture/adr/ADR-0001-single-bank-rom-no-mbc-switching.md) names its own supersession trigger); [R106](../research/encyclopedia/R106-mbc1-sram-battery-saves.md) grounds banking. **Nothing** covers procedural generation: no research on seeded generation under 8-bit constraints, no PRNG in the codebase, and the current world is a hand-authored 3×3 grid with hardcoded adjacency (`_zone_arrows()`, R203) — which D5 archives. | D3's named research (procgen algorithms; GBC homebrew procgen case studies), a **generator architecture decision** (agent-decided per D3, recorded as an ADR), a **(seed, scale) parameter model** (D6/D7 — entered only in the new-game flow, immutable per save; bounds; persistence), the **menu-flow delta** (D8 — main menu with continue/new-game, exit-to-main-menu in the save menu), determinism guarantees, and the archival package for the handcrafted world (D5). | **02** (research first — the algorithm decision is downstream of it) → **03** → **04** |
 
 Stream B and C are now tightly coupled: D2's adjacency grammar is a **constraint the
 generator must satisfy** — the narrative research (R212) feeds the generator research (R213)
@@ -106,8 +115,9 @@ Unchanged from v1. Before extending the baseline:
      "not ruled out" phrasing preserved).
    - **Aesthetics (D4):** a quality commitment — presentation is a first-class, reviewed
      deliverable; every screen/room/view clean; the experience smooth.
-   - **Map (D3/D5/D6):** C7 gains its first concrete shape — the world is **deterministically
-     generated from a user-modifiable seed and a user-adjustable world scale**. The amendment
+   - **Map (D3/D5/D6/D7):** C7 gains its first concrete shape — the world is
+     **deterministically generated from a user-modifiable seed and a user-adjustable world
+     scale, both fixed at new-game creation** (D7). The amendment
      records **D5's C5 consequence explicitly**: the shipped handcrafted 3×3 world is
      superseded and archived (the `legacy/` precedent, BL-0004/IP-9040) — a deliberate,
      recorded protected-baseline change, with the blast radius enumerated (tilemaps, tests
@@ -142,19 +152,24 @@ The GDS ladder exists; this phase is **deltas plus ADRs**, per level, in ladder 
   D3 delegates to research (generation at boot/parameter-change into WRAM vs other splits;
   ROM cost of generator code + tile assets vs the archived handcrafted maps; how the
   algorithm enforces the R212 adjacency grammar by construction or by constrained retry);
-  supersedes `_zone_arrows()`'s hardcoded 3×3 adjacency. (2) **Seed & scale model ADR (D6)** —
+  supersedes `_zone_arrows()`'s hardcoded 3×3 adjacency. (2) **Seed & scale model ADR (D6/D7)** —
   seed size; **scale parameter representation, bounds, and default** (bounds derived from the
-  Phase-2 WRAM/ROM/generation-time budgets, the agent's call per D6); where the user
-  enters/adjusts both (menu surface); persistence (save stores **seed + scale + per-region
-  flags**; the world *regenerates* from parameters rather than being stored — the shape
-  FS-101's version-byte precedent already anticipates); what a parameter change does to
-  existing progress. (3) **Bank-switching ADR** (kept from v1) — generator code, expanded
+  Phase-2 WRAM/ROM/generation-time budgets, the agent's call per D6); the **new-game entry
+  flow** (D7 fixes *when*: both parameters are set only at new-game creation and are
+  immutable per save — the ADR designs only the entry screens' shape, reusing the existing
+  digit/glyph tiles rather than a text engine); persistence (save stores **seed + scale +
+  per-region flags**, written once at creation; the world *regenerates* from parameters
+  rather than being stored — the shape FS-101's version-byte precedent already anticipates).
+  (3) **Bank-switching ADR** (kept from v1) — generator code, expanded
   biome tile sets, and music still contend for the ~9.1KB single-bank headroom.
   *Dropped from v1: the text-engine ADR (D1). BL-0015 is closed rather than folded — see §6.*
 - **GDS-01 (Concept of Play):** the play loop over a generated world — how the biome flow
   (D2) structures exploration (the grammar makes travel legible: heading inland/upland *is*
-  the narrative), session shape across the D6 scale range, what changing seed or scale means
-  for a run.
+  the narrative), session shape across the D6 scale range, and the **revised game flow
+  (D7/D8)**: title → main menu (continue / new game → seed & scale entry) → play; the
+  in-game start-button save menu gains **exit to main menu**, closing the loop back to
+  new-game configuration without a power cycle. This is a delta to the shipped state machine
+  (FEAT-1000/GDS-05's title→intro→play flow and the existing save-menu states).
 - **GDS-04 (Domain Model):** new/changed entities — **Seed**, **WorldScale** (D6),
   **Region/Biome** with the **adjacency grammar as a domain rule** (D2), **KeyItem**
   (item-agnostic, per D2), generator invariants as domain rules (exactly one KeyItem per
@@ -196,9 +211,11 @@ One `04-requirements-engineering` increment pass deriving, per stream:
   constraints from C6 (family-friendly) and A5. *No dialog FRs (D1); the routing for a future
   dialogue request is §4's table.*
 - **C:** world-generation **FRs/NFRs** — determinism ("identical (seed, scale) ⇒ identical
-  world, every boot, every run"), **seed and scale modification behavior** (entry surface,
-  bounds, defaults, effect on existing progress — D6), seed+scale+flags persistence, the
-  handcrafted-world **archival requirement** (D5, packaged later per the IP-9040 precedent),
+  world, every boot, every run"), **seed and scale entry behavior** (new-game-only entry with
+  per-save immutability — D6/D7; bounds and defaults), **menu-flow FRs** (main menu with
+  continue/new-game; the save menu's exit-to-main-menu option, including its save-safety
+  semantics — D8), seed+scale+flags persistence, the handcrafted-world **archival
+  requirement** (D5, packaged later per the IP-9040 precedent),
   generator invariants as testable requirements (reachability, one KeyItem per region,
   grammar validity), generation-time budget across the scale range (smoothness — D4),
   bank/WRAM-budget NFRs extending BL-0019's headroom-watching convention.
@@ -209,7 +226,7 @@ One `04-requirements-engineering` increment pass deriving, per stream:
   section and forward to (initially UNASSIGNED) tests.
 
 **Definition of done for this plan:** RQ-01…04 updated and internally reviewed; every new
-FR/NFR traces to a GDS-ladder section and an R-topic; §0's six decisions each have visible
+FR/NFR traces to a GDS-ladder section and an R-topic; §0's eight decisions each have visible
 requirement-level descendants; open questions resolved or carried as dispositioned backlog
 entries; the pipeline journal records the increment. Stage 05 then decomposes the delta into
 FEAT-xxxx rows and populates FP-01's currently-empty Release 2+ buckets — outside this plan.
@@ -221,7 +238,7 @@ Phase 0   IP-9030 → 10-integration-review → 11-release-readiness ─┐
           04-delta batch (BL-0020/0022/0026/0028) ────────────────┤
                                                                   ▼
 Phase 1   00-intake (3 BL entries) → triage → 01-vision v3.0
-          (records D1–D6 incl. D5's archival of the handcrafted 3×3 world)
+          (records D1–D8 incl. D5's archival of the handcrafted 3×3 world)
                                                                   ▼
 Phase 2   02-research: R212 (biome-flow grammar) · R213 (procgen algorithms) ·
           R214 (GBC homebrew procgen) + hardware/tooling extensions
@@ -277,7 +294,7 @@ user story for aesthetics/story/map goes through the same door:
 |---|---|---|---|
 | Stream A — adopt a normative aesthetic standard incl. D4's smooth/clean bar; derive measurable presentation requirements | feature | Medium | 01 (commitment) → 03 |
 | Stream B — visual story narrative per D2: logical biome-flow grammar between screens (one biome per screen); item-agnostic, child-friendly collect-goal follows the narrative | feature (vision-scope) | Medium | 01 → 02 |
-| Stream C — deterministic procedurally generated world from user-modifiable **seed + world scale** per D3/D6; archive the handcrafted 3×3 world per D5; incl. the named research topics (procgen algorithms; GBC homebrew procgen case studies) | feature (C7/vision-scope) | Medium | 01 → 02 (closes BL-0015 alongside — §6) |
+| Stream C — deterministic procedurally generated world from user-modifiable **seed + world scale**, set only at new-game start, per D3/D6/D7; menu-flow delta (main menu; save menu's exit-to-main-menu) per D8; archive the handcrafted 3×3 world per D5; incl. the named research topics (procgen algorithms; GBC homebrew procgen case studies) | feature (C7/vision-scope) | Medium | 01 → 02 (closes BL-0015 alongside — §6) |
 
 ## §5 Human gates and user decisions
 
@@ -288,7 +305,7 @@ user story for aesthetics/story/map goes through the same door:
 | Story shape & tone | 1 | ~~Premise, dialog, tone~~ | **decided 2026-07-08 (D1/D2):** visual narrative via logical biome flow, no dialogue requirement; agent constructs the grammar from research |
 | Map paradigm | 1–3 | ~~Wider vs deeper (BL-0015 as filed)~~ | **decided 2026-07-08 (D3/D6):** procgen world from (seed, scale); scale is a *user-runtime parameter*, so the design fork dissolves — §6 |
 | Fate of the handcrafted 3×3 world | 1 | ~~Does a default seed ship / is the current world kept?~~ | **decided 2026-07-08 (D5):** archived, per the `legacy/` precedent |
-| Seed & scale surface details | 3 | Where/how the user edits seed and scale; scale bounds/defaults — proposed at the seed & scale ADR (bounds are the agent's call within hardware budgets per D6); user confirms only the user-visible surface. | open |
+| Seed & scale timing + menu flow | 1–3 | ~~Where/when the user edits seed and scale~~ | **decided 2026-07-09 (D7/D8):** new-game-only entry, immutable per save; save menu gains exit-to-main-menu (implying a main menu with continue/new-game). Remaining at the ADR: entry-screen presentation and scale bounds/defaults — the agent's call within hardware budgets per D6. |
 | G3 package authorization | after 4 | Unchanged: no stage-08 work from this increment starts without explicit authorization. | standing |
 
 ## §6 Disposition of BL-0015 (wider vs deeper)
@@ -321,8 +338,8 @@ close BL-0015 with this rationale when the stream-C intake row is filed.
   across boots, runs, and emulator versions. This must hold as a testable NFR (Python
   reference-generator oracle, Phase 2 tooling research).
 - **Save format:** persist **seed + scale + per-region collected flags** and regenerate the
-  world — bumping the FS-101 version byte with defined pre-upgrade-save defaults (BL-0021
-  precedent).
+  world — seed and scale written **once at new-game creation and never rewritten** (D7);
+  bumping the FS-101 version byte with defined pre-upgrade-save defaults (BL-0021 precedent).
 - **Domain invariants:** "exactly one key collectible per region" graduates from an authored
   convention with a test (T1.11, BL-0017) to a **generator-guaranteed property tested across
   a (seed, scale) corpus**; reachability of every region and **grammar-valid adjacency
