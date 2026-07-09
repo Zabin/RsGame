@@ -14,16 +14,17 @@
 
 ## Position
 
-- **Updated:** 2026-07-09 (run #31)
+- **Updated:** 2026-07-09 (run #32)
 - **Increment:** **Two increments in flight, user is driving both via an explicit loop +
   override.** (1) **Bootstrap baseline** — 01–07 ✅, all five packages **implemented** (four
   VERIFIED, `IP-9030` COMPLETE); only `IP-9030`'s verification and stages 10–11 remain, deferred
   behind a fresh-session requirement, not abandoned. (2) **Aesthetics / visual-story-narrative /
   procgen-world-map** — adopted 2026-07-09
   ([PLAN-requirements-aesthetics-story-map.md](PLAN-requirements-aesthetics-story-map.md), v5,
-  owner decisions D1–D10). **Stage 01 now complete for this increment** (run #31, MSTR-001
-  2.0→3.0: C8/C9/C10 added, C2 amended) — running ahead of Phase 0's completion per the user's
-  explicit "restart at top (vision)" override, journaled at run #30.
+  owner decisions D1–D10). **Stage 01 ✅** (run #31, MSTR-001 v3.0). **Stage 02 in progress**:
+  `02-research-game-design`'s full assignment done (R212/R213/R214, run #32); the plan §2 table's
+  two smaller extension passes (`02-research-gbc-hardware`, `02-research-tooling-and-testing`)
+  remain before stage 02 closes.
 - **Pipeline state:** Bootstrap: stages 01–07 ✅ (first pass). Stage 08/09: **all five packages
   implemented** — `IP-9010`/`IP-1010`/`IP-9020`/`IP-9040` **VERIFIED**
   ([VR-9010](../implementation/verification/VR-9010-test-suite-rewrite.md) /
@@ -31,26 +32,26 @@
   [VR-9020](../implementation/verification/VR-9020-score-bar-vblank-fix.md) /
   [VR-9040](../implementation/verification/VR-9040-legacy-artifact-archival.md)); `IP-9030`
   **COMPLETE**, awaiting `09-package-verification` in a **fresh session**. Stages 10–11 ⛔.
-  **New increment: stage 01 ✅** (MSTR-001 v3.0, GDS-00 revised in lock-step, assumptions
-  register at A1–A10). Stage 02 **not yet started** — next.
-- **Backlog:** 31 entries, 12 open. Run #31 harvest: **`BL-0029`/`BL-0030`/`BL-0031` →
-  `IN PIPELINE`** (each names its completed stage-01 outcome and its next stage — 02 research
-  for all three, per the disposition text on each row). No new entries this run (the vision
-  amendment's blast radius is fully covered by BL-0029/30/31's existing entry-stage paths, not
-  new findings). The 04-delta batch (BL-0020/0022/0026/0028) remains the largest open cluster,
-  entirely within the bootstrap increment.
-- **Next step:** **`02-research-game-design`** — the new increment's Phase 2 research: proposed
-  **R212** (wordless environmental storytelling & biome-adjacency grammar, grounding C9),
-  **R213** (procedural map generation algorithms under 8-bit constraints), **R214** (GBC
-  homebrew games using procedural maps) — both grounding C10 and the eventual world-generation
-  ADR. Continues the user's override of Phase-0-first sequencing. (`02-research-gbc-hardware`
-  and `02-research-tooling-and-testing` carry smaller extension work per the plan §2 table —
-  candidates for later `02` runs, not this one.)
+  **New increment:** stage 01 ✅; stage 02 🚧 (R212/213/214 ✅, hardware/tooling extensions ⛔);
+  stage 03 not yet started.
+- **Backlog:** 31 entries, 12 open. Run #32 harvest: **`BL-0030`/`BL-0031`** dispositions updated
+  in place (still `IN PIPELINE` — R212/R213/R214 done, hardware/tooling extensions remain before
+  either flips to its stage-03 leg). No new entries — the research run's own citation-confidence
+  flags (HTTP-403'd primary fetches, WebSearch-summary sourcing) are recorded inline in
+  R212–R214's Sources sections, not separately filed findings. The 04-delta batch
+  (BL-0020/0022/0026/0028) remains the largest open cluster, entirely within the bootstrap
+  increment.
+- **Next step:** **`02-research-gbc-hardware`** — the plan §2 table's hardware extension pass
+  (WRAM working-set across the scale range, tilemap-update VBlank budget, software-PRNG
+  determinism on SM83, SRAM cost of seed+scale+flags), continuing the loop toward stage 03.
+  `02-research-tooling-and-testing`'s extension (testing deterministic generation, the Python
+  reference-generator oracle pattern) is the other remaining Phase 2 piece — order between the
+  two is not load-bearing, either may run next.
 - **Open gates:** none blocking the current path. Deferred, not skipped: `IP-9030`'s
-  verification (needs a fresh session — the loop's likely stopping point) and Release 1's
-  GO/NO-GO (11). Next human gates on the new increment: none at stage 02; BL-0031's plan-level
-  open items (seed/scale entry-screen presentation, scale bounds/defaults) surface at the
-  eventual seed & scale ADR (Phase 3).
+  verification (needs a fresh session — the loop's likely eventual stopping point) and Release
+  1's GO/NO-GO (11). Next human gates on the new increment: none at stage 02; BL-0031's
+  plan-level open items (seed/scale entry-screen presentation, scale bounds/defaults) surface at
+  the eventual seed & scale ADR (Phase 3).
 
 ## Run log
 
@@ -88,3 +89,4 @@
 | 29 | 2026-07-07 | advance (same user-directed iteration) | `09-package-verification` | IP-9040 (legacy artifact archival) | ✅ **VERIFIED — no findings.** Direct audit: repo root has zero `BunnyGarden*` entries; `legacy/` holds exactly the three artifacts + README (history-preserving `git mv` confirmed via `git log --follow`); tree-wide reference grep: **zero hits in any `.py` file**, all 14 doc/skill hits classified historical or already-tracked (`memory.md` → BL-0007/IP-9030; run-bunnygarden skill → BL-0027). ROM rebuilt byte-identical (sha256 match, 23404/32768); suite **125/125** from the repo root. Scope audit clean (pure renames + README + two ledger rows; root README correctly left to IP-9030). **[VR-9040](../implementation/verification/VR-9040-legacy-artifact-archival.md)** written. Ledger: IP-9040 → **VERIFIED** — **four of five packages VERIFIED; IP-9030 (READY) is all that remains.** Harvested: **BL-0004** → DONE; BL-0008 umbrella narrowed to IP-9030 only. No drift. **User-directed verification iteration complete.** | `08-code-implementation` on IP-9030 (root-doc refresh) — the last package of the bootstrap tranche |
 | 30 | 2026-07-09 | advance (loop, run 1) | `08-code-implementation` | IP-9030 (root-doc refresh) | ✅ **COMPLETE — 125/125 checks pass.** Pre-step triage (mandatory before step 3): dispositioned the three increment seed entries **`00-intake`** filed for the adopted aesthetics/visual-story/procgen-map plan — **BL-0029/BL-0030/BL-0031 → SCHEDULED**, all riding the plan's Phase 1 `01-vision` v3.0 amendment once Phase 0 (this bootstrap tranche) closes; **BL-0015 → DONE (closed, not just re-triaged)** — BL-0031/the adopted plan's D3/D6 (seed *and* user-adjustable world scale) make "wider vs deeper" a runtime player choice, not an architecture fork, so no decision remains to adjudicate. Then executed IP-9030: PyBoy 2.7.0 + numpy reinstalled (fresh container, no memory of prior installs). Verified `Claude.md`/`memory.md`/`README.md` against the current tree and rewrote all three — replaced pre-rewrite "Bunny Garden Adventure" content (3-zone/"gifts" WRAM layout, wrong tile map, "v2.1"/"88/88" claims) with current facts; byte-level tables in `Claude.md`/`memory.md` replaced with pointers to **GDS-07/GDS-08** per those levels' own recorded merge decisions, rather than re-duplicated (the structural fix the package exists to make); Known Good Behavior/Known Issues sections rewritten to current truth (BL-0001 not-reproducing, BL-0003 fixed by IP-9020, both independently verified); README's quick-start commands corrected to the repo-relative form and **actually executed** to confirm (`build_rom.py` → 32768 bytes byte-identical; `test_rom.py` → 125/125). Stale-term sweep (`gifts`/`88/88`/`BunnyGarden Adventure`/3-zone/`BunnyGarden.gbc`) returns clean across all three docs. `ROADMAP.md`'s RT-CLAUDE/RT-MEMORY/RT-README rows and the Master Build Plan's IP-9030 row/graph/critical-path text updated to **COMPLETE**. No FR/NFR coverage (doc-defect remediation only) — RTM correctly unaffected. No new findings; no drift beyond the increment seed rows. **All five bootstrap-tranche packages now implemented** (four VERIFIED, IP-9030 COMPLETE). | **Independence stop:** `09-package-verification` on IP-9030 is the correct next step, but this same session just implemented it — 09's own rule forbids verifying same-session implementation work. Requires a fresh session. |
 | 31 | 2026-07-09 | advance (loop, run 2; user override honored) | `01-vision` | MSTR-001 v3.0 amendment (D1–D10, BL-0029/BL-0030/BL-0031) | ✅ **Deliberate change, authored.** Per the user's explicit "restart at top (eg vision)" direction, ran `01-vision` next instead of finishing Phase 0. MSTR-001 2.0→3.0: added **C8** (presentation is a first-class quality commitment, smooth/every-screen-clean), **C9** (visual story narrative via a logical biome-adjacency grammar between whole screens — one biome per screen, e.g. water→beach→grassland→hills→mountains→sky, never disjointed; item-agnostic child-friendly collect-goal; no text-dialogue requirement, recorded as a reversible non-goal), **C10** (deterministic procedurally generated world from a seed + world-scale parameter, both fixed at new-game creation — C7's first concrete shape); **amended C2** (load becomes player-initiated via a new main menu; power-off persistence unchanged). Both C5 protected-baseline consequences (D5 archives the handcrafted 3×3 world; D9 supersedes auto-load) named explicitly per C5's own rule — not yet built, current shipped behavior remains accurate. GDS-00 revised in lock-step (design-facing consequences of C2/C5/C7–10). Strategic assumptions register: A1 sharpened (bank-switching now a near-term dependency), A5/A6 scoped to the new commitments, new **A9** (seed+scale sole determinism inputs) and **A10** (no text/dialogue engine needed) added. Also corrected two now-stale self-references left over from the bootstrap gap (§2 point 2's "aspirational" test-layer flag, §6 point 3's Claude.md/memory.md staleness note) — both resolved by `IP-9010`/`IP-9030`. Full downstream blast radius enumerated in MSTR-001 §8 (11 rows), contrasted against the 1.0→2.0 correction: this revision adds forward-looking commitments nothing downstream implements yet, not a fix to a vision that misdescribed shipped code. `ROADMAP.md`/`docs/master/INDEX.md`/`docs/architecture/INDEX.md` rows flipped in the same commit. Harvested: **BL-0029/BL-0030/BL-0031 → IN PIPELINE** (stage 01 of their 01→02→03→04 path done; each row's disposition names its next stage). No drift; no code touched (correctly out of `01-vision`'s scope). | `02-research-game-design` — the new increment's Phase 2 research (proposed R212 wordless environmental storytelling & biome-flow grammar, R213 procgen algorithms under 8-bit constraints, R214 GBC homebrew procgen case studies), continuing the user's override of Phase-0-first sequencing; `IP-9030`'s verification and Release 1's closeout (10/11) remain owed in parallel whenever a fresh session is available |
+| 32 | 2026-07-09 | advance (loop, run 3) | `02-research-game-design` | R212, R213, R214 (biome-adjacency grammar; procgen algorithm survey; GBC procgen case studies) | ✅ **Three topics authored, no gap remaining in this stream's named research asks.** **R212** grounds C9's biome-adjacency grammar: environmental-storytelling-without-dialogue technique, Minecraft's temperature-based adjacency-smoothing as a working precedent for "no disjointed pairings," WFC's adjacency-constraint formalism as the grammar's natural expression, and A Link to the Past's discrete-chunk overworld as the closest structural match to this project's own screen-composed architecture; concrete guidance recommends an explicit adjacency table over the existing GDS-08 terrain-family palette groups, one-biome-per-screen as a hard constraint (D2), and reuse of the existing landmark-tile authoring pattern for optional "transition tells." **R213** surveys random-walk, cellular automata, WFC, and graph/mission-grammar generation against this project's actual two-sided (Python-build/SM83-runtime) architecture; recommends **screen/room-graph generation on the build/first-boot side** (not per-tile WFC on the constrained runtime) plus a xorshift-family PRNG (2–4 bytes, no multiply/divide) satisfying new assumption A9; explicitly delegates the final algorithm pick to the Phase 3 ADR per D3 — informs, doesn't mandate. **R214** answers D3's explicit "existing GBC homebrew" ask: **Roguecraft GB** (homebrew, 5×5 room-graph procedurally generated dungeons, developer account of fitting the generator into real GBC memory constraints) is the primary, corroborated feasibility precedent for R213's room-graph recommendation; Azure Dreams/Dragon Crystal cited as broader but single-source-flagged commercial-era precedent. All three: `docs/research/INDEX.md` R200 tier extended, R211 cross-linked bidirectionally, `ROADMAP.md` research row updated. Citation note: several primary-source fetches (RogueBasin, GB Studio Central, Badger Punch) returned HTTP 403 this session — citations rest on WebSearch result summaries, each flagged where corroboration was thin, consistent with this project's existing citation-confidence precedent (R301/`BL-0011`). Harvested: **BL-0030 → IN PIPELINE** updated (R212 done, still owes 02-hardware/02-tooling extensions); **BL-0031 → IN PIPELINE** updated (R213/R214 done, same remaining extensions). No new backlog entries — no findings surfaced beyond the topics' own recorded citation-confidence flags (not defects, expected research-methodology notes). No drift. | `02-research-gbc-hardware` — the plan §2 table's remaining stage-02 work (WRAM working-set across the scale range, tilemap-update VBlank budget, software-PRNG determinism on SM83, SRAM cost of seed+scale+flags), continuing the loop toward stage 03; `02-research-tooling-and-testing`'s extension (testing deterministic generation, the Python reference-generator oracle pattern) is the other remaining Phase 2 piece, order between the two is not load-bearing |
