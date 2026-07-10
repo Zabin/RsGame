@@ -5,8 +5,10 @@
 > elaborates FEAT-5300, it does not modify its catalog entry, the requirements it implements, or
 > any architecture document.
 >
-> **Forward reference (metadata only):** planned by
-> [IP-1050](../implementation/packages/IP-1050-generated-world-save-persistence.md) (2026-07-10).
+> **Forward reference (metadata only):** [IP-1050](../implementation/packages/IP-1050-generated-world-save-persistence.md)
+> **implemented 2026-07-10** — both Acceptance Criteria (§15) demonstrably pass via
+> `test_rom.py`'s T15 suite (180/180 total, full suite green); independent verification pending
+> `09-package-verification`.
 
 [↑ Features index](INDEX.md) · [Feature Catalog](../feature-planning/03-feature-catalog.md) ·
 [Epic Catalog](../feature-planning/02-epic-catalog.md)

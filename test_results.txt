@@ -1,4 +1,4 @@
-BunnyQuest ROM Tests  PASS=163/163  FAIL=0
+BunnyQuest ROM Tests  PASS=180/180  FAIL=0
 ==================================================
 [PASS] T1.1 ROM size = 32768  (32768)
 [PASS] T1.2 Entry = NOP; JP
@@ -161,5 +161,22 @@ BunnyQuest ROM Tests  PASS=163/163  FAIL=0
 [PASS] T14.d2a Reload -> MAIN MENU, CONTINUE present
 [PASS] T14.d2b Continue -> PLAYING  (GS=2)
 [PASS] T14.d2c Restored state matches exactly what was present at exit (AC-6)  (x=90 y=100 score=4 carrots=1)
-[PASS] T14.e1 Static audit: SEED/WORLD_SCALE written only inside sse_compose_seed (FR-9110)  (seed_writes=0 scale_writes=0)
+[PASS] T14.e1 Static audit: SEED/WORLD_SCALE written only inside sse_compose_seed/try_load_save (FR-9110)  (seed_writes=0 scale_writes=0)
 [PASS] T14.e2 Runtime sweep (PLAYING/SAVE/MAP, every input branch) leaves SEED/WORLD_SCALE unchanged  (seed 0->0 scale 3->3)
+[PASS] T15.a0 KeyItem collected (KEYITEM_FLAGS[0] set)  (flags=[1, 0, 0, 0, 0, 0, 0, 0, 0])
+[PASS] T15.a1 Reload -> MAIN MENU, CONTINUE present (version-2 save)
+[PASS] T15.a2 Continue -> PLAYING  (GS=2)
+[PASS] T15.a3 SEED round-trips exactly  (54321->54321)
+[PASS] T15.a4 WORLD_SCALE round-trips exactly  (3->3)
+[PASS] T15.a5 Regenerated region graph matches pre-save graph (AC-1, ADR-0009 determinism)
+[PASS] T15.a6 KEYITEM_FLAGS round-trips exactly  ([1, 0, 0, 0, 0, 0, 0, 0, 0]->[1, 0, 0, 0, 0, 0, 0, 0, 0])
+[PASS] T15.b1 Boot with IP-1010-vintage (version=1) save -> MAIN MENU  (GS=6)
+[PASS] T15.b2 Version-1 save -> CONTINUE absent (AC-2, ADR-0010)
+[PASS] T15.b3 New game still reaches PLAYING cleanly despite the old version-1 save  (GS=2)
+[PASS] T15.c1 CUR_ZONE preserved (version-2 format)  (0->0)
+[PASS] T15.c2 PLAYER_X/Y preserved  ((20,32)->(20,32))
+[PASS] T15.c3 KEYITEM_COUNT preserved  (1->1)
+[PASS] T15.c4 SCORE preserved  (1->1)
+[PASS] T15.c5 KEYITEM_FLAGS preserved
+[PASS] T15.c6 SCOREITEM_FLAGS preserved
+[PASS] T15.d REGION_GRAPH never written to SRAM by save_to_sram

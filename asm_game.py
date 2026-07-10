@@ -71,8 +71,16 @@ SSE_CURSOR     = 0xC285  # 1 byte — SEED/SCALE ENTRY's cursor position, 0-4 = 
 OAM_BUF        = 0xC300
 
 SAVE_VERSION_ADDR = 0xA012   # save-format version guard (FR-5220 / Design Decision 2)
-SAVE_VERSION_VAL  = 0x01
+SAVE_VERSION_VAL  = 0x02     # bumped 0x01->0x02 (IP-1050, second bump since ship — the
+                              # value sequence is strictly monotonic, never reused)
 SRAM_SCOREITEM    = 0xA013   # 9 bytes, SCOREITEM_FLAGS mirror
+SRAM_SEED          = 0xA01C  # 2 bytes, A01C-A01D — SEED mirror (IP-1050)
+SRAM_WORLD_SCALE   = 0xA01E  # 1 byte — WORLD_SCALE mirror (IP-1050)
+SRAM_KEYITEM_FLAGS = 0xA01F  # up to 81 bytes, A01F-A06F — KEYITEM_FLAGS mirror,
+                              # generalizes the old CARROT_FLAGS mirror at A009-A011
+                              # (IP-1050). REGION_GRAPH itself is never persisted —
+                              # it regenerates deterministically from (SEED, WORLD_SCALE)
+                              # via generate_world on load (ADR-0009).
 
 J_A=0; J_B=1; J_SELECT=2; J_START=3; J_RIGHT=4; J_LEFT=5; J_UP=6; J_DOWN=7
 
@@ -1262,6 +1270,14 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_n(SAVE_VERSION_VAL); rom.LD_nn_A(SAVE_VERSION_ADDR)
     for i in range(9):
         rom.LD_A_nn(SCOREITEM_FLAGS + i); rom.LD_nn_A(SRAM_SCOREITEM + i)
+    # FR-9200 (IP-1050): SEED/WORLD_SCALE mirrors + KEYITEM_FLAGS mirror
+    # (up to 81 bytes). REGION_GRAPH itself is never written here — it
+    # regenerates from (SEED, WORLD_SCALE) on load (ADR-0009).
+    rom.LD_A_nn(SEED);         rom.LD_nn_A(SRAM_SEED)
+    rom.LD_A_nn(SEED + 1);     rom.LD_nn_A(SRAM_SEED + 1)
+    rom.LD_A_nn(WORLD_SCALE);  rom.LD_nn_A(SRAM_WORLD_SCALE)
+    rom.LD_DE_nn(KEYITEM_FLAGS); rom.LD_HL_nn(SRAM_KEYITEM_FLAGS); rom.LD_BC_nn(81)
+    rom.CALL('memcpy')
     rom.XOR_A(); rom.LD_nn_A(0x0000)
     rom.RET()
 
@@ -1307,9 +1323,26 @@ def build_game_asm(rom: ROM) -> dict:
     # after it) — a pre-upgrade save (version byte != SAVE_VERSION_VAL) is
     # handled by simply skipping the restore, leaving it at that all-zero
     # "uncollected" default rather than trusting garbage SRAM bytes.
+    # IP-1050: this routine is now only reachable from MAIN MENU's
+    # "continue" action once check_save_valid has already confirmed the
+    # version matches — so this branch is never actually taken in normal
+    # play (MM_SAVE_VALID gates it upstream) — kept as a defensive-correct
+    # fallback matching tls_no's own precedent, not a live path.
     rom.LD_A_nn(SAVE_VERSION_ADDR); rom.CP_n(SAVE_VERSION_VAL); rom.JR_NZ('tls_si_skip')
     for i in range(9):
         rom.LD_A_nn(SRAM_SCOREITEM + i); rom.LD_nn_A(SCOREITEM_FLAGS + i)
+    # FR-9200 (IP-1050): restore SEED/WORLD_SCALE, regenerate REGION_GRAPH
+    # via IP-1020's generate_world (never persisted itself — ADR-0009's
+    # determinism guarantee), then restore KEYITEM_FLAGS onto the
+    # freshly-regenerated graph. generate_world touches only WRAM (SEED,
+    # WORLD_SCALE, REGION_GRAPH, its own GW_* scratch) — harmless to call
+    # while SRAM's MBC1 bank window is still enabled.
+    rom.LD_A_nn(SRAM_SEED);        rom.LD_nn_A(SEED)
+    rom.LD_A_nn(SRAM_SEED + 1);    rom.LD_nn_A(SEED + 1)
+    rom.LD_A_nn(SRAM_WORLD_SCALE); rom.LD_nn_A(WORLD_SCALE)
+    rom.CALL('generate_world')
+    rom.LD_DE_nn(SRAM_KEYITEM_FLAGS); rom.LD_HL_nn(KEYITEM_FLAGS); rom.LD_BC_nn(81)
+    rom.CALL('memcpy')
     rom.label('tls_si_skip')
     rom.XOR_A(); rom.LD_nn_A(0x0000)
     rom.LD_A_n(GS_PLAYING)

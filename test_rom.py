@@ -23,6 +23,8 @@ Suites:
       transition call-site audit, scale=3 arrow-placement regression
   T14 Main menu & new-game flow (IP-1040) — continue/new-game option-set,
       digit-cursor seed/scale entry, exit-to-main-menu, FR-9110 negative sweep
+  T15 Generated-world save persistence (IP-1050) — seed/scale/KeyItemFlags
+      round-trip, pre-upgrade rejection, legacy-field regression
 
 WRAM model under test (see docs/architecture/07-data-model.md):
   C000 GAMESTATE (0=TITLE 1=INTRO 2=PLAYING 3=SAVE 4=MAP 5=VICTORY)
@@ -1145,15 +1147,20 @@ wipe_save()
 # T14.e — FR-9110 negative-test sweep: no reachable input sequence from
 # PLAYING, SAVE, or MAP writes SEED/WORLD_SCALE. Static audit (the only
 # write sites are inside sse_compose_seed, reachable only via
-# st_seed_scale_entry's A-confirm) + a runtime spot-check driving every
-# input branch in each of the 3 states.
+# st_seed_scale_entry's A-confirm, and try_load_save's SRAM-restore block,
+# reachable only via MAIN MENU's "continue" — IP-1050 — neither reachable
+# from PLAYING/SAVE/MAP) + a runtime spot-check driving every input branch
+# in each of the 3 states.
 _src14 = (BASE / 'asm_game.py').read_text()
 _scs_start = _src14.index("rom.label('sse_compose_seed')")
 _scs_end = _src14.index("rom.label('setup_zone_collects')")
-_outside_scs = _src14[:_scs_start] + _src14[_scs_end:]
+_tls_start = _src14.index("rom.label('try_load_save')")
+_tls_end = _src14.index("rom.label('tls_no')")
+_outside_scs = (_src14[:_scs_start] + _src14[_scs_end:_tls_start]
+                + _src14[_tls_end:])
 _seed_writes_outside = _outside_scs.count("LD_nn_A(SEED)") + _outside_scs.count("LD_nn_A(SEED + 1)")
 _scale_writes_outside = _outside_scs.count("LD_nn_A(WORLD_SCALE)")
-check("T14.e1 Static audit: SEED/WORLD_SCALE written only inside sse_compose_seed (FR-9110)",
+check("T14.e1 Static audit: SEED/WORLD_SCALE written only inside sse_compose_seed/try_load_save (FR-9110)",
       _seed_writes_outside == 0 and _scale_writes_outside == 0,
       f"seed_writes={_seed_writes_outside} scale_writes={_scale_writes_outside}")
 
@@ -1180,6 +1187,128 @@ wipe_save()
 check("T14.e2 Runtime sweep (PLAYING/SAVE/MAP, every input branch) leaves SEED/WORLD_SCALE unchanged",
       seed_after_e == seed_before_e and scale_after_e == scale_before_e,
       f"seed {seed_before_e}->{seed_after_e} scale {scale_before_e}->{scale_after_e}")
+
+# ══════════════════════════════════════════════════════
+# T15 — Generated-World Save Persistence (IP-1050)
+# (FS-105's own template names "T14"; renumbered — IP-1040 already
+# claimed T14 earlier this same tranche.)
+# ══════════════════════════════════════════════════════
+print("\n=== T15: Generated-World Save Persistence ===")
+
+# T15.a — round-trip: save with a known (SEED, WORLD_SCALE, KeyItemFlags),
+# reload in a fresh PyBoy instance, assert exact match on all three, and
+# assert the regenerated region graph matches the pre-save graph (AC-1).
+wipe_save()
+pb = fresh_boot(200)
+pb.button('a'); [pb.tick() for _ in range(40)]
+enter_seed_scale(pb, [5, 4, 3, 2, 1], 3)   # seed=54321, scale=3
+seed_pre15 = pb.memory[SEED] | (pb.memory[SEED + 1] << 8)
+scale_pre15 = pb.memory[WORLD_SCALE]
+pb.button('a'); [pb.tick() for _ in range(80)]   # INTRO -> PLAYING
+region_graph_pre15 = read_region_graph(pb, scale_pre15)
+pb.memory[PLAYER_X] = 132; pb.memory[PLAYER_Y] = 88   # zone 0's KeyItem
+[pb.tick() for _ in range(5)]
+keyitem_pre15 = [pb.memory[KEYITEM_FLAGS + i] for i in range(9)]
+check("T15.a0 KeyItem collected (KEYITEM_FLAGS[0] set)", keyitem_pre15[0] == 1,
+      f"flags={keyitem_pre15}")
+pb.button('start'); [pb.tick() for _ in range(40)]
+pb.button('a');     [pb.tick() for _ in range(40)]   # SAVE -> A -> PLAYING
+pb.stop()
+
+pb2 = PyBoy(ROM_PATH, window='null', sound_emulated=False)
+pb2.set_emulation_speed(0)
+for _ in range(180): pb2.tick()
+check("T15.a1 Reload -> MAIN MENU, CONTINUE present (version-2 save)",
+      continue_offered(pb2), "")
+pb2.button('a'); [pb2.tick() for _ in range(40)]
+check("T15.a2 Continue -> PLAYING", pb2.memory[GAMESTATE] == 2, f"GS={pb2.memory[GAMESTATE]}")
+seed_post15 = pb2.memory[SEED] | (pb2.memory[SEED + 1] << 8)
+scale_post15 = pb2.memory[WORLD_SCALE]
+check("T15.a3 SEED round-trips exactly", seed_post15 == seed_pre15,
+      f"{seed_pre15}->{seed_post15}")
+check("T15.a4 WORLD_SCALE round-trips exactly", scale_post15 == scale_pre15,
+      f"{scale_pre15}->{scale_post15}")
+region_graph_post15 = read_region_graph(pb2, scale_post15)
+check("T15.a5 Regenerated region graph matches pre-save graph (AC-1, ADR-0009 determinism)",
+      region_graph_post15 == region_graph_pre15, "")
+keyitem_post15 = [pb2.memory[KEYITEM_FLAGS + i] for i in range(9)]
+check("T15.a6 KEYITEM_FLAGS round-trips exactly", keyitem_post15 == keyitem_pre15,
+      f"{keyitem_pre15}->{keyitem_post15}")
+pb2.stop()
+wipe_save()
+
+# T15.b — pre-upgrade rejection: a synthetic IP-1010-vintage fixture
+# (version byte 0x01, valid magic + legacy fields, no valid seed/scale/
+# region data) — confirm "continue" is not offered (AC-2).
+fixture = bytearray(8192)
+fixture[0:4] = bytes([0x42, 0x55, 0x4E, 0x59])
+fixture[SRAM_CUR_ZONE - 0xA000] = 0
+fixture[SRAM_PLAYER_X - 0xA000] = 76
+fixture[SRAM_PLAYER_Y - 0xA000] = 80
+fixture[SAVE_VERSION_ADDR - 0xA000] = 0x01   # IP-1010's own vintage, now superseded
+for i in range(9): fixture[SRAM_SCOREITEM - 0xA000 + i] = 0xFF
+with open(RAM_PATH, 'wb') as f:
+    f.write(bytes(fixture))
+pb = PyBoy(ROM_PATH, window='null', sound_emulated=False)
+pb.set_emulation_speed(0)
+for _ in range(180): pb.tick()
+check("T15.b1 Boot with IP-1010-vintage (version=1) save -> MAIN MENU",
+      pb.memory[GAMESTATE] == 6, f"GS={pb.memory[GAMESTATE]}")
+check("T15.b2 Version-1 save -> CONTINUE absent (AC-2, ADR-0010)",
+      not continue_offered(pb), "")
+advance_to_playing(pb)
+check("T15.b3 New game still reaches PLAYING cleanly despite the old version-1 save",
+      pb.memory[GAMESTATE] == 2, f"GS={pb.memory[GAMESTATE]}")
+pb.stop()
+wipe_save()
+
+# T15.c — legacy-field regression: CUR_ZONE/position/KeyItemCount/SCORE/
+# KEYITEM_FLAGS/SCOREITEM_FLAGS still round-trip exactly under the new
+# version-2 format, extending T10/T11's existing patterns.
+pb = fresh_boot(200)
+advance_to_playing(pb)
+pb.memory[PLAYER_X] = 132; pb.memory[PLAYER_Y] = 88
+[pb.tick() for _ in range(5)]   # collect zone 0's KeyItem -> KEYITEM_COUNT/SCORE
+pb.memory[PLAYER_X] = 20; pb.memory[PLAYER_Y] = 32
+[pb.tick() for _ in range(5)]   # collect a ScoreItem -> SCOREITEM_FLAGS/SCORE
+zone_pre15c = pb.memory[CUR_ZONE]; x_pre15c = pb.memory[PLAYER_X]; y_pre15c = pb.memory[PLAYER_Y]
+kc_pre15c = pb.memory[KEYITEM_COUNT]; sc_pre15c = pb.memory[SCORE]
+kf_pre15c = [pb.memory[KEYITEM_FLAGS + i] for i in range(9)]
+sf_pre15c = [pb.memory[SCOREITEM_FLAGS + i] for i in range(9)]
+pb.button('start'); [pb.tick() for _ in range(40)]
+pb.button('a');      [pb.tick() for _ in range(40)]
+pb.stop()
+
+pb2 = PyBoy(ROM_PATH, window='null', sound_emulated=False)
+pb2.set_emulation_speed(0)
+for _ in range(180): pb2.tick()
+pb2.button('a'); [pb2.tick() for _ in range(40)]
+check("T15.c1 CUR_ZONE preserved (version-2 format)", pb2.memory[CUR_ZONE] == zone_pre15c,
+      f"{zone_pre15c}->{pb2.memory[CUR_ZONE]}")
+check("T15.c2 PLAYER_X/Y preserved",
+      pb2.memory[PLAYER_X] == x_pre15c and pb2.memory[PLAYER_Y] == y_pre15c,
+      f"({x_pre15c},{y_pre15c})->({pb2.memory[PLAYER_X]},{pb2.memory[PLAYER_Y]})")
+check("T15.c3 KEYITEM_COUNT preserved", pb2.memory[KEYITEM_COUNT] == kc_pre15c,
+      f"{kc_pre15c}->{pb2.memory[KEYITEM_COUNT]}")
+check("T15.c4 SCORE preserved", pb2.memory[SCORE] == sc_pre15c,
+      f"{sc_pre15c}->{pb2.memory[SCORE]}")
+check("T15.c5 KEYITEM_FLAGS preserved",
+      [pb2.memory[KEYITEM_FLAGS + i] for i in range(9)] == kf_pre15c, "")
+check("T15.c6 SCOREITEM_FLAGS preserved",
+      [pb2.memory[SCOREITEM_FLAGS + i] for i in range(9)] == sf_pre15c, "")
+pb2.stop()
+wipe_save()
+
+# T15.d — static audit: REGION_GRAPH is never written to SRAM by
+# save_to_sram — only SEED/WORLD_SCALE/KEYITEM_FLAGS (DoD's own explicit
+# requirement, confirmed by direct diff, not merely asserted).
+_src15 = (BASE / 'asm_game.py').read_text()
+_sts_start = _src15.index("rom.label('save_to_sram')")
+_sts_end = _src15.index("rom.label('check_save_valid')")
+_save_lines = _src15[_sts_start:_sts_end].splitlines()
+_save_code_only = "\n".join(ln.split('#', 1)[0] for ln in _save_lines)
+check("T15.d REGION_GRAPH never written to SRAM by save_to_sram",
+      "REGION_GRAPH" not in _save_code_only, "")
 
 # ══════════════════════════════════════════════════════
 # SUMMARY

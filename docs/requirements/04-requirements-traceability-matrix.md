@@ -57,7 +57,7 @@
 | FR-9110 | Seed/scale immutable per save, new-game-only (Met, 2026-07-10) | — | ADR-0010 | ADR-0010 | `asm_game.py` (only `sse_compose_seed`, reachable only via `st_seed_scale_entry`'s A-confirm, writes `SEED`/`WORLD_SCALE`) | FS-102, FS-104 | IP-1020, IP-1040 | T14.e1 (static write-site audit), T14.e2 (runtime sweep, PLAYING/SAVE/MAP) — 163/163 pass |
 | FR-9120 | Full reachability of every generated region | — | GDS-04 delta; ADR-0009 | ADR-0009 | `worldgen.py` | FS-102 | IP-1020 | T12.c (BFS from region 0, 15-entry corpus, 0 unreachable) |
 | FR-9130 | Exactly one KeyItem per generated region (generalizes BL-0017) | — | GDS-04 delta; BL-0017 | ADR-0009 | `worldgen.py` | FS-102 | IP-1020 | T12.e (region count == scale², 15-entry corpus) |
-| FR-9200 | Save-format extension: seed/scale/region-flags (target) | R106 (ext.) | GDS-07 delta §7 | ADR-0010, ADR-0006 | `asm_game.py` (proposed) | FS-105 | IP-1050 | UNASSIGNED — not yet implemented (package planned 2026-07-10) |
+| FR-9200 | Save-format extension: seed/scale/region-flags (Met, 2026-07-10) | R106 (ext.) | GDS-07 delta §7 | ADR-0010, ADR-0006 | `asm_game.py` | FS-105 | IP-1050 | T15.a1–a6, T15.c1–c6, T15.d — 180/180 pass |
 
 ## Non-Functional Requirements
 
@@ -70,7 +70,7 @@
 | NFR-4000 | 32768-byte single-bank ROM budget | — | GDS-06 N1; GDS-02 | ADR-0001 | `build_rom.py` | UNASSIGNED | UNASSIGNED | **T1.1** ("ROM size = 32768") — trustworthy, T1 suite |
 | NFR-4100 | CGB palette budget | R104 | GDS-06 N1; GDS-07; GDS-08 §4 | — | `build_rom.py`/`tiles.py` | UNASSIGNED | UNASSIGNED | UNASSIGNED (inspection-based) |
 | NFR-5100 | MBC1 SRAM enable/disable bracketing | R106 | GDS-06 N3 | ADR-0006 | `asm_game.py` | UNASSIGNED | UNASSIGNED | UNASSIGNED (inspection-based) |
-| NFR-5200 | Save-field round-trip integrity | — | GDS-06 N3 | ADR-0006 | `asm_game.py` | FS-101 | IP-1010 | **T10.7–T10.12, T11.b5/T11.c/T11.e1/T11.d** — trustworthy, full field set incl. SCOREITEM_FLAGS, 125/125 pass |
+| NFR-5200 | Save-field round-trip integrity (widened again 2026-07-10, `IP-1050`) | — | GDS-06 N3 | ADR-0006, ADR-0010 | `asm_game.py` | FS-101, FS-105 | IP-1010, IP-1050 | **T10.7–T10.12, T11.b5/T11.c/T11.e1/T11.d, T15.a3–a6/c1–c6** — trustworthy, full field set incl. SEED/WORLD_SCALE/KEYITEM_FLAGS, 180/180 pass |
 | NFR-6100 | PyBoy headless as verification target | R301 | GDS-02; A2 | ADR-0008 | `run-bunnygarden` harness | UNASSIGNED | UNASSIGNED | **T1–T10 (full suite)** — every check runs headless via PyBoy, direct repeatable evidence (filled 2026-07-10, `BL-0026`; previously `UNASSIGNED` despite this evidence already existing) |
 | NFR-7100 | Full, currently-accurate test suite as completion gate | — | GDS-06 N5 | — | `test_rom.py` | UNASSIGNED | UNASSIGNED | **T1–T10, 109/109 pass at IP-9010's own commit — 125/125 today** (IP-9010, 2026-07-07 — this NFR's own remediation, was BL-0006; count refreshed 2026-07-10 alongside NFR-1200's identical staleness, BL-0028) |
 | NFR-8100 | Byte-identical deterministic rebuild | — | GDS-06 N4 | ADR-0002 | `build_rom.py` | UNASSIGNED | UNASSIGNED | Confirmed by direct rebuild-and-diff during MSTR-001 §8's correction — not a `test_rom.py` check; UNASSIGNED as an automated Test cell |
@@ -79,7 +79,7 @@
 | NFR-1300 | Screen-transition smoothness for generated content (Met, 2026-07-10) | R102 (ext.) | GDS-08 delta §7; GDS-07 delta | ADR-0009 | `asm_game.py` | FS-103 | IP-1030 | T13.b (call-site audit, direct code read) — 136/136 pass |
 | NFR-2200 | Deterministic world generation | R111 | ADR-0009; A9 | ADR-0009 | `worldgen.py`, `asm_game.py` | FS-102 | IP-1020 | T12.f (seed=0 normalization, direct WRAM inspection), T12.h (static no-DIV/no-external-read source scan) |
 | NFR-4200 | Generated-world WRAM/SRAM headroom (WRAM half Met, `IP-1020`; SRAM half awaits `IP-1050`) | R111 | GDS-07 delta §6/§7 | ADR-0010 | `asm_game.py` | FS-102 | IP-1020 (WRAM), IP-1050 (SRAM) | T12.i (WRAM extent inside bank-0 + boot-clear range, confirmed at scale=9) |
-| NFR-5300 | Save-format version bump for seed/scale/region-flags (target) | R106 (ext.) | GDS-07 delta §7 | ADR-0010, ADR-0006 | `asm_game.py` (proposed) | FS-105 | IP-1050 | UNASSIGNED — not yet implemented (package planned 2026-07-10) |
+| NFR-5300 | Save-format version bump for seed/scale/region-flags (Met, 2026-07-10) | R106 (ext.) | GDS-07 delta §7 | ADR-0010, ADR-0006 | `asm_game.py` | FS-105 | IP-1050 | T15.b1/b2/b3 — 180/180 pass |
 | NFR-6500 | Aesthetic craft and clean-screen standard compliance (target) | R209 | GDS-08 delta §7 | — | `tiles.py`/`tilemaps.py` (proposed) | FS-106 | *(no package — see FS-106 §8/§10)* | UNASSIGNED — standard authored, first exercised via a future `09-content-review` pass on IP-1031's content |
 | NFR-6510 | Biome-transition palette-stepping compliance (target) | R212 | GDS-08 delta §8 | ADR-0009 | `build_rom.py`/`tiles.py` (proposed) | FS-106 | *(no package — see FS-106 §8/§10)* | UNASSIGNED — standard authored, first exercised via a future `09-content-review` pass on IP-1031's content |
 
