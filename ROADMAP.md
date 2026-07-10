@@ -117,4 +117,4 @@ build order.
 |---|---|---|---|---|
 | RV-CONTENT | Content reviews | `docs/reviews/content-review-*.md` | content packages | ⛔ (per scope) |
 | RV-INTEG | Integration reviews | `docs/reviews/integration-review-*.md` | tranche VERIFIED | ✅ (bootstrap tranche, 2026-07-10 — clean, 2 Medium doc-drift findings, no Critical/High) |
-| RV-RELEASE | Release assessments | `docs/reviews/release-assessment-*.md` | RV-INTEG | ⛔ (per release) |
+| RV-RELEASE | Release assessments | `docs/reviews/release-assessment-*.md` | RV-INTEG | ✅ (bootstrap tranche — Baseline + Release 1, 2026-07-10 — **GO**, [release-assessment-bootstrap-tranche.md](docs/reviews/release-assessment-bootstrap-tranche.md); Release 2 not yet assessed) |

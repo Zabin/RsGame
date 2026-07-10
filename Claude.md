@@ -76,7 +76,10 @@ per zone, victory at `CARROTS_COUNT == 9`. `CUR_ZONE` is `0–8`; `CARROT_FLAGS`
 
 ---
 
-## Known Good Behavior
+## Known Good Behavior (Baseline + Release 1 — assessed GO 2026-07-10)
+
+> Release readiness: **GO** ([release-assessment-bootstrap-tranche.md](docs/reviews/release-assessment-bootstrap-tranche.md)).
+> Everything below is shipped, `VERIFIED`, and integration-reviewed clean.
 
 Confirmed by the current `test_rom.py` suite (125/125 checks pass;
 [`docs/architecture/01-concept-of-play.md`](docs/architecture/01-concept-of-play.md) (GDS-01) is

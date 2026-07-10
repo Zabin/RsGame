@@ -11,3 +11,4 @@ Critical / High / Medium / Low.
 | Report | Scope | Date | Result | Path |
 |---|---|---|---|---|
 | Integration review | Bootstrap tranche (IP-9010/9020/9030/9040/1010, all VERIFIED) | 2026-07-10 | **Clean** — 2 Medium (stale ROADMAP/feature-planning cross-refs), no Critical/High | [integration-review-bootstrap-tranche.md](integration-review-bootstrap-tranche.md) |
+| Release assessment | Bootstrap tranche (Baseline + Release 1, 8 Features) | 2026-07-10 | **GO** — user-confirmed | [release-assessment-bootstrap-tranche.md](release-assessment-bootstrap-tranche.md) |
