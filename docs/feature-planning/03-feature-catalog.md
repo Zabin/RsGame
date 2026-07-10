@@ -1,13 +1,20 @@
 # FP-03 — Feature Catalog
 
-> **Status: ✅ Authored (bootstrap as-built, 2026-07-07).** Owned by `05-feature-decomposition`.
-> Derives from the closed [RQ-01](../requirements/01-functional-requirements.md)/
-> [RQ-02](../requirements/02-non-functional-requirements.md) baseline (25 `FR-xxxx` + 11
-> `NFR-xxxx` leaves, all owned by exactly one Feature below). **Bootstrap framing: six of these
-> seven Features describe capability the shipped `BunnyQuest.gbc` already implements** — their
-> catalog entries are as-built summaries, not proposals. **FEAT-5100 is the one genuinely new,
-> not-yet-implemented Feature in this baseline**, formalizing `FR-5220` (per-zone `ScoreItem`
-> persistence), which the user approved on 2026-07-07 (`BL-0018`, resolved).
+> **Status: ✅ Authored (bootstrap as-built, 2026-07-07); delta 2026-07-10 (procgen-world
+> increment, 5 new Features + FEAT-5100 shipped-status correction).** Owned by
+> `05-feature-decomposition`. Derives from the closed
+> [RQ-01](../requirements/01-functional-requirements.md)/
+> [RQ-02](../requirements/02-non-functional-requirements.md) baseline, now 36 bootstrap `FR-xxxx`/
+> `NFR-xxxx` leaves + 17 target leaves from the 2026-07-09 RQ-01…04 delta (53 total, all owned by
+> exactly one Feature below). **Bootstrap framing: six of the original seven Features describe
+> capability the shipped `BunnyQuest.gbc` already implements** — their catalog entries are
+> as-built summaries, not proposals. **FEAT-5100 shipped and was independently verified
+> 2026-07-07** ([IP-1010](../implementation/packages/IP-1010-per-zone-scoreitem-persistence.md)/
+> [VR-1010](../implementation/verification/VR-1010-per-zone-scoreitem-persistence.md)) — this
+> entry's earlier "not yet implemented" framing is corrected below (`BL-0036`). **Five new
+> Features (FEAT-1100, FEAT-4100, FEAT-5300, FEAT-6100, FEAT-9000) formalize the
+> aesthetics/visual-story-narrative/procgen-world-map increment's 17 target requirements** — none
+> yet implemented, per that increment's RQ-01…04 delta (2026-07-09).
 
 ## FEAT-1000 — Game State Machine & Menu Flow
 
@@ -165,19 +172,22 @@
 - **Open Questions:** None — `BL-0018`'s scope question is resolved (2026-07-07); see FEAT-5100
   for the approved extension.
 
-## FEAT-5100 — Per-Zone ScoreItem Persistence (new — not yet implemented)
+## FEAT-5100 — Per-Zone ScoreItem Persistence (shipped, VERIFIED 2026-07-07)
 
 > **Forward reference (metadata only):** specified by
-> [FS-101](../features/FS-101-per-zone-scoreitem-persistence.md) (2026-07-07).
+> [FS-101](../features/FS-101-per-zone-scoreitem-persistence.md) (2026-07-07); implemented by
+> [IP-1010](../implementation/packages/IP-1010-per-zone-scoreitem-persistence.md); independently
+> verified by [VR-1010](../implementation/verification/VR-1010-per-zone-scoreitem-persistence.md)
+> (2026-07-07). **Correction (`BL-0036`, 2026-07-10):** this entry previously read "no shipped
+> implementation" — stale since the same day's `IP-1010`/`VR-1010`; corrected below.
 
 - **Feature ID:** FEAT-5100
 - **Title:** Per-Zone ScoreItem Persistence
 - **Purpose:** Extend the save system so a restored game does not re-present already-collected
   `ScoreItem`s (stars/flowers) as available.
 - **Description:** Formalizes `FR-5220`, approved by the user on 2026-07-07 resolving `BL-0018`.
-  **This Feature has no shipped implementation** — it is the one genuinely new piece of scope in
-  the current requirements baseline, requiring a real `06-feature-specification` →
-  `07-implementation-planning` → `08-code-implementation` → `09-package-verification` pass.
+  **Shipped and independently verified 2026-07-07** — Release 1's sole Feature, closing that
+  release's critical path end-to-end.
 - **Scope:** Saving and restoring per-zone `ScoreItem` collected-state alongside the existing
   save-field set. Explicitly **excludes** facing direction/animation-frame persistence — the user
   confirmed these are "not important" (2026-07-07); no Feature anywhere claims that scope.
@@ -185,33 +195,28 @@
 - **Excluded Requirements:** None applicable (single-requirement Feature).
 - **Dependencies:** FEAT-5000 (extends its save/load mechanism rather than introducing a new
   one); FEAT-3000 (`ScoreItem` collection state is the data being persisted).
-- **Dependent Features:** None yet.
-- **Affected Modules:** `asm_game.py`; likely also the SRAM save-format layout GDS-07 documents —
-  see Open Questions below, a real design question for `06-feature-specification` to resolve, not
-  assumed here.
+- **Dependent Features:** FEAT-5300 (extends this Feature's version-byte precedent for the
+  generated-world save fields).
+- **Affected Modules:** `asm_game.py`. **Shipped design:** a 9-byte `SCOREITEM_FLAGS` array
+  (`0xC060`–`0xC068`) mirroring `CARROT_FLAGS`, plus a save-format version guard (`0xA012`) —
+  both confirmed against GDS-07 (see FS-101's resolved Open Questions).
 - **Related ADRs:** ADR-0006 (this Feature widens that ADR's declared save-field set within the
   same MBC1+RAM+BATTERY mechanism, not a new one).
 - **User Value:** Medium — a completionist/quality-of-life improvement, not core-loop-critical
   (the game is fully playable and winnable without it).
-- **Technical Value:** Medium — widens the save-format contract for the first time since it
-  shipped.
-- **Complexity:** Medium — needs a compact per-zone representation (e.g. a bitfield) fitting
-  within the existing SRAM budget, plus both a save-write and a load-restore code path, and
-  confirming whatever in-memory `ScoreItem`-active tracking already exists is in a saveable form.
-- **Risk:** Medium — touches the save-format contract (ADR-0006) and the SRAM byte layout; must
-  not silently break saves written before this Feature ships (see Open Questions).
-- **Suggested Verification Strategy:** Test — new save/load round-trip assertions specific to
-  per-zone `ScoreItem` state. These would be **entirely new** assertions, not repairs of stale
-  ones, so this Feature's verification is not blocked by `BL-0006`/`BL-0008`'s remediation and can
-  proceed independently of it.
-- **Open Questions:** (1) **Exact SRAM byte layout** for per-zone `ScoreItem` state — an additive
-  Data Model extension; decide at `06-feature-specification` time if purely additive, or route
-  back to `03-architecture-design-synthesis` as a GDS-07 delta if it isn't. (2) **Save
-  compatibility:** should a save written *before* this Feature ships be treated on first load as
-  "all ScoreItems already collected" (a safe default matching nothing-changes-visually) or "all
-  ScoreItems uncollected" (matching current no-persistence behavior, but re-presenting items the
-  player may already recall collecting)? This is a real product decision for
-  `06-feature-specification` to make explicit — not assumed either way here.
+- **Technical Value:** Medium — widened the save-format contract for the first time since ship,
+  establishing the version-byte pattern `FEAT-5300` now extends.
+- **Complexity:** Medium (as designed and shipped) — a compact per-zone bitfield, a save-write and
+  a load-restore path, both mirroring the existing `CARROT_FLAGS` handling.
+- **Risk:** Low — shipped and independently verified; the save-format-compatibility question
+  (below) was resolved before implementation, not discovered after.
+- **Suggested Verification Strategy:** Test — **T11.a–e** (14 checks), independently re-run by
+  `VR-1010` (125/125 pass). Not blocked by `BL-0006`/`BL-0008` (which was itself remediated and
+  closed the same day, `IP-9010`/`VR-9010`).
+- **Open Questions:** None remaining — both resolved by `FS-101`: (1) SRAM byte layout assigned
+  `0xC060`–`C068`/`0xA013`–`A01B` (GDS-07). (2) Save compatibility: pre-upgrade saves default to
+  "all ScoreItems uncollected," guarded by the new version byte — confirmed by `T11.d`'s synthetic
+  pre-upgrade fixture.
 
 ## FEAT-6000 — Presentation & HUD
 
@@ -284,8 +289,242 @@
   Highest-Risk callout; this is a sequencing question for `07-implementation-planning`/the user,
   not resolved here.
 
+## FEAT-9000 — Procedural World Generation & Item-Agnostic Collection (new — not yet implemented)
+
+> **Target Feature, procgen-world increment (2026-07-09 RQ-01…04 delta).** No `FS-xxx` yet — the
+> next unspecified Feature this catalog names for `06-feature-specification`.
+
+- **Feature ID:** FEAT-9000
+- **Title:** Procedural World Generation & Item-Agnostic Collection
+- **Purpose:** Deterministically generate a grammar-valid, fully-reachable region graph from
+  (seed, scale), with exactly one collectible KeyItem per region, collected via an item-agnostic
+  mechanism generalizing the shipped Carrot rule.
+- **Description:** Formalizes MSTR-001 C10's world-generation commitment and C9's item-agnostic
+  collect-goal together, since ADR-0009 ties them at the generator level: the generator produces
+  `WORLD_SCALE²` regions, each with a biome assignment and adjacency edges restricted to R212's
+  grammar-legal pairings (enforced by construction, not post-hoc validation), guarantees every
+  region is reachable from the start and holds exactly one KeyItem, and the collection mechanic
+  itself is generalized from FR-3210's Carrot-specific rule to an item-agnostic identity.
+- **Scope:** The generation algorithm (region graph: biome assignment + grammar-constrained
+  adjacency), its determinism/reachability/one-KeyItem-per-region guarantees, the WRAM/SRAM
+  working-set headroom it must fit within, and the collection-mechanic generalization. Explicitly
+  **excludes** the seed/scale entry UI and the generation *trigger* (FEAT-1100 — this Feature owns
+  what the generator does once invoked, not how a player starts it), the generated-region screen's
+  *rendering* (FEAT-4100 — this Feature owns *which* biome a region gets, not how that biome's
+  tiles are drawn), and persisting the generated world's parameters to SRAM (FEAT-5300).
+- **Included Requirements:** FR-9100, FR-9110, FR-9120, FR-9130, FR-4310, FR-3220; NFR-2200,
+  NFR-4200.
+- **Excluded Requirements:** FR-1180 (the entry UI/trigger — FEAT-1100, though it calls into this
+  Feature's routine); FR-4300 (screen rendering — FEAT-4100); FR-9200 (save persistence —
+  FEAT-5300).
+- **Dependencies:** FEAT-1000 (generation is invoked during a state transition, FR-1180); FEAT-3000
+  (generalizes FR-3210's Carrot-specific collection rule — FR-3220 is this Feature's own
+  requirement, but the mechanism it generalizes is FEAT-3000's); FEAT-4000 (generalizes the fixed
+  9-zone/3×3 structural model this Feature's `WORLD_SCALE²` regions supersede).
+- **Dependent Features:** FEAT-1100 (triggers this Feature's routine from the new-game flow);
+  FEAT-4100 (renders the biome each region's generation assigns); FEAT-5300 (persists this
+  Feature's seed/scale/KeyItemFlags output).
+- **Affected Modules:** New module `worldgen.py` (per GDS-09's delta — the on-console SM83
+  generator; a build-side Python mirror also lives here per R305's reference-generator-oracle
+  pattern, imported only by `test_rom.py`, never by `build_rom.py`/`asm_game.py`); `asm_game.py`
+  (collection-mechanic generalization, FR-3220).
+- **Related ADRs:** ADR-0009 (screen/room-graph generation, on-console at new-game creation,
+  grammar-constrained by construction), ADR-0010 (seed & scale model, 16-bit seed/byte scale
+  2–9), ADR-0011 (MBC1 default wiring — tangential, no immediate bank-switching dependency).
+- **User Value:** High — this is the increment's central new capability; every other new Feature
+  in this catalog depends on or renders what this Feature generates.
+- **Technical Value:** High — the foundational new-work Feature for this entire increment.
+- **Complexity:** High — a new generation algorithm (screen/room-graph, per R213's recommendation)
+  with three simultaneous structural guarantees (determinism, reachability, grammar-legality) that
+  must all be generator-*guaranteed*, not post-hoc-checked, per ADR-0009.
+- **Risk:** Medium-High — genuinely new algorithmic work with no shipped precedent; R305's
+  reference-generator-oracle pattern (a build-side Python mirror whose output must byte-match the
+  SM83 routine) is itself a new verification technique this Feature depends on working correctly.
+- **Suggested Verification Strategy:** Test — property tests across a (seed, scale) corpus
+  (determinism, reachability, one-KeyItem-per-region, grammar-legality), per R305's extension;
+  entirely new assertions, unblocked by any prior remediation.
+- **Open Questions:** The exact generation algorithm's implementation detail (R213 recommends
+  screen/room-graph generation and a xorshift-family PRNG but leaves the concrete step-by-step
+  construction to `06-feature-specification`/`07-implementation-planning`) is not decided here —
+  ADR-0009 fixes the *approach*, not the routine's line-by-line design.
+
+## FEAT-4100 — Generated-Region Screen Composition (new — not yet implemented)
+
+- **Feature ID:** FEAT-4100
+- **Title:** Generated-Region Screen Composition
+- **Purpose:** Render each generated region's screen from exactly one biome family's tile set,
+  within the existing transition-smoothness budget.
+- **Description:** Extends `FEAT-4000`'s zone/screen existence layer to the generated-world case:
+  every region's screen is composed entirely from its assigned biome family (`FEAT-9000`'s output)
+  — never a blend of two — and its screen transition uses the same `copy_screen`/LCD-off mechanism
+  every existing zone transition already uses, with no new, slower path introduced.
+- **Scope:** The rendering constraint (one biome per screen) and its transition-timing bar.
+  Explicitly **excludes** *which* biome a region is assigned (`FEAT-9000`'s generation output) and
+  the biome-family palette-stepping *quality* judgment (`FEAT-6100` — this Feature owns the hard
+  structural constraint; `FEAT-6100` owns the aesthetic-quality bar on top of it).
+- **Included Requirements:** FR-4300; NFR-1300.
+- **Excluded Requirements:** FR-4310 (grammar-valid adjacency — a generation-time construction
+  guarantee, `FEAT-9000`, per ADR-0009's own framing, not a rendering concern); NFR-6510
+  (palette-stepping aesthetic judgment — `FEAT-6100`).
+- **Dependencies:** FEAT-9000 (needs a region's biome assignment to exist before it can be
+  rendered); FEAT-4000 (extends its zone/screen composition existence layer); FEAT-6000 (reuses
+  the existing terrain-fill-plus-landmarks rendering pattern, per GDS-08 §8's extension).
+- **Dependent Features:** FEAT-6100 (judges this Feature's biome-family screen output for
+  palette-stepping quality).
+- **Affected Modules:** `tilemaps.py` (screen generator, generalized from one-function-per-zone to
+  one-function-per-biome-family per GDS-09's delta), `tiles.py` (biome-family terrain tile sets,
+  content-authoring scope for whichever content package implements this).
+- **Related ADRs:** ADR-0009 (per-biome terrain texture continues the existing `_fill()` pattern —
+  this ADR decides adjacency/placement, not texture, per its own framing).
+- **User Value:** High — the player's entire visual experience of the generated world.
+- **Technical Value:** Medium.
+- **Complexity:** Medium — structurally similar to the shipped per-zone rendering pattern,
+  generalized from a fixed 9-zone set to a variable-count biome-family set.
+- **Risk:** Low — reuses the existing, already-verified LCD-off transition mechanism unchanged;
+  the new constraint (one biome per screen) is enforced by which tiles a screen generator uses,
+  not new hardware-timing-sensitive code.
+- **Suggested Verification Strategy:** Test (tile-family audit per generated screen) / Inspection
+  — new assertions, unblocked by prior remediation.
+- **Open Questions:** None surfaced yet — the exact biome-family tile-set assignments are content-
+  authoring detail for whichever `08-content-authoring` package implements this Feature.
+
+## FEAT-5300 — Generated-World Save Persistence (new — not yet implemented)
+
+- **Feature ID:** FEAT-5300
+- **Title:** Generated-World Save Persistence
+- **Purpose:** Persist a generated world's (seed, scale, per-region KeyItemFlags) to SRAM, and
+  regenerate the region graph from (seed, scale) on load rather than persisting the graph itself.
+- **Description:** Formalizes FR-9200/NFR-5300, extending `FEAT-5000`/`FEAT-5100`'s save mechanism
+  and version-byte precedent: on save, writes `SEED`/`WORLD_SCALE`/`KeyItemFlags[region]` under a
+  new save-format version value; on load, restores `SEED`/`WORLD_SCALE`, regenerates the region
+  graph via `FEAT-9000`'s routine (never reads a persisted graph), then restores `KeyItemFlags`
+  onto the regenerated graph. A pre-upgrade save (predating this extension) is never offered on
+  "continue," never partially loaded with garbage seed/scale/region-flags bytes.
+- **Scope:** The save-write and load-restore code paths for the three new fields, and the
+  version-guard bump that protects pre-upgrade saves. Explicitly **excludes** the generation
+  routine itself (`FEAT-9000` — this Feature only persists/restores its inputs and per-region
+  flags, never the graph structure) and the "continue" option's gating logic (`FEAT-1100` — this
+  Feature supplies the version-match fact `FEAT-1100`'s MAIN MENU consumes).
+- **Included Requirements:** FR-9200; NFR-5300.
+- **Excluded Requirements:** FR-9100/FR-9110 (the generation routine and its immutability rule —
+  `FEAT-9000`); FR-1170 (the MAIN MENU's own continue/new-game branching — `FEAT-1100`).
+- **Dependencies:** FEAT-9000 (persists its output — seed, scale, KeyItemFlags); FEAT-5000
+  (extends its save/load mechanism); FEAT-5100 (extends its version-byte precedent — the second
+  save-format change since ship, following the same pattern as the first).
+- **Dependent Features:** None yet.
+- **Affected Modules:** `asm_game.py` (save-write/load-restore extension, following `IP-1010`'s
+  established pattern exactly).
+- **Related ADRs:** ADR-0010 (save-format extension), ADR-0006 (the MBC1+RAM+BATTERY mechanism
+  this Feature's fields ride, unchanged).
+- **User Value:** High — losing world seed/scale or per-region collection state on reload would
+  make the generated world worthless to return to.
+- **Technical Value:** Medium — a second, structurally-identical instance of the version-byte
+  pattern `FEAT-5100` established; low technical novelty, high correctness stakes.
+- **Complexity:** Low-Medium — directly follows `IP-1010`'s shipped precedent (a version-guarded
+  field-set extension), with the added regenerate-don't-persist twist for the region graph itself.
+- **Risk:** Medium — a wrong version-guard bump could either falsely reject valid new saves or
+  falsely accept a pre-upgrade save's garbage bytes as seed/scale/region data; needs the same
+  synthetic pre-upgrade fixture discipline `IP-1010`'s T11.d established.
+- **Suggested Verification Strategy:** Test — save/reload two-instance harness (R305's existing
+  pattern) extended to SEED/WORLD_SCALE/KeyItemFlags, plus a synthetic pre-upgrade fixture
+  following T11.d's precedent exactly.
+- **Open Questions:** None surfaced yet — ADR-0010 already resolved the pre-upgrade-save-on-
+  continue question (not offered, following the FS-101 precedent for resolving this class of
+  question directly).
+
+## FEAT-1100 — Main Menu & New-Game Flow (new — not yet implemented)
+
+- **Feature ID:** FEAT-1100
+- **Title:** Main Menu & New-Game Flow
+- **Purpose:** Gate every boot through a mandatory MAIN MENU offering continue/new-game, drive the
+  new-game seed/scale entry that triggers world generation, and offer exit-to-main-menu with
+  auto-save from the SAVE state.
+- **Description:** Extends `FEAT-1000`'s state machine with three new states/transitions: MAIN
+  MENU (always entered on boot, never bypassed — retiring the current auto-load bypass), a
+  SEED/SCALE ENTRY digit-cursor UI that triggers `FEAT-9000`'s generation routine on confirmation,
+  and a new SAVE-state option that auto-saves (reusing `FEAT-5000`'s save-write) before returning
+  to MAIN MENU rather than PLAYING.
+- **Scope:** The state-level gating and UI flow around world creation/continuation. Explicitly
+  **excludes** what the generator does once triggered (`FEAT-9000`), the save-field set itself
+  (`FEAT-5000`/`FEAT-5300`), and the "continue" option's version-match evaluation logic beyond
+  reading the flag `FEAT-5300` supplies.
+- **Included Requirements:** FR-1170, FR-1180, FR-1190.
+- **Excluded Requirements:** FR-1120 (the current auto-load bypass — `FEAT-1000`'s existing entry;
+  this Feature supersedes its *behavior* on implementation, per FR-1120's own target-state pointer,
+  but does not modify `FEAT-1000`'s catalog entry, which remains the as-built record until then);
+  FR-9100/FR-9110 (the generation routine and its immutability rule — `FEAT-9000`); FR-5100 (the
+  underlying save-write mechanism — `FEAT-5000`, reused not reimplemented).
+- **Dependencies:** FEAT-1000 (extends its state machine); FEAT-9000 (triggers its generation
+  routine on new-game confirm); FEAT-5000 (reuses its save-write for the auto-save option).
+- **Dependent Features:** None yet.
+- **Affected Modules:** `asm_game.py` (new states/dispatch), `tilemaps.py` (two new screens: main
+  menu, seed/scale entry).
+- **Related ADRs:** ADR-0009, ADR-0010.
+- **User Value:** High — the first screen every player sees after this increment ships, and the
+  sole path into a generated world.
+- **Technical Value:** High — the wiring point that connects the new state machine to world
+  generation.
+- **Complexity:** Medium — a new digit-cursor entry UI (no text engine, D-pad + A only, per D1),
+  a save-validity/version check, and one new SAVE-state option.
+- **Risk:** Medium — retires FR-1120's auto-load bypass, a deliberate protected-baseline change
+  (MSTR-001 C2 amendment, the same C5-style deliberateness the 3×3 world's archival already
+  named); needs careful negative testing that FR-9110's "seed/scale immutable mid-game" rule
+  actually holds against every reachable input sequence.
+- **Suggested Verification Strategy:** Test — entirely new assertions; unblocked by any prior
+  remediation.
+- **Open Questions:** None surfaced yet — first specified at `06-feature-specification`.
+
+## FEAT-6100 — Aesthetic & Biome-Transition Compliance (new — not yet implemented)
+
+- **Feature ID:** FEAT-6100
+- **Title:** Aesthetic & Biome-Transition Compliance
+- **Purpose:** Give `09-content-review`'s existing "does this screen read well" judgment a
+  written standard to check against — craft rules for tile/sprite art and a palette-stepping
+  strategy for grammar-adjacent biome families.
+- **Description:** Formalizes NFR-6500/NFR-6510: every tile/sprite (new or existing) must satisfy
+  GDS-08 delta §7's craft checklist (silhouette-first, per-part color budgeting, no
+  anti-aliasing); every rendered screen must satisfy the clean-screen rules (no undefined tiles,
+  no illegal adjacency pairs); and grammar-legal adjacent biome families' assigned palettes must
+  read as color-family-related (e.g. water-blues stepping toward beach-sands), not arbitrary.
+- **Scope:** The compliance *standard* and its review process — this Feature is a verification/
+  quality-gate capability, not new player-visible behavior of its own (an "internally complete
+  system capability" per this stage's allowance, the same framing `FEAT-7000` uses). Explicitly
+  **excludes** *which* biomes are adjacent (`FEAT-9000`'s grammar-legal generation) and *how* a
+  screen is composed structurally (`FEAT-4100`'s one-biome-per-screen rule) — this Feature judges
+  the aesthetic quality of what those two produce.
+- **Included Requirements:** NFR-6500, NFR-6510.
+- **Excluded Requirements:** FR-4300/FR-4310 (the structural constraints being judged, not this
+  Feature's own scope — `FEAT-4100`/`FEAT-9000`).
+- **Dependencies:** FEAT-4100 (needs biome-family screen assignments to exist before their palette-
+  stepping can be judged); FEAT-6000 (extends its existing presentation Feature with a written
+  craft standard, rather than introducing a new rendering mechanism).
+- **Dependent Features:** None.
+- **Affected Modules:** None directly — this Feature is a review-process capability
+  (`09-content-review`'s existing process, applied against GDS-08 delta §7/§8's checklist), not a
+  code change. Any future content package (`tiles.py`/`tilemaps.py`) is judged against it, not
+  modified by it.
+- **Related ADRs:** ADR-0009 (biome-family adjacency is what NFR-6510 judges the palette-stepping
+  of).
+- **User Value:** High — indirectly, via MSTR-001 C8/D4's "every screen clean" quality bar, which
+  this Feature is the first formal check against.
+- **Technical Value:** Low — no new mechanism; a written standard applied to an existing review
+  process.
+- **Complexity:** Low — the standard (GDS-08 delta §7/§8) is already authored; this Feature's own
+  work is applying it, not inventing it.
+- **Risk:** Low — NFR-6510 is explicitly a "Should," not a hard functional gate (a design-quality
+  guideline within the existing 8-palette budget); NFR-6500's mechanically-checkable subset
+  (undefined tiles, illegal seam pairs) can be automated, but the craft judgment itself remains
+  `09-content-review`'s existing human/inspection process, not a new automated check.
+- **Suggested Verification Strategy:** Inspection (`09-content-review`'s existing process,
+  extended to this checklist) for the craft/palette-stepping judgment; Test for the
+  mechanically-checkable subset (undefined tile indices, illegal adjacency pairs).
+- **Open Questions:** None surfaced yet.
+
 ## Requirement-to-Feature tally (completeness check)
 
-25 `FR-xxxx` + 11 `NFR-xxxx` = 36 requirement IDs; every one assigned to exactly one Feature above
-(verified by direct tally, restated in [FP-05](05-feature-review.md)'s review rather than only
-asserted here).
+**Bootstrap baseline:** 25 `FR-xxxx` + 11 `NFR-xxxx` = 36 requirement IDs, all owned by exactly
+one of the original eight Features (unchanged by this delta). **Procgen-world increment delta**
+(2026-07-09 RQ-01…04): 11 new `FR-xxxx` + 6 new `NFR-xxxx` = 17 requirement IDs, all owned by
+exactly one of the five new Features above. **Total: 53 requirement IDs**, every one assigned to
+exactly one Feature project-wide (verified by direct tally, restated in
+[FP-05](05-feature-review.md)'s review rather than only asserted here).

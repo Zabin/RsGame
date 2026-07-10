@@ -90,11 +90,11 @@ build order.
 
 | ID | Document | Path | Depends on | Status |
 |---|---|---|---|---|
-| FP-01 | Release Plan | `docs/feature-planning/01-release-plan.md` | RQ baseline | ✅ (2026-07-07) |
-| FP-02 | Epic Catalog | `docs/feature-planning/02-epic-catalog.md` | FP-03 | ✅ (2026-07-07) |
-| FP-03 | Feature Catalog (FEAT-xxxx) | `docs/feature-planning/03-feature-catalog.md` | RQ baseline | ✅ (2026-07-07) |
-| FP-04 | Feature Dependency Graph | `docs/feature-planning/04-feature-dependency-graph.md` | FP-03 | ✅ (2026-07-07) |
-| FP-05 | Feature Review | `docs/feature-planning/05-feature-review.md` | FP-01…04 | ✅ (2026-07-07) |
+| FP-01 | Release Plan | `docs/feature-planning/01-release-plan.md` | RQ baseline | ✅ (2026-07-07; delta 2026-07-10 — Release 2 populated, FEAT-5100/`BL-0036` corrected) |
+| FP-02 | Epic Catalog | `docs/feature-planning/02-epic-catalog.md` | FP-03 | ✅ (2026-07-07; delta 2026-07-10 — EP-5000 added) |
+| FP-03 | Feature Catalog (FEAT-xxxx) | `docs/feature-planning/03-feature-catalog.md` | RQ baseline | ✅ (2026-07-07; delta 2026-07-10 — 5 new Features, 53 requirements total) |
+| FP-04 | Feature Dependency Graph | `docs/feature-planning/04-feature-dependency-graph.md` | FP-03 | ✅ (2026-07-07; delta 2026-07-10 — no cycles, critical path FEAT-9000→FEAT-4100→FEAT-6100) |
+| FP-05 | Feature Review | `docs/feature-planning/05-feature-review.md` | FP-01…04 | ✅ (2026-07-07; re-run 2026-07-10 — 1 new Low finding, 2 prior findings closed) |
 
 ## Theme: Feature specifications (`docs/features/`) — owner `06-feature-specification`
 

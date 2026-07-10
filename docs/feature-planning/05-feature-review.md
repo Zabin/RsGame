@@ -1,14 +1,17 @@
 # FP-05 — Feature Review
 
-> **Status: ✅ Authored (bootstrap as-built, 2026-07-07).** Owned by `05-feature-decomposition`.
-> Reviews [FP-02](02-epic-catalog.md)–[FP-04](04-feature-dependency-graph.md) for oversized/
-> undersized Features, duplicates, missing Features, mis-assigned requirements, and architectural
+> **Status: ✅ Authored (bootstrap as-built, 2026-07-07); re-run 2026-07-10 (procgen-world
+> increment delta + `BL-0036` correction).** Owned by `05-feature-decomposition`. Reviews
+> [FP-02](02-epic-catalog.md)–[FP-04](04-feature-dependency-graph.md) for oversized/undersized
+> Features, duplicates, missing Features, mis-assigned requirements, and architectural
 > inconsistencies. **Recommend only — this document applies no fixes to the other four
-> documents.**
+> documents** (the correction to FEAT-5100/Release 1's status, `BL-0036`, was applied directly to
+> those two documents by this same pass per the user's explicit instruction, not by this review).
 
 ## Requirement-assignment check (every FR/NFR owned by exactly one Feature)
 
-Direct tally against [RQ-01](../requirements/01-functional-requirements.md)/
+**Bootstrap baseline** (unchanged from the 2026-07-07 tally) against
+[RQ-01](../requirements/01-functional-requirements.md)/
 [RQ-02](../requirements/02-non-functional-requirements.md)'s 25 `FR-xxxx` + 11 `NFR-xxxx` = 36
 requirement IDs:
 
@@ -21,49 +24,66 @@ requirement IDs:
 - FEAT-6000: FR-6100, FR-6200, FR-6300, NFR-1200 (4)
 - FEAT-7000: NFR-1100, NFR-3100, NFR-4000, NFR-6100, NFR-7100, NFR-8100 (6)
 
-**Total: 8+5+4+3+5+1+4+6 = 36.** Every requirement ID appears exactly once across the eight lists
-above (checked by direct cross-reference, no ID repeated). **Clean — no unassigned or
-double-assigned requirements.**
+**Procgen-world increment delta** (2026-07-09 RQ-01…04 delta) — 11 new `FR-xxxx` + 6 new
+`NFR-xxxx` = 17 requirement IDs:
+
+- FEAT-9000: FR-9100, FR-9110, FR-9120, FR-9130, FR-4310, FR-3220, NFR-2200, NFR-4200 (8)
+- FEAT-4100: FR-4300, NFR-1300 (2)
+- FEAT-1100: FR-1170, FR-1180, FR-1190 (3)
+- FEAT-5300: FR-9200, NFR-5300 (2)
+- FEAT-6100: NFR-6500, NFR-6510 (2)
+
+**Total: 36 + 17 = 53.** Every requirement ID appears exactly once across all thirteen lists
+(checked by direct cross-reference, no ID repeated, no ID from either the bootstrap baseline or
+the 2026-07-09 delta omitted). **Clean — no unassigned or double-assigned requirements.**
 
 ## Findings
 
 | # | Finding type | IDs involved | Description | Severity | Recommendation |
 |---|---|---|---|---|---|
-| 1 | Missing requirement (surfaced here, not fixed here) | (no FR exists) — GDS-08 §2, ADR-0005, ADR-0007, `test_rom.py` T6 | **No numbered functional requirement covers player/collectible sprite (OAM) rendering as an observable behavior**, even though it is shipped, architecturally documented (8×16 OBJ pairs, shadow-OAM DMA), and exercised by `test_rom.py`'s T6 suite. FR-2100/FR-2200 cover player *position/facing* updates; FR-3100 covers *collision detection*; none states that the player or Collectibles are rendered as on-screen sprites at all. This is a genuine gap in the RQ-01 baseline, not something this stage may patch by inventing an FR (per this skill's own SHALL-NOT rule: "a gap found here is a Review finding, never a new FR"). | Low–Medium (informational; the behavior is shipped and working, only its formal requirement is missing) | Route to `04-requirements-engineering` for a future delta: a plausible `FR-6400` ("Player and Collectible sprite rendering") under the Presentation grouping, citing GDS-08 §2/ADR-0005/ADR-0007. Not blocking any current Feature — FEAT-2000/FEAT-3000/FEAT-6000 already describe the behaviors that produce sprite output; only the formal requirement statement is absent. |
-| 2 | Architectural straddle (reviewed and accepted, not a defect) | FEAT-2000 | FEAT-2000 (Player Movement & Zone Traversal) touches both `asm_game.py` (movement/traversal logic) and `tilemaps.py` (arrow-tile rendering for FR-2320). | Informational | No action — the Feature Catalog entry explicitly justifies this straddle (arrow signaling is a traversal-communication concern, not a screen-composition concern) rather than silently spanning modules. Confirmed as the correct call on review, not a mis-scoped Feature. |
-| 3 | Forward-looking design question (not resolved here) | FEAT-5100 | FEAT-5100's two Open Questions (exact SRAM byte layout for the new persisted field; save-compatibility default for pre-upgrade saves) are real, unresolved product/design decisions. | Low (correctly flagged as open, not a defect in this catalog) | Route both explicitly to `06-feature-specification` as required decisions before FEAT-5100's spec can be considered complete — do not let implementation begin with either question implicitly assumed. |
-| 4 | Sequencing choice, not a defect | FEAT-5100 vs. FEAT-7000's `NFR-7100` remediation | Both are ready to schedule independently (per FP-04's parallel-opportunities analysis) with no technical ordering constraint between them, but no decision has been made about which goes first. | Informational | This is a legitimate prioritization call for the user/`07-implementation-planning`, not a gap in this catalog — already surfaced in [FP-01](01-release-plan.md)'s Highest-Risk callout. No further catalog action needed. |
+| 1 | Missing requirement (surfaced here, not fixed here) | (no FR exists) — GDS-08 §2, ADR-0005, ADR-0007, `test_rom.py` T6 | **No numbered functional requirement covers player/collectible sprite (OAM) rendering as an observable behavior**, even though it is shipped, architecturally documented (8×16 OBJ pairs, shadow-OAM DMA), and exercised by `test_rom.py`'s T6 suite. Unchanged since the 2026-07-07 review — still open. | Low–Medium (informational; the behavior is shipped and working, only its formal requirement is missing) | Still routed to `04-requirements-engineering` (`BL-0020`, `SCHEDULED`) for a future delta. Not blocking any current Feature. |
+| 2 | Architectural straddle (reviewed and accepted, not a defect) | FEAT-2000 | FEAT-2000 touches both `asm_game.py` and `tilemaps.py` (arrow-tile rendering, FR-2320). | Informational | No action — unchanged from the 2026-07-07 review; confirmed correct on re-review. |
+| 3 | **Resolved since the last review** | FEAT-5100 | FEAT-5100's two prior Open Questions (SRAM byte layout; save-compatibility default) are both answered — `FS-101` resolved them, `IP-1010` implemented them, `VR-1010` independently confirmed both (`T11.d`'s synthetic pre-upgrade fixture proves the save-compatibility answer specifically). | — (closed) | No further action. This finding is retained here, marked resolved, rather than deleted — the Feature Catalog's own Open Questions field for FEAT-5100 was updated to "None remaining" in the same pass that corrected `BL-0036`. |
+| 4 | **Resolved since the last review** | FEAT-5100 vs. FEAT-7000's `NFR-7100` remediation | Both scheduling options this finding named are now moot — both work items completed the same day (2026-07-07): `IP-1010` (FEAT-5100) and `IP-9010` (`NFR-7100` remediation) both shipped and were independently verified. | — (closed) | No further action. |
+| 5 | Stale Risk field (surfaced here, not fixed here) | FEAT-6000, FEAT-7000 (Feature Catalog entries) | **Both Features' own Risk fields in [FP-03](03-feature-catalog.md) still describe non-compliances as current** — FEAT-6000's Risk says `NFR-1200` is "confirmed not met"; FEAT-7000's says `NFR-7100` is "confirmed not met at Critical severity." Both are now Met, VERIFIED 2026-07-07 (`IP-9020`/`VR-9020`, `IP-9010`/`VR-9010`) and reconfirmed by `10-integration-review` (2026-07-10). This same pass corrected the equivalent statements in the Epic Catalog and Release Plan (per the user's explicit `BL-0036` instruction), but did not extend to editing FEAT-6000/FEAT-7000's own catalog entries directly. | Low (cosmetic — every ledger that gates on these NFRs already shows the correct Met status; only these two Features' own prose Risk fields lag) | A future light touch of `05-feature-decomposition` should update FEAT-6000/FEAT-7000's Risk fields to reflect both resolutions. Not blocking any current work — filed to the backlog as a new entry alongside this run's harvest. |
+| 6 | Oversized-Feature judgment call (reviewed and accepted, not a defect) | FEAT-9000 | FEAT-9000 (8 requirements: FR-9100/9110/9120/9130/4310/3220, NFR-2200/4200) is the largest Feature in the catalog, tied with FEAT-1000. It deliberately merges two threads — the generation algorithm itself and the item-agnostic collection generalization — because `FR-9130` ("one KeyItem per region") and `FR-3220` ("item-agnostic collection") name each other as dependencies at the requirement level (see [FP-04](04-feature-dependency-graph.md)'s circular-dependency check). Splitting them into two Features would either force an artificial FEAT-level cycle or an arbitrary one-directional cut through a genuinely mutual coupling. | Informational | No action — reviewed and confirmed the right call: cohesion (avoiding a cycle) was correctly prioritized over uniform Feature size. If `06-feature-specification` finds the two threads separable once implementation detail is known, splitting at that stage remains available; not pre-judged here. |
 
 ## Oversized / undersized Feature check
 
-None found. The seven Features range from 1 requirement (FEAT-5100, appropriately small since
-it's a single new capability) to 8 (FEAT-1000, appropriately larger since a six-state machine's
-transitions are one cohesive unit that would fragment awkwardly if split further). No Feature
-approaches a size where splitting or merging would improve cohesion.
+**Bootstrap baseline:** unchanged — no Feature approaches a size where splitting or merging would
+improve cohesion. **Procgen-world delta:** FEAT-9000 (8 requirements) is addressed by finding #6
+above (reviewed and accepted). The other four new Features (FEAT-4100: 2, FEAT-1100: 3,
+FEAT-5300: 2, FEAT-6100: 2) are all appropriately small, single-capability Features, consistent
+with FEAT-5100's own precedent (1 requirement) for a new, narrowly-scoped addition.
 
 ## Duplicate Feature check
 
-None found. Each Feature's Purpose is distinct; no two Features describe overlapping player-visible
-or system-level capability.
+None found, including after this delta. Each of the five new Features' Purpose is distinct from
+every other Feature (new and bootstrap); no overlap in player-visible or system-level capability.
 
 ## Architectural consistency check
 
-Every Feature's Affected Modules list is consistent with [GDS-03](../architecture/03-architecture.md)'s
-module decomposition and [GDS-09](../architecture/09-interface-specification.md)'s interface
-contracts — no Feature implies a module boundary violation (e.g. no Feature has data-authoring
-modules making assembly decisions, or vice versa, per `ADR-0003`).
+Every Feature's Affected Modules list — including the five new Features' — is consistent with
+[GDS-03](../architecture/03-architecture.md)'s module decomposition and
+[GDS-09](../architecture/09-interface-specification.md)'s interface contracts, including that
+delta's new `worldgen.py` module contract (FEAT-9000) and the generalization of
+`ALL_SCREENS`/per-zone screen functions to per-biome-family functions (FEAT-4100). No Feature
+implies a module boundary violation.
 
 ## Circular dependency check
 
-Re-confirmed clean per [FP-04](04-feature-dependency-graph.md)'s own check — no cycle exists.
+Re-confirmed clean per [FP-04](04-feature-dependency-graph.md)'s own check, including the five
+new Features — no cycle exists. The one near-miss at the requirement level (`FR-9130`/`FR-3220`,
+finding #6 above) was resolved by Feature-level grouping, not left as an unresolved graph cycle.
 
 ## Summary
 
-The Feature Catalog is complete and internally consistent: every requirement is owned exactly
-once, no Feature is mis-sized or duplicated, and the one architectural straddle (FEAT-2000) is
-justified rather than accidental. **One real gap surfaced** (finding #1, the missing sprite-
-rendering FR) — low-to-medium severity, informational, routed to `04-requirements-engineering`
-for a future delta rather than blocking this stage's own completion. **Two real open design
-questions** (finding #3, FEAT-5100's SRAM layout and save-compatibility default) are correctly
-left open for `06-feature-specification` to resolve, not assumed here. No finding in this review
-requires revising FP-01–FP-04 before advancing.
+The Feature Catalog remains complete and internally consistent after this delta: all 53
+requirement IDs (36 bootstrap + 17 new) are owned exactly once, no Feature is mis-sized or
+duplicated (FEAT-9000's size is a reviewed, accepted cohesion trade-off, not a defect), and no
+circular dependency exists at the Feature level. **Two findings closed since the last review**
+(FEAT-5100's Open Questions and the FEAT-5100/FEAT-7000 sequencing choice — both resolved by
+2026-07-07's implementation work). **One new Low finding** (#5: FEAT-6000/FEAT-7000's own Risk
+fields are stale, cosmetic only) is routed to a future light `05-feature-decomposition` touch.
+**One prior finding remains open** (#1, the missing sprite-rendering FR, `BL-0020`). No finding
+in this review requires revising FP-01–FP-04 before advancing to `06-feature-specification`.
