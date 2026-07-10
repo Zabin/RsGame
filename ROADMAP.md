@@ -100,7 +100,7 @@ build order.
 
 | ID | Document | Path | Depends on | Status |
 |---|---|---|---|---|
-| FS-101+ | One spec per approved Feature | `docs/features/FS-xxx-*.md` | FP catalog, RQ baseline | 🚧 (FS-101 ✅ shipped/VERIFIED 2026-07-07; FS-102 ✅ 2026-07-10, FEAT-9000, not yet implemented — 3 Open Questions routed to `07`; four more Release-2 Features (FEAT-4100/1100/5300/6100) remain unspecified) |
+| FS-101+ | One spec per approved Feature | `docs/features/FS-xxx-*.md` | FP catalog, RQ baseline | 🚧 (FS-101 ✅ shipped/VERIFIED 2026-07-07; FS-102/103 ✅ 2026-07-10, FEAT-9000/4100, not yet implemented — 5 Open Questions total routed to `07`; three more Release-2 Features (FEAT-1100/5300/6100) remain unspecified) |
 
 ## Theme: Implementation (`docs/implementation/`) — owners `07`/`08`/`09`
 

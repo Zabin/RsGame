@@ -352,6 +352,11 @@
 
 ## FEAT-4100 — Generated-Region Screen Composition (new — not yet implemented)
 
+> **Forward reference (metadata only):** specified by
+> [FS-103](../features/FS-103-generated-region-screen-composition.md) (2026-07-10). 2 Open
+> Questions recorded there (biome-family content completeness, tile-index/palette sizing), both
+> routed to `07-implementation-planning` in lockstep with FS-102's grammar-table question.
+
 - **Feature ID:** FEAT-4100
 - **Title:** Generated-Region Screen Composition
 - **Purpose:** Render each generated region's screen from exactly one biome family's tile set,
