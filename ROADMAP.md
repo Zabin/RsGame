@@ -106,10 +106,10 @@ build order.
 
 | ID | Document | Path | Depends on | Status |
 |---|---|---|---|---|
-| IM-00 | Master Build Plan | `docs/implementation/00-master-build-plan.md` | FS specs | ♻️ (live — 5 packages tracked, 2026-07-07) |
-| IM-01 | Technical Work Breakdown | `docs/implementation/01-technical-work-breakdown.md` | FS specs | ✅ (first pass, 2026-07-07) |
-| IP-xxxx | Implementation Packages | `docs/implementation/packages/` | IM-01 | 🚧 (IP-9010/9020/9030/9040 + IP-1010 authored 2026-07-07; none implemented) |
-| VR-xxxx | Verification Reports | `docs/implementation/verification/` | IP-xxxx at COMPLETE | ⛔ |
+| IM-00 | Master Build Plan | `docs/implementation/00-master-build-plan.md` | FS specs | ♻️ (live — bootstrap tranche's 5 packages all VERIFIED 2026-07-10; Release 2 tranche's 5 packages planned 2026-07-10, none authorized) |
+| IM-01 | Technical Work Breakdown | `docs/implementation/01-technical-work-breakdown.md` | FS specs | ✅ (bootstrap pass 2026-07-07; Release-2 tranche delta 2026-07-10) |
+| IP-xxxx | Implementation Packages | `docs/implementation/packages/` | IM-01 | 🚧 (bootstrap: IP-9010/9020/9030/9040/1010, all VERIFIED; Release 2: IP-1020/1030/1031/1040/1050 planned 2026-07-10, not authorized — G3 pending) |
+| VR-xxxx | Verification Reports | `docs/implementation/verification/` | IP-xxxx at COMPLETE | ✅ (five reports: VR-9010/9020/9030/9040/1010, all bootstrap packages VERIFIED) |
 
 ## Theme: Reviews (`docs/reviews/`) — owners `09-content-review`/`10`/`11`
 

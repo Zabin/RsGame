@@ -4,6 +4,10 @@
 > produced by `06-feature-specification`. Read-only against upstream artifacts — this document
 > elaborates FEAT-9000, it does not modify its catalog entry, the requirements it implements, or
 > any architecture document.
+>
+> **Forward reference (metadata only):** planned by
+> [IP-1020](../implementation/packages/IP-1020-procedural-world-generation.md) (2026-07-10),
+> which resolves this document's Open Questions 1–3.
 
 [↑ Features index](INDEX.md) · [Feature Catalog](../feature-planning/03-feature-catalog.md) ·
 [Epic Catalog](../feature-planning/02-epic-catalog.md)

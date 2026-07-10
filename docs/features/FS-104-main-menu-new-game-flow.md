@@ -4,6 +4,10 @@
 > produced by `06-feature-specification`. Read-only against upstream artifacts — this document
 > elaborates FEAT-1100, it does not modify its catalog entry, the requirements it implements, or
 > any architecture document.
+>
+> **Forward reference (metadata only):** planned by
+> [IP-1040](../implementation/packages/IP-1040-main-menu-new-game-flow.md) (2026-07-10), which
+> resolves this document's Open Questions 1–2.
 
 [↑ Features index](INDEX.md) · [Feature Catalog](../feature-planning/03-feature-catalog.md) ·
 [Epic Catalog](../feature-planning/02-epic-catalog.md)

@@ -4,6 +4,12 @@
 > produced by `06-feature-specification`. Read-only against upstream artifacts — this document
 > elaborates FEAT-4100, it does not modify its catalog entry, the requirements it implements, or
 > any architecture document.
+>
+> **Forward reference (metadata only):** planned by
+> [IP-1030](../implementation/packages/IP-1030-generated-region-screen-composition-code.md)
+> (code) and
+> [IP-1031](../implementation/packages/IP-1031-generated-region-screen-composition-content.md)
+> (content), both 2026-07-10, which jointly resolve this document's Open Questions 1–2.
 
 [↑ Features index](INDEX.md) · [Feature Catalog](../feature-planning/03-feature-catalog.md) ·
 [Epic Catalog](../feature-planning/02-epic-catalog.md)

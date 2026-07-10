@@ -4,6 +4,12 @@
 > produced by `06-feature-specification`. Read-only against upstream artifacts — this document
 > elaborates FEAT-6100, it does not modify its catalog entry, the requirements it implements, or
 > any architecture document.
+>
+> **Forward reference (metadata only):** planned 2026-07-10 as needing **no Implementation
+> Package** — see the [Technical Work Breakdown](../implementation/01-technical-work-breakdown.md)'s
+> "Release-2 tranche" §Split rationale. First exercised via a future `09-content-review` pass on
+> [IP-1031](../implementation/packages/IP-1031-generated-region-screen-composition-content.md)'s
+> content.
 
 [↑ Features index](INDEX.md) · [Feature Catalog](../feature-planning/03-feature-catalog.md) ·
 [Epic Catalog](../feature-planning/02-epic-catalog.md)
