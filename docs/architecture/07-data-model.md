@@ -140,29 +140,36 @@ by individual zone, was already made and already accommodates significant zone g
 8-palette ceiling becomes binding. (OBJ palettes: 4 of 8 in active use — bunny, star, flower,
 carrot; 4 unused/placeholder slots remain.)
 
-## Data Model delta (2026-07-09 — target state, not yet shipped)
+## Data Model delta (2026-07-09 — target state; §6 WRAM confirmed 2026-07-10 by `IP-1020`)
 
-Per **ADR-0009**/**ADR-0010**, proposed additions to the WRAM/SRAM layout above. Addresses are
-proposed, following the same confidence level `FS-101` used before `IP-1010` confirmed
-`SCOREITEM_FLAGS`' final placement — subject to confirmation at implementation, not binding here.
+Per **ADR-0009**/**ADR-0010**, additions to the WRAM/SRAM layout above. §7 (SRAM) remains
+proposed — it is `FEAT-5300`/`IP-1050`'s scope, not `IP-1020`'s, per `FS-102` §10. §6 (WRAM) is
+now **confirmed as-shipped** (`IP-1020`), following the same confidence level `FS-101` used
+before `IP-1010` confirmed `SCOREITEM_FLAGS`' final placement.
 
-### 6. WRAM additions (proposed, within existing bank-0 headroom)
+### 6. WRAM additions (confirmed 2026-07-10, `IP-1020`, within existing bank-0 headroom)
 
-The current WRAM map ends its named allocations at `0xC068` (`SCOREITEM_FLAGS`) before jumping to
+The prior WRAM map ended its named allocations at `0xC068` (`SCOREITEM_FLAGS`) before jumping to
 `0xC300` (`OAM_BUF`) — a ~660-byte unused gap between them
 ([R111](../research/encyclopedia/R111-wram-banking-sm83-prng.md) confirms ~3.1 KiB of headroom in
-bank 0 alone). Proposed placement, 8-aligned, starting at `0xC070`:
+bank 0 alone). Shipped placement:
 
-| Address (proposed) | Name | Content |
+| Address | Name | Content |
 |---|---|---|
-| `C069`–`C06A` | `SEED` | 16-bit seed value (low/high byte), copied from SRAM at load, source for the PRNG's initial state ([R111](../research/encyclopedia/R111-wram-banking-sm83-prng.md)) |
-| `C06B` | `WORLD_SCALE` | 1 byte, 2–9 ([ADR-0010](adr/ADR-0010-seed-scale-model.md)) |
-| `C070`–`C070+5×(scale²)−1` | `REGION_GRAPH` | working set: 5 bytes/region (1 biome-id byte + 4 neighbor-region-index bytes, `0xFF`=no neighbor in that direction) × up to 81 regions at `scale=9` = **≤405 bytes worst case** |
-| next 8-aligned after `REGION_GRAPH` | `KEYITEM_FLAGS` | up to 81 bytes, one per region (generalizes `CARROT_FLAGS`'s 9-byte array — [GDS-04](04-domain-model.md)'s delta) |
+| `C069`–`C06A` | `SEED` | 16-bit seed value (low/high byte), source for the PRNG's initial state ([R111](../research/encyclopedia/R111-wram-banking-sm83-prng.md)). Written by `FEAT-1100` (not yet shipped); read-only to `generate_world`. |
+| `C06B` | `WORLD_SCALE` | 1 byte, 2–9 ([ADR-0010](adr/ADR-0010-seed-scale-model.md)). Same write/read split as `SEED`. |
+| `C070`–`C070+5×(scale²)−1` | `REGION_GRAPH` | 5 bytes/region (1 biome-id byte + 4 neighbor-region-index bytes in up/down/left/right order, `0xFF`=no neighbor in that direction) × up to 81 regions at `scale=9` = **≤405 bytes worst case**, ending at `0xC204`. Written by `generate_world`. |
+| `C220`–`C220+80` | `KEYITEM_FLAGS` | up to 81 bytes, one collected-flag per region (generalizes `CARROT_FLAGS`'s 9-byte array — [GDS-04](04-domain-model.md)'s delta). **`CARROT_FLAGS` (`0xC015`–`0xC01D`) is now orphaned** — `check_collisions`/`setup_zone_collects`/`update_map_hearts`/the `st_intro`/`st_victory` reset paths all target `KEYITEM_FLAGS` instead; only `save_to_sram`/`try_load_save` still mirror the old array, pending `IP-1050`'s save-format migration. A `0xC205`–`0xC21F` gap separates the two (address chosen as the implementation's own confirmed placement, not tightly packed at `0xC205`, still safely inside the boot-clear range). Written by `check_collisions`/`setup_zone_collects` (collection); read by `update_map_hearts`; cleared by the boot-time WRAM clear and the `st_intro`/`st_victory` reset paths (9 bytes each, matching `CUR_ZONE`'s current 0–8 range — full `scale²`-extent clearing on new-game/replay is `FEAT-1100`'s scope once it wires up variable-scale play). |
+| `C271`–`C279` | `GW_TOP_ROW` | 9 bytes — `generate_world`'s own transient scratch (the biome of the region directly above each column, written before it's read; satisfies NFR-2200's "routine's own prior output" rule). Not part of the persisted data model; meaningless outside a `generate_world` call. |
+| `C27A` | `GW_REGION_IDX` | 1 byte — `generate_world`'s own loop counter (0..scale²-1). Transient, as above. |
+| `C27B` | `GW_B_SCRATCH` | 1 byte — `generate_world`'s own scratch (holds the candidate anchor value, then the final clamped biome result, across the PRNG-step `CALL` boundary). Transient, as above. |
+| `C27C` | `GW_SCALE_SQ` | 1 byte — `generate_world`'s own precomputed `WORLD_SCALE²` (no `MUL` opcode on SM83; computed once via repeated addition). Transient, as above. |
+| `C069`–`C06A` renamed alias | `KEYITEM_COUNT` | Same WRAM slot as `CARROTS_COUNT` (`0xC009`, unmoved) — a source-level rename only, not a new address; `check_complete`'s victory check and the HUD digit-writer still reference it under its original name (out of `IP-1020`'s scope; both work correctly either way since the address is identical). |
 
-Worst-case total new WRAM: ~489 bytes (`2+1+405+81`) — comfortably inside the confirmed ~3.1 KiB
-bank-0 headroom (R111); `SVBK`/banked WRAM is **not** triggered by this addition, consistent with
-R111's conclusion.
+Worst-case total new/repurposed WRAM: ~570 bytes (`2+1+405+81+9+1+1+1`, plus the `0xC205`–`0xC21F`
+padding gap) — comfortably inside the confirmed ~3.1 KiB bank-0 headroom (R111); `SVBK`/banked
+WRAM is **not** triggered, consistent with R111's conclusion. All of it falls inside the existing
+boot-time WRAM clear (`0xC000`–`0xC2FF`, unchanged).
 
 ### 7. SRAM save-format additions (proposed, extends the `FS-101`/`IP-1010` version-byte pattern)
 

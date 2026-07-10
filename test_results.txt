@@ -1,4 +1,4 @@
-BunnyQuest ROM Tests  PASS=125/125  FAIL=0
+BunnyQuest ROM Tests  PASS=133/133  FAIL=0
 ==================================================
 [PASS] T1.1 ROM size = 32768  (32768)
 [PASS] T1.2 Entry = NOP; JP
@@ -73,8 +73,8 @@ BunnyQuest ROM Tests  PASS=125/125  FAIL=0
 [PASS] T8.4 Score++ on ScoreItem collision  (score=1)
 [PASS] T8.5 ScoreItem deactivated in COLL_DATA  (active=0)
 [PASS] T8.6 ScoreItem does not touch CARROTS_COUNT  (0)
-[PASS] T8.7 Carrot sets CARROT_FLAGS[0]  (flag=1)
-[PASS] T8.8 Carrot increments CARROTS_COUNT  (1)
+[PASS] T8.7 Carrot sets KEYITEM_FLAGS[0] (IP-1020)  (flag=1)
+[PASS] T8.8 Carrot increments KEYITEM_COUNT (IP-1020)  (1)
 [PASS] T8.9 Carrot deactivated in COLL_DATA  (active=0)
 [PASS] T8.10 Carrot does not touch SCORE  (1)
 [PASS] T8.10a HUD score digits reflect forced SCORE=42 within 2 frames (IP-9020)  (digits=(0,4,2))
@@ -125,3 +125,11 @@ BunnyQuest ROM Tests  PASS=125/125  FAIL=0
 [PASS] T11.d1 Pre-upgrade save loads without crash -> PLAYING  (GS=2)
 [PASS] T11.d2 SCOREITEM_FLAGS all zero (garbage ignored)  (flags=[0, 0, 0, 0, 0, 0, 0, 0, 0])
 [PASS] T11.d3 Every zone-0 collectible loads active (uncollected default)  (count=7 actives=[1, 1, 1, 1, 1, 1, 1])
+[PASS] T12.b Oracle parity: worldgen.py matches SM83 output, every corpus entry (AC-2 lockstep)  (mismatches=[])
+[PASS] T12.e One KeyItem per region: exactly scale^2 regions, every corpus entry (AC-5)  (bad=[])
+[PASS] T12.c Reachability: every region reachable from region 0, every corpus entry (AC-3)  (unreachable=[])
+[PASS] T12.d Grammar-validity: every generated edge legal (|biome_a-biome_b|<=1), every corpus entry (AC-4)  (bad_edges=[])
+[PASS] T12.a Determinism: same (seed,scale) across two fresh boots -> byte-identical REGION_GRAPH (AC-2)  (mismatches=[])
+[PASS] T12.f seed=0 normalizes to a nonzero PRNG state, direct WRAM inspection (AC-7 precondition)  (state=(0,1))
+[PASS] T12.h Static audit: no LDH (hardware register, incl. DIV) read in generate_world/gw_prng_step (NFR-2200)  (source-scanned)
+[PASS] T12.i WRAM headroom: SEED..GW_SCALE_SQ extent stays inside bank-0 + boot-clear range (NFR-4200)  (SEED=0xC069 extent_end=0xC27C)

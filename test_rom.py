@@ -15,7 +15,10 @@ Suites:
   T8  Collision, score, carrot tracking, map hearts
   T9  Zone transitions (3x3 grid, all four edges)
   T10 SRAM save/load persistence (BUNY magic, full field set)
-  (T11 reserved for IP-1010: per-zone ScoreItem persistence)
+  T11 Per-zone ScoreItem persistence (IP-1010)
+  T12 World generation (IP-1020) — determinism, oracle parity, reachability,
+      grammar-validity, one-KeyItem-per-region, item-agnostic collection,
+      seed=0 normalization, WRAM headroom
 
 WRAM model under test (see docs/architecture/07-data-model.md):
   C000 GAMESTATE (0=TITLE 1=INTRO 2=PLAYING 3=SAVE 4=MAP 5=VICTORY)
@@ -41,6 +44,10 @@ SCORE = 0xC006; SCORE_DIRTY = 0xC007; CUR_ZONE = 0xC008
 CARROTS_COUNT = 0xC009; NEED_REDRAW = 0xC00A
 CARROT_FLAGS = 0xC015; COLL_DATA = 0xC020; COLL_COUNT = 0xC050
 SCOREITEM_FLAGS = 0xC060   # 9 bytes — one bitfield per zone (FR-5220, IP-1010)
+SEED = 0xC069; WORLD_SCALE = 0xC06B; REGION_GRAPH = 0xC070
+KEYITEM_FLAGS = 0xC220     # up to 81 bytes — generalizes CARROT_FLAGS (IP-1020);
+                            # only indices 0-8 are live until FEAT-1100 ships
+KEYITEM_COUNT = CARROTS_COUNT   # same WRAM slot as CARROTS_COUNT (IP-1020)
 
 # SRAM save-format addresses (must match asm_game.py's save_to_sram/try_load_save)
 SRAM_MAGIC = 0xA000; SRAM_CUR_ZONE = 0xA004; SRAM_PLAYER_X = 0xA005
@@ -76,6 +83,21 @@ def wipe_save():
 
 from pyboy import PyBoy
 
+# T12: resolve generate_world's assembled address once (dynamic, not
+# hardcoded — stays in sync with any future asm_game.py change). This is a
+# standalone assembly pass (no tile/palette data needed), matching exactly
+# what build_rom.py's real build produces for the same source.
+from gbc_lib import ROM as _ROM
+from asm_game import build_game_asm as _build_game_asm
+import worldgen
+_gw_rom = _ROM()
+_build_game_asm(_gw_rom)
+GW_ADDR = _gw_rom.labels['generate_world']
+GW_SEED_OK_ADDR = _gw_rom.labels['gw_seed_ok']
+GW_SCALE_SQ = 0xC27C
+TMP1 = 0xC013; TMP2 = 0xC014
+GW_TRAP_ADDR = 0xC27D   # scratch, inside the boot-clear range, never read elsewhere
+
 def fresh_boot(frames=180):
     """Clean boot to title screen with no saved game."""
     wipe_save()
@@ -94,6 +116,44 @@ def shoot(pb, name):
         pb.screen.image.save(str(SHOT_DIR / f"{name}.png"))
     except Exception:
         pass   # screenshots are diagnostics, not assertions
+
+def invoke_generate_world(pb, seed, scale):
+    """
+    T12: directly invoke generate_world (asm_game.py) — no call site exists
+    yet, IP-1040 wires that up from the SEED/SCALE ENTRY flow. Sets SEED/
+    WORLD_SCALE, then hijacks PC/SP to CALL the routine: pushes the address
+    of a scratch 'JR -2' (infinite self-loop) trap as the return address,
+    jumps PC to generate_world, and ticks until PC reaches the trap — a
+    deterministic, unambiguous signal the routine's own RET has executed.
+    Returns True if the trap was reached (routine completed) within budget.
+    """
+    pb.memory[SEED] = seed & 0xFF
+    pb.memory[SEED + 1] = (seed >> 8) & 0xFF
+    pb.memory[WORLD_SCALE] = scale
+    pb.memory[GW_TRAP_ADDR] = 0x18; pb.memory[GW_TRAP_ADDR + 1] = 0xFE  # JR -2
+    sp = (pb.register_file.SP - 2) & 0xFFFF
+    pb.memory[sp] = GW_TRAP_ADDR & 0xFF
+    pb.memory[sp + 1] = (GW_TRAP_ADDR >> 8) & 0xFF
+    pb.register_file.SP = sp
+    pb.register_file.PC = GW_ADDR
+    for _ in range(30):
+        pb.tick()
+        if pb.register_file.PC == GW_TRAP_ADDR:
+            return True
+    return False
+
+def read_region_graph(pb, scale):
+    """Read the actual SM83-generated REGION_GRAPH out of WRAM as a list of
+    {'biome_id', 'neighbors'} dicts, same shape as worldgen.generate()'s
+    return value (0xFF -> None), for direct comparison against the oracle."""
+    regions = []
+    for i in range(scale * scale):
+        base = REGION_GRAPH + i * 5
+        biome = pb.memory[base]
+        neighbors = [pb.memory[base + 1 + k] for k in range(4)]
+        neighbors = [None if n == 0xFF else n for n in neighbors]
+        regions.append({'biome_id': biome, 'neighbors': neighbors})
+    return regions
 
 def oam_entry(pb, n):
     """Read OAM entry n from actual OAM (0xFE00), not the shadow buffer."""
@@ -206,8 +266,11 @@ check("T4.7 B in MAP -> PLAYING (GS=2)",   pb.memory[GAMESTATE] == 2)
 
 # Force victory: the game's check_complete reads CARROTS_COUNT == 9.
 # Per R305's dual-assertion rule, set the flags AND the count so the forced
-# state is internally consistent with what save/zone logic reads.
-for i in range(9): pb.memory[CARROT_FLAGS + i] = 1
+# state is internally consistent with what save/zone logic reads. IP-1020
+# generalized the live flags array to KEYITEM_FLAGS (CARROT_FLAGS is orphaned
+# — check_collisions/setup_zone_collects no longer touch it; only the save
+# routines still mirror it, pending IP-1050).
+for i in range(9): pb.memory[KEYITEM_FLAGS + i] = 1
 pb.memory[CARROTS_COUNT] = 9
 [pb.tick() for _ in range(40)]
 check("T4.8 CARROTS=9 -> VICTORY (GS=5)",  pb.memory[GAMESTATE] == 5, f"GS={pb.memory[GAMESTATE]}")
@@ -217,7 +280,7 @@ pb.button('a'); [pb.tick() for _ in range(60)]
 check("T4.9 A in VICTORY -> TITLE (GS=0)", pb.memory[GAMESTATE] == 0, f"GS={pb.memory[GAMESTATE]}")
 check("T4.10 Victory exit clears progress",
       pb.memory[CARROTS_COUNT] == 0 and pb.memory[SCORE] == 0
-      and all(pb.memory[CARROT_FLAGS + i] == 0 for i in range(9)),
+      and all(pb.memory[KEYITEM_FLAGS + i] == 0 for i in range(9)),
       f"carrots={pb.memory[CARROTS_COUNT]} score={pb.memory[SCORE]}")
 
 pb.stop()
@@ -415,10 +478,12 @@ check("T8.6 ScoreItem does not touch CARROTS_COUNT", pb.memory[CARROTS_COUNT] ==
 # Collect zone 0's carrot at (132,88) — entry index 6
 pb.memory[PLAYER_X] = 132; pb.memory[PLAYER_Y] = 88
 [pb.tick() for _ in range(5)]
-check("T8.7 Carrot sets CARROT_FLAGS[0]", pb.memory[CARROT_FLAGS + 0] == 1,
-      f"flag={pb.memory[CARROT_FLAGS + 0]}")
-check("T8.8 Carrot increments CARROTS_COUNT", pb.memory[CARROTS_COUNT] == 1,
-      f"{pb.memory[CARROTS_COUNT]}")
+# IP-1020: check_collisions' carrot branch now targets KEYITEM_FLAGS (CARROT_FLAGS
+# is orphaned — nothing writes it anymore; save routines still mirror it pending IP-1050).
+check("T8.7 Carrot sets KEYITEM_FLAGS[0] (IP-1020)", pb.memory[KEYITEM_FLAGS + 0] == 1,
+      f"flag={pb.memory[KEYITEM_FLAGS + 0]}")
+check("T8.8 Carrot increments KEYITEM_COUNT (IP-1020)", pb.memory[KEYITEM_COUNT] == 1,
+      f"{pb.memory[KEYITEM_COUNT]}")
 check("T8.9 Carrot deactivated in COLL_DATA", pb.memory[COLL_DATA + 6*4 + 3] == 0,
       f"active={pb.memory[COLL_DATA + 6*4 + 3]}")
 check("T8.10 Carrot does not touch SCORE", pb.memory[SCORE] == sc1, f"{pb.memory[SCORE]}")
@@ -691,6 +756,107 @@ check("T11.d3 Every zone-0 collectible loads active (uncollected default)",
       f"count={cc} actives={[pb.memory[COLL_DATA + i*4 + 3] for i in range(cc)]}")
 pb.stop()
 wipe_save()
+
+# ══════════════════════════════════════════════════════
+# T12 — World Generation (IP-1020)
+# ══════════════════════════════════════════════════════
+print("\n=== T12: World Generation ===")
+
+T12_CORPUS = [(seed, scale) for scale in (2, 3, 9) for seed in (0, 1, 42, 12345, 65535)]
+
+# T12.b/c/d/e — reuse one long-lived instance across the whole corpus:
+# generate_world completes within a single tick() and depends only on
+# SEED/WORLD_SCALE (both set fresh each call), so no reboot is needed.
+pb = fresh_boot(180)
+oracle_mismatches = []
+bad_count = []
+unreachable = []
+bad_grammar = []
+for seed, scale in T12_CORPUS:
+    if not invoke_generate_world(pb, seed, scale):
+        oracle_mismatches.append((seed, scale, "did not complete"))
+        continue
+    actual = read_region_graph(pb, scale)
+    expected = worldgen.generate(seed, scale)
+    if actual != expected:
+        bad_idx = [i for i in range(len(actual)) if actual[i] != expected[i]][:3]
+        oracle_mismatches.append((seed, scale, f"regions {bad_idx}"))
+    if len(actual) != scale * scale:
+        bad_count.append((seed, scale, len(actual)))
+    seen = {0}; stack = [0]
+    while stack:
+        cur = stack.pop()
+        for nb in actual[cur]['neighbors']:
+            if nb is not None and nb not in seen:
+                seen.add(nb); stack.append(nb)
+    if len(seen) != len(actual):
+        unreachable.append((seed, scale, len(seen), len(actual)))
+    for i, r in enumerate(actual):
+        for nb in r['neighbors']:
+            if nb is not None and abs(r['biome_id'] - actual[nb]['biome_id']) > 1:
+                bad_grammar.append((seed, scale, i, nb))
+pb.stop()
+
+check("T12.b Oracle parity: worldgen.py matches SM83 output, every corpus entry (AC-2 lockstep)",
+      len(oracle_mismatches) == 0, f"mismatches={oracle_mismatches[:3]}")
+check("T12.e One KeyItem per region: exactly scale^2 regions, every corpus entry (AC-5)",
+      len(bad_count) == 0, f"bad={bad_count[:3]}")
+check("T12.c Reachability: every region reachable from region 0, every corpus entry (AC-3)",
+      len(unreachable) == 0, f"unreachable={unreachable[:3]}")
+check("T12.d Grammar-validity: every generated edge legal (|biome_a-biome_b|<=1), every corpus entry (AC-4)",
+      len(bad_grammar) == 0, f"bad_edges={bad_grammar[:3]}")
+
+# T12.a — determinism: two separate PyBoy instances, same (seed, scale)
+det_mismatches = []
+for seed, scale in [(777, 5), (0, 9)]:
+    pb1 = fresh_boot(180)
+    invoke_generate_world(pb1, seed, scale)
+    r1 = read_region_graph(pb1, scale)
+    pb1.stop()
+    pb2 = fresh_boot(180)
+    invoke_generate_world(pb2, seed, scale)
+    r2 = read_region_graph(pb2, scale)
+    pb2.stop()
+    if r1 != r2:
+        det_mismatches.append((seed, scale))
+check("T12.a Determinism: same (seed,scale) across two fresh boots -> byte-identical REGION_GRAPH (AC-2)",
+      len(det_mismatches) == 0, f"mismatches={det_mismatches}")
+
+# T12.f — seed=0 normalization: direct WRAM inspection of the PRNG state
+# immediately after generate_world's own normalization step (hooked), never
+# observing (TMP1,TMP2) == (0,0).
+pb = fresh_boot(180)
+t12f_state = {}
+def _t12f_hook(ctx):
+    t12f_state['tmp1'] = pb.memory[TMP1]
+    t12f_state['tmp2'] = pb.memory[TMP2]
+pb.hook_register(0, GW_SEED_OK_ADDR, _t12f_hook, None)
+invoke_generate_world(pb, 0, 2)
+pb.stop()
+check("T12.f seed=0 normalizes to a nonzero PRNG state, direct WRAM inspection (AC-7 precondition)",
+      t12f_state.get('tmp1', 0) != 0 or t12f_state.get('tmp2', 0) != 0,
+      f"state=({t12f_state.get('tmp1')},{t12f_state.get('tmp2')})")
+
+# T12.g — item-agnostic collection (AC-6): a direct extension of the existing
+# carrot-collection pattern, per FS-102 Sec.16 — retargeted in T8.7/T8.8/
+# T4.10 (KEYITEM_FLAGS/KEYITEM_COUNT) rather than duplicated here.
+
+# T12.h — static determinism audit (AC-7, Inspection): generate_world/
+# gw_prng_step must read no hardware register (DIV et al., via LDH) and no
+# WRAM address beyond SEED/WORLD_SCALE/TMP1/TMP2/GW_*/REGION_GRAPH (its own
+# prior output) — a real source-text scan, not an assumed pass.
+_src = (BASE / 'asm_game.py').read_text()
+_gw_start = _src.index("rom.label('generate_world')")
+_gw_end = _src.index("rom.RET()", _src.index("rom.label('gw_prng_step')"))
+_gw_src = _src[_src.index("rom.label('gw_prng_step')"):_gw_end] + _src[_gw_start:]
+check("T12.h Static audit: no LDH (hardware register, incl. DIV) read in generate_world/gw_prng_step (NFR-2200)",
+      'LDH_A_n' not in _gw_src and 'LDH_A_C' not in _gw_src, "source-scanned")
+
+# T12.i — headroom audit (AC-8, Inspection): the new WRAM this package adds
+# (SEED..GW_SCALE_SQ) stays inside bank-0 and the boot-time clear range.
+check("T12.i WRAM headroom: SEED..GW_SCALE_SQ extent stays inside bank-0 + boot-clear range (NFR-4200)",
+      SEED >= 0xC000 and GW_SCALE_SQ <= 0xC2FF,
+      f"SEED=0x{SEED:04X} extent_end=0x{GW_SCALE_SQ:04X}")
 
 # ══════════════════════════════════════════════════════
 # SUMMARY

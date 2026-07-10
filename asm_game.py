@@ -40,6 +40,22 @@ CARROT_FLAGS   = 0xC015   # 9 bytes — one per zone, 0/1
 COLL_DATA      = 0xC020
 COLL_COUNT     = 0xC050
 SCOREITEM_FLAGS = 0xC060  # 9 bytes — one bitfield per zone, bit = list-position (FR-5220)
+SEED           = 0xC069  # 2 bytes, C069-C06A — player-entered generation seed (IP-1020)
+WORLD_SCALE    = 0xC06B  # 1 byte — regions per grid axis, 2-9 (IP-1020)
+REGION_GRAPH   = 0xC070  # 5 bytes/region (1 biome-id + 4 neighbor-region-index), up to 81
+                          # regions = 405 bytes worst case (IP-1020)
+KEYITEM_FLAGS  = 0xC220  # up to 81 bytes, one collected-flag per region — generalizes
+                          # CARROT_FLAGS (IP-1020); only indices 0-8 are live until FEAT-1100
+                          # wires up world generation, matching CUR_ZONE's current 0-8 range
+KEYITEM_COUNT  = CARROTS_COUNT  # same WRAM slot as CARROTS_COUNT — item-agnostic alias
+                                  # for the running collected-count (IP-1020, FR-3220)
+GW_TOP_ROW     = 0xC271  # 9 bytes — generate_world's own transient scratch: the biome
+                          # of the region above each column, written before it's read
+                          # (NFR-2200: "the routine's own prior output", never external
+                          # or uninitialized state). Not part of the persisted data model.
+GW_REGION_IDX  = 0xC27A  # 1 byte — generate_world's own loop counter (0..scale²-1)
+GW_B_SCRATCH   = 0xC27B  # 1 byte — generate_world's own scratch (anchor, then result)
+GW_SCALE_SQ    = 0xC27C  # 1 byte — generate_world's own precomputed WORLD_SCALE²
 OAM_BUF        = 0xC300
 
 SAVE_VERSION_ADDR = 0xA012   # save-format version guard (FR-5220 / Design Decision 2)
@@ -190,8 +206,9 @@ def build_game_asm(rom: ROM) -> dict:
     # reset run
     rom.XOR_A()
     rom.LD_nn_A(SCORE); rom.LD_nn_A(CARROTS_COUNT); rom.LD_nn_A(CUR_ZONE)
-    # clear CARROT_FLAGS (9 bytes)
-    rom.LD_HL_nn(CARROT_FLAGS); rom.LD_B_n(9); rom.XOR_A()
+    # clear KEYITEM_FLAGS (9 bytes — IP-1020, generalizes CARROT_FLAGS; only the
+    # first 9 slots are live until FEAT-1100 wires up world generation)
+    rom.LD_HL_nn(KEYITEM_FLAGS); rom.LD_B_n(9); rom.XOR_A()
     rom.label('si_clr'); rom.LD_HLI_A(); rom.DEC_B(); rom.JR_NZ('si_clr')
     # clear SCOREITEM_FLAGS (9 bytes) — FR-5220 new-game reset
     rom.LD_HL_nn(SCOREITEM_FLAGS); rom.LD_B_n(9); rom.XOR_A()
@@ -242,7 +259,8 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW)
     # clear progress
     rom.XOR_A(); rom.LD_nn_A(CARROTS_COUNT); rom.LD_nn_A(SCORE)
-    rom.LD_HL_nn(CARROT_FLAGS); rom.LD_B_n(9); rom.XOR_A()
+    # clear KEYITEM_FLAGS (9 bytes — IP-1020, generalizes CARROT_FLAGS; see st_intro)
+    rom.LD_HL_nn(KEYITEM_FLAGS); rom.LD_B_n(9); rom.XOR_A()
     rom.label('sv_clrf'); rom.LD_HLI_A(); rom.DEC_B(); rom.JR_NZ('sv_clrf')
     # clear SCOREITEM_FLAGS (9 bytes) — FR-5220 victory progress-clear
     rom.LD_HL_nn(SCOREITEM_FLAGS); rom.LD_B_n(9); rom.XOR_A()
@@ -379,15 +397,17 @@ def build_game_asm(rom: ROM) -> dict:
     # HIT — deactivate
     rom.POP_HL(); rom.XOR_A(); rom.LD_HL_A(); rom.INC_HL()
 
-    # If carrot (type 2): set CARROT_FLAGS[CUR_ZONE] = 1 + INC CARROTS_COUNT
+    # If KeyItem (type 2): set KEYITEM_FLAGS[CUR_ZONE] = 1 + INC KEYITEM_COUNT
+    # (IP-1020: generalizes the carrot branch — same bit-set logic, same
+    # push/pop-HL discipline, only the target array/counter names change)
     rom.LD_A_C(); rom.CP_n(2); rom.JR_NZ('cc_not_c')
     rom.LD_A_nn(CUR_ZONE)
     rom.PUSH_HL()
     rom.LD_E_A(); rom.LD_D_n(0)
-    rom.LD_HL_nn(CARROT_FLAGS); rom.ADD_HL_DE()
+    rom.LD_HL_nn(KEYITEM_FLAGS); rom.ADD_HL_DE()
     rom.LD_A_n(1); rom.LD_HL_A()
     rom.POP_HL()
-    rom.LD_A_nn(CARROTS_COUNT); rom.INC_A(); rom.LD_nn_A(CARROTS_COUNT)
+    rom.LD_A_nn(KEYITEM_COUNT); rom.INC_A(); rom.LD_nn_A(KEYITEM_COUNT)
     rom.JR('cc_dirty')
     rom.label('cc_not_c')
 
@@ -654,12 +674,13 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_HLI_A(); rom.INC_DE()
     rom.LD_A_n(1); rom.LD_HLI_A()                   # active = 1
     rom.INC_DE()
-    # If carrot (type==2) and CARROT_FLAGS[CUR_ZONE] != 0 → mark inactive
+    # If KeyItem (type==2) and KEYITEM_FLAGS[CUR_ZONE] != 0 → mark inactive
+    # (IP-1020: generalizes the carrot check — same logic, KEYITEM_FLAGS target)
     rom.LD_A_C(); rom.CP_n(2); rom.JR_NZ('szc_score_chk')
     rom.PUSH_BC(); rom.PUSH_DE(); rom.PUSH_HL()
     rom.LD_A_nn(CUR_ZONE)
     rom.LD_E_A(); rom.LD_D_n(0)
-    rom.LD_HL_nn(CARROT_FLAGS); rom.ADD_HL_DE()
+    rom.LD_HL_nn(KEYITEM_FLAGS); rom.ADD_HL_DE()
     rom.LD_A_HL()
     rom.POP_HL(); rom.POP_DE(); rom.POP_BC()
     rom.OR_A(); rom.JR_Z('szc_sk')
@@ -691,7 +712,9 @@ def build_game_asm(rom: ROM) -> dict:
     rom.DEC_B(); rom.JR_NZ('szc_lp'); rom.RET()
 
     # ── update_map_hearts ─────────────────────────────────
-    # 9 hearts at 3x3 grid. Read CARROT_FLAGS[i] and write FULL or EMPTY.
+    # 9 hearts at 3x3 grid. Read KEYITEM_FLAGS[i] and write FULL or EMPTY.
+    # (IP-1020: generalizes from CARROT_FLAGS, which check_collisions/
+    # setup_zone_collects no longer write — this read must track the rename.)
     rom.label('update_map_hearts')
     map_addrs = [
         # (BG addr for heart at zone index i)
@@ -706,13 +729,196 @@ def build_game_asm(rom: ROM) -> dict:
         0x9800 + 12*32 + 16,  # z8
     ]
     for i, addr in enumerate(map_addrs):
-        rom.LD_A_nn(CARROT_FLAGS + i)
+        rom.LD_A_nn(KEYITEM_FLAGS + i)
         rom.OR_A()
         rom.LD_A_n(TL_HEART_FULL)
         rom.JR_NZ(f'umh_w{i}')
         rom.LD_A_n(TL_HEART_EMPTY)
         rom.label(f'umh_w{i}')
         rom.LD_HL_nn(addr); rom.LD_HL_A()
+    rom.RET()
+
+    # ── generate_world (IP-1020) ──────────────────────────
+    # Deterministically generates a WORLD_SCALE x WORLD_SCALE region grid from
+    # (SEED, WORLD_SCALE) into REGION_GRAPH, flood-filling biome axis-indices
+    # (0=Water..4=Brick) in row-major order so every already-placed grid-
+    # adjacent pair (not just the generation-predecessor edge) stays within 1
+    # axis step — grammar-validity (FR-4310) by construction — and every
+    # region is reachable via the fully-connected grid itself (FR-9120).
+    # No call site yet: IP-1040 wires this up from the SEED/SCALE ENTRY flow.
+    def _xor_d(): rom.emit(0xAA)          # XOR D  (not wrapped in gbc_lib.py)
+    def _xor_e(): rom.emit(0xAB)          # XOR E
+    def _cp_e():  rom.emit(0xBB)          # CP E
+
+    rom.label('gw_prng_step')
+    # 16-bit xorshift-style state in TMP1:TMP2 (hi:lo). Shift+XOR only, no
+    # multiply/divide (NFR-2200): x ^= x<<1; x ^= x>>1; x ^= byteswap(x).
+    rom.LD_A_nn(TMP2); rom.SLA_A(); rom.LD_E_A()
+    rom.LD_A_nn(TMP1); rom.RLA(); rom.LD_D_A()
+    rom.LD_A_nn(TMP2); _xor_e(); rom.LD_nn_A(TMP2)
+    rom.LD_A_nn(TMP1); _xor_d(); rom.LD_nn_A(TMP1)
+    rom.LD_A_nn(TMP1); rom.SRL_A(); rom.LD_D_A()
+    rom.LD_A_nn(TMP2); rom.RRA(); rom.LD_E_A()
+    rom.LD_A_nn(TMP1); _xor_d(); rom.LD_nn_A(TMP1)
+    rom.LD_A_nn(TMP2); _xor_e(); rom.LD_nn_A(TMP2)
+    rom.LD_A_nn(TMP1); rom.LD_D_A()
+    rom.LD_A_nn(TMP2); _xor_d()
+    rom.LD_nn_A(TMP1); rom.LD_nn_A(TMP2)
+    rom.RET()
+
+    rom.label('generate_world')
+    # Seed PRNG state from SEED, normalizing 0 -> 1 (ADR-0010).
+    rom.LD_A_nn(SEED); rom.LD_nn_A(TMP2)
+    rom.LD_A_nn(SEED + 1); rom.LD_nn_A(TMP1)
+    rom.LD_A_nn(TMP1); rom.OR_A(); rom.JR_NZ('gw_seed_ok')
+    rom.LD_A_nn(TMP2); rom.OR_A(); rom.JR_NZ('gw_seed_ok')
+    rom.LD_A_n(1); rom.LD_nn_A(TMP2)
+    rom.label('gw_seed_ok')
+
+    # Precompute WORLD_SCALE^2 (no MUL opcode — repeated addition).
+    rom.XOR_A(); rom.LD_nn_A(GW_SCALE_SQ)
+    rom.LD_A_nn(WORLD_SCALE); rom.LD_D_A()
+    rom.label('gw_sq_loop')
+    rom.LD_A_D(); rom.OR_A(); rom.JR_Z('gw_sq_done')
+    rom.LD_A_nn(GW_SCALE_SQ); rom.LD_E_A()
+    rom.LD_A_nn(WORLD_SCALE); rom.ADD_A_E()
+    rom.LD_nn_A(GW_SCALE_SQ)
+    rom.LD_A_D(); rom.DEC_A(); rom.LD_D_A()
+    rom.JR('gw_sq_loop')
+    rom.label('gw_sq_done')
+
+    rom.LD_HL_nn(REGION_GRAPH)
+    rom.XOR_A(); rom.LD_nn_A(GW_REGION_IDX)
+    rom.LD_B_n(0)   # row
+    rom.LD_C_n(0)   # col
+
+    rom.label('gw_loop')
+    rom.LD_A_nn(GW_REGION_IDX); rom.OR_A(); rom.JR_NZ('gw_not_first')
+    rom.LD_A_n(2); rom.LD_nn_A(GW_B_SCRATCH)
+    rom.JR('gw_have_b')
+
+    rom.label('gw_not_first')
+    # anchor = left = *(HL-5) if col>0, else top = GW_TOP_ROW[col]
+    rom.LD_A_C(); rom.OR_A(); rom.JR_Z('gw_anchor_top')
+    rom.PUSH_HL()
+    for _ in range(5): rom.DEC_HL()
+    rom.LD_A_HL()
+    rom.POP_HL()
+    rom.JR('gw_anchor_got')
+    rom.label('gw_anchor_top')
+    rom.LD_D_n(GW_TOP_ROW >> 8)
+    rom.LD_A_n(GW_TOP_ROW & 0xFF); rom.ADD_A_C(); rom.LD_E_A()
+    rom.LD_A_DE()
+    rom.label('gw_anchor_got')
+    rom.LD_nn_A(GW_B_SCRATCH)   # GW_B_SCRATCH := anchor (temporary use)
+
+    rom.CALL('gw_prng_step')    # A = new PRNG state's low byte
+    rom.label('gw_mod3')
+    rom.CP_n(3); rom.JR_C('gw_mod3_done')
+    rom.SUB_n(3); rom.JR('gw_mod3')
+    rom.label('gw_mod3_done')
+    rom.LD_E_A()                 # E = mod3 result (0,1,2) -> delta (-1,0,+1)
+
+    # b = anchor + delta, guarded to [0,4]
+    rom.LD_A_E(); rom.CP_n(1); rom.JR_Z('gw_delta_zero')
+    rom.JR_C('gw_delta_neg')
+    rom.LD_A_nn(GW_B_SCRATCH); rom.CP_n(4); rom.JR_Z('gw_b_same')
+    rom.INC_A(); rom.JR('gw_b_done')
+    rom.label('gw_delta_neg')
+    rom.LD_A_nn(GW_B_SCRATCH); rom.OR_A(); rom.JR_Z('gw_b_same')
+    rom.DEC_A(); rom.JR('gw_b_done')
+    rom.label('gw_delta_zero')
+    rom.LD_A_nn(GW_B_SCRATCH); rom.JR('gw_b_done')
+    rom.label('gw_b_same')
+    rom.LD_A_nn(GW_B_SCRATCH)
+    rom.label('gw_b_done')
+    rom.LD_nn_A(GW_B_SCRATCH)
+
+    # If both row>0 and col>0, also clamp against the top neighbor (proven by
+    # induction: top/left always differ by <=2, so this two-step sequential
+    # clamp equals clamping to the true [lo,hi] intersection — see worldgen.py).
+    rom.LD_A_B(); rom.OR_A(); rom.JR_Z('gw_other_skip')
+    rom.LD_A_C(); rom.OR_A(); rom.JR_Z('gw_other_skip')
+    rom.LD_D_n(GW_TOP_ROW >> 8)
+    rom.LD_A_n(GW_TOP_ROW & 0xFF); rom.ADD_A_C(); rom.LD_E_A()
+    rom.LD_A_DE()
+    rom.LD_D_A()                 # D = top
+    rom.LD_A_nn(GW_B_SCRATCH)
+    rom.CP_D()
+    rom.JR_C('gw_other_lt')
+    rom.SUB_D()
+    rom.CP_n(2); rom.JR_C('gw_other_skip')
+    rom.LD_A_D(); rom.INC_A(); rom.LD_nn_A(GW_B_SCRATCH)
+    rom.JR('gw_other_skip')
+    rom.label('gw_other_lt')
+    rom.LD_E_A()
+    rom.LD_A_D(); rom.SUB_E()
+    rom.CP_n(2); rom.JR_C('gw_other_skip')
+    rom.LD_A_D(); rom.DEC_A(); rom.LD_nn_A(GW_B_SCRATCH)
+    rom.label('gw_other_skip')
+
+    rom.label('gw_have_b')
+    rom.LD_A_nn(GW_B_SCRATCH)
+    rom.LD_HL_A()                # REGION_GRAPH[region].biome = b
+    # GW_TOP_ROW[col] = b (this row's value, for next row's lookup)
+    rom.PUSH_HL()
+    rom.LD_D_n(GW_TOP_ROW >> 8)
+    rom.LD_A_n(GW_TOP_ROW & 0xFF); rom.ADD_A_C(); rom.LD_E_A()
+    rom.LD_A_nn(GW_B_SCRATCH)
+    rom.LD_DE_A()
+    rom.POP_HL()
+    rom.INC_HL()                 # HL -> up-slot
+
+    # up = idx-scale if row>0 else 0xFF
+    rom.LD_A_B(); rom.OR_A(); rom.JR_NZ('gw_up_calc')
+    rom.LD_A_n(0xFF); rom.JR('gw_up_write')
+    rom.label('gw_up_calc')
+    rom.LD_A_nn(WORLD_SCALE); rom.LD_E_A()
+    rom.LD_A_nn(GW_REGION_IDX); rom.SUB_E()
+    rom.label('gw_up_write')
+    rom.LD_HL_A(); rom.INC_HL()  # HL -> down-slot
+
+    # down = idx+scale if row < scale-1 else 0xFF
+    rom.LD_A_nn(WORLD_SCALE); rom.LD_E_A()
+    rom.LD_A_B(); rom.INC_A(); _cp_e()
+    rom.JR_C('gw_down_calc')
+    rom.LD_A_n(0xFF); rom.JR('gw_down_write')
+    rom.label('gw_down_calc')
+    rom.LD_A_nn(GW_REGION_IDX); rom.ADD_A_E()
+    rom.label('gw_down_write')
+    rom.LD_HL_A(); rom.INC_HL()  # HL -> left-slot
+
+    # left = idx-1 if col>0 else 0xFF
+    rom.LD_A_C(); rom.OR_A(); rom.JR_NZ('gw_left_calc')
+    rom.LD_A_n(0xFF); rom.JR('gw_left_write')
+    rom.label('gw_left_calc')
+    rom.LD_A_nn(GW_REGION_IDX); rom.DEC_A()
+    rom.label('gw_left_write')
+    rom.LD_HL_A(); rom.INC_HL()  # HL -> right-slot
+
+    # right = idx+1 if col < scale-1 else 0xFF
+    rom.LD_A_nn(WORLD_SCALE); rom.LD_E_A()
+    rom.LD_A_C(); rom.INC_A(); _cp_e()
+    rom.JR_C('gw_right_calc')
+    rom.LD_A_n(0xFF); rom.JR('gw_right_write')
+    rom.label('gw_right_calc')
+    rom.LD_A_nn(GW_REGION_IDX); rom.INC_A()
+    rom.label('gw_right_write')
+    rom.LD_HL_A(); rom.INC_HL()  # HL -> next region's start (advanced by 5 total)
+
+    # advance region_idx
+    rom.LD_A_nn(GW_REGION_IDX); rom.INC_A(); rom.LD_nn_A(GW_REGION_IDX)
+    # advance col/row
+    rom.LD_A_C(); rom.INC_A(); rom.LD_C_A()
+    rom.LD_A_nn(WORLD_SCALE)
+    rom.CP_C(); rom.JR_NZ('gw_no_row_wrap')
+    rom.LD_C_n(0)
+    rom.LD_A_B(); rom.INC_A(); rom.LD_B_A()
+    rom.label('gw_no_row_wrap')
+    # done?
+    rom.LD_A_nn(GW_REGION_IDX); rom.LD_E_A()
+    rom.LD_A_nn(GW_SCALE_SQ); _cp_e()
+    rom.JP_NZ('gw_loop')   # JR range (-128..127) is too short for this loop body
     rom.RET()
 
     # ── save_to_sram ─────────────────────────────────────
