@@ -10,4 +10,4 @@ Critical / High / Medium / Low.
 
 | Report | Scope | Date | Result | Path |
 |---|---|---|---|---|
-| *(none yet)* | | | | |
+| Integration review | Bootstrap tranche (IP-9010/9020/9030/9040/1010, all VERIFIED) | 2026-07-10 | **Clean** — 2 Medium (stale ROADMAP/feature-planning cross-refs), no Critical/High | [integration-review-bootstrap-tranche.md](integration-review-bootstrap-tranche.md) |

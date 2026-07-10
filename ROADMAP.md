@@ -116,5 +116,5 @@ build order.
 | ID | Document | Path | Depends on | Status |
 |---|---|---|---|---|
 | RV-CONTENT | Content reviews | `docs/reviews/content-review-*.md` | content packages | ⛔ (per scope) |
-| RV-INTEG | Integration reviews | `docs/reviews/integration-review-*.md` | tranche VERIFIED | ⛔ (per scope) |
+| RV-INTEG | Integration reviews | `docs/reviews/integration-review-*.md` | tranche VERIFIED | ✅ (bootstrap tranche, 2026-07-10 — clean, 2 Medium doc-drift findings, no Critical/High) |
 | RV-RELEASE | Release assessments | `docs/reviews/release-assessment-*.md` | RV-INTEG | ⛔ (per release) |
