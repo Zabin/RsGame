@@ -140,12 +140,12 @@ by individual zone, was already made and already accommodates significant zone g
 8-palette ceiling becomes binding. (OBJ palettes: 4 of 8 in active use — bunny, star, flower,
 carrot; 4 unused/placeholder slots remain.)
 
-## Data Model delta (2026-07-09 — target state; §6 WRAM confirmed 2026-07-10 by `IP-1020`)
+## Data Model delta (2026-07-09 — target state; §6 WRAM confirmed 2026-07-10 by `IP-1020`;
+§7 SRAM confirmed 2026-07-10 by `IP-1050`)
 
-Per **ADR-0009**/**ADR-0010**, additions to the WRAM/SRAM layout above. §7 (SRAM) remains
-proposed — it is `FEAT-5300`/`IP-1050`'s scope, not `IP-1020`'s, per `FS-102` §10. §6 (WRAM) is
-now **confirmed as-shipped** (`IP-1020`), following the same confidence level `FS-101` used
-before `IP-1010` confirmed `SCOREITEM_FLAGS`' final placement.
+Per **ADR-0009**/**ADR-0010**, additions to the WRAM/SRAM layout above. §6 (WRAM) and §7 (SRAM)
+are now both **confirmed as-shipped**, following the same confidence level `FS-101` used before
+`IP-1010` confirmed `SCOREITEM_FLAGS`' final placement.
 
 ### 6. WRAM additions (confirmed 2026-07-10, `IP-1020`, within existing bank-0 headroom)
 
@@ -171,19 +171,30 @@ padding gap) — comfortably inside the confirmed ~3.1 KiB bank-0 headroom (R111
 WRAM is **not** triggered, consistent with R111's conclusion. All of it falls inside the existing
 boot-time WRAM clear (`0xC000`–`0xC2FF`, unchanged).
 
-### 7. SRAM save-format additions (proposed, extends the `FS-101`/`IP-1010` version-byte pattern)
+### 7. SRAM save-format additions (confirmed 2026-07-10, `IP-1050`, extends the `FS-101`/
+`IP-1010` version-byte pattern)
 
 Per [R106](../research/encyclopedia/R106-mbc1-sram-battery-saves.md)'s extension and
-**ADR-0010**: a new save-format version value (superseding `SAVE_VERSION_VAL = 0x01` at `0xA012`)
-signals this layout; proposed fields appended after the existing `0xA013`–`0xA01B`
-`SCOREITEM_FLAGS` mirror:
+**ADR-0010**: a new save-format version value (`SAVE_VERSION_VAL`, bumped `0x01`→`0x02` —
+superseding `IP-1010`'s own value at `0xA012`) signals this layout; fields appended after the
+existing `0xA013`–`0xA01B` `SCOREITEM_FLAGS` mirror, exactly at the addresses this section
+proposed:
 
-| Address (proposed) | Content |
+| Address | Content |
 |---|---|
-| `A012` | Save-format version guard — new value, superseding `0x01` |
+| `A012` | Save-format version guard — `0x02`, superseding `IP-1010`'s `0x01` |
 | `A01C`–`A01D` | `SEED` mirror (16-bit) |
 | `A01E` | `WORLD_SCALE` mirror |
 | `A01F`–`A06F` | `KEYITEM_FLAGS` mirror, 81 bytes worst-case (generalizes the `CARROT_FLAGS` mirror at `A009`–`A011`) |
+
+Written by `save_to_sram` (the `KEYITEM_FLAGS` copy reuses the existing `memcpy` subroutine, not
+an unrolled 81-iteration loop). Restored by `try_load_save`, version-guarded: `SEED`/`WORLD_SCALE`
+restore first, then `IP-1020`'s `generate_world` regenerates `REGION_GRAPH` from them (never
+itself persisted — ADR-0009's determinism guarantee), then `KEYITEM_FLAGS` restores onto the
+freshly-regenerated graph via the same `memcpy` subroutine, reversed. A version-1 (`IP-1010`-era)
+or absent save is excluded from `IP-1040`'s MAIN MENU "continue" option entirely — `try_load_save`
+never runs against one — a stricter response than `IP-1010`'s own "default to safe empty state"
+choice, since here the world *model* differs, not just one field (ADR-0010).
 
 Total addition: ~84 bytes — against 8 KiB SRAM, negligible (R106's extension). **The generated
 world's region graph/biome content is *not* persisted** — only `SEED`+`WORLD_SCALE`+

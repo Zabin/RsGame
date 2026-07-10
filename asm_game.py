@@ -12,7 +12,9 @@ Zone layout (CUR_ZONE = row*3 + col):
 """
 from gbc_lib import ROM
 from tiles import (TL_CARROT, TL_STAR, TL_FLOWER_OBJ,
-                   TL_HEART_FULL, TL_HEART_EMPTY, TL_DIGIT_0)
+                   TL_HEART_FULL, TL_HEART_EMPTY, TL_DIGIT_0,
+                   TL_ARROW_U, TL_ARROW_D, TL_ARROW_L, TL_ARROW_R,
+                   TL_BG_BLANK)
 
 # ── WRAM addresses ─────────────────────────────────────────
 GAMESTATE      = 0xC000
@@ -56,11 +58,29 @@ GW_TOP_ROW     = 0xC271  # 9 bytes — generate_world's own transient scratch: t
 GW_REGION_IDX  = 0xC27A  # 1 byte — generate_world's own loop counter (0..scale²-1)
 GW_B_SCRATCH   = 0xC27B  # 1 byte — generate_world's own scratch (anchor, then result)
 GW_SCALE_SQ    = 0xC27C  # 1 byte — generate_world's own precomputed WORLD_SCALE²
+MM_SAVE_VALID  = 0xC27D  # 1 byte — MAIN MENU's cached save-validity probe (magic+version),
+                          # computed once on state entry, not re-probed every frame (IP-1040)
+MM_CURSOR      = 0xC27E  # 1 byte — MAIN MENU highlighted option: 0=continue, 1=new game (IP-1040)
+SSE_DIGITS     = 0xC27F  # 5 bytes, C27F-C283 — SEED/SCALE ENTRY's 5 independent decimal
+                          # digits (ten-thousands..ones, each 0-9), edited directly; composed
+                          # into the real 16-bit SEED (saturating at 65535) only on A-confirm,
+                          # per ADR-0010's digit-cursor picker (IP-1040)
+SSE_SCALE      = 0xC284  # 1 byte — SEED/SCALE ENTRY's scale value, 2-9, default 3 (IP-1040)
+SSE_CURSOR     = 0xC285  # 1 byte — SEED/SCALE ENTRY's cursor position, 0-4 = digit index
+                          # (MSB first), 5 = scale slot (IP-1040)
 OAM_BUF        = 0xC300
 
 SAVE_VERSION_ADDR = 0xA012   # save-format version guard (FR-5220 / Design Decision 2)
-SAVE_VERSION_VAL  = 0x01
+SAVE_VERSION_VAL  = 0x02     # bumped 0x01->0x02 (IP-1050, second bump since ship — the
+                              # value sequence is strictly monotonic, never reused)
 SRAM_SCOREITEM    = 0xA013   # 9 bytes, SCOREITEM_FLAGS mirror
+SRAM_SEED          = 0xA01C  # 2 bytes, A01C-A01D — SEED mirror (IP-1050)
+SRAM_WORLD_SCALE   = 0xA01E  # 1 byte — WORLD_SCALE mirror (IP-1050)
+SRAM_KEYITEM_FLAGS = 0xA01F  # up to 81 bytes, A01F-A06F — KEYITEM_FLAGS mirror,
+                              # generalizes the old CARROT_FLAGS mirror at A009-A011
+                              # (IP-1050). REGION_GRAPH itself is never persisted —
+                              # it regenerates deterministically from (SEED, WORLD_SCALE)
+                              # via generate_world on load (ADR-0009).
 
 J_A=0; J_B=1; J_SELECT=2; J_START=3; J_RIGHT=4; J_LEFT=5; J_UP=6; J_DOWN=7
 
@@ -71,6 +91,10 @@ LCDC=0x40; LY=0x44; DMA=0x46; VBK=0x4F; BCPS=0x68; BCPD=0x69; OCPS=0x6A; OCPD=0x
 HRAM_DMA = 0xFF80
 
 GS_TITLE, GS_INTRO, GS_PLAYING, GS_SAVE, GS_MAP, GS_VICTORY = 0, 1, 2, 3, 4, 5
+# GS_TITLE is superseded (IP-1040): boot now always reaches GS_MAIN_MENU, so
+# st_title's dispatch entry/code is unreachable dead code, left in place —
+# same orphaning precedent as CARROT_FLAGS/village_screen etc.
+GS_MAIN_MENU, GS_SEED_SCALE_ENTRY = 6, 7
 
 
 def build_game_asm(rom: ROM) -> dict:
@@ -161,8 +185,12 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_nn_A(MUSIC_PTR_HI)
     rom.LD_A_n(1); rom.LD_nn_A(MUSIC_CTR)
 
-    # Try load save
-    rom.CALL('try_load_save')
+    # IP-1040: the auto-load-on-boot bypass (unconditional try_load_save call)
+    # is retired — boot now always reaches MAIN MENU. try_load_save's call
+    # moves to become MAIN MENU's "continue" action only (ADR-0009/GDS-01 §2a).
+    rom.LD_A_n(GS_MAIN_MENU)
+    rom.LD_nn_A(GAMESTATE); rom.LD_nn_A(TRANSITION_TO)
+    rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW)
 
     rom.LD_A_n(0x97); rom.LDH_n_A(LCDC)   # 0x97 = LCD on + 8x16 OBJ
     rom.LD_A_n(0x01); rom.LD_nn_A(0xFFFF)
@@ -189,6 +217,8 @@ def build_game_asm(rom: ROM) -> dict:
     rom.CP_n(GS_SAVE);    rom.JP_Z('st_save')
     rom.CP_n(GS_MAP);     rom.JP_Z('st_map')
     rom.CP_n(GS_VICTORY); rom.JP_Z('st_victory')
+    rom.CP_n(GS_MAIN_MENU); rom.JP_Z('st_main_menu')
+    rom.CP_n(GS_SEED_SCALE_ENTRY); rom.JP_Z('st_seed_scale_entry')
     rom.JP('end_frame')
 
     # ── State: TITLE ─────────────────────────────────────
@@ -238,8 +268,18 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW)
     rom.JP('end_frame')
     rom.label('sv_b')
-    rom.BIT_b_B(J_B); rom.JP_Z('end_frame')
+    rom.BIT_b_B(J_B); rom.JR_Z('sv_sel')
     rom.LD_A_n(GS_PLAYING); rom.LD_nn_A(TRANSITION_TO)
+    rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW)
+    rom.JP('end_frame')
+    # IP-1040: third option, exit-to-main-menu with auto-save (FR-1190) —
+    # calls the exact same save-write routine A(save) already calls, no
+    # duplicated/divergent save-write logic, then targets MAIN MENU instead
+    # of PLAYING (the distinguishing behavior versus A/B).
+    rom.label('sv_sel')
+    rom.BIT_b_B(J_SELECT); rom.JP_Z('end_frame')
+    rom.CALL('save_to_sram')
+    rom.LD_A_n(GS_MAIN_MENU); rom.LD_nn_A(TRANSITION_TO)
     rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW)
     rom.JP('end_frame')
 
@@ -255,7 +295,8 @@ def build_game_asm(rom: ROM) -> dict:
     rom.label('st_victory')
     rom.LD_A_nn(JOY_NEW); rom.AND_n((1<<J_A)|(1<<J_START))
     rom.JP_Z('end_frame')
-    rom.LD_A_n(GS_TITLE); rom.LD_nn_A(TRANSITION_TO)
+    # IP-1040: target is now MAIN MENU, not the superseded TITLE state.
+    rom.LD_A_n(GS_MAIN_MENU); rom.LD_nn_A(TRANSITION_TO)
     rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW)
     # clear progress
     rom.XOR_A(); rom.LD_nn_A(CARROTS_COUNT); rom.LD_nn_A(SCORE)
@@ -265,6 +306,86 @@ def build_game_asm(rom: ROM) -> dict:
     # clear SCOREITEM_FLAGS (9 bytes) — FR-5220 victory progress-clear
     rom.LD_HL_nn(SCOREITEM_FLAGS); rom.LD_B_n(9); rom.XOR_A()
     rom.label('sv_clrf2'); rom.LD_HLI_A(); rom.DEC_B(); rom.JR_NZ('sv_clrf2')
+    rom.JP('end_frame')
+
+    # ── State: MAIN MENU (IP-1040) ────────────────────────
+    # D-pad up/down toggles the highlighted option (only when a valid save
+    # exists — MM_SAVE_VALID, computed once per entry by mm_on_entry); A
+    # confirms. "Continue" (cursor=0) calls the existing try_load_save,
+    # which sets GAMESTATE/TRANSITION_TO/NEED_REDRAW itself. "New game"
+    # (cursor=1) resets SEED/SCALE ENTRY's fields to defaults and enters it.
+    rom.label('st_main_menu')
+    rom.LD_A_nn(JOY_NEW); rom.LD_B_A()
+    rom.BIT_b_B(J_UP); rom.JR_NZ('mm_toggle')
+    rom.BIT_b_B(J_DOWN); rom.JP_Z('mm_check_a')
+    rom.label('mm_toggle')
+    rom.LD_A_nn(MM_SAVE_VALID); rom.OR_A(); rom.JP_Z('mm_check_a')
+    rom.LD_A_nn(MM_CURSOR); rom.XOR_n(1); rom.LD_nn_A(MM_CURSOR)
+    rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW)
+    rom.JP('end_frame')
+    rom.label('mm_check_a')
+    rom.LD_A_nn(JOY_NEW); rom.AND_n(1 << J_A)
+    rom.JP_Z('end_frame')
+    rom.LD_A_nn(MM_CURSOR); rom.OR_A(); rom.JP_NZ('mm_newgame')
+    rom.CALL('try_load_save')
+    rom.JP('end_frame')
+    rom.label('mm_newgame')
+    rom.LD_HL_nn(SSE_DIGITS); rom.LD_B_n(5); rom.XOR_A()
+    rom.label('mm_ng_clr'); rom.LD_HLI_A(); rom.DEC_B(); rom.JR_NZ('mm_ng_clr')
+    rom.LD_A_n(3); rom.LD_nn_A(SSE_SCALE)   # default scale (ADR-0010)
+    rom.XOR_A(); rom.LD_nn_A(SSE_CURSOR)
+    rom.LD_A_n(GS_SEED_SCALE_ENTRY); rom.LD_nn_A(TRANSITION_TO)
+    rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW)
+    rom.JP('end_frame')
+
+    # ── State: SEED/SCALE ENTRY (IP-1040) ─────────────────
+    # Digit-cursor picker (ADR-0010): left/right moves SSE_CURSOR (0-4 = the
+    # 5 seed digits MSB-first, 5 = scale); up/down adjusts the value at the
+    # cursor (wrapping); B cancels back to MAIN MENU without writing SEED/
+    # WORLD_SCALE (FS-104 Open Question 1); A composes the digits into the
+    # real 16-bit SEED (saturating), writes WORLD_SCALE, calls IP-1020's
+    # generate_world, and transitions to INTRO.
+    rom.label('st_seed_scale_entry')
+    rom.LD_A_nn(JOY_NEW); rom.LD_B_A()
+
+    rom.BIT_b_B(J_B); rom.JP_Z('sse_no_b')
+    rom.LD_A_n(GS_MAIN_MENU); rom.LD_nn_A(TRANSITION_TO)
+    rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW)
+    rom.JP('end_frame')
+    rom.label('sse_no_b')
+
+    rom.BIT_b_B(J_LEFT); rom.JP_Z('sse_no_left')
+    rom.LD_A_nn(SSE_CURSOR); rom.OR_A(); rom.JP_Z('sse_redraw')
+    rom.DEC_A(); rom.LD_nn_A(SSE_CURSOR)
+    rom.JP('sse_redraw')
+    rom.label('sse_no_left')
+
+    rom.BIT_b_B(J_RIGHT); rom.JP_Z('sse_no_right')
+    rom.LD_A_nn(SSE_CURSOR); rom.CP_n(5); rom.JP_NC('sse_redraw')
+    rom.INC_A(); rom.LD_nn_A(SSE_CURSOR)
+    rom.JP('sse_redraw')
+    rom.label('sse_no_right')
+
+    rom.BIT_b_B(J_UP); rom.JP_Z('sse_no_up')
+    rom.CALL('sse_adjust_up')
+    rom.JP('sse_redraw')
+    rom.label('sse_no_up')
+
+    rom.BIT_b_B(J_DOWN); rom.JP_Z('sse_no_down')
+    rom.CALL('sse_adjust_down')
+    rom.JP('sse_redraw')
+    rom.label('sse_no_down')
+
+    rom.LD_A_nn(JOY_NEW); rom.AND_n(1 << J_A)
+    rom.JP_Z('end_frame')
+    rom.CALL('sse_compose_seed')
+    rom.CALL('generate_world')
+    rom.LD_A_n(GS_INTRO); rom.LD_nn_A(TRANSITION_TO)
+    rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW)
+    rom.JP('end_frame')
+
+    rom.label('sse_redraw')
+    rom.CALL('draw_sse_digits')
     rom.JP('end_frame')
 
     # ── End of frame ─────────────────────────────────────
@@ -599,7 +720,8 @@ def build_game_asm(rom: ROM) -> dict:
 
     # Dispatch to state-specific draw
     for gs, lbl in [(GS_TITLE,'dsr_t'),(GS_INTRO,'dsr_i'),(GS_PLAYING,'dsr_p'),
-                    (GS_SAVE,'dsr_sv'),(GS_MAP,'dsr_m'),(GS_VICTORY,'dsr_v')]:
+                    (GS_SAVE,'dsr_sv'),(GS_MAP,'dsr_m'),(GS_VICTORY,'dsr_v'),
+                    (GS_MAIN_MENU,'dsr_mm'),(GS_SEED_SCALE_ENTRY,'dsr_sse')]:
         rom.LD_A_nn(GAMESTATE); rom.CP_n(gs); rom.JP_Z(lbl)
     rom.JP('dsr_done')
 
@@ -617,20 +739,51 @@ def build_game_asm(rom: ROM) -> dict:
     _dsr_screen('dsr_sv', 'save_t',   'save_a')
     _dsr_screen('dsr_v',  'vic_t',    'vic_a')
     _dsr_screen('dsr_m',  'map_t',    'map_a',  extra='update_map_hearts')
+    # IP-1040: main menu recomputes save-validity + blanks "CONTINUE" if
+    # absent + draws the cursor on every entry (mm_on_entry); seed/scale
+    # entry redraws its digits + cursor on every entry (draw_sse_digits,
+    # also called directly on every digit-cursor edit — see st_seed_scale_entry).
+    _dsr_screen('dsr_mm',  'mm_t',  'mm_a',  extra='mm_on_entry')
+    _dsr_screen('dsr_sse', 'sse_t', 'sse_a', extra='draw_sse_digits')
 
-    # PLAYING: zone screen lookup table
-    # Table format: 9 entries × 4 bytes (tile_lo, tile_hi, attr_lo, attr_hi)
+    # PLAYING: biome-family screen dispatch (IP-1030, generalizes the
+    # former fixed 9-entry zs_table). CUR_ZONE is read as the current
+    # region index into REGION_GRAPH (5 bytes/region: biome-id, then 4
+    # neighbor-index bytes in up/down/left/right order — GDS-07 §6,
+    # matching generate_world's own write order exactly).
     rom.label('dsr_p')
     rom.LD_A_nn(CUR_ZONE)
-    rom.ADD_A_A(); rom.ADD_A_A()       # *4
-    rom.LD_E_A(); rom.LD_D_n(0)
-    rom.LD_HL_nn(0); patches['zs_table'] = rom.pos - 2
-    rom.ADD_HL_DE()
-    rom.LD_A_HLI(); rom.LD_E_A()
-    rom.LD_A_HLI(); rom.LD_D_A()       # DE = tile addr
-    rom.LD_A_HLI(); rom.LD_C_A()
-    rom.LD_A_HL();  rom.LD_B_A()       # BC = attr addr
+    rom.LD_E_A(); rom.LD_D_n(0)        # DE = region index
+    rom.LD_HL_nn(REGION_GRAPH)
+    rom.ADD_HL_DE(); rom.ADD_HL_DE(); rom.ADD_HL_DE()
+    rom.ADD_HL_DE(); rom.ADD_HL_DE()   # HL = REGION_GRAPH + region*5 (16-bit,
+                                        # correct up to scale=9's 81 regions)
+    rom.LD_A_HLI()                     # A = biome-id (0..4); HL -> 'up' byte
+    rom.PUSH_HL()                      # save neighbor-byte pointer across CALLs
+
+    rom.CP_n(0); rom.JR_Z('dsr_p_water')
+    rom.CP_n(1); rom.JR_Z('dsr_p_sand')
+    rom.CP_n(2); rom.JR_Z('dsr_p_grass')
+    rom.CP_n(3); rom.JR_Z('dsr_p_stone')
+    rom.JR('dsr_p_brick')              # biome-id 4 (generate_world's own
+                                        # invariant: axis-clamped to 0..4)
+
+    def _dsr_family(lbl, pt_key, pa_key):
+        rom.label(lbl)
+        rom.LD_DE_nn(0); patches[pt_key] = rom.pos - 2
+        rom.LD_BC_nn(0); patches[pa_key] = rom.pos - 2
+        rom.JR('dsr_p_copy')
+
+    _dsr_family('dsr_p_water', 'water_t', 'water_a')
+    _dsr_family('dsr_p_sand',  'sand_t',  'sand_a')
+    _dsr_family('dsr_p_grass', 'grass_t', 'grass_a')
+    _dsr_family('dsr_p_stone', 'stone_t', 'stone_a')
+    _dsr_family('dsr_p_brick', 'brick_t', 'brick_a')
+
+    rom.label('dsr_p_copy')
     rom.CALL('copy_screen')
+    rom.POP_HL()                       # HL -> 'up' neighbor byte, restored
+    rom.CALL('draw_region_arrows')
     rom.JP('dsr_done')
 
     rom.label('dsr_done')
@@ -655,6 +808,185 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_B(); rom.OR_C(); rom.JR_NZ('cs_a')
     rom.XOR_A(); rom.LDH_n_A(VBK)
     rom.RET()
+
+    # ── draw_region_arrows (IP-1030) ──────────────────────
+    # Retires tilemaps.py's build-time _zone_arrows (fixed 3x3 rectangle
+    # math, ADR-0009 point 6). Reads the 4 neighbor-index bytes for the
+    # current region (HL, passed in by the caller, positioned at
+    # REGION_GRAPH's 'up' byte per dsr_p) and draws an arrow wherever the
+    # neighbor is valid (!= 0xFF) — same tile positions/palette as the
+    # retired build-time version, just resolved at runtime since a
+    # generated world's neighbor structure isn't known until generation
+    # runs. Called from inside do_screen_redraw's existing LCD-off
+    # bracket (NFR-1300: no new safe-window convention).
+    ARROW_ADDR_U = 0x9800 + 1*32 + 15
+    ARROW_ADDR_D = 0x9800 + 16*32 + 15
+    ARROW_ADDR_L = 0x9800 + 9*32 + 1
+    ARROW_ADDR_R = 0x9800 + 9*32 + (32-2)
+
+    def _arrow_write(addr, tile):
+        rom.XOR_A(); rom.LDH_n_A(VBK)
+        rom.LD_A_n(tile); rom.LD_HL_nn(addr); rom.LD_HL_A()
+        rom.LD_A_n(1); rom.LDH_n_A(VBK)
+        rom.LD_A_n(2); rom.LD_HL_nn(addr); rom.LD_HL_A()   # palette 2, matching
+                                                             # _zone_arrows' original
+        rom.XOR_A(); rom.LDH_n_A(VBK)
+
+    rom.label('draw_region_arrows')
+    rom.LD_A_HLI(); rom.LD_B_A()       # B = up
+    rom.LD_A_HLI(); rom.LD_C_A()       # C = down
+    rom.LD_A_HLI(); rom.LD_D_A()       # D = left
+    rom.LD_A_HL();  rom.LD_E_A()       # E = right
+
+    rom.LD_A_B(); rom.CP_n(0xFF); rom.JR_Z('dra_no_up')
+    _arrow_write(ARROW_ADDR_U, TL_ARROW_U)
+    rom.label('dra_no_up')
+    rom.LD_A_C(); rom.CP_n(0xFF); rom.JR_Z('dra_no_down')
+    _arrow_write(ARROW_ADDR_D, TL_ARROW_D)
+    rom.label('dra_no_down')
+    rom.LD_A_D(); rom.CP_n(0xFF); rom.JR_Z('dra_no_left')
+    _arrow_write(ARROW_ADDR_L, TL_ARROW_L)
+    rom.label('dra_no_left')
+    rom.LD_A_E(); rom.CP_n(0xFF); rom.JR_Z('dra_no_right')
+    _arrow_write(ARROW_ADDR_R, TL_ARROW_R)
+    rom.label('dra_no_right')
+    rom.RET()
+
+    # ── mm_on_entry / draw_menu_cursor (IP-1040) ──────────
+    # Runs once each time MAIN MENU is (re)entered/redrawn (state entry, or
+    # after a cursor toggle — a full LCD-off redraw either way, matching
+    # this codebase's existing menu-screen convention): recomputes
+    # save-validity, blanks the baked "CONTINUE" label if no valid save
+    # exists, and draws the highlight cursor next to MM_CURSOR's selection.
+    MM_CONT_ADDR = 0x9800 + 7*32 + 8   # "CONTINUE" label start (8 chars)
+    MM_CURSOR_CONT_ADDR = 0x9800 + 7*32 + 6
+    MM_CURSOR_NEW_ADDR  = 0x9800 + 9*32 + 6
+
+    rom.label('mm_on_entry')
+    rom.CALL('check_save_valid')
+    rom.LD_A_nn(MM_SAVE_VALID); rom.OR_A(); rom.JR_NZ('mm_oe_have_save')
+    rom.LD_HL_nn(MM_CONT_ADDR); rom.LD_B_n(8); rom.LD_A_n(TL_BG_BLANK)
+    rom.label('mm_oe_blank'); rom.LD_HLI_A(); rom.DEC_B(); rom.JR_NZ('mm_oe_blank')
+    rom.label('mm_oe_have_save')
+    rom.CALL('draw_menu_cursor')
+    rom.RET()
+
+    rom.label('draw_menu_cursor')
+    rom.LD_HL_nn(MM_CURSOR_CONT_ADDR); rom.LD_A_n(TL_BG_BLANK); rom.LD_HL_A()
+    rom.LD_HL_nn(MM_CURSOR_NEW_ADDR);  rom.LD_A_n(TL_BG_BLANK); rom.LD_HL_A()
+    rom.LD_A_nn(MM_CURSOR); rom.OR_A(); rom.JR_NZ('dmc_newgame')
+    rom.LD_HL_nn(MM_CURSOR_CONT_ADDR); rom.JR('dmc_write')
+    rom.label('dmc_newgame')
+    rom.LD_HL_nn(MM_CURSOR_NEW_ADDR)
+    rom.label('dmc_write')
+    rom.LD_A_n(TL_ARROW_R); rom.LD_HL_A()
+    rom.RET()
+
+    # ── draw_sse_digits (IP-1040) ──────────────────────────
+    # Writes the 5 seed digit tiles + 1 scale digit tile, then the cursor
+    # (a down-arrow above the currently-selected digit/scale slot). Called
+    # once on SEED/SCALE ENTRY's state entry and again after every
+    # digit-cursor edit (st_seed_scale_entry's 'sse_redraw' path) — cheap
+    # enough (a handful of single-tile writes) to just redraw in full each
+    # time rather than tracking a dirty subset.
+    SSE_SEED_ROW = 6; SSE_SEED_COL0 = 10; SSE_SCALE_ROW = 10; SSE_SCALE_COL = 10
+    SSE_CURSOR_SEED_ROW = 5; SSE_CURSOR_SCALE_ROW = 9
+
+    rom.label('draw_sse_digits')
+    for i in range(5):
+        addr = 0x9800 + SSE_SEED_ROW*32 + (SSE_SEED_COL0 + i)
+        rom.LD_A_nn(SSE_DIGITS + i); rom.ADD_A_n(TL_DIGIT_0)
+        rom.LD_HL_nn(addr); rom.LD_HL_A()
+    rom.LD_A_nn(SSE_SCALE); rom.ADD_A_n(TL_DIGIT_0)
+    rom.LD_HL_nn(0x9800 + SSE_SCALE_ROW*32 + SSE_SCALE_COL); rom.LD_HL_A()
+
+    for i in range(5):
+        addr = 0x9800 + SSE_CURSOR_SEED_ROW*32 + (SSE_SEED_COL0 + i)
+        rom.LD_HL_nn(addr); rom.LD_A_n(TL_BG_BLANK); rom.LD_HL_A()
+    rom.LD_HL_nn(0x9800 + SSE_CURSOR_SCALE_ROW*32 + SSE_SCALE_COL)
+    rom.LD_A_n(TL_BG_BLANK); rom.LD_HL_A()
+
+    rom.LD_A_nn(SSE_CURSOR); rom.CP_n(5); rom.JP_Z('dsd_scale_cursor')
+    rom.LD_E_A(); rom.LD_D_n(0)
+    rom.LD_HL_nn(0x9800 + SSE_CURSOR_SEED_ROW*32 + SSE_SEED_COL0)
+    rom.ADD_HL_DE()
+    rom.LD_A_n(TL_ARROW_D); rom.LD_HL_A()
+    rom.RET()
+    rom.label('dsd_scale_cursor')
+    rom.LD_HL_nn(0x9800 + SSE_CURSOR_SCALE_ROW*32 + SSE_SCALE_COL)
+    rom.LD_A_n(TL_ARROW_D); rom.LD_HL_A()
+    rom.RET()
+
+    # ── sse_adjust_up / sse_adjust_down (IP-1040) ──────────
+    # SSE_CURSOR 0-4 selects a seed digit (wraps 0-9); 5 selects the scale
+    # (wraps 2-9). Only the value at the cursor changes; digits don't carry
+    # into each other (an odometer, not decimal arithmetic — composition
+    # into the real 16-bit SEED happens once, at A-confirm, in
+    # sse_compose_seed).
+    rom.label('sse_adjust_up')
+    rom.LD_A_nn(SSE_CURSOR); rom.CP_n(5); rom.JR_Z('sau_scale')
+    rom.LD_E_A(); rom.LD_D_n(0)
+    rom.LD_HL_nn(SSE_DIGITS); rom.ADD_HL_DE()
+    rom.LD_A_HL(); rom.INC_A(); rom.CP_n(10); rom.JR_NZ('sau_dwrite')
+    rom.XOR_A()
+    rom.label('sau_dwrite')
+    rom.LD_HL_A()
+    rom.RET()
+    rom.label('sau_scale')
+    rom.LD_A_nn(SSE_SCALE); rom.INC_A(); rom.CP_n(10); rom.JR_NZ('sau_swrite')
+    rom.LD_A_n(2)
+    rom.label('sau_swrite')
+    rom.LD_nn_A(SSE_SCALE)
+    rom.RET()
+
+    rom.label('sse_adjust_down')
+    rom.LD_A_nn(SSE_CURSOR); rom.CP_n(5); rom.JR_Z('sad_scale')
+    rom.LD_E_A(); rom.LD_D_n(0)
+    rom.LD_HL_nn(SSE_DIGITS); rom.ADD_HL_DE()
+    rom.LD_A_HL(); rom.OR_A(); rom.JR_NZ('sad_dec')
+    rom.LD_A_n(10)
+    rom.label('sad_dec')
+    rom.DEC_A(); rom.LD_HL_A()
+    rom.RET()
+    rom.label('sad_scale')
+    rom.LD_A_nn(SSE_SCALE); rom.CP_n(2); rom.JR_NZ('sad_sdec')
+    rom.LD_A_n(10)
+    rom.label('sad_sdec')
+    rom.DEC_A(); rom.LD_nn_A(SSE_SCALE)
+    rom.RET()
+
+    # ── sse_compose_seed (IP-1040) ──────────────────────────
+    # Composes the 5 independently-edited decimal digits into the real
+    # 16-bit SEED via repeated addition (digit * place-value, digit is
+    # always 0-9 so at most 9 iterations per place — no general multiply
+    # needed), saturating at 0xFFFF (65535, itself a valid SEED value) if
+    # the combination would otherwise overflow 16 bits. Writes WORLD_SCALE
+    # directly from SSE_SCALE (already range-safe by construction).
+    rom.label('sse_compose_seed')
+    rom.LD_HL_nn(0)
+
+    def _scs_place(idx, place_value, next_label):
+        rom.LD_A_nn(SSE_DIGITS + idx); rom.LD_B_A()
+        loop_lbl = f'scs_d{idx}lp'
+        rom.label(loop_lbl)
+        rom.LD_A_B(); rom.OR_A(); rom.JP_Z(next_label)
+        rom.LD_DE_nn(place_value); rom.ADD_HL_DE()
+        rom.JP_C('scs_sat')
+        rom.DEC_B(); rom.JP(loop_lbl)
+
+    _scs_place(0, 10000, 'scs_d1')
+    rom.label('scs_d1'); _scs_place(1, 1000, 'scs_d2')
+    rom.label('scs_d2'); _scs_place(2, 100,  'scs_d3')
+    rom.label('scs_d3'); _scs_place(3, 10,   'scs_d4')
+    rom.label('scs_d4'); _scs_place(4, 1,    'scs_store')
+    rom.label('scs_store')
+    rom.LD_A_H(); rom.LD_nn_A(SEED + 1)
+    rom.LD_A_L(); rom.LD_nn_A(SEED)
+    rom.LD_A_nn(SSE_SCALE); rom.LD_nn_A(WORLD_SCALE)
+    rom.RET()
+    rom.label('scs_sat')
+    rom.LD_HL_nn(0xFFFF)
+    rom.JP('scs_store')
 
     # ── setup_zone_collects ───────────────────────────────
     rom.label('setup_zone_collects')
@@ -938,7 +1270,42 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_n(SAVE_VERSION_VAL); rom.LD_nn_A(SAVE_VERSION_ADDR)
     for i in range(9):
         rom.LD_A_nn(SCOREITEM_FLAGS + i); rom.LD_nn_A(SRAM_SCOREITEM + i)
+    # FR-9200 (IP-1050): SEED/WORLD_SCALE mirrors + KEYITEM_FLAGS mirror
+    # (up to 81 bytes). REGION_GRAPH itself is never written here — it
+    # regenerates from (SEED, WORLD_SCALE) on load (ADR-0009).
+    rom.LD_A_nn(SEED);         rom.LD_nn_A(SRAM_SEED)
+    rom.LD_A_nn(SEED + 1);     rom.LD_nn_A(SRAM_SEED + 1)
+    rom.LD_A_nn(WORLD_SCALE);  rom.LD_nn_A(SRAM_WORLD_SCALE)
+    rom.LD_DE_nn(KEYITEM_FLAGS); rom.LD_HL_nn(SRAM_KEYITEM_FLAGS); rom.LD_BC_nn(81)
+    rom.CALL('memcpy')
     rom.XOR_A(); rom.LD_nn_A(0x0000)
+    rom.RET()
+
+    # ── check_save_valid (IP-1040) ─────────────────────────
+    # Read-only validity probe for MAIN MENU's option-set (FR-1170): checks
+    # the magic bytes AND the version byte (ADR-0010: a version-mismatched
+    # save is treated as absent for "continue" purposes — stricter than
+    # try_load_save's own magic-only gate, which still loads a mismatched
+    # save with ScoreItem restore skipped, IP-1010's shipped behavior,
+    # unchanged). Writes no game-state field, only the cached MM_SAVE_VALID
+    # flag and MM_CURSOR's entry default.
+    rom.label('check_save_valid')
+    rom.LD_A_n(0x0A); rom.LD_nn_A(0x0000)
+    for addr, val in [(0xA000,0x42),(0xA001,0x55),(0xA002,0x4E),(0xA003,0x59)]:
+        rom.LD_A_nn(addr); rom.CP_n(val); rom.JR_NZ('csv_no')
+    rom.LD_A_nn(SAVE_VERSION_ADDR); rom.CP_n(SAVE_VERSION_VAL); rom.JR_NZ('csv_no')
+    rom.LD_A_n(1); rom.LD_nn_A(MM_SAVE_VALID)
+    rom.JR('csv_done')
+    rom.label('csv_no')
+    rom.XOR_A(); rom.LD_nn_A(MM_SAVE_VALID)
+    rom.label('csv_done')
+    rom.XOR_A(); rom.LD_nn_A(0x0000)
+    rom.LD_A_nn(MM_SAVE_VALID); rom.OR_A(); rom.JR_NZ('csv_cur_cont')
+    rom.LD_A_n(1); rom.JR('csv_cur_set')
+    rom.label('csv_cur_cont')
+    rom.XOR_A()
+    rom.label('csv_cur_set')
+    rom.LD_nn_A(MM_CURSOR)
     rom.RET()
 
     # ── try_load_save ─────────────────────────────────────
@@ -956,9 +1323,26 @@ def build_game_asm(rom: ROM) -> dict:
     # after it) — a pre-upgrade save (version byte != SAVE_VERSION_VAL) is
     # handled by simply skipping the restore, leaving it at that all-zero
     # "uncollected" default rather than trusting garbage SRAM bytes.
+    # IP-1050: this routine is now only reachable from MAIN MENU's
+    # "continue" action once check_save_valid has already confirmed the
+    # version matches — so this branch is never actually taken in normal
+    # play (MM_SAVE_VALID gates it upstream) — kept as a defensive-correct
+    # fallback matching tls_no's own precedent, not a live path.
     rom.LD_A_nn(SAVE_VERSION_ADDR); rom.CP_n(SAVE_VERSION_VAL); rom.JR_NZ('tls_si_skip')
     for i in range(9):
         rom.LD_A_nn(SRAM_SCOREITEM + i); rom.LD_nn_A(SCOREITEM_FLAGS + i)
+    # FR-9200 (IP-1050): restore SEED/WORLD_SCALE, regenerate REGION_GRAPH
+    # via IP-1020's generate_world (never persisted itself — ADR-0009's
+    # determinism guarantee), then restore KEYITEM_FLAGS onto the
+    # freshly-regenerated graph. generate_world touches only WRAM (SEED,
+    # WORLD_SCALE, REGION_GRAPH, its own GW_* scratch) — harmless to call
+    # while SRAM's MBC1 bank window is still enabled.
+    rom.LD_A_nn(SRAM_SEED);        rom.LD_nn_A(SEED)
+    rom.LD_A_nn(SRAM_SEED + 1);    rom.LD_nn_A(SEED + 1)
+    rom.LD_A_nn(SRAM_WORLD_SCALE); rom.LD_nn_A(WORLD_SCALE)
+    rom.CALL('generate_world')
+    rom.LD_DE_nn(SRAM_KEYITEM_FLAGS); rom.LD_HL_nn(KEYITEM_FLAGS); rom.LD_BC_nn(81)
+    rom.CALL('memcpy')
     rom.label('tls_si_skip')
     rom.XOR_A(); rom.LD_nn_A(0x0000)
     rom.LD_A_n(GS_PLAYING)
@@ -968,7 +1352,10 @@ def build_game_asm(rom: ROM) -> dict:
 
     rom.label('tls_no')
     rom.XOR_A(); rom.LD_nn_A(0x0000)
-    rom.LD_A_n(GS_TITLE)
+    # IP-1040: try_load_save is now only called from MAIN MENU's "continue"
+    # action (already gated on MM_SAVE_VALID) — this defensive fallback
+    # returns to MAIN MENU rather than the retired TITLE state.
+    rom.LD_A_n(GS_MAIN_MENU)
     rom.LD_nn_A(GAMESTATE); rom.LD_nn_A(TRANSITION_TO)
     rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW)
     rom.RET()

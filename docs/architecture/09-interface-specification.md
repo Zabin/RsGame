@@ -129,6 +129,18 @@ only the caller's iteration source changes (from a fixed 9-entry list to a varia
 per-zone-list shape (generalizes to per-region, same shape), or `music_data()`** — none of those
 contracts are affected by C9/C10.
 
+**Confirmed (2026-07-10, `IP-1030`): the shipped mechanism is 5 named `patches` dict key pairs
+(`water_t`/`water_a` … `brick_t`/`brick_a`), parallel to `title_t`/`title_a`, not a build-time
+variable-length table.** `ALL_SCREENS` itself stays a fixed 10-entry list (5 biome-family
+representatives + 5 UI screens) — the "variable-length, `WorldScale`-driven set" language above
+described the *player-visible region count*, not `ALL_SCREENS`'s own shape, which this package
+confirms is fixed at build time (family count is a build-time constant; only the *runtime dispatch*
+— which of the 5 pre-built family screens a given region's generated biome-id selects — varies).
+At runtime, `asm_game.py`'s `dsr_p` reads the current region's biome-id out of `REGION_GRAPH`
+(`IP-1020`) and branches to the matching named patch pair before the unmodified `copy_screen` call
+— `_zone_arrows`' build-time rectangle math (`tilemaps.py`) is retired in favor of a new runtime
+`draw_region_arrows` routine reading `REGION_GRAPH`'s per-region neighbor bytes directly.
+
 ## Merge gate
 
 - [x] Stub body replaced with real content addressing the stated Purpose.

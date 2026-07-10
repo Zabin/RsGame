@@ -90,7 +90,7 @@
 - **Notes:** Remediated by **IP-9020** (closes **BL-0003**, part of the umbrella remediation
   entry **BL-0008**).
 
-### NFR-1300 — Screen-transition smoothness for generated content (target — 2026-07-09)
+### NFR-1300 — Screen-transition smoothness for generated content (Met — 2026-07-10, `IP-1030`)
 
 - **ID:** NFR-1300
 - **Title:** A generated-region screen transition shall complete within the same LCD-off redraw
@@ -99,8 +99,13 @@
   using the existing `do_screen_redraw`/`copy_screen` LCD-off mechanism (NFR-1100's sibling
   requirement), with no new, slower transition path introduced for generated content.
 - **Rationale:** MSTR-001 C8/D4 ("smooth"); GDS-08 delta §7; GDS-07 delta; R102's extension.
-- **Priority:** Must (target — not yet implemented)
-- **Status: NOT YET IMPLEMENTED.** No generated-world transitions exist yet to measure.
+- **Priority:** Must (Met)
+- **Status: MET.** `dsr_p`'s biome-id dispatch (`IP-1030`) branches to one of 5 named patch pairs
+  purely to select the source address, then calls the exact same, unmodified `copy_screen` routine
+  inside the same LCD-off bracket every existing transition already used — confirmed by direct code
+  read (T13.b) and the T13.a tile-family audit. The new `draw_region_arrows` runtime routine
+  (retiring `_zone_arrows`' build-time math) also runs inside this same bracket, before LCD
+  re-enable — no new safe-window convention introduced.
 - **Acceptance Criteria:** A generated-region transition's tilemap/attribute write uses the same
   `copy_screen` routine and LCD-off bracket as every existing zone transition, with no additional
   per-frame cost beyond that routine's existing, already-budgeted 1152-byte copy.
@@ -274,30 +279,31 @@
 - **Title:** Whatever field set the system declares persisted shall round-trip correctly through
   a save/load cycle.
 - **Description:** For the currently-declared save-field set — {CurrentZone, PlayerPosition,
-  CarrotCount, Score, CarrotFlags[9], per-zone ScoreItem collected-state} as of the 2026-07-07
-  widening (FR-5220) — a save followed by a load shall restore each field to exactly the value it
-  held at save time.
-- **Rationale:** GDS-06 N3; FR-5220 (widened field set).
+  KeyItemCount, Score, KeyItemFlags[≤81], per-zone ScoreItem collected-state, Seed, WorldScale}
+  as of the 2026-07-10 widening (FR-9200, `IP-1050`, second widening after FR-5220's) — a save
+  followed by a load shall restore each field to exactly the value it held at save time.
+- **Rationale:** GDS-06 N3; FR-5220, FR-9200 (widened field set).
 - **Priority:** Must
-- **Status: MET (2026-07-07, via `IP-1010`; independently confirmed by
-  `09-package-verification`, [VR-1010](../implementation/verification/VR-1010-per-zone-scoreitem-persistence.md))**
-  for the full widened field set, including the new per-zone
-  ScoreItem field. `test_rom.py` T11.b5/T11.c/T11.e1 (+ the existing T10 suite) round-trip
-  `CurrentZone`/`PlayerPosition`/`Score`/`CarrotFlags`/`SCOREITEM_FLAGS` together in a single
-  save/reload cycle; T11.d confirms the version-guard default (pre-upgrade saves load
-  `SCOREITEM_FLAGS` as all-zero rather than trusting garbage bytes). Facing direction and
-  animation frame remain explicitly excluded (FR-5210), not an open question.
-- **Acceptance Criteria:** For each field in {CurrentZone, PlayerPosition, CarrotCount, Score,
-  CarrotFlags[9], per-zone ScoreItem collected-state}, saving then loading yields an identical
-  value.
+- **Status: MET (2026-07-07 for the FR-5220 field set via `IP-1010`; widened 2026-07-10 for
+  Seed/WorldScale/KeyItemFlags via `IP-1050`)** for the full widened field set. `test_rom.py`
+  T11.b5/T11.c/T11.e1 (+ the existing T10 suite) round-trip `CurrentZone`/`PlayerPosition`/
+  `Score`/`KEYITEM_FLAGS`(-formerly-`CARROT_FLAGS`)/`SCOREITEM_FLAGS`; T15.a3–a6/c1–c6 round-trip
+  `SEED`/`WORLD_SCALE`/`KEYITEM_FLAGS`/`KEYITEM_COUNT` together with the legacy fields under the
+  new version-2 format in a single save/reload cycle; T11.d/T15.b confirm the version-guard
+  default (a version-mismatched save loads no partial data at all, per ADR-0010 — stricter than
+  the original FR-5220-era "safe empty state" default). Facing direction and animation frame
+  remain explicitly excluded (FR-5210), not an open question.
+- **Acceptance Criteria:** For each field in {CurrentZone, PlayerPosition, KeyItemCount, Score,
+  KeyItemFlags[≤81], per-zone ScoreItem collected-state, Seed, WorldScale}, saving then loading
+  yields an identical value.
 - **Verification Method:** Test.
-- **Source Documents:** GDS-06 N3; FR-5220.
-- **Related ADRs:** ADR-0006.
+- **Source Documents:** GDS-06 N3; FR-5220, FR-9200.
+- **Related ADRs:** ADR-0006, ADR-0010.
 - **Notes:** FR-5220 is implemented and independently verified (2026-07-10 correction,
-  `BL-0028`) — this NFR's "Met" status now covers the full widened field set, not only the
-  pre-widening one.
+  `BL-0028`). FR-9200 implemented 2026-07-10 (`IP-1050`) — this NFR's "Met" status now covers
+  both widenings.
 
-### NFR-5300 — Save-format version bump for seed/scale/region-flags (target — 2026-07-09)
+### NFR-5300 — Save-format version bump for seed/scale/region-flags (Met — 2026-07-10, `IP-1050`)
 
 - **ID:** NFR-5300
 - **Title:** A pre-upgrade save (predating the seed/scale save-format extension) shall be
@@ -308,15 +314,21 @@
   path (per FR-1170/FR-9200), never partially loaded with garbage seed/scale/region-flags bytes.
 - **Rationale:** ADR-0010; GDS-07 delta §7; R106's extension; the FS-101/`IP-1010` version-byte
   precedent this NFR extends.
-- **Priority:** Must (target — not yet implemented)
-- **Status: NOT YET IMPLEMENTED.**
+- **Priority:** Must (Met)
+- **Status: MET.** `SAVE_VERSION_VAL` bumped `0x01`→`0x02`; `check_save_valid` (`IP-1040`) and
+  `try_load_save`'s own version check (both consuming the same symbolic constant) now reject a
+  version-1 save from "continue" entirely — confirmed by `T15.b1`/`b2` (a synthetic IP-1010-vintage
+  fixture, following T11.d's exact pattern) and `T11.d1b` (the pre-upgrade case IP-1040 already
+  covers). No partial load of garbage seed/scale/region-flags bytes occurs in either case.
 - **Acceptance Criteria:** Given a save written under the prior version value, after boot that
   save is not offered as a "continue" option — verified by a synthetic pre-upgrade SRAM fixture,
   following the same test pattern `IP-1010`'s T11.d established for `SCOREITEM_FLAGS`.
 - **Verification Method:** Test (synthetic pre-upgrade fixture, `IP-1010`'s T11.d precedent).
 - **Source Documents:** GDS-07 delta §7; ADR-0010.
 - **Related ADRs:** ADR-0010, ADR-0006.
-- **Notes:** Not yet implemented.
+- **Notes:** Implemented 2026-07-10 (`IP-1050`). The version-value sequence (`0x01`→`0x02`) is now
+  strictly monotonic by convention — a future save-format extension must bump to `0x03`, never
+  reuse either prior value.
 
 ## Portability
 
