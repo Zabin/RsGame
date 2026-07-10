@@ -1,7 +1,8 @@
 # FP-03 — Feature Catalog
 
 > **Status: ✅ Authored (bootstrap as-built, 2026-07-07); delta 2026-07-10 (procgen-world
-> increment, 5 new Features + FEAT-5100 shipped-status correction).** Owned by
+> increment, 5 new Features + FEAT-5100 shipped-status correction; FEAT-6000/FEAT-7000 Risk
+> fields corrected, `BL-0037`).** Owned by
 > `05-feature-decomposition`. Derives from the closed
 > [RQ-01](../requirements/01-functional-requirements.md)/
 > [RQ-02](../requirements/02-non-functional-requirements.md) baseline, now 36 bootstrap `FR-xxxx`/
@@ -242,8 +243,10 @@
 - **User Value:** High — the player's entire visual experience.
 - **Technical Value:** Medium.
 - **Complexity:** Medium.
-- **Risk:** Medium — `NFR-1200` (score-bar VRAM write timing) is confirmed **not met**; a real,
-  tracked hardware-timing gap (`BL-0003`/`BL-0008`), not resolved by this catalog entry.
+- **Risk:** Low — `NFR-1200` (score-bar VRAM write timing) is confirmed **Met** (`IP-9020`,
+  independently verified `VR-9020`, 2026-07-07); the prior hardware-timing gap (`BL-0003`/
+  `BL-0008`) is resolved (correction 2026-07-10, `BL-0037` — this field previously said "not
+  met," stale since before this catalog was even first authored).
 - **Suggested Verification Strategy:** Test/Inspection; `NFR-1200`'s remediation rides
   `BL-0003`/`BL-0008`'s existing disposition, not decided here.
 - **Open Questions:** None new.
@@ -278,16 +281,18 @@
 - **Technical Value:** Critical — every other Feature's honest verification depends on this one.
 - **Complexity:** N/A for the already-shipped portions; the two known gaps are remediation, not
   new construction.
-- **Risk:** **High** — `NFR-7100` (test-suite currency) is confirmed **not met** at Critical
-  severity (`BL-0006`/`BL-0008`): the single biggest risk in this entire catalog, since it means
-  no Feature above can currently claim genuine automated Test-method verification, only direct
-  source-code confirmation.
-- **Suggested Verification Strategy:** Inspection today, per RQ-03 finding #3; Test once
-  `BL-0006`/`BL-0008`'s remediation package lands.
-- **Open Questions:** When should the `BL-0006`/`BL-0008` test-suite-rewrite remediation be
-  prioritized relative to FEAT-5100's new work? Not decided in this pass — see the Release Plan's
-  Highest-Risk callout; this is a sequencing question for `07-implementation-planning`/the user,
-  not resolved here.
+- **Risk:** Low — `NFR-7100` (test-suite currency) is confirmed **Met** (`IP-9010`, independently
+  verified `VR-9010`, 2026-07-07): the suite is trustworthy again, and every Feature above can
+  claim genuine automated Test-method verification, not just direct source-code confirmation.
+  This was the single biggest risk in this catalog at authoring time (`BL-0006`/`BL-0008`,
+  Critical) — resolved the same day the catalog was first authored, but this field was never
+  updated to say so until now (correction 2026-07-10, `BL-0037`).
+- **Suggested Verification Strategy:** Test — the rewritten suite (`IP-9010`) now covers this
+  Feature's own NFRs directly (T1–T10's currency is exactly what `NFR-7100` requires).
+- **Open Questions:** None remaining — `BL-0006`/`BL-0008`'s remediation shipped and was
+  independently verified 2026-07-07; the prior sequencing question (relative to FEAT-5100's new
+  work) is moot since both landed the same day, resolving this catalog's own former Highest-Risk
+  callout (see the Release Plan, already updated to reflect this at run #48).
 
 ## FEAT-9000 — Procedural World Generation & Item-Agnostic Collection (new — not yet implemented)
 
