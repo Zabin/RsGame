@@ -1,7 +1,8 @@
 # GDS-10 — Requirements Traceability Matrix level
 
 > **Status: ✅ Authored (bootstrap as-built, 2026-07-06; ID-scheme table refreshed 2026-07-09 for
-> the procgen-world increment — see "Scheme confirmation" below).** Owned by
+> the procgen-world increment — see "Scheme confirmation" below; delta 2026-07-10 — §3/§4
+> converted to pointers at the now-populated `RQ-04`, `BL-0034`).** Owned by
 > `03-architecture-design-synthesis`. Builds on [GDS-09](09-interface-specification.md); it is
 > the last level of the global ladder. This is an as-built scaffold: it states the traceability
 > *scheme* the project uses; the row-level matrix itself belongs to `docs/requirements/` (RQ-04).
@@ -73,26 +74,30 @@ This is already load-bearing practice, not a proposal: every GDS level authored 
 grounding using exactly these prefixes (e.g. GDS-08 §4 cites `BL-0009`'s correction; GDS-09 cites
 `R101`/`R302`/`R109`). The scheme this level states is a description of an existing convention.
 
-### 3. How a traceability row will be built once `RQ-xxx` exists
+### 3. The populated traceability matrix (pointer, per this document's own 2026-07-06 merge
+decision)
 
-Per the ID scheme above, a future `RQ-04` row is a tuple: **origin** (one or more of `MSTR-001`'s
-commitments, a `GDS-0x` §, an `R-xxx` topic) → **requirement** (`RQ-01`/`RQ-02` FR/NFR ID) →
-**feature** (`FS-xxx`) → **implementation** (`IP-xxxx`) → **verification** (`VR-xxxx`). The
-origin-side columns for that future matrix are already fully populated by this ladder — GDS-05's
-six FR groupings and GDS-06's five NFRs are the direct ancestors `RQ-01`/`RQ-02` will formalize
-into numbered `FR-xxxx`/`NFR-xxxx` IDs when `04-requirements-engineering` runs. **Contract for that
-future work: `RQ-01`/`RQ-02` must cite back to the specific GDS-05/GDS-06 grouping each numbered
-requirement formalizes** — not restate the capability from scratch — so the matrix's origin
-column is a real link, not a re-derivation.
+**`RQ-04` is now authoritative for row-level traceability data** — see
+[`docs/requirements/04-requirements-traceability-matrix.md`](../requirements/04-requirements-traceability-matrix.md),
+authored 2026-07-06 (run #17) and current through the procgen-world increment's own delta
+(2026-07-09/10). It carries exactly the row shape this level's §2 ID scheme anticipates: **origin**
+(`MSTR-001` commitment / `GDS-0x` § / `R-xxx` topic) → **requirement** (`FR-xxxx`/`NFR-xxxx`) →
+**feature** (`FS-xxx`) → **implementation** (`IP-xxxx`) → **verification** (`VR-xxxx`), with
+`RQ-01`/`RQ-02` citing back to the specific GDS-05/GDS-06 grouping each requirement formalizes,
+per this level's own contract for that work. This section converted from a description of the
+future matrix to a pointer to the real one 2026-07-10 (`BL-0034`) — the conversion this
+document's own merge decision named as owed once `RQ-04` existed, executed four days after `RQ-04`
+was actually authored.
 
-### 4. Backlog IDs are already a de facto cross-cutting traceability lane
+### 4. Backlog IDs as a cross-cutting traceability lane (confirmed, still exercised)
 
-`BL-xxxx` entries already thread through every layer authored so far — e.g. `BL-0009` was raised
-at the research tier (R101), corrected at GDS-07 (Data Model), and cited again at GDS-08
-(Presentation Architecture). This is the one traceability lane already exercised end-to-end
-across three document tiers in this project, and the future `RQ-04` matrix should treat resolved/
-open `BL-xxxx` references the same way it treats `GDS-0x`/`R-xxx` origins — as citable anchors,
-not prose asides.
+`BL-xxxx` entries continue to thread through every layer — the original observation (`BL-0009`
+raised at R101, corrected at GDS-07, cited at GDS-08) now has a second, larger-scale instance:
+the procgen-world increment's `BL-0029`/`0030`/`0031` each threaded through stages 01→02→03→04 in
+turn (vision → research → architecture → requirements), and `RQ-04`'s own row set cites `BL-xxxx`
+IDs as origins exactly as this section anticipated. No further action needed here — `RQ-04` is
+where the live, row-level exercise of this lane actually lives now; this section remains only to
+record that the pattern was anticipated correctly.
 
 ## Merge gate
 
@@ -120,3 +125,9 @@ increment (all levels this increment touches — 01/04/07/08/09/10 — now carry
 The deeper "§3/§4 should become a pointer to `RQ-04`" transition this document's original merge
 decision anticipated is a separate, still-open housekeeping item — filed as a new backlog
 finding, not executed by this delta.
+
+**Delta record (2026-07-10, `BL-0034`):** the housekeeping item above is now executed — §3
+converted from "how a future matrix will be built" to a direct pointer at the real, populated
+`RQ-04`; §4 confirmed (not just anticipated) as an actively-exercised traceability lane, citing
+the procgen-world increment's own `BL-0029`/`0030`/`0031` as a second, larger-scale instance.
+This closes the last open item from this level's original 2026-07-06 merge decision.

@@ -66,13 +66,13 @@ build order.
 | GDS-01 | Concept of Play | `docs/architecture/01-concept-of-play.md` | GDS-00 | ✅ (2026-07-06; delta 2026-07-09 for procgen-world increment) |
 | GDS-02 | System Context | `docs/architecture/02-system-context.md` | GDS-01 | ✅ (2026-07-06) |
 | GDS-03 | Architecture | `docs/architecture/03-architecture.md` | GDS-02 | ✅ (2026-07-06) |
-| GDS-04 | Domain Model | `docs/architecture/04-domain-model.md` | GDS-03 | ✅ (2026-07-06; delta 2026-07-09 for procgen-world increment) |
+| GDS-04 | Domain Model | `docs/architecture/04-domain-model.md` | GDS-03 | ✅ (2026-07-06; delta 2026-07-09 for procgen-world increment; delta 2026-07-10, BL-0033) |
 | GDS-05 | Functional Requirements | `docs/architecture/05-functional-requirements.md` | GDS-04 | ✅ (2026-07-06) |
 | GDS-06 | Non-functional Requirements | `docs/architecture/06-non-functional-requirements.md` | GDS-05 | ✅ (2026-07-06) |
 | GDS-07 | Data Model | `docs/architecture/07-data-model.md` | GDS-06 | ✅ (2026-07-06; delta 2026-07-09 for procgen-world increment) |
 | GDS-08 | Presentation Architecture | `docs/architecture/08-presentation-architecture.md` | GDS-07 | ✅ (2026-07-06; delta 2026-07-09 — normative aesthetic standard + biome-transition strategy for C8/C9) |
 | GDS-09 | Interface Specification | `docs/architecture/09-interface-specification.md` | GDS-08 | ✅ (2026-07-06; delta 2026-07-09 — worldgen.py contract, new patch points) |
-| GDS-10 | RTM level | `docs/architecture/10-requirements-traceability-matrix.md` | GDS-09 | ✅ (2026-07-06; ID-scheme refreshed 2026-07-09 — confirms no new prefix needed for procgen-world increment) |
+| GDS-10 | RTM level | `docs/architecture/10-requirements-traceability-matrix.md` | GDS-09 | ✅ (2026-07-06; ID-scheme refreshed 2026-07-09 — confirms no new prefix needed for procgen-world increment; delta 2026-07-10, BL-0034) |
 | AR-ASSUME | Strategic assumptions register | `docs/architecture/strategic-assumptions-register.md` | MSTR-001 | ♻️ (A1–A10, revised 2026-07-09) |
 | ADR-xxxx | Architecture Decision Records | `docs/architecture/adr/` | GDS-03 | ✅ (as-built set ADR-0001…0008, 2026-07-06; ADR-0009…0011 added 2026-07-09 for the procgen-world increment, ADR-0009 supersedes ADR-0001) |
 | ADS-xxx | Per-cluster design syntheses | `docs/architecture/` | research tiers | ⛔ (zero-or-more, on demand) |
