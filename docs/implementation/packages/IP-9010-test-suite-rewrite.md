@@ -18,7 +18,8 @@ This restores the G5 permanent gate the whole Master Build Plan depends on.
 ## 3. Requirements Covered
 
 - **`NFR-7100`** (test-suite currency — currently NOT MET; this package is its remediation).
-- **`NFR-7000`** (suite runs headless via PyBoy — preserved).
+- **`NFR-6100`** (suite runs headless via PyBoy — preserved; corrected 2026-07-10 from a citation
+  of nonexistent `NFR-7000`, `BL-0026`).
 - Indirectly re-enables Test-method verification for the FR baseline (RQ-03 finding: most FRs'
   "Verification Method: Test" cells are unsatisfiable until this lands).
 
