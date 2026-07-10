@@ -27,7 +27,7 @@
 | [IP-1020](packages/IP-1020-procedural-world-generation.md) | Procedural world generation & item-agnostic collection (FS-102 / FEAT-9000) | `08-code-implementation` | **VERIFIED** | IP-9010/9020/9030/9040/1010 (all VERIFIED) | **YES — explicit user G3, 2026-07-10 (BL-0040)** | **Verified 2026-07-10 ([VR-1020](verification/VR-1020-procedural-world-generation.md)):** 133/133 pass independently re-run (fresh container), ROM byte-identical rebuild (23660/32768 bytes), all 8 FS-102 ACs confirmed (T12.a–i + retargeted T8.7/T8.8), oracle/SM83 lockstep confirmed both by T12.b and direct side-by-side code read. `check_collisions`/`setup_zone_collects` generalized to `KEYITEM_FLAGS`/`KEYITEM_COUNT`, orphaning `CARROT_FLAGS` (companion fix to `update_map_hearts`/`st_intro`/`st_victory` confirmed necessary, not scope creep). `save_to_sram`/`try_load_save` deliberately untouched — `IP-1050`'s scope. This tranche's foundational package (critical path root) — `IP-1030`/`1040`/`1050` now `READY`. One Medium finding: `ROADMAP.md`'s `IM-00`/`IP-xxxx` rows stale (pre-dates this run). |
 | [IP-1030](packages/IP-1030-generated-region-screen-composition-code.md) | Generated-region screen composition — code (FS-103 / FEAT-4100) | `08-code-implementation` | **COMPLETE — 136/136 checks pass** | IP-1020 (VERIFIED) | **YES — explicit user G3, 2026-07-10 (BL-0040)** | `ALL_SCREENS` generalized from 14 fixed entries to 5 biome-family representatives (water→lake, sand→beach, grass→forest, stone→mountain, brick→castle — GDS-07's existing terrain-family/palette grouping, not an arbitrary pick; IP-1031 may revise, a one-line change) + 5 UI screens. Runtime dispatch: `asm_game.py`'s `dsr_p` reads the current region's biome-id from `REGION_GRAPH` (`IP-1020`) and branches to one of 5 new named `patches` pairs (`water_t`/`water_a` … `brick_t`/`brick_a`) before the unmodified `copy_screen` call. `_zone_arrows`' build-time rectangle math (`tilemaps.py`) retired; new runtime `draw_region_arrows` reads `REGION_GRAPH`'s per-region neighbor bytes instead (ADR-0009 point 6). ROM: 19272/32768 bytes (net **4388-byte reduction** from IP-1020's 23660, 5 screens laid out instead of 9, as predicted). New suite **T13** (a–c, 3 checks) added; **regression fix**: T5.9 (BG Tilemap) updated — pre-generation (no `IP-1040` call site yet), region 0 defaults to biome-id 0 (Water/`lake_screen`), not the old hardcoded Beach; this is real, current, tested behavior, not a defect. `village_screen`/`cave_screen`/`desert_screen`/`plains_screen` now orphaned (still defined, unreferenced) — same treatment as `CARROT_FLAGS`. |
 | [IP-1031](packages/IP-1031-generated-region-screen-composition-content.md) | Generated-region screen composition — content (FS-103 / FEAT-4100) | `08-content-authoring` | **BLOCKED** | IP-1020 (VERIFIED), IP-1030 (READY, not yet VERIFIED) | **YES — explicit user G3, 2026-07-10 (BL-0040)** | Registers 5 existing shipped zone-screen functions as biome-family representatives — zero new tile art, zero new palette entries. First package `FEAT-6100`'s standard applies to (via a future `09-content-review` pass). |
-| [IP-1040](packages/IP-1040-main-menu-new-game-flow.md) | Main menu & new-game flow (FS-104 / FEAT-1100) | `08-code-implementation` | **READY** | IP-1020 (VERIFIED) | **YES — explicit user G3, 2026-07-10 (BL-0040)** | Resolves FS-104 OQ1–2: B-cancels-to-MAIN-MENU convention, cursor-based menu input. Retires the shipped auto-load bypass (FR-1120). Parallel-eligible with IP-1030/1031/1050. |
+| [IP-1040](packages/IP-1040-main-menu-new-game-flow.md) | Main menu & new-game flow (FS-104 / FEAT-1100) | `08-code-implementation` | **COMPLETE — 163/163 checks pass** | IP-1020 (VERIFIED) | **YES — explicit user G3, 2026-07-10 (BL-0040)** | Two new states (`GS_MAIN_MENU`, `GS_SEED_SCALE_ENTRY`) added; boot's unconditional `try_load_save` call replaced with an unconditional transition to `GS_MAIN_MENU` — retiring FR-1120's auto-load bypass (confirmed by direct code read: exactly one `try_load_save` call site remains, MAIN MENU's "continue" action). New `check_save_valid` probes magic+version (stricter than `try_load_save`'s own magic-only gate — ADR-0010: a version-mismatched save is absent for "continue" purposes). Digit-cursor SEED/SCALE ENTRY: 5 independent decimal digits + scale, composed into the real 16-bit `SEED` via saturating repeated-addition (`sse_compose_seed`, no general multiply needed) on A-confirm; B cancels to MAIN MENU without writing `SEED`/`WORLD_SCALE` (resolves FS-104 OQ1). D-pad up/down toggles MAIN MENU's highlighted option (resolves OQ2). `st_save` gains a third SELECT option (exit-to-main-menu, reuses `save_to_sram` verbatim); `st_victory`'s A-target changes to MAIN MENU. Two new screens (`main_menu_screen`/`seed_scale_entry_screen`, `tilemaps.py`) + 2 new `patches` pairs. **Cascading regression fixes** (the new boot flow ripples through every test that reaches PLAYING): `advance_to_playing` rewritten for the 3-step MAIN MENU→SEED/SCALE ENTRY→INTRO flow; T4/T5/T10/T11 updated for MAIN MENU replacing TITLE, the retired auto-load bypass (T10.6/T11.b3 now explicitly select "continue"), and ADR-0010's stricter pre-upgrade-save handling (T11.d1–d3 rewritten — a version-mismatched save no longer auto-loads at all, confirmed by `T11.d1b`). New suite **T14** (a–e, 15 checks) added — package template named it "T13"; renumbered since IP-1030 claimed T13 earlier this tranche. ROM: 22344/32768 bytes (+3072 from IP-1030's 19272, ~10.2KB headroom remains). Parallel-eligible with IP-1030/1031/1050 — implemented independently of IP-1030's own COMPLETE state. |
 | [IP-1050](packages/IP-1050-generated-world-save-persistence.md) | Generated-world save persistence (FS-105 / FEAT-5300) | `08-code-implementation` | **READY** | IP-1020 (VERIFIED) | **YES — explicit user G3, 2026-07-10 (BL-0040)** | Second save-format version bump since ship (`0x01`→`0x02`), extending IP-1010's exact pattern. Region graph never persisted — regenerates from (SEED, WORLD_SCALE) on load. Parallel-eligible with IP-1030/1031/1040. |
 
 **FEAT-6100 (Aesthetic & Biome-Transition Compliance) needs no package** — per FS-106 §8/§10, it
@@ -49,11 +49,11 @@ graph TD
     IP9010 --> IP1010
     IP9020 --> IP9030
 
-    IP1020["IP-1020 world generation<br/>(Release 2, COMPLETE)"]
-    IP1030["IP-1030 region screens: code<br/>(Release 2, BLOCKED)"]
+    IP1020["IP-1020 world generation<br/>(Release 2, VERIFIED)"]
+    IP1030["IP-1030 region screens: code<br/>(Release 2, COMPLETE)"]
     IP1031["IP-1031 region screens: content<br/>(Release 2, BLOCKED)"]
-    IP1040["IP-1040 main menu & new-game<br/>(Release 2, BLOCKED)"]
-    IP1050["IP-1050 generated-world save<br/>(Release 2, BLOCKED)"]
+    IP1040["IP-1040 main menu & new-game<br/>(Release 2, COMPLETE)"]
+    IP1050["IP-1050 generated-world save<br/>(Release 2, READY)"]
     IP9010 -.all bootstrap packages VERIFIED.-> IP1020
     IP1020 --> IP1030
     IP1030 --> IP1031
@@ -95,16 +95,17 @@ first-in-critical-path package.)*
 - **Critical path (per FP-04/TWBS):** IP-1020 → IP-1030 → IP-1031 (3 packages) — the same
   3-node length FP-04's Feature-level critical path (FEAT-9000 → FEAT-4100 → FEAT-6100)
   predicted, since FEAT-6100 itself needs no package (see the package table's own note).
-- **IP-1020 is this tranche's universal unblocker** — every other package either consumes its
-  generation output or triggers it. **`COMPLETE` (2026-07-10, 133/133 checks pass)** — all four
-  others remain `BLOCKED` pending its independent verification (`COMPLETE` is not `VERIFIED`;
-  see this table's own header rule).
-- **Parallel opportunities:** IP-1040 and IP-1050 each depend only on IP-1020 — both are
-  parallel-eligible with each other and with IP-1030/IP-1031 once IP-1020 is `VERIFIED`.
-- **Authorization state summary (Release 2 tranche):** **all five packages authorized** — user's
-  explicit "Authorize all five" (2026-07-10, `BL-0040`). IP-1020's own row reflects this; the
-  other four packages' rows still read `NOT AUTHORIZED` pending a future touch (not blocking —
-  they are `BLOCKED` on IP-1020's dependency graph regardless of authorization state).
+- **IP-1020 `VERIFIED`** (2026-07-10, [VR-1020](verification/VR-1020-procedural-world-generation.md))
+  — this tranche's universal unblocker; every other package either consumes its generation output
+  or triggers it. **IP-1030 `COMPLETE`** (136/136) and **IP-1040 `COMPLETE`** (163/163), both
+  awaiting independent verification (`COMPLETE` is not `VERIFIED`; see this table's own header
+  rule). **IP-1031 stays `BLOCKED`** on IP-1030's verification (its own dependency, not
+  authorization). **IP-1050 `READY`**, not yet started.
+- **Parallel opportunities:** IP-1040 and IP-1050 each depend only on IP-1020 (`VERIFIED`) — both
+  parallel-eligible with each other and with IP-1030/IP-1031; IP-1040 has been implemented
+  independently of IP-1030's own progress, exercising exactly this parallelism.
+- **Authorization state summary (Release 2 tranche):** all five packages authorized — user's
+  explicit "Authorize all five" (2026-07-10, `BL-0040`).
 - **Prior framing (superseded):** this tranche was previously described as "no package
   authorized." This is genuinely new work — none of it falls under G3's bootstrap carve-out
   (as-built baselining, or remediation of `BL-0001`…`BL-0005`). **Explicit user G3 authorization

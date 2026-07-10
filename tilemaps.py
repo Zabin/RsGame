@@ -350,6 +350,32 @@ def victory_screen():
         _put(t, a, x, y, TL_FLOWER_OBJ, p)
     return t, a
 
+# ── Main menu / new-game flow screens (IP-1040) ────────────
+# Both bake only their static labels/borders — the "CONTINUE" row is
+# conditionally blanked at runtime if no valid save exists (MM_SAVE_VALID),
+# and the digit values + cursor indicator on SEED/SCALE ENTRY are written
+# at runtime (asm_game.py: draw_sse_digits) since they change during editing.
+def main_menu_screen():
+    t, a = _blank(TL_BG_BLANK, 2)
+    _str(t, a, 5, 3, "BUNNY QUEST", 2)
+    _str(t, a, 8, 7, "CONTINUE", 2)
+    _str(t, a, 8, 9, "NEW GAME", 2)
+    for x in range(2, 18):
+        _put(t, a, x, 2,  TL_BORDER_H, 2)
+        _put(t, a, x, 14, TL_BORDER_H, 2)
+    return t, a
+
+def seed_scale_entry_screen():
+    t, a = _blank(TL_BG_BLANK, 2)
+    _str(t, a, 5, 3, "NEW GAME", 2)
+    _str(t, a, 4, 6, "SEED", 2)
+    _str(t, a, 4, 10, "SCALE", 2)
+    _str(t, a, 4, 14, "A:GO B:BACK", 2)
+    for x in range(2, 18):
+        _put(t, a, x, 2,  TL_BORDER_H, 2)
+        _put(t, a, x, 15, TL_BORDER_H, 2)
+    return t, a
+
 # All screens (5 biome-family representatives first, then UI screens).
 # IP-1030: generalizes from one entry per fixed zone (9) to one entry per
 # biome family (5), matching generate_world's Water=0..Brick=4 axis and
@@ -370,6 +396,8 @@ ALL_SCREENS = [
     ("save",    save_screen),
     ("map",     map_screen),
     ("victory", victory_screen),
+    ("main_menu",       main_menu_screen),
+    ("seed_scale_entry", seed_scale_entry_screen),
 ]
 
 # ── Collectibles per zone ─────────────────────────────────

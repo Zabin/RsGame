@@ -52,7 +52,8 @@ transitions to that neighboring zone. There is no forced sequence — the player
 zones (Beach, Forest, Mountain, Lake, Village, Cave, Desert, Plains, Castle, arranged in a 3×3
 grid) in any order the 3×3 adjacency allows.
 
-### 2a. Session shape, revised (2026-07-09 delta — target state, not yet shipped)
+### 2a. Session shape, revised (2026-07-09 delta; confirmed as shipped
+2026-07-10, `IP-1040`)
 
 Per **MSTR-001 C2 (amended v3.0)** and **ADR-0010**: a session now always starts at a **main
 menu** (continue / new game), never silently into `PLAYING` — the auto-load bypass §2/§4 describe
@@ -94,7 +95,8 @@ and **ADR-0009**, three concrete changes to §3's shipped description:
   (per [R212](../research/encyclopedia/R212-wordless-environmental-storytelling-biome-grammar.md)'s
   environmental-storytelling grounding).
 
-### 4a. New-game creation and the main-menu state, revised (2026-07-09 delta — target state)
+### 4a. New-game creation and the main-menu state, revised (2026-07-09 delta;
+confirmed as shipped 2026-07-10, `IP-1040`)
 
 Two new states join §4's six-state machine, and the auto-load bypass is removed:
 

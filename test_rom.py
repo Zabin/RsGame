@@ -21,6 +21,8 @@ Suites:
       seed=0 normalization, WRAM headroom
   T13 Generated-region screen composition (IP-1030) — tile-family audit,
       transition call-site audit, scale=3 arrow-placement regression
+  T14 Main menu & new-game flow (IP-1040) — continue/new-game option-set,
+      digit-cursor seed/scale entry, exit-to-main-menu, FR-9110 negative sweep
 
 WRAM model under test (see docs/architecture/07-data-model.md):
   C000 GAMESTATE (0=TITLE 1=INTRO 2=PLAYING 3=SAVE 4=MAP 5=VICTORY)
@@ -109,9 +111,13 @@ def fresh_boot(frames=180):
     return pb
 
 def advance_to_playing(pb):
-    """From TITLE: START -> INTRO, A -> PLAYING."""
-    pb.button('start'); [pb.tick() for _ in range(80)]
-    pb.button('a');     [pb.tick() for _ in range(80)]
+    """From MAIN MENU (IP-1040 — boot always lands here; a fresh boot has no
+    save, so 'new game' is the only/forced option): A -> SEED/SCALE ENTRY,
+    A (confirm defaults: seed=0 -> normalized to 1 internally, scale=3) ->
+    INTRO (runs generate_world), A -> PLAYING."""
+    pb.button('a'); [pb.tick() for _ in range(40)]
+    pb.button('a'); [pb.tick() for _ in range(80)]
+    pb.button('a'); [pb.tick() for _ in range(80)]
 
 def shoot(pb, name):
     try:
@@ -237,15 +243,27 @@ check("T3.7 LCDC = 0x97 exactly",          lcdc == 0x97, f"0x{lcdc:02X}")
 pb.stop()
 
 # ══════════════════════════════════════════════════════
-# T4 — State Machine (GS: 0=TITLE 1=INTRO 2=PLAYING 3=SAVE 4=MAP 5=VICTORY)
+# T4 — State Machine (GS: 0=TITLE[superseded] 1=INTRO 2=PLAYING 3=SAVE
+#      4=MAP 5=VICTORY 6=MAIN_MENU 7=SEED_SCALE_ENTRY — IP-1040)
 # ══════════════════════════════════════════════════════
 print("\n=== T4: State Machine ===")
 pb = fresh_boot()
 
-check("T4.1 Clean boot -> TITLE (GS=0)",   pb.memory[GAMESTATE] == 0, f"GS={pb.memory[GAMESTATE]}")
+# IP-1040: the auto-load-on-boot bypass is retired — boot always reaches
+# MAIN MENU now, never the superseded TITLE state (T14 covers MAIN MENU/
+# SEED/SCALE ENTRY's own behavior in full; this suite just needs the
+# overall state-machine loop to still hold end to end).
+check("T4.1 Clean boot -> MAIN MENU (GS=6)", pb.memory[GAMESTATE] == 6, f"GS={pb.memory[GAMESTATE]}")
+shoot(pb, "T4_main_menu")
 
-pb.button('start'); [pb.tick() for _ in range(80)]
-check("T4.2 START -> INTRO (GS=1)",        pb.memory[GAMESTATE] == 1, f"GS={pb.memory[GAMESTATE]}")
+pb.button('a'); [pb.tick() for _ in range(40)]
+check("T4.2 A (new game, no save) -> SEED/SCALE ENTRY (GS=7)",
+      pb.memory[GAMESTATE] == 7, f"GS={pb.memory[GAMESTATE]}")
+shoot(pb, "T4_seed_scale_entry")
+
+pb.button('a'); [pb.tick() for _ in range(80)]
+check("T4.2b A (confirm defaults) -> INTRO (GS=1)", pb.memory[GAMESTATE] == 1,
+      f"GS={pb.memory[GAMESTATE]}")
 shoot(pb, "T4_intro")
 
 pb.button('a'); [pb.tick() for _ in range(80)]
@@ -279,7 +297,8 @@ check("T4.8 CARROTS=9 -> VICTORY (GS=5)",  pb.memory[GAMESTATE] == 5, f"GS={pb.m
 shoot(pb, "T4_victory")
 
 pb.button('a'); [pb.tick() for _ in range(60)]
-check("T4.9 A in VICTORY -> TITLE (GS=0)", pb.memory[GAMESTATE] == 0, f"GS={pb.memory[GAMESTATE]}")
+check("T4.9 A in VICTORY -> MAIN MENU (GS=6)", pb.memory[GAMESTATE] == 6,
+      f"GS={pb.memory[GAMESTATE]}")
 check("T4.10 Victory exit clears progress",
       pb.memory[CARROTS_COUNT] == 0 and pb.memory[SCORE] == 0
       and all(pb.memory[KEYITEM_FLAGS + i] == 0 for i in range(9)),
@@ -288,26 +307,32 @@ check("T4.10 Victory exit clears progress",
 pb.stop()
 
 # ══════════════════════════════════════════════════════
-# T5 — BG Tilemap Content (title screen + zone 0 Beach)
+# T5 — BG Tilemap Content (main menu + region 0)
 # ══════════════════════════════════════════════════════
 print("\n=== T5: BG Tilemap ===")
 pb = fresh_boot(200)
 
-# Title: row 0 blank, border row 2, "BUNNY QUEST" (font tiles) on row 4
-row0 = [pb.memory[0x9800 + i] for i in range(20)]
-check("T5.1 Title: row 0 is BG blank (0x10)",  row0[0] == TL_BG_BLANK, f"0x{row0[0]:02X}")
+# IP-1040: MAIN MENU replaces TITLE as the boot screen. No save exists yet
+# (fresh_boot wipes it), so "CONTINUE" must be blanked (mm_on_entry) and
+# "NEW GAME" must remain visible.
 row2 = [pb.memory[0x9800 + 2*32 + i] for i in range(2, 18)]
-check("T5.2 Title: border row 2 (0x15)",       all(b == TL_BORDER_H for b in row2),
+check("T5.1 Main menu: border row 2 (0x15)",   all(b == TL_BORDER_H for b in row2),
       f"row2[2]=0x{row2[0]:02X}")
-row4 = [pb.memory[0x9800 + 4*32 + i] for i in range(4, 16)]
-check("T5.3 Title: font tiles in row 4 (BUNNY QUEST)",
-      any(TL_FONT_A <= b <= TL_FONT_COLON for b in row4),
-      f"{[f'{b:02X}' for b in row4]}")
-shoot(pb, "T5_title")
+row3 = [pb.memory[0x9800 + 3*32 + i] for i in range(5, 16)]
+check("T5.2 Main menu: font tiles on row 3 (BUNNY QUEST)",
+      any(TL_FONT_A <= b <= TL_FONT_COLON for b in row3),
+      f"{[f'{b:02X}' for b in row3]}")
+cont_row = [pb.memory[0x9800 + 7*32 + c] for c in range(8, 16)]
+check("T5.3 Main menu: CONTINUE blanked (no save present)",
+      all(b == TL_BG_BLANK for b in cont_row), f"{[f'{b:02X}' for b in cont_row]}")
+newgame_row = [pb.memory[0x9800 + 9*32 + c] for c in range(8, 16)]
+check("T5.3b Main menu: NEW GAME visible (font tiles)",
+      any(TL_FONT_A <= b <= TL_FONT_COLON for b in newgame_row),
+      f"{[f'{b:02X}' for b in newgame_row]}")
+shoot(pb, "T5_main_menu")
 
-# Advance to region 0
-pb.button('start'); [pb.tick() for _ in range(80)]
-pb.button('a');     [pb.tick() for _ in range(80)]
+# Advance to region 0 (new-game defaults: seed=0 -> normalized to 1, scale=3)
+advance_to_playing(pb)
 
 # Score bar (row 0, all regions share the pattern from _score_bar)
 row0 = [pb.memory[0x9800 + i] for i in range(12)]
@@ -318,17 +343,20 @@ check("T5.7 Zone: col 7 = star icon (0x14)",      row0[7] == TL_STAR_ICON_BG, f"
 check("T5.8 Zone: score digits at cols 8-10",     all(TL_DIGIT_0 <= row0[c] <= TL_DIGIT_0+9 for c in (8, 9, 10)),
       f"{[f'{row0[c]:02X}' for c in (8,9,10)]}")
 
-# IP-1030: region 0's screen is now selected by REGION_GRAPH[0]'s biome-id,
-# not a fixed "zone 0 = Beach" mapping. Pre-generation (no call site exists
-# yet — IP-1040's scope), REGION_GRAPH is boot-clear zeroed, so biome-id=0
-# (Water, generate_world's own axis) selects the Water family (lake_screen)
-# rather than the old hardcoded Beach. This is the real, current, tested
-# default — not an assumption (T13.a below covers the full generated-biome
-# audit across IP-1020's corpus).
+# IP-1040 wires up the actual new-game generation call site: region 0's
+# screen is now whatever biome worldgen.generate(seed=1, scale=3) — the
+# real defaults advance_to_playing exercises — assigns it (verified
+# directly: region 0 -> biome-id 2, Grass/forest_screen), not the
+# pre-generation all-zero (Water) case IP-1030's T5.9 tested.
+import worldgen as _wg5
+_region0_biome = _wg5.generate(1, 3)[0]['biome_id']
+_FAMILY_RANGES_T5 = {0: (0x88, 0x8D), 1: (0x70, 0x76), 2: (0x78, 0x7D),
+                     3: (0x80, 0x85), 4: (0xB0, 0xB5)}
+_lo, _hi = _FAMILY_RANGES_T5[_region0_biome]
 field = [pb.memory[0x9800 + r*32 + c] for r in range(2, 17) for c in range(20)]
-water_tiles = sum(1 for b in field if 0x88 <= b <= 0x8D)
-check("T5.9 Region 0 (pre-generation, biome-id 0) uses Water terrain family (0x88-0x8D)",
-      water_tiles > 40, f"{water_tiles} water-family tiles")
+family_tiles = sum(1 for b in field if _lo <= b <= _hi)
+check(f"T5.9 Region 0 (seed=1,scale=3 -> biome-id {_region0_biome}) uses its own tile family",
+      family_tiles > 40, f"{family_tiles} tiles in 0x{_lo:02X}-0x{_hi:02X}")
 
 shoot(pb, "T5_region0")
 pb.stop()
@@ -618,11 +646,10 @@ wipe_save()
 pb = PyBoy(ROM_PATH, window='null', sound_emulated=False)
 pb.set_emulation_speed(0)
 for _ in range(180): pb.tick()
-check("T10.1 No save -> TITLE (GS=0)", pb.memory[GAMESTATE] == 0, f"GS={pb.memory[GAMESTATE]}")
+check("T10.1 No save -> MAIN MENU (GS=6)", pb.memory[GAMESTATE] == 6, f"GS={pb.memory[GAMESTATE]}")
 
-pb.button('start'); [pb.tick() for _ in range(80)]
-pb.button('a');     [pb.tick() for _ in range(80)]
-check("T10.2 PLAYING after START -> A", pb.memory[GAMESTATE] == 2)
+advance_to_playing(pb)
+check("T10.2 PLAYING after new-game flow", pb.memory[GAMESTATE] == 2)
 
 # Establish a distinctive state: zone 4, position (60,40), progress markers.
 pb.memory[CUR_ZONE] = 4; pb.memory[NEED_REDRAW] = 1
@@ -642,11 +669,20 @@ check("T10.4 A saves -> PLAYING", pb.memory[GAMESTATE] == 2)
 pb.stop()
 check("T10.5 RAM file created", os.path.exists(RAM_PATH), RAM_PATH)
 
-# Reload: boot auto-loads the save straight into PLAYING
+# Reload: IP-1040 retires the auto-load bypass — boot always reaches MAIN
+# MENU, now offering "continue" since a valid save exists (T14 covers this
+# option-set logic in full); the player must explicitly select it.
 pb = PyBoy(ROM_PATH, window='null', sound_emulated=False)
 pb.set_emulation_speed(0)
 for _ in range(180): pb.tick()
-check("T10.6 Reload -> PLAYING (auto-load)", pb.memory[GAMESTATE] == 2, f"GS={pb.memory[GAMESTATE]}")
+check("T10.6 Reload -> MAIN MENU (not auto-loaded)", pb.memory[GAMESTATE] == 6,
+      f"GS={pb.memory[GAMESTATE]}")
+cont_row = [pb.memory[0x9800 + 7*32 + c] for c in range(8, 16)]
+check("T10.6b CONTINUE offered (valid save present)",
+      any(TL_FONT_A <= b <= TL_FONT_COLON for b in cont_row),
+      f"{[f'{b:02X}' for b in cont_row]}")
+pb.button('a'); [pb.tick() for _ in range(40)]
+check("T10.6c A (continue) -> PLAYING", pb.memory[GAMESTATE] == 2, f"GS={pb.memory[GAMESTATE]}")
 check("T10.7 Zone preserved",      pb.memory[CUR_ZONE] == z_pre,  f"{z_pre}->{pb.memory[CUR_ZONE]}")
 check("T10.8 PLAYER_X preserved",  pb.memory[PLAYER_X] == px_pre, f"{px_pre}->{pb.memory[PLAYER_X]}")
 check("T10.9 PLAYER_Y preserved",  pb.memory[PLAYER_Y] == py_pre, f"{py_pre}->{pb.memory[PLAYER_Y]}")
@@ -666,9 +702,11 @@ check("T10.13 B cancels -> PLAYING", pb.memory[GAMESTATE] == 2)
 pb.stop()
 # PyBoy always flushes battery RAM on stop() for MBC1+RAM+BAT carts, so the
 # correct assertion is: after B-cancel and reload, saved data is unchanged.
+# IP-1040: reload lands at MAIN MENU, not auto-loaded — select "continue".
 pb2 = PyBoy(ROM_PATH, window='null', sound_emulated=False)
 pb2.set_emulation_speed(0)
 for _ in range(180): pb2.tick()
+pb2.button('a'); [pb2.tick() for _ in range(40)]
 check("T10.14 B cancel: reload still has saved data",
       pb2.memory[PLAYER_X] == px_pre and pb2.memory[SCORE] == sc_pre,
       f"x={pb2.memory[PLAYER_X]} score={pb2.memory[SCORE]}")
@@ -722,7 +760,10 @@ pb.stop()
 pb2 = PyBoy(ROM_PATH, window='null', sound_emulated=False)
 pb2.set_emulation_speed(0)
 for _ in range(180): pb2.tick()
-check("T11.b3 Reload -> PLAYING (auto-load)", pb2.memory[GAMESTATE] == 2, f"GS={pb2.memory[GAMESTATE]}")
+check("T11.b3a Reload -> MAIN MENU (not auto-loaded, IP-1040)",
+      pb2.memory[GAMESTATE] == 6, f"GS={pb2.memory[GAMESTATE]}")
+pb2.button('a'); [pb2.tick() for _ in range(40)]
+check("T11.b3 A (continue) -> PLAYING", pb2.memory[GAMESTATE] == 2, f"GS={pb2.memory[GAMESTATE]}")
 check("T11.e1 Legacy fields still round-trip (zone/x/y/score, AC-5)",
       pb2.memory[CUR_ZONE] == zone_pre and pb2.memory[PLAYER_X] == x_pre
       and pb2.memory[PLAYER_Y] == y_pre and pb2.memory[SCORE] == sc_pre,
@@ -750,16 +791,27 @@ for i in range(9): fixture[SRAM_SCOREITEM - 0xA000 + i] = 0xFF   # garbage
 with open(RAM_PATH, 'wb') as f:
     f.write(bytes(fixture))
 
+# IP-1040/ADR-0010 supersedes the old auto-load-based graceful-degrade:
+# a version-mismatched save is now treated as absent for "continue"
+# purposes at MAIN MENU (never auto-loaded at all, not even partially) —
+# its bytes are left untouched (not overwritten) until the player proceeds
+# through a fresh new-game creation, which must still work cleanly.
 pb = PyBoy(ROM_PATH, window='null', sound_emulated=False)
 pb.set_emulation_speed(0)
 for _ in range(180): pb.tick()
-check("T11.d1 Pre-upgrade save loads without crash -> PLAYING",
+check("T11.d1 Pre-upgrade save loads without crash -> MAIN MENU",
+      pb.memory[GAMESTATE] == 6, f"GS={pb.memory[GAMESTATE]}")
+cont_row = [pb.memory[0x9800 + 7*32 + c] for c in range(8, 16)]
+check("T11.d1b CONTINUE absent (version-mismatched save treated as none, ADR-0010)",
+      all(b == TL_BG_BLANK for b in cont_row), f"{[f'{b:02X}' for b in cont_row]}")
+advance_to_playing(pb)
+check("T11.d1c New game still reaches PLAYING cleanly despite old SRAM bytes",
       pb.memory[GAMESTATE] == 2, f"GS={pb.memory[GAMESTATE]}")
-check("T11.d2 SCOREITEM_FLAGS all zero (garbage ignored)",
+check("T11.d2 SCOREITEM_FLAGS all zero (fresh new-game default)",
       all(pb.memory[SCOREITEM_FLAGS + i] == 0 for i in range(9)),
       f"flags={[pb.memory[SCOREITEM_FLAGS + i] for i in range(9)]}")
 cc = pb.memory[COLL_COUNT]
-check("T11.d3 Every zone-0 collectible loads active (uncollected default)",
+check("T11.d3 Every region-0 collectible loads active (fresh new-game default)",
       all(pb.memory[COLL_DATA + i*4 + 3] == 1 for i in range(cc)),
       f"count={cc} actives={[pb.memory[COLL_DATA + i*4 + 3] for i in range(cc)]}")
 pb.stop()
@@ -948,6 +1000,186 @@ for region in range(9):
 pb.stop()
 check("T13.c Regression: scale=3 arrow placement matches shipped 3x3 grid, every region/direction",
       len(arrow_bad) == 0, f"bad={arrow_bad[:5]}")
+
+# ══════════════════════════════════════════════════════
+# T14 — Main Menu & New-Game Flow (IP-1040)
+# (FS-104's own template names "T13"; renumbered — IP-1030 already claimed
+# T13 earlier this same tranche.)
+# ══════════════════════════════════════════════════════
+print("\n=== T14: Main Menu & New-Game Flow ===")
+
+def enter_seed_scale(pb, digits, scale):
+    """From SEED/SCALE ENTRY at its just-entered defaults (cursor=0, all
+    digits 0, scale=3): drive the digit-cursor picker to the given 5 seed
+    digits + scale, then confirm with A."""
+    for i, d in enumerate(digits):
+        for _ in range(d):
+            pb.button('up'); [pb.tick() for _ in range(10)]
+        if i < 4:
+            pb.button('right'); [pb.tick() for _ in range(10)]
+    pb.button('right'); [pb.tick() for _ in range(10)]   # move to scale slot
+    delta = scale - 3
+    btn = 'up' if delta > 0 else 'down'
+    for _ in range(abs(delta)):
+        pb.button(btn); [pb.tick() for _ in range(10)]
+    pb.button('a'); [pb.tick() for _ in range(80)]
+
+def continue_offered(pb):
+    row = [pb.memory[0x9800 + 7*32 + c] for c in range(8, 16)]
+    return any(TL_FONT_A <= b <= TL_FONT_COLON for b in row)
+
+# T14.a1/a2 — no save present: MAIN MENU, "continue" absent (AC-1/AC-2 fwd).
+pb = fresh_boot(200)
+check("T14.a1 Boot, no save -> MAIN MENU (GS=6)", pb.memory[GAMESTATE] == 6,
+      f"GS={pb.memory[GAMESTATE]}")
+check("T14.a2 No save -> CONTINUE absent", not continue_offered(pb), "")
+pb.stop()
+wipe_save()
+
+# T14.a3 — valid version-matching save present: MAIN MENU (not PLAYING,
+# confirming the auto-load bypass is retired), "continue" present (AC-1/2 rev).
+pb = fresh_boot(200)
+advance_to_playing(pb)
+pb.button('start'); [pb.tick() for _ in range(40)]
+pb.button('a');      [pb.tick() for _ in range(40)]     # SAVE -> A -> PLAYING
+pb.stop()
+pb = PyBoy(ROM_PATH, window='null', sound_emulated=False)
+pb.set_emulation_speed(0)
+for _ in range(180): pb.tick()
+check("T14.a3a Valid save present -> MAIN MENU, not auto-loaded PLAYING",
+      pb.memory[GAMESTATE] == 6, f"GS={pb.memory[GAMESTATE]}")
+check("T14.a3b Valid save -> CONTINUE present", continue_offered(pb), "")
+pb.stop()
+wipe_save()
+
+# T14.a4 — version-mismatched (pre-upgrade) save: "continue" absent,
+# following IP-1010's T11.d synthetic-fixture pattern exactly.
+fixture = bytearray(8192)
+fixture[0:4] = bytes([0x42, 0x55, 0x4E, 0x59])
+fixture[SAVE_VERSION_ADDR - 0xA000] = 0x00
+with open(RAM_PATH, 'wb') as f:
+    f.write(bytes(fixture))
+pb = PyBoy(ROM_PATH, window='null', sound_emulated=False)
+pb.set_emulation_speed(0)
+for _ in range(180): pb.tick()
+check("T14.a4 Version-mismatched save -> CONTINUE absent (ADR-0010)",
+      not continue_offered(pb), "")
+pb.stop()
+wipe_save()
+
+# T14.b1/b2 — digit-cursor entry for a known (seed, scale): confirm -> INTRO,
+# region count == scale^2 (AC-3).
+pb = fresh_boot(200)
+pb.button('a'); [pb.tick() for _ in range(40)]           # MAIN MENU -> new game -> SEED/SCALE ENTRY
+enter_seed_scale(pb, [1, 2, 3, 4, 5], 5)                 # seed=12345, scale=5
+check("T14.b1 Confirm -> INTRO (GS=1)", pb.memory[GAMESTATE] == 1, f"GS={pb.memory[GAMESTATE]}")
+check("T14.b1b SEED written correctly (12345)",
+      pb.memory[SEED] | (pb.memory[SEED+1] << 8) == 12345,
+      f"seed={pb.memory[SEED] | (pb.memory[SEED+1] << 8)}")
+check("T14.b1c WORLD_SCALE written correctly (5)", pb.memory[WORLD_SCALE] == 5,
+      f"scale={pb.memory[WORLD_SCALE]}")
+regions_b = read_region_graph(pb, 5)
+check("T14.b2 Region count == scale^2 (25) (AC-3)", len(regions_b) == 25, f"{len(regions_b)}")
+region_graph_b1 = regions_b
+pb.stop()
+
+# T14.b3 — same (seed, scale) in a fresh new-game creation -> identical
+# region graph (AC-4; the actual byte-for-byte comparison rides IP-1020's
+# own oracle/SM83 lockstep, T12.b — this confirms this Feature's own
+# trigger path reaches generate_world with the same inputs both times).
+pb = fresh_boot(200)
+pb.button('a'); [pb.tick() for _ in range(40)]
+enter_seed_scale(pb, [1, 2, 3, 4, 5], 5)
+region_graph_b2 = read_region_graph(pb, 5)
+pb.stop()
+check("T14.b3 Same (seed,scale) -> identical region graph across two new-game creations (AC-4)",
+      region_graph_b1 == region_graph_b2, "")
+
+# T14.c1 — SEED/SCALE ENTRY, B -> MAIN MENU, without writing SEED/WORLD_SCALE
+# (FS-104 Open Question 1's resolution, tested directly).
+pb = fresh_boot(200)
+pb.button('a'); [pb.tick() for _ in range(40)]
+seed_before = pb.memory[SEED] | (pb.memory[SEED+1] << 8)
+scale_before = pb.memory[WORLD_SCALE]
+pb.button('up'); [pb.tick() for _ in range(10)]   # touch a digit, then abandon via B
+pb.button('b');  [pb.tick() for _ in range(40)]
+check("T14.c1 B in SEED/SCALE ENTRY -> MAIN MENU (GS=6)", pb.memory[GAMESTATE] == 6,
+      f"GS={pb.memory[GAMESTATE]}")
+check("T14.c1b B-cancel does not write SEED/WORLD_SCALE",
+      pb.memory[SEED] | (pb.memory[SEED+1] << 8) == seed_before
+      and pb.memory[WORLD_SCALE] == scale_before,
+      f"seed={pb.memory[SEED] | (pb.memory[SEED+1] << 8)} scale={pb.memory[WORLD_SCALE]}")
+pb.stop()
+wipe_save()
+
+# T14.d1/d2 — exit-to-main-menu from SAVE (AC-5/AC-6): auto-saves, ->
+# MAIN MENU; reload via "continue" restores the exact pre-exit state.
+pb = fresh_boot(200)
+advance_to_playing(pb)
+pb.memory[PLAYER_X] = 90; pb.memory[PLAYER_Y] = 100
+pb.memory[SCORE] = 4; pb.memory[CARROTS_COUNT] = 1
+[pb.tick() for _ in range(5)]
+x_pre14 = pb.memory[PLAYER_X]; y_pre14 = pb.memory[PLAYER_Y]
+sc_pre14 = pb.memory[SCORE]; cc_pre14 = pb.memory[CARROTS_COUNT]
+pb.button('start');  [pb.tick() for _ in range(40)]
+check("T14.d0 START -> SAVE", pb.memory[GAMESTATE] == 3)
+pb.button('select'); [pb.tick() for _ in range(40)]
+check("T14.d1 SELECT (exit-to-main-menu) -> MAIN MENU (GS=6)", pb.memory[GAMESTATE] == 6,
+      f"GS={pb.memory[GAMESTATE]}")
+pb.stop()
+check("T14.d1b RAM file created (auto-save on exit)", os.path.exists(RAM_PATH), RAM_PATH)
+
+pb = PyBoy(ROM_PATH, window='null', sound_emulated=False)
+pb.set_emulation_speed(0)
+for _ in range(180): pb.tick()
+check("T14.d2a Reload -> MAIN MENU, CONTINUE present", continue_offered(pb), "")
+pb.button('a'); [pb.tick() for _ in range(40)]
+check("T14.d2b Continue -> PLAYING", pb.memory[GAMESTATE] == 2, f"GS={pb.memory[GAMESTATE]}")
+check("T14.d2c Restored state matches exactly what was present at exit (AC-6)",
+      pb.memory[PLAYER_X] == x_pre14 and pb.memory[PLAYER_Y] == y_pre14
+      and pb.memory[SCORE] == sc_pre14 and pb.memory[CARROTS_COUNT] == cc_pre14,
+      f"x={pb.memory[PLAYER_X]} y={pb.memory[PLAYER_Y]} score={pb.memory[SCORE]} carrots={pb.memory[CARROTS_COUNT]}")
+pb.stop()
+wipe_save()
+
+# T14.e — FR-9110 negative-test sweep: no reachable input sequence from
+# PLAYING, SAVE, or MAP writes SEED/WORLD_SCALE. Static audit (the only
+# write sites are inside sse_compose_seed, reachable only via
+# st_seed_scale_entry's A-confirm) + a runtime spot-check driving every
+# input branch in each of the 3 states.
+_src14 = (BASE / 'asm_game.py').read_text()
+_scs_start = _src14.index("rom.label('sse_compose_seed')")
+_scs_end = _src14.index("rom.label('setup_zone_collects')")
+_outside_scs = _src14[:_scs_start] + _src14[_scs_end:]
+_seed_writes_outside = _outside_scs.count("LD_nn_A(SEED)") + _outside_scs.count("LD_nn_A(SEED + 1)")
+_scale_writes_outside = _outside_scs.count("LD_nn_A(WORLD_SCALE)")
+check("T14.e1 Static audit: SEED/WORLD_SCALE written only inside sse_compose_seed (FR-9110)",
+      _seed_writes_outside == 0 and _scale_writes_outside == 0,
+      f"seed_writes={_seed_writes_outside} scale_writes={_scale_writes_outside}")
+
+pb = fresh_boot(200)
+advance_to_playing(pb)
+seed_before_e = pb.memory[SEED] | (pb.memory[SEED+1] << 8)
+scale_before_e = pb.memory[WORLD_SCALE]
+# PLAYING: movement, START (->SAVE->B->PLAYING), START (->SAVE->A(save)->PLAYING)
+for btn in ('up', 'down', 'left', 'right'):
+    pb.button(btn); [pb.tick() for _ in range(10)]
+pb.button('start'); [pb.tick() for _ in range(40)]
+pb.button('b');     [pb.tick() for _ in range(40)]        # SAVE: B
+pb.button('start'); [pb.tick() for _ in range(40)]
+pb.button('a');      [pb.tick() for _ in range(40)]       # SAVE: A (save)
+# MAP: SELECT enters, B and SELECT both exit back to PLAYING
+pb.button('select'); [pb.tick() for _ in range(40)]
+pb.button('b');       [pb.tick() for _ in range(40)]       # MAP: B
+pb.button('select'); [pb.tick() for _ in range(40)]
+pb.button('select');  [pb.tick() for _ in range(40)]       # MAP: SELECT
+seed_after_e = pb.memory[SEED] | (pb.memory[SEED+1] << 8)
+scale_after_e = pb.memory[WORLD_SCALE]
+pb.stop()
+wipe_save()
+check("T14.e2 Runtime sweep (PLAYING/SAVE/MAP, every input branch) leaves SEED/WORLD_SCALE unchanged",
+      seed_after_e == seed_before_e and scale_after_e == scale_before_e,
+      f"seed {seed_before_e}->{seed_after_e} scale {scale_before_e}->{scale_after_e}")
 
 # ══════════════════════════════════════════════════════
 # SUMMARY

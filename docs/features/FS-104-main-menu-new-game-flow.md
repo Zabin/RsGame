@@ -5,9 +5,10 @@
 > elaborates FEAT-1100, it does not modify its catalog entry, the requirements it implements, or
 > any architecture document.
 >
-> **Forward reference (metadata only):** planned by
-> [IP-1040](../implementation/packages/IP-1040-main-menu-new-game-flow.md) (2026-07-10), which
-> resolves this document's Open Questions 1–2.
+> **Forward reference (metadata only):** [IP-1040](../implementation/packages/IP-1040-main-menu-new-game-flow.md)
+> **implemented 2026-07-10** — all six Acceptance Criteria (§15) demonstrably pass via
+> `test_rom.py`'s T14 suite (163/163 total, full suite green); independent verification pending
+> `09-package-verification`. Resolves this document's Open Questions 1–2 (§19).
 
 [↑ Features index](INDEX.md) · [Feature Catalog](../feature-planning/03-feature-catalog.md) ·
 [Epic Catalog](../feature-planning/02-epic-catalog.md)
@@ -265,15 +266,15 @@ design gap this spec did not silently assume away.
    return edge. Without one, a player who selects "new game" by mistake has no way back to MAIN
    MENU short of completing a full seed/scale entry and generation. This matters because it's a
    genuine player-experience gap this Feature's own workflow (Workflow A) does not currently
-   allow for. Resolves at: `07-implementation-planning`, as a confidently-resolvable design
-   decision (following the FS-101 precedent of resolving this class of question directly rather
-   than escalating) — most likely a B-cancels-back-to-MAIN-MENU convention, matching the existing
-   SAVE state's own A/B pattern, but not assumed here since no upstream artifact commits to it.
+   allow for. **Resolved (`IP-1040`, 2026-07-10):** B cancels SEED/SCALE ENTRY back to MAIN MENU
+   without writing `SEED`/`WORLD_SCALE` (`st_seed_scale_entry`'s B-branch), matching the existing
+   SAVE state's own A/B pattern exactly, confirmed by `T14.c1`/`c1b`.
 2. **Whether "continue"/"new game" selection uses A-confirm-only or also supports a D-pad
    up/down selector between the two options** is an input-mapping detail GDS-01 §4a does not
-   specify at the state-machine altitude. Resolves at: `07-implementation-planning`/
-   `08-code-implementation`, as ordinary UI implementation detail, not a design-level ambiguity
-   this spec needs to resolve.
+   specify at the state-machine altitude. **Resolved (`IP-1040`, 2026-07-10):** D-pad up/down
+   toggles the highlighted option (`st_main_menu`'s toggle branch, gated on a valid save
+   existing), A confirms — the same digit-cursor idiom ADR-0010 already establishes for
+   SEED/SCALE ENTRY, reused rather than inventing a second input convention.
 
 ## 20. Related ADRs
 

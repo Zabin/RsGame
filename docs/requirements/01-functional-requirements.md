@@ -117,7 +117,11 @@
   remains accurate for the *currently shipped* game and is not modified here; it will be
   superseded by a dated revision only once the corresponding implementation package ships (per
   the ladder's delta-update discipline, same pattern `NFR-4000` already uses for its own C7
-  supersession trigger).
+  supersession trigger). **Forward-pointer note (2026-07-10, `IP-1040`):** the superseding
+  implementation has now shipped — `try_load_save`'s unconditional-at-boot call site no longer
+  exists (confirmed by direct code read and `T14.a1`/`a3a`'s regression checks); this FR's own
+  postcondition text is left unmodified here (a future `04-requirements-engineering` delta's
+  call, per this stage's SHALL-NOT rule against editing requirements from an implementation run).
 
 ### FR-1130 — TITLE → INTRO → PLAYING transition
 
@@ -205,8 +209,11 @@
 - **Notes:** **Target-state pointer (2026-07-09):** [GDS-01](../architecture/01-concept-of-play.md)
   §4a commits VICTORY's A-press target to MAIN MENU instead of TITLE, following TITLE's own
   supersession (see FR-1170's note). Unmodified here; accurate for the current shipped game.
+  **Forward-pointer note (2026-07-10, `IP-1040`):** the superseding implementation has shipped —
+  `st_victory`'s A-press target is now `GS_MAIN_MENU` (confirmed by direct code read and
+  `T4.9`'s regression check); this FR's own postcondition text is left unmodified here.
 
-### FR-1170 — MAIN MENU state (target — 2026-07-09, not yet shipped)
+### FR-1170 — MAIN MENU state (Implemented — 2026-07-10, `IP-1040`)
 
 - **ID:** FR-1170
 - **Title:** The system shall present a MAIN MENU state on every boot, offering continue and new
@@ -215,7 +222,7 @@
   bypassing it — offering a "continue" option (only if a version-matching save exists) and a
   "new game" option.
 - **Rationale:** MSTR-001 C2 (amended v3.0); GDS-01 §2a/§4a; ADR-0010.
-- **Priority:** Must (target — not yet implemented)
+- **Priority:** Must (Met)
 - **Inputs:** Power-on/reset event; SRAM save-validity and version check.
 - **Outputs:** State = MAIN MENU; "continue" option present iff a version-matching save exists.
 - **Preconditions:** None (unconditional on boot).
@@ -227,10 +234,12 @@
 - **Verification Method:** Test.
 - **Source Documents:** GDS-01 §2a/§4a; ADR-0010.
 - **Related ADRs:** ADR-0010.
-- **Notes:** Supersedes FR-1120's auto-load bypass once implemented (see FR-1120's own
-  target-state pointer). Not yet implemented — no `test_rom.py` coverage exists yet.
+- **Notes:** Supersedes FR-1120's auto-load bypass (see FR-1120's own forward-pointer note).
+  **Implemented (2026-07-10, `IP-1040`):** `st_main_menu`/`check_save_valid` (`asm_game.py`);
+  `test_rom.py` T14.a1–a4 cover both option-set directions plus the version-mismatch case,
+  163/163 full suite pass.
 
-### FR-1180 — New-game seed/scale entry and world generation trigger (target — 2026-07-09)
+### FR-1180 — New-game seed/scale entry and world generation trigger (Implemented — 2026-07-10, `IP-1040`)
 
 - **ID:** FR-1180
 - **Title:** The system shall, on "new game," collect a seed and world-scale value via a
@@ -239,7 +248,7 @@
   entry UI for a 16-bit seed and a world-scale value (2–9, default 3), then — on confirmation —
   initialize the world generator from that (seed, scale) pair and transition to INTRO.
 - **Rationale:** MSTR-001 C10; GDS-01 §4a; ADR-0009; ADR-0010.
-- **Priority:** Must (target — not yet implemented)
+- **Priority:** Must (Met)
 - **Inputs:** D-pad (digit/value selection, cursor movement); A (confirm).
 - **Outputs:** SEED and WORLD_SCALE set to the entered values; the generated world's region graph
   populated; state = INTRO.
@@ -254,9 +263,15 @@
 - **Source Documents:** GDS-01 §4a; ADR-0009; ADR-0010.
 - **Related ADRs:** ADR-0009, ADR-0010.
 - **Notes:** A seed value of 0 is normalized to 1 internally (xorshift's nonzero-state
-  requirement, per R111/ADR-0010) — the player may still enter 0. Not yet implemented.
+  requirement, per R111/ADR-0010) — the player may still enter 0.
+  **Implemented (2026-07-10, `IP-1040`):** `st_seed_scale_entry`/`sse_compose_seed`
+  (`asm_game.py`) — 5 independent decimal digits, composed into the real 16-bit SEED via
+  saturating repeated-addition (no general multiply needed); `test_rom.py` T14.b1–b3 confirm a
+  known (seed,scale) pair reaches INTRO with the correct region count and reproduces identically
+  across two separate new-game creations; T14.c1 confirms B-cancel back to MAIN MENU writes
+  neither field.
 
-### FR-1190 — Exit-to-main-menu with auto-save (target — 2026-07-09)
+### FR-1190 — Exit-to-main-menu with auto-save (Implemented — 2026-07-10, `IP-1040`)
 
 - **ID:** FR-1190
 - **Title:** The system shall offer an exit-to-main-menu option from the SAVE state that
@@ -265,7 +280,7 @@
   shall offer a third option that first performs the same save-field write FR-5100 performs, then
   transitions to MAIN MENU (not back to PLAYING).
 - **Rationale:** MSTR-001 C2 (amended v3.0), owner decisions D8/D10; GDS-01 §4a.
-- **Priority:** Must (target — not yet implemented)
+- **Priority:** Must (Met)
 - **Inputs:** The exit-to-main-menu input (in SAVE).
 - **Outputs:** SRAM updated with the current save-field set (as FR-5100); state = MAIN MENU.
 - **Preconditions:** State is SAVE.
@@ -277,7 +292,10 @@
 - **Verification Method:** Test.
 - **Source Documents:** GDS-01 §4a.
 - **Related ADRs:** None.
-- **Notes:** Not yet implemented.
+- **Notes:** **Implemented (2026-07-10, `IP-1040`):** `st_save`'s SELECT branch (`asm_game.py`)
+  calls the exact same `save_to_sram` A(save) already calls, then targets `GS_MAIN_MENU` instead
+  of `GS_PLAYING`; `test_rom.py` T14.d1/d2 confirm the auto-save and exact state restoration on
+  a subsequent "continue".
 
 ## FR-2000 — Player movement & zone traversal
 

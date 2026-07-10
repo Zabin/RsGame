@@ -154,6 +154,12 @@ def build(out_path='BunnyQuest.gbc'):
     p16(patches['vic_t'],   screen_addrs['victory'][0])
     p16(patches['vic_a'],   screen_addrs['victory'][1])
 
+    # IP-1040: main menu + seed/scale entry screens, same title_t/title_a pattern.
+    p16(patches['mm_t'],  screen_addrs['main_menu'][0])
+    p16(patches['mm_a'],  screen_addrs['main_menu'][1])
+    p16(patches['sse_t'], screen_addrs['seed_scale_entry'][0])
+    p16(patches['sse_a'], screen_addrs['seed_scale_entry'][1])
+
     # IP-1030: one tile/attr address pair per biome family (5), parallel
     # to the title_t/title_a pattern above — not one pair per region.
     p16(patches['water_t'], screen_addrs['water'][0])
