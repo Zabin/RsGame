@@ -492,6 +492,11 @@
 
 ## FEAT-6100 — Aesthetic & Biome-Transition Compliance (new — not yet implemented)
 
+> **Forward reference (metadata only):** specified by
+> [FS-106](../features/FS-106-aesthetic-biome-transition-compliance.md) (2026-07-10). No Open
+> Questions — the standard (GDS-08 delta §7/§8) and review process (`09-content-review`) both
+> already exist.
+
 - **Feature ID:** FEAT-6100
 - **Title:** Aesthetic & Biome-Transition Compliance
 - **Purpose:** Give `09-content-review`'s existing "does this screen read well" judgment a
