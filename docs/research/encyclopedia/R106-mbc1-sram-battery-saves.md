@@ -2,11 +2,12 @@
 
 - **Document ID:** R106 · **Version:** 1.0 · **Status:** ✅
 - **Dependencies:** R109 (cartridge-header cart-type byte this topic's config maps to)
-- **Referenced By:** R109, every future ADR on bank-switching strategy (MSTR-001 C7)
+- **Referenced By:** R109, every future ADR on bank-switching strategy (MSTR-001 C7), R111
+  (WRAM sibling topic for C10), R213 (generator this topic's save-format extension serves)
 - **Produces:** grounds `build_rom.py`'s `set_header(cart=0x03, rsize=0x00, ramsize=0x02)` call and
   `asm_game.py`'s save/load routines
 - **Feature Mapping:** *(none yet)*
-- **Related Topics:** R109
+- **Related Topics:** R109, R111, R213
 
 ## Purpose
 
@@ -87,10 +88,40 @@ current ~9.6 KB of headroom (per MSTR-001 §3).
   methods to write the banking registers), not something achievable purely at the `asm_game.py`
   level.
 
+## SRAM cost of a seed-driven world (2026-07-09, grounds MSTR-001 C10)
+
+**Persisting a generated world's identity is cheap relative to the RAM already available.**
+Per GDS-07 §3, the current save format uses `0xA000`–`0xA01B` (28 bytes) of the 8 KiB SRAM bank
+`ramsize=0x02` provides[^1] — under 0.4% of available cartridge RAM. C10's seed + world-scale
+parameters add at most a handful of bytes (a 16-bit-or-smaller seed, a single-byte scale value)
+plus whatever per-region collected-flags array a generated world of the chosen scale needs — even
+a generous multiple of the existing 9-byte `CARROT_FLAGS`/`SCOREITEM_FLAGS` arrays (GDS-07 §2)
+remains a rounding error against 8 KiB. **SRAM capacity is not a meaningful constraint on C10's
+scale-parameter range** — the real ceiling is ROM (ADR-0001, `BL-0019`) and WRAM working-set (see
+R111), not save-file size.
+
+**The FS-101/`IP-1010` version-byte pattern is the direct, already-proven precedent to extend.**
+That package added `0xA012` as a save-format version guard plus a 9-byte mirror array at
+`0xA013`–`0xA01B`, with pre-upgrade saves (missing or mismatching the version byte) defaulting to
+a safe all-zero state rather than trusting garbage bytes (GDS-07 §3, confirmed shipped and
+independently verified, `VR-1010`). **The same shape directly fits C10**: bump the version byte
+again, add seed/scale/region-flags fields after the existing save data, and any save written
+before this feature ships is detected by the version mismatch and handled by an explicit
+pre-upgrade default (the concrete default value — e.g. a fixed "legacy" seed reproducing the
+current 3×3 world, or refusing to load and forcing new-game creation — is a Phase 3/stage-04
+design decision this topic does not make, per D3's algorithm-neutral framing).
+
+### Sources
+[^1]: GDS-07 §3 (`docs/architecture/07-data-model.md`), confirmed against `build_rom.py`'s
+`set_header(...ramsize=0x02)` call and `asm_game.py`'s save/load routines, per this topic's own
+Operational Context above.
+
 ## Feature Mapping
 
 *(No `FS-xxx` authored yet.)*
 
 ## Related Topics
 
-R109 (the cartridge-header cart-type byte this topic's `0x03` value declares).
+R109 (the cartridge-header cart-type byte this topic's `0x03` value declares) · R111 (WRAM budget
+and SM83 PRNG determinism — the sibling hardware-grounding topic for MSTR-001 C10) · R213 (the
+generator whose seed/scale/flags this topic's save-format extension persists).

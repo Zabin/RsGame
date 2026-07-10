@@ -1,7 +1,9 @@
 # RQ-03 — Requirements Review
 
-> **Status: ✅ Authored (bootstrap as-built, 2026-07-06).** Owned by `04-requirements-engineering`.
-> Reviews the final [RQ-01](01-functional-requirements.md)/[RQ-02](02-non-functional-requirements.md)
+> **Status: ✅ Authored (bootstrap as-built, 2026-07-06; delta 2026-07-09 reviewing the
+> procgen-world increment's new FR/NFR content — see findings #7–10).** Owned by
+> `04-requirements-engineering`. Reviews the final
+> [RQ-01](01-functional-requirements.md)/[RQ-02](02-non-functional-requirements.md)
 > baseline for duplicates, conflicts, ambiguities, gaps, impossible requirements, architecture
 > violations, and missing verification/traceability. **Report only — this document applies no
 > fixes**; every finding below routes to an owner as a separate follow-up.
@@ -15,7 +17,11 @@
 | 3 | Missing verification (systemic, cross-cutting) | NFR-7100, and every FR-1xxx/2xxx/3xxx/5xxx/6xxx whose Verification Method names "Test" | NFR-7100 documents (honestly) that `test_rom.py`'s T2–T10 suites test pre-rewrite semantics and cannot currently verify anything (BL-0006, Critical). This means **every FR above whose Verification Method is "Test" is not, in fact, currently verifiable by the existing suite** — the method is correct in principle but unsatisfiable in practice until BL-0006/BL-0008 lands. This is the single largest latent risk in the baseline: a future stage-08/09 run could believe "Test" next to an FR ID means a passing check exists today, when none does. | High | Read every "Verification Method: Test" cell in RQ-01 as *the intended method once BL-0006/BL-0008 is remediated*, not as current coverage. Recommend `07-implementation-planning` treat the `test_rom.py` rewrite as a high-priority package independent of feature work — it blocks honest verification for the entire FR baseline, not just the NFR it's filed against. Owner: `07-implementation-planning`/`08-code-implementation`, per BL-0006/BL-0008. |
 | 4 | Forward-looking conflict risk (not a current conflict) | NFR-4000, MSTR-001 C7, ADR-0001 | NFR-4000 ("Met," single 32768-byte bank) and vision commitment C7 (Zelda/Pokémon-scale world, anticipating future bank-switching) are not in conflict *today* — NFR-4000 explicitly names its own future-supersession trigger. But nothing in this baseline currently *watches* the 9.6KB headroom as it's consumed; a future content package could push usage close to the ceiling without any requirement flagging that NFR-4000's "Met" status is approaching its limit. | Low | Recommend any future package that materially increases ROM usage include a checklist item confirming remaining headroom against the 32768-byte ceiling, and that this NFR's status be re-affirmed (not silently left "Met") once headroom drops below some threshold (e.g. 2KB) — a concrete number to set is itself future `03-architecture-design-synthesis`/`05-feature-decomposition` work, not decided here. |
 | 5 | Weak/derived traceability (self-flagged, reviewed here for discipline) | NFR-2100 | NFR-2100 (deterministic state-machine behavior) has no single direct GDS-06 statement as its source — it is derived from the FR baseline's own testability demands, and RQ-02 already flags this honestly in its own Notes field. | Low | No baseline change needed — the derivation is sound (a non-deterministic state machine would make FR-1xxx's Acceptance Criteria untestable) and the document already discloses it rather than presenting it as a direct citation. Recorded here only to confirm the Review actually checked it, not to raise a new concern. |
-| 6 | Missing requirement (correctly absent, not an oversight) | Usability category (RQ-02) | No NFR states a player-facing usability standard (control remapping, colorblind-safe palette guarantees, difficulty accessibility, etc.). | Low (informational) | Correctly left as "(none derivable from inputs)" per the writing rule against inventing requirements — not a defect in this baseline. Flagged only as an open scope question for a future `01-vision`/`02-research-game-design` pass if usability becomes an explicit program goal; no action required now. |
+| 6 | Missing requirement — **SUPERSEDED 2026-07-09** | Usability category (RQ-02) | No NFR states a player-facing usability standard. **Superseded:** the procgen-world increment's delta populated this category (NFR-6500/6510, C8/C9's aesthetic/biome-transition standards) — the category is no longer empty. | Low (at filing) → superseded | No action — see findings #7–10 below for the review of the content that now fills this category. Retained as the historical record that the category's emptiness was checked and correctly attributed to "nothing to derive yet," not an oversight, at the time it was filed. |
+| 7 | Coexisting current/target requirements, same baseline (new pattern, not a defect) | FR-1120/FR-1170, FR-1160/FR-1170, FR-3210/FR-3220 | The procgen-world delta introduces a new pattern this baseline hasn't used before: a **target-state FR co-existing with the current-state FR it will eventually supersede**, distinguished only by prose ("target — not yet implemented" in the Title/Status area) and a cross-reference Note on each side, not a formal lifecycle field. E.g. FR-1120 (auto-load, shipped) and FR-1170 (main menu, target) both describe boot behavior for the *same* game, mutually exclusive once FR-1170 ships. | Low (methodology note, not a current defect — both descriptions are individually accurate for their respective timeframes) | This is a deliberate, working choice (mirrors MSTR-001 v3.0's own C7-before-C8/9/10 forward-commitment pattern and GDS-01's §2a-alongside-§2 delta convention) — not a defect, but **flag for `05-feature-decomposition`**: when FR-1170/1180/1190/3220/4300/4310/9100–9200 are actually scheduled for implementation, the corresponding FR-1120/1160/3210 should be formally superseded (a dated RQ-01 changelog entry per this document's existing precedent, per BL-0018's own worked example), not left silently coexisting once the target ships for real. |
+| 8 | Missing verification (expected, not a new instance of finding #3) | Every new FR-1170–9200/NFR-1300–6510 | Every new requirement's Verification Method names Test, but none has any `test_rom.py` coverage — nothing is implemented yet. | Informational (not a defect — explicitly, honestly marked "not yet implemented"/"NOT YET IMPLEMENTED" throughout, the same honesty discipline finding #3 already established for the bootstrap baseline) | No action needed now — this is the expected state for a target-only requirement set, exactly parallel to finding #3's own resolution path (a requirement's Verification Method states the *intended* method, not current coverage). Will convert to real Test coverage as `07`/`08` packages implement each requirement. |
+| 9 | Requirement–ADR consistency check (new ADRs) | ADR-0009, ADR-0010, ADR-0011, and every new FR/NFR citing them | Every new FR/NFR's "Related ADRs" field was cross-checked against ADR-0009/0010/0011's actual Decision/Consequences text (e.g. FR-9110's "immutable per save" matches ADR-0010's decision verbatim; FR-4310's "enforced by construction" matches ADR-0009's decision; NFR-4200's headroom figures match GDS-07 delta's §6/§7, which in turn matches R111's analysis). No requirement asserts anything its cited ADR doesn't actually decide. | — (clean check, no finding) | None — recorded to confirm the cross-check was performed, per this document's own established pattern (see finding #5's precedent for "clean check, still recorded"). |
+| 10 | Scope-boundary check: D1's non-goal | FR-9100 (Notes), MSTR-001 §4 | Confirmed no FR/NFR in the delta requires a text/dialogue system, consistent with `MSTR-001` D1/§4's explicit non-goal (not ruled out, not required). FR-9100's Notes field states this explicitly rather than leaving it implicit. | — (clean check, no finding) | None — a future request to add dialogue would reverse a recorded non-goal and re-open at `01-vision` (per MSTR-001 §4's own framing), not enter here as a requirements-stage addition. |
 
 ## Duplicates / contradictions checked and found clean
 
@@ -26,6 +32,14 @@
   against every FR/NFR that names one in its Related ADRs field).
 - No requirement crosses into implementation detail (WRAM addresses, opcodes) — GDS-07's
   byte-level facts are cited only where GDS-05/GDS-06 already cited them, never re-derived here.
+- **2026-07-09 delta:** ADR-0009 through ADR-0011 cross-checked against every new FR/NFR that
+  names one (finding #9) — clean. FR-9130 (generalized one-KeyItem-per-region) and the existing
+  FR-3210/BL-0017 finding #2 are complementary, not duplicate: FR-9130 explicitly notes its
+  guarantee is *stronger* (generator-enforced) than the shipped baseline's convention-only rule,
+  not a restatement. FR-4300/4310's "one biome per screen"/"grammar-valid adjacency" do not
+  conflict with FR-6100 (zone screen composition) — FR-6100 remains accurate for the current
+  hand-authored screens; FR-4300/4310 describe the generated-world target, cross-referenced not
+  duplicated (see finding #7 for the coexistence pattern this introduces).
 
 ## Candidate Requirements disposition
 
@@ -47,3 +61,19 @@ downstream stages proceed on Test-verified work is #3** (the systemic Test-metho
 everything else is either resolved (finding #1, 2026-07-07), already correctly scoped as a
 Candidate/open question, or a low-severity forward-looking watch
 item.
+
+**2026-07-09 delta review:** the ten new FRs and six new NFRs grounding the adopted increment's
+C8/C9/C10 streams are internally consistent, fully traceable to the now-complete architecture
+baseline (three ADRs, six GDS deltas), and correctly, honestly marked as unimplemented throughout
+— no requirement claims compliance it hasn't earned. The one genuinely new methodology question
+this delta raises is **finding #7** (target requirements coexisting with the shipped requirements
+they will eventually supersede) — not a defect today, but a pattern `05-feature-decomposition`
+and later stages should resolve deliberately (formal supersession at implementation time) rather
+than let drift indefinitely. Per the adopted plan §2 Phase 4's own definition of done: every new
+FR/NFR traces to a GDS-ladder section and an R-topic (confirmed throughout RQ-01/RQ-02's Source
+Documents fields), and §0's ten owner decisions (D1–D10) each have a visible requirement-level
+descendant (D1→FR-9100's Notes; D2→FR-3220/FR-4300; D3→FR-9100; D4→NFR-1300/6500; D5→ this
+baseline names no FR for the archived 3×3 world, correctly, since archival is an implementation
+action not an observable requirement; D6→FR-1180/9110's scale range; D7→FR-9110; D8→FR-1190;
+D9→FR-1170; D10→FR-1190). **This closes the adopted increment plan's Phase 4 and its stated
+terminal deliverable.**

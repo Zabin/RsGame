@@ -1,6 +1,8 @@
 # RQ-04 — Requirements Traceability Matrix
 
-> **Status: ✅ Authored (bootstrap as-built, 2026-07-06).** Owned by `04-requirements-engineering`.
+> **Status: ✅ Authored (bootstrap as-built, 2026-07-06; delta 2026-07-09 for the procgen-world
+> increment — 16 new rows, all target requirements with UNASSIGNED forward columns).** Owned by
+> `04-requirements-engineering`.
 > One row per [RQ-01](01-functional-requirements.md)/[RQ-02](02-non-functional-requirements.md)
 > requirement (Candidates marked). Populates the row-level matrix
 > [GDS-10](../architecture/10-requirements-traceability-matrix.md) §3 deferred to this stage, using
@@ -42,6 +44,17 @@
 | FR-6300 | Five non-zone UI screens | — | GDS-05 C6; GDS-04 | — | `tilemaps.py` | UNASSIGNED | UNASSIGNED | T5.1–T5.3, T4.4/T4.6/T4.8 (screens reached) |
 | CR-01 | Full save-field persistence — **RESOLVED/SPLIT 2026-07-07**: facing/frame half REJECTED (no row — see FR-5210); ScoreItem half APPROVED → see **FR-5220** row above | — | GDS-05 C5; BL-0018 (resolved) | — | `asm_game.py` | `RESOLVED — SEE FR-5220` | `RESOLVED — SEE FR-5220` | `RESOLVED — SEE FR-5220` |
 | CR-02 | Carrot-invariant enforcement | — | GDS-04; BL-0017 | — | `tilemaps.py` | `CANDIDATE — NOT BASELINED` | `CANDIDATE — NOT BASELINED` | `CANDIDATE — NOT BASELINED` |
+| FR-1170 | MAIN MENU state (target, 2026-07-09) | — | GDS-01 §2a/§4a | ADR-0010 | `asm_game.py` (proposed) | UNASSIGNED | UNASSIGNED | UNASSIGNED — not yet implemented |
+| FR-1180 | New-game seed/scale entry + generation trigger (target) | R111 | GDS-01 §4a | ADR-0009, ADR-0010 | `asm_game.py`, `worldgen.py` (proposed) | UNASSIGNED | UNASSIGNED | UNASSIGNED — not yet implemented |
+| FR-1190 | Exit-to-main-menu with auto-save (target) | — | GDS-01 §4a | — | `asm_game.py` (proposed) | UNASSIGNED | UNASSIGNED | UNASSIGNED — not yet implemented |
+| FR-3220 | Item-agnostic KeyItem collection (target, generalizes FR-3210) | — | GDS-04 delta | ADR-0009 | `asm_game.py` (proposed) | UNASSIGNED | UNASSIGNED | UNASSIGNED — not yet implemented |
+| FR-4300 | One biome per screen (target) | R212 | GDS-08 delta §8 | ADR-0009 | `tilemaps.py` (proposed) | UNASSIGNED | UNASSIGNED | UNASSIGNED — not yet implemented |
+| FR-4310 | Grammar-valid adjacency only (target) | R212 | GDS-04 delta | ADR-0009 | `asm_game.py`, `worldgen.py` (proposed) | UNASSIGNED | UNASSIGNED | UNASSIGNED — not yet implemented |
+| FR-9100 | Deterministic world generation from (seed, scale) (target) | R111, R213 | GDS-04 delta; ADR-0009 | ADR-0009 | `asm_game.py`, `worldgen.py` (proposed) | UNASSIGNED | UNASSIGNED | UNASSIGNED — not yet implemented |
+| FR-9110 | Seed/scale immutable per save, new-game-only (target) | — | ADR-0010 | ADR-0010 | `asm_game.py` (proposed) | UNASSIGNED | UNASSIGNED | UNASSIGNED — not yet implemented |
+| FR-9120 | Full reachability of every generated region (target) | — | GDS-04 delta; ADR-0009 | ADR-0009 | `worldgen.py` (proposed) | UNASSIGNED | UNASSIGNED | UNASSIGNED — not yet implemented |
+| FR-9130 | Exactly one KeyItem per generated region (target, generalizes BL-0017) | — | GDS-04 delta; BL-0017 | ADR-0009 | `worldgen.py` (proposed) | UNASSIGNED | UNASSIGNED | UNASSIGNED — not yet implemented |
+| FR-9200 | Save-format extension: seed/scale/region-flags (target) | R106 (ext.) | GDS-07 delta §7 | ADR-0010, ADR-0006 | `asm_game.py` (proposed) | UNASSIGNED | UNASSIGNED | UNASSIGNED — not yet implemented |
 
 ## Non-Functional Requirements
 
@@ -58,8 +71,14 @@
 | NFR-6100 | PyBoy headless as verification target | R301 | GDS-02; A2 | ADR-0008 | `run-bunnygarden` harness | UNASSIGNED | UNASSIGNED | UNASSIGNED (inspection-based) |
 | NFR-7100 | Full, currently-accurate test suite as completion gate | — | GDS-06 N5 | — | `test_rom.py` | UNASSIGNED | UNASSIGNED | **T1–T10, 109/109 pass** (IP-9010, 2026-07-07 — this NFR's own remediation; was BL-0006) |
 | NFR-8100 | Byte-identical deterministic rebuild | — | GDS-06 N4 | ADR-0002 | `build_rom.py` | UNASSIGNED | UNASSIGNED | Confirmed by direct rebuild-and-diff during MSTR-001 §8's correction — not a `test_rom.py` check; UNASSIGNED as an automated Test cell |
-| CR-03 | Bank-switching-ready extensibility standard | — | ADR-0001; MSTR-001 C7 | ADR-0001 | `build_rom.py`/`gbc_lib.py` | `CANDIDATE — NOT BASELINED` | `CANDIDATE — NOT BASELINED` | `CANDIDATE — NOT BASELINED` |
+| CR-03 | Bank-switching-ready extensibility standard — **PARTIALLY SUPERSEDED 2026-07-09**: ADR-0011 now records the bank-switching *strategy* (MBC1 default wiring); this Candidate's remaining scope is the build-pipeline extensibility standard itself, not yet baselined | — | ADR-0001; ADR-0011; MSTR-001 C7 | ADR-0001, ADR-0011 | `build_rom.py`/`gbc_lib.py` | `CANDIDATE — NOT BASELINED` | `CANDIDATE — NOT BASELINED` | `CANDIDATE — NOT BASELINED` |
 | CR-04 | Real-hardware/second-emulator verification standard | — | A2 | ADR-0008 | `run-bunnygarden` harness | `CANDIDATE — NOT BASELINED` | `CANDIDATE — NOT BASELINED` | `CANDIDATE — NOT BASELINED` |
+| NFR-1300 | Screen-transition smoothness for generated content (target, 2026-07-09) | R102 (ext.) | GDS-08 delta §7; GDS-07 delta | ADR-0009 | `asm_game.py` (proposed) | UNASSIGNED | UNASSIGNED | UNASSIGNED — not yet implemented |
+| NFR-2200 | Deterministic world generation (target) | R111 | ADR-0009; A9 | ADR-0009 | `worldgen.py` (proposed) | UNASSIGNED | UNASSIGNED | UNASSIGNED — not yet implemented |
+| NFR-4200 | Generated-world WRAM/SRAM headroom (target) | R111 | GDS-07 delta §6/§7 | ADR-0010 | `asm_game.py` (proposed) | UNASSIGNED | UNASSIGNED | UNASSIGNED — not yet implemented |
+| NFR-5300 | Save-format version bump for seed/scale/region-flags (target) | R106 (ext.) | GDS-07 delta §7 | ADR-0010, ADR-0006 | `asm_game.py` (proposed) | UNASSIGNED | UNASSIGNED | UNASSIGNED — not yet implemented |
+| NFR-6500 | Aesthetic craft and clean-screen standard compliance (target) | R209 | GDS-08 delta §7 | — | `tiles.py`/`tilemaps.py` (proposed) | UNASSIGNED | UNASSIGNED | UNASSIGNED — not yet implemented |
+| NFR-6510 | Biome-transition palette-stepping compliance (target) | R212 | GDS-08 delta §8 | ADR-0009 | `build_rom.py`/`tiles.py` (proposed) | UNASSIGNED | UNASSIGNED | UNASSIGNED — not yet implemented |
 
 ## Notes on this matrix's honesty discipline
 
@@ -75,3 +94,10 @@
 - Every `BL-xxxx` reference in this matrix (BL-0003, BL-0006, BL-0008, BL-0009, BL-0017, BL-0018)
   is cited as GDS-10 §4 anticipated — a backlog ID functioning as a citable cross-cutting anchor,
   not a prose aside.
+- **2026-07-09 delta:** the 16 new rows (FR-1170–FR-9200, NFR-1300–NFR-6510) all carry
+  `UNASSIGNED` Feature Spec/Implementation Package/Test cells with an explicit "not yet
+  implemented" annotation — these are target requirements for the adopted increment
+  ([PLAN-requirements-aesthetics-story-map.md](../pipeline/PLAN-requirements-aesthetics-story-map.md)),
+  none of which has reached stage 05 yet. Module cells are marked `(proposed)` where GDS-09's
+  delta names a new module (`worldgen.py`) or an extension to an existing one, distinguishing
+  "this is where it will live" from the existing rows' "this is where it does live."

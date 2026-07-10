@@ -1,10 +1,18 @@
 # GDS-07 — Data Model
 
-> **Status: ✅ Authored (bootstrap as-built, 2026-07-06).** Owned by
-> `03-architecture-design-synthesis`. Builds on [GDS-06](06-non-functional-requirements.md); the
-> next level, [GDS-08 Presentation Architecture](08-presentation-architecture.md), builds on this
-> one. **This is the first level authorized to state exact byte addresses** — GDS-04's Domain
+> **Status: ✅ Authored (bootstrap as-built, 2026-07-06; delta 2026-07-09 for the procgen-world
+> increment — see "Data Model delta" below).** Owned by `03-architecture-design-synthesis`.
+> Builds on [GDS-06](06-non-functional-requirements.md); the next level,
+> [GDS-08 Presentation Architecture](08-presentation-architecture.md), builds on this one.
+> **This is the first level authorized to state exact byte addresses** — GDS-04's Domain
 > Model deliberately stayed at entity altitude and deferred all of this here.
+>
+> **Reading this document:** §§1–5 below describe the ROM/WRAM/SRAM/tile/palette layout **as
+> currently shipped** and remain accurate. The delta section describes the **target** layout
+> [ADR-0009](adr/ADR-0009-screen-graph-world-generation.md)/
+> [ADR-0010](adr/ADR-0010-seed-scale-model.md) commit to — proposed addresses, not yet built;
+> final confirmation happens at implementation, the same precedent `FS-101`/`IP-1010` set for
+> `SCOREITEM_FLAGS`' address.
 
 ## Purpose
 
@@ -132,6 +140,61 @@ by individual zone, was already made and already accommodates significant zone g
 8-palette ceiling becomes binding. (OBJ palettes: 4 of 8 in active use — bunny, star, flower,
 carrot; 4 unused/placeholder slots remain.)
 
+## Data Model delta (2026-07-09 — target state, not yet shipped)
+
+Per **ADR-0009**/**ADR-0010**, proposed additions to the WRAM/SRAM layout above. Addresses are
+proposed, following the same confidence level `FS-101` used before `IP-1010` confirmed
+`SCOREITEM_FLAGS`' final placement — subject to confirmation at implementation, not binding here.
+
+### 6. WRAM additions (proposed, within existing bank-0 headroom)
+
+The current WRAM map ends its named allocations at `0xC068` (`SCOREITEM_FLAGS`) before jumping to
+`0xC300` (`OAM_BUF`) — a ~660-byte unused gap between them
+([R111](../research/encyclopedia/R111-wram-banking-sm83-prng.md) confirms ~3.1 KiB of headroom in
+bank 0 alone). Proposed placement, 8-aligned, starting at `0xC070`:
+
+| Address (proposed) | Name | Content |
+|---|---|---|
+| `C069`–`C06A` | `SEED` | 16-bit seed value (low/high byte), copied from SRAM at load, source for the PRNG's initial state ([R111](../research/encyclopedia/R111-wram-banking-sm83-prng.md)) |
+| `C06B` | `WORLD_SCALE` | 1 byte, 2–9 ([ADR-0010](adr/ADR-0010-seed-scale-model.md)) |
+| `C070`–`C070+5×(scale²)−1` | `REGION_GRAPH` | working set: 5 bytes/region (1 biome-id byte + 4 neighbor-region-index bytes, `0xFF`=no neighbor in that direction) × up to 81 regions at `scale=9` = **≤405 bytes worst case** |
+| next 8-aligned after `REGION_GRAPH` | `KEYITEM_FLAGS` | up to 81 bytes, one per region (generalizes `CARROT_FLAGS`'s 9-byte array — [GDS-04](04-domain-model.md)'s delta) |
+
+Worst-case total new WRAM: ~489 bytes (`2+1+405+81`) — comfortably inside the confirmed ~3.1 KiB
+bank-0 headroom (R111); `SVBK`/banked WRAM is **not** triggered by this addition, consistent with
+R111's conclusion.
+
+### 7. SRAM save-format additions (proposed, extends the `FS-101`/`IP-1010` version-byte pattern)
+
+Per [R106](../research/encyclopedia/R106-mbc1-sram-battery-saves.md)'s extension and
+**ADR-0010**: a new save-format version value (superseding `SAVE_VERSION_VAL = 0x01` at `0xA012`)
+signals this layout; proposed fields appended after the existing `0xA013`–`0xA01B`
+`SCOREITEM_FLAGS` mirror:
+
+| Address (proposed) | Content |
+|---|---|
+| `A012` | Save-format version guard — new value, superseding `0x01` |
+| `A01C`–`A01D` | `SEED` mirror (16-bit) |
+| `A01E` | `WORLD_SCALE` mirror |
+| `A01F`–`A06F` | `KEYITEM_FLAGS` mirror, 81 bytes worst-case (generalizes the `CARROT_FLAGS` mirror at `A009`–`A011`) |
+
+Total addition: ~84 bytes — against 8 KiB SRAM, negligible (R106's extension). **The generated
+world's region graph/biome content is *not* persisted** — only `SEED`+`WORLD_SCALE`+
+`KEYITEM_FLAGS` are saved; `REGION_GRAPH` regenerates deterministically from `SEED`+`WORLD_SCALE`
+on load, per ADR-0009's determinism requirement. Per **ADR-0010**'s decision, a save whose version
+byte does not match this new value is not offered on the main menu's "continue" path (the world
+*model* differs, not just a field — the same reasoning ADR-0010 already recorded).
+
+### 8. Tile index map implication (cross-reference only — GDS-08 decides the actual strategy)
+
+**ADR-0009**'s biome-family `Region` identity (GDS-04's delta) needs tile budget per family,
+generalizing today's per-zone terrain blocks (§4 above: `0x70`–`0xB5`, 6–8 tiles/zone,
+8-tile-aligned). **This document does not decide how many biome families exist or how their tile
+budgets are assigned** — that is [GDS-08](08-presentation-architecture.md)'s delta (the
+normative aesthetic standard for C8, biome-transition presentation for C9), which this level's
+own existing Purpose statement already reserves ("presentation architecture... builds on this
+one"). Noted here only as a forward pointer, not resolved.
+
 ## Merge gate
 
 - [x] Stub body replaced with real content addressing the stated Purpose.
@@ -148,5 +211,9 @@ WRAM layout) and are **not** the source of the facts above, which are verified d
 the current `build_rom.py`/`asm_game.py`/`tiles.py`. **Decision: this level supersedes both
 documents' byte-level tables entirely** — the single most consequential merge decision in this
 ladder so far, since these are exactly the tables developers reach for first when touching game
-code. Both should become short pointers here once the `BL-0007`/`BL-0008` documentation-refresh
-pass lands; until then they remain flagged stale (per `MSTR-001` §6).
+code. **As of `IP-9030` (2026-07-09), both `Claude.md` and `memory.md` now carry short pointers
+here instead of duplicated tables** — the merge this decision anticipated has landed.
+
+**Delta record (2026-07-09):** §§6–8 ("Data Model delta") added above, per the adopted increment
+plan's Phase 3 and ADR-0009/0010. Delta, not re-authoring — §§1–5's tables remain the accurate
+as-shipped layout; no merge-gate box above is reopened.

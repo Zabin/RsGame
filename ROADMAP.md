@@ -27,9 +27,9 @@ build order.
 
 | ID | Document | Path | Depends on | Status |
 |---|---|---|---|---|
-| RT-README | Project overview & quick start | `README.md` | — | ♻️ |
-| RT-CLAUDE | Durable developer/agent quick-reference | `Claude.md` | GDS ladder merge decisions | ♻️ |
-| RT-MEMORY | Runtime notes & quick-ref tables | `memory.md` | — | ♻️ |
+| RT-README | Project overview & quick start | `README.md` | — | ♻️ (refreshed 2026-07-09, IP-9030) |
+| RT-CLAUDE | Durable developer/agent quick-reference | `Claude.md` | GDS ladder merge decisions | ♻️ (refreshed 2026-07-09, IP-9030 — byte-level tables now supersede to GDS-07/08) |
+| RT-MEMORY | Runtime notes & quick-ref tables | `memory.md` | — | ♻️ (refreshed 2026-07-09, IP-9030) |
 | RT-ROADMAP | This file | `ROADMAP.md` | all IDs below | ♻️ |
 | RT-INDEX | Master docs router | `docs/INDEX.md` | all theme indexes | ♻️ |
 | RT-BOOTSTRAP | Bootstrap run-book | `docs/pipeline/BOOTSTRAP.md` | pipeline README | ✅ |
@@ -40,13 +40,13 @@ build order.
 |---|---|---|---|---|
 | PL-JOURNAL | Pipeline journal | `docs/pipeline/pipeline-journal.md` | — | ♻️ |
 | PL-BACKLOG | Pipeline backlog | `docs/pipeline/backlog.md` | — | ♻️ |
-| PL-PLAN-ASM | Increment plan: requirements for aesthetics / visual story / procgen map | `docs/pipeline/PLAN-requirements-aesthetics-story-map.md` | MSTR-001, PL-BACKLOG, RQ baseline | ✅ **ADOPTED** (2026-07-09, owner decision; v5 carries owner direction D1–D10) |
+| PL-PLAN-ASM | Increment plan: requirements for aesthetics / visual story / procgen map | `docs/pipeline/PLAN-requirements-aesthetics-story-map.md` | MSTR-001, PL-BACKLOG, RQ baseline | ✅ **PHASE 4 COMPLETE** (adopted 2026-07-09; all 4 phases executed same day, runs #31–#42 — RQ-01…04 delta is the terminal deliverable) |
 
 ## Theme: Master (`docs/master/`) — owner `01-vision` (+ `03`)
 
 | ID | Document | Path | Depends on | Status |
 |---|---|---|---|---|
-| MSTR-001 | Program vision | `docs/master/MSTR-001-program-vision.md` | — | ✅ |
+| MSTR-001 | Program vision | `docs/master/MSTR-001-program-vision.md` | — | ✅ v3.0 (2026-07-09 — adds C8/C9/C10, amends C2; see §8) |
 | MSTR-002…007 | Optional principle docs (see `docs/master/INDEX.md`) | `docs/master/` | MSTR-001 | ⛔ (on demand) |
 
 ## Theme: Research (`docs/research/`) — owners: the three `02-research-*` skills
@@ -54,37 +54,37 @@ build order.
 | ID | Document | Path | Depends on | Status |
 |---|---|---|---|---|
 | RS-INDEX | Research index (tier tables) | `docs/research/INDEX.md` | — | ♻️ |
-| R101–R110 | Tier R100 — GBC hardware & SM83 | `docs/research/encyclopedia/` | MSTR-001 | ✅ (2026-07-06) |
-| R201–R211 | Tier R200 — Game design (incl. R209–R211, pixel art / AI-generation workflow / GBC case studies, filed via `BL-0013`) | `docs/research/encyclopedia/` | MSTR-001 | ✅ (2026-07-06) |
-| R301–R306 | Tier R300 — Tooling & verification | `docs/research/encyclopedia/` | MSTR-001 | ✅ (2026-07-06) |
+| R101–R111 | Tier R100 — GBC hardware & SM83 (R111, CGB banked WRAM + SM83 PRNG determinism, added 2026-07-09 via `BL-0031`; R102/R106 extended same day) | `docs/research/encyclopedia/` | MSTR-001 | ✅ (2026-07-06; R111 + extensions 2026-07-09) |
+| R201–R214 | Tier R200 — Game design (incl. R209–R211, pixel art / AI-generation workflow / GBC case studies, filed via `BL-0013`; R212–R214, wordless narrative / procgen algorithms / GBC procgen case studies, filed via `BL-0030`/`BL-0031`) | `docs/research/encyclopedia/` | MSTR-001 | ✅ (2026-07-06; R212–R214 added 2026-07-09) |
+| R301–R306 | Tier R300 — Tooling & verification (R302/R305 extended 2026-07-09 for MSTR-001 C10's reference-generator-oracle testing strategy, via `BL-0031`) | `docs/research/encyclopedia/` | MSTR-001 | ✅ (2026-07-06; extensions 2026-07-09) |
 
 ## Theme: Architecture (`docs/architecture/`) — owner `03-architecture-design-synthesis` (+ `01-vision` for GDS-00)
 
 | ID | Document | Path | Depends on | Status |
 |---|---|---|---|---|
-| GDS-00 | Vision level | `docs/architecture/00-vision.md` | MSTR-001 | ✅ |
-| GDS-01 | Concept of Play | `docs/architecture/01-concept-of-play.md` | GDS-00 | ✅ (2026-07-06) |
+| GDS-00 | Vision level | `docs/architecture/00-vision.md` | MSTR-001 | ✅ (revised 2026-07-09 for MSTR-001 v3.0) |
+| GDS-01 | Concept of Play | `docs/architecture/01-concept-of-play.md` | GDS-00 | ✅ (2026-07-06; delta 2026-07-09 for procgen-world increment) |
 | GDS-02 | System Context | `docs/architecture/02-system-context.md` | GDS-01 | ✅ (2026-07-06) |
 | GDS-03 | Architecture | `docs/architecture/03-architecture.md` | GDS-02 | ✅ (2026-07-06) |
-| GDS-04 | Domain Model | `docs/architecture/04-domain-model.md` | GDS-03 | ✅ (2026-07-06) |
+| GDS-04 | Domain Model | `docs/architecture/04-domain-model.md` | GDS-03 | ✅ (2026-07-06; delta 2026-07-09 for procgen-world increment) |
 | GDS-05 | Functional Requirements | `docs/architecture/05-functional-requirements.md` | GDS-04 | ✅ (2026-07-06) |
 | GDS-06 | Non-functional Requirements | `docs/architecture/06-non-functional-requirements.md` | GDS-05 | ✅ (2026-07-06) |
-| GDS-07 | Data Model | `docs/architecture/07-data-model.md` | GDS-06 | ✅ (2026-07-06) |
-| GDS-08 | Presentation Architecture | `docs/architecture/08-presentation-architecture.md` | GDS-07 | ✅ (2026-07-06) |
-| GDS-09 | Interface Specification | `docs/architecture/09-interface-specification.md` | GDS-08 | ✅ (2026-07-06) |
-| GDS-10 | RTM level | `docs/architecture/10-requirements-traceability-matrix.md` | GDS-09 | ✅ (2026-07-06) |
-| AR-ASSUME | Strategic assumptions register | `docs/architecture/strategic-assumptions-register.md` | MSTR-001 | ♻️ (A1–A8, revised 2026-07-06) |
-| ADR-xxxx | Architecture Decision Records | `docs/architecture/adr/` | GDS-03 | ✅ (as-built set, ADR-0001…0008, 2026-07-06) |
+| GDS-07 | Data Model | `docs/architecture/07-data-model.md` | GDS-06 | ✅ (2026-07-06; delta 2026-07-09 for procgen-world increment) |
+| GDS-08 | Presentation Architecture | `docs/architecture/08-presentation-architecture.md` | GDS-07 | ✅ (2026-07-06; delta 2026-07-09 — normative aesthetic standard + biome-transition strategy for C8/C9) |
+| GDS-09 | Interface Specification | `docs/architecture/09-interface-specification.md` | GDS-08 | ✅ (2026-07-06; delta 2026-07-09 — worldgen.py contract, new patch points) |
+| GDS-10 | RTM level | `docs/architecture/10-requirements-traceability-matrix.md` | GDS-09 | ✅ (2026-07-06; ID-scheme refreshed 2026-07-09 — confirms no new prefix needed for procgen-world increment) |
+| AR-ASSUME | Strategic assumptions register | `docs/architecture/strategic-assumptions-register.md` | MSTR-001 | ♻️ (A1–A10, revised 2026-07-09) |
+| ADR-xxxx | Architecture Decision Records | `docs/architecture/adr/` | GDS-03 | ✅ (as-built set ADR-0001…0008, 2026-07-06; ADR-0009…0011 added 2026-07-09 for the procgen-world increment, ADR-0009 supersedes ADR-0001) |
 | ADS-xxx | Per-cluster design syntheses | `docs/architecture/` | research tiers | ⛔ (zero-or-more, on demand) |
 
 ## Theme: Requirements (`docs/requirements/`) — owner `04-requirements-engineering`
 
 | ID | Document | Path | Depends on | Status |
 |---|---|---|---|---|
-| RQ-01 | Functional Requirements | `docs/requirements/01-functional-requirements.md` | GDS-01…05, ADRs | ✅ (2026-07-06) |
-| RQ-02 | Non-Functional Requirements | `docs/requirements/02-non-functional-requirements.md` | GDS-06 | ✅ (2026-07-06) |
-| RQ-03 | Requirements Review | `docs/requirements/03-requirements-review.md` | RQ-01, RQ-02 | ✅ (2026-07-06) |
-| RQ-04 | Requirements Traceability Matrix | `docs/requirements/04-requirements-traceability-matrix.md` | RQ-01…03 | ✅ (2026-07-06) |
+| RQ-01 | Functional Requirements | `docs/requirements/01-functional-requirements.md` | GDS-01…05, ADRs | ✅ (2026-07-06; delta 2026-07-09, FR-1170–FR-9200, procgen-world increment) |
+| RQ-02 | Non-Functional Requirements | `docs/requirements/02-non-functional-requirements.md` | GDS-06 | ✅ (2026-07-06; delta 2026-07-09, NFR-1300–NFR-6510, procgen-world increment) |
+| RQ-03 | Requirements Review | `docs/requirements/03-requirements-review.md` | RQ-01, RQ-02 | ✅ (2026-07-06; delta 2026-07-09, findings #7–10) |
+| RQ-04 | Requirements Traceability Matrix | `docs/requirements/04-requirements-traceability-matrix.md` | RQ-01…03 | ✅ (2026-07-06; delta 2026-07-09, 16 new rows) |
 
 ## Theme: Feature planning (`docs/feature-planning/`) — owner `05-feature-decomposition`
 

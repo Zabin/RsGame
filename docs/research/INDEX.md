@@ -22,6 +22,7 @@ section, 3–8 page band) is embedded in each `02-research-*` skill.
 | R108 | [APU channels & register map](encyclopedia/R108-apu-channels-registers.md) | pulse channels, frequency encoding, the music engine's surface | ✅ |
 | R109 | [Cartridge header, checksums & boot](encyclopedia/R109-cartridge-header-checksums.md) | header fields, checksum algorithms, GBC flag | ✅ |
 | R110 | [Interrupt model & ISR conventions](encyclopedia/R110-interrupt-model-isr.md) | IE/IF, vector table, RETI discipline, VBLANK_FLAG pattern | ✅ |
+| R111 | [CGB banked WRAM & SM83 PRNG determinism](encyclopedia/R111-wram-banking-sm83-prng.md) | SVBK mechanism and generated-world WRAM headroom; a deterministic xorshift-style PRNG in SM83 assembly, grounding MSTR-001 C10/A9 (filed via `BL-0031`/D3) | ✅ |
 
 ## Tier R200 — Game Design (`02-research-game-design`)
 
@@ -38,6 +39,9 @@ section, 3–8 page band) is embedded in each `02-research-*` skill.
 | R209 | [Pixel art technique at 8×8/2bpp scale](encyclopedia/R209-pixel-art-technique.md) | silhouette-first design, color-per-part budgeting, outline use (filed via `BL-0013`) | ✅ |
 | R210 | [AI/agent-assisted tile-art generation & iteration workflow](encyclopedia/R210-ai-assisted-tile-art-workflow.md) | design→encode→render→review→revise loop for this project's own tooling (filed via `BL-0013`) | ✅ |
 | R211 | [Comparative case studies: acclaimed GBC/GBC-era visual design](encyclopedia/R211-acclaimed-gbc-visual-design-case-studies.md) | Oracle of Seasons/Ages, Shantae, Pokémon Gold/Silver, DKC (GBC) (filed via `BL-0013`) | ✅ |
+| R212 | [Wordless environmental storytelling & biome-adjacency grammar](encyclopedia/R212-wordless-environmental-storytelling-biome-grammar.md) | narrative-through-world-structure technique; the adjacency-grammar rule set grounding MSTR-001 C9 (filed via `BL-0030`/D2) | ✅ |
+| R213 | [Procedural map generation algorithms under 8-bit/GBC constraints](encyclopedia/R213-procedural-map-generation-algorithms.md) | random-walk/cellular-automata/WFC/graph-grammar survey; costed recommendation for MSTR-001 C10's generator (filed via `BL-0031`/D3) | ✅ |
+| R214 | [GBC homebrew & era titles using procedural map generation](encyclopedia/R214-gbc-homebrew-procgen-case-studies.md) | Roguecraft GB, Azure Dreams, Dragon Crystal — feasibility precedent for C10 (filed via `BL-0031`/D3) | ✅ |
 
 ## Tier R300 — Tooling, Emulation & Verification (`02-research-tooling-and-testing`)
 
@@ -47,7 +51,7 @@ section, 3–8 page band) is embedded in each `02-research-*` skill.
 | R302 | [Python-assembler codegen patterns](encyclopedia/R302-python-assembler-codegen-patterns.md) | label resolution, patch-point dicts, section layout | ✅ |
 | R303 | [2bpp tile encoding & palette data formats](encyclopedia/R303-2bpp-tile-encoding.md) | bitplanes, attribute maps, byte costs, the 256-tile budget | ✅ |
 | R304 | [ROM validation](encyclopedia/R304-rom-validation.md) | header checksum, size, cart-type fields; why T1 survives the BL-0006 rewrite | ✅ |
-| R305 | [Emulator-based test design](encyclopedia/R305-emulator-based-test-design.md) | memory vs. pixel assertions, frame determinism, save harnesses; **the concrete BL-0006 rewrite target** | ✅ |
+| R305 | [Emulator-based test design](encyclopedia/R305-emulator-based-test-design.md) | memory vs. pixel assertions, frame determinism, save harnesses; **the concrete BL-0006 rewrite target**; extended 2026-07-09 for MSTR-001 C10's determinism-testing strategy (reference-generator oracle, multi-seed property tests) | ✅ |
 | R306 | [Toolchain portability](encyclopedia/R306-toolchain-portability.md) | path conventions; **the concrete BL-0005 rewrite target** | ✅ |
 
 The planned-topic lists are suggestions recorded at scaffold time — the owning skill adjusts them
