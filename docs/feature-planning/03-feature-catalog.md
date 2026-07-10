@@ -441,6 +441,11 @@
 
 ## FEAT-1100 — Main Menu & New-Game Flow (new — not yet implemented)
 
+> **Forward reference (metadata only):** specified by
+> [FS-104](../features/FS-104-main-menu-new-game-flow.md) (2026-07-10). 2 Open Questions recorded
+> there (SEED/SCALE ENTRY cancel path, menu input mapping), both routed to
+> `07-implementation-planning`.
+
 - **Feature ID:** FEAT-1100
 - **Title:** Main Menu & New-Game Flow
 - **Purpose:** Gate every boot through a mandatory MAIN MENU offering continue/new-game, drive the
