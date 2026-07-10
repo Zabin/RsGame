@@ -14,44 +14,37 @@
 
 ## Position
 
-- **Updated:** 2026-07-09 (run #42)
-- **Increment:** **Two increments in flight, user is driving both via an explicit loop +
-  override.** (1) **Bootstrap baseline** — 01–07 ✅, all five packages **implemented** (four
-  VERIFIED, `IP-9030` COMPLETE); only `IP-9030`'s verification and stages 10–11 remain, deferred
-  behind a fresh-session requirement, not abandoned. (2) **Aesthetics / visual-story-narrative /
-  procgen-world-map** — adopted 2026-07-09
+- **Updated:** 2026-07-10 (run #43)
+- **Increment:** **Two increments in flight, user is directing both via an explicit multi-thread
+  loop instruction (this session).** (1) **Bootstrap baseline** — 01–09 ✅, **all five packages
+  VERIFIED** (`IP-9030` verified this run in a fresh session, closing the last one). `10-integration-review`
+  is next; `11-release-readiness` remains a standing human GO/NO-GO gate. (2) **Aesthetics /
+  visual-story-narrative / procgen-world-map** — adopted 2026-07-09
   ([PLAN-requirements-aesthetics-story-map.md](PLAN-requirements-aesthetics-story-map.md), v5,
-  owner decisions D1–D10). **All four phases complete (run #42 closes stage 04) — the plan's
-  own stated terminal deliverable (RQ-01…04 delta, 16 new target requirements) is reached.**
-  The plan itself is now `PHASE 4 COMPLETE`. Nothing described by the new baseline is built;
-  `05-feature-decomposition` onward is explicitly outside the plan's own scope (§8) — a fresh
-  decision for the user, not an automatic continuation.
-- **Pipeline state:** Bootstrap: stages 01–07 ✅ (first pass). Stage 08/09: **all five packages
-  implemented** — `IP-9010`/`IP-1010`/`IP-9020`/`IP-9040` **VERIFIED**
+  owner decisions D1–D10), Phases 1–4 complete (`PHASE 4 COMPLETE`). The user has this session
+  explicitly authorized continuing past the plan's own stated boundary (§8) into
+  `05-feature-decomposition` onward — no longer an open decision.
+- **Pipeline state:** Bootstrap: stages 01–09 ✅ — **all five packages VERIFIED**
   ([VR-9010](../implementation/verification/VR-9010-test-suite-rewrite.md) /
   [VR-1010](../implementation/verification/VR-1010-per-zone-scoreitem-persistence.md) /
   [VR-9020](../implementation/verification/VR-9020-score-bar-vblank-fix.md) /
-  [VR-9040](../implementation/verification/VR-9040-legacy-artifact-archival.md)); `IP-9030`
-  **COMPLETE**, awaiting `09-package-verification` in a **fresh session**. Stages 10–11 ⛔.
-  **New increment: fully complete** (stages 01–04, 3 ADRs, six GDS deltas, RQ-01…04 delta —
-  all dated 2026-07-09).
-- **Backlog:** 34 entries, 15 open. Run #42 harvest: **BL-0029/BL-0030/BL-0031 → DONE** — each
-  entry's full plan-stated path complete. The 04-delta batch (BL-0020/0022/0026/0028/0033/0034)
-  remains the largest open cluster — entirely within the **bootstrap** increment (unrelated to
-  the procgen-world increment's own now-closed requirements work).
-- **Next step:** **user decision required — two independent threads, neither automatic:**
-  (1) the **bootstrap increment's own unfinished business**, waiting since run #30:
-  `09-package-verification` on `IP-9030` (needs a fresh session, same-session independence
-  rule) and `11-release-readiness`'s GO/NO-GO call; (2) whether to continue the now-complete
-  procgen-world increment into **`05-feature-decomposition`** — decomposing the 16 new FR/NFRs
-  into `FEAT-xxxx` rows and populating `FP-01`'s empty Release 2+ buckets — explicitly named as
-  *outside* the adopted plan's own stated scope (§8), so this is a fresh continuation decision,
-  not an implied next step of "run the pipeline manager again."
-- **Open gates:** none technically blocking either thread — both await the user's own next
-  instruction on which (or both, or neither) to pursue. `IP-9030`'s verification needs a fresh
-  session (same-session independence rule); Release 1's GO/NO-GO (11) is a standing human gate.
-  No open human gates remain in the procgen-world increment's own gate table (§5) — every named
-  decision point was resolved through ADR-0010.
+  [VR-9040](../implementation/verification/VR-9040-legacy-artifact-archival.md) /
+  [VR-9030](../implementation/verification/VR-9030-root-doc-refresh.md)). Stage 10 (integration
+  review) next; stage 11 (release readiness) is a standing human GO/NO-GO gate. New increment:
+  stages 01–04 fully complete (3 ADRs, six GDS deltas, RQ-01…04 delta, all dated 2026-07-09);
+  05 onward now authorized to proceed.
+- **Backlog:** 34 entries, 13 open. Run #43 harvest: **BL-0007 → DONE** (VR-9030 independently
+  confirmed the root-doc refresh); **BL-0008 → DONE** (umbrella closes — all five packages
+  VERIFIED, the bootstrap tranche's entire remediation scope is complete). The 04-delta batch
+  (BL-0020/0022/0026/0028/0033/0034) remains the largest open cluster — housekeeping items, none
+  blocking any current work; natural riders for the next `04-requirements-engineering` touch or
+  `10-integration-review`'s own findings pass.
+- **Next step:** `10-integration-review` on the bootstrap tranche (all five VERIFIED packages) —
+  the first stage-10 run this project has done; no gate blocks it. In parallel, the
+  procgen-world increment's `05-feature-decomposition` is independently unblocked and will be
+  worked as its own thread.
+- **Open gates:** `11-release-readiness`'s GO/NO-GO call remains a standing human gate, reached
+  only after `10-integration-review` clears. No other open gates.
 
 ## Run log
 
@@ -100,3 +93,4 @@
 | 40 | 2026-07-09 | advance (loop, run 11) | `03-architecture-design-synthesis` | GDS-09 delta (worldgen.py contract, new patch points) | ✅ **Delta authored.** New module contract: `worldgen.py` (proposed) — `generate(seed, scale) -> RegionGraph`, a build-side Python mirror of the SM83 generator, consumed only by `test_rom.py` as R305's reference-generator oracle (never imported by `build_rom.py`/`asm_game.py` — mirrors, doesn't share code with, the runtime routine). The byte-identical-output contract between the two implementations is named explicitly as the load-bearing property R305's determinism-testing strategy depends on. Extended contracts: `build_game_asm`'s `patches` dict gains new keys (seed/scale-entry screen, generator-data pointers) via the existing mechanism, no new resolution machinery — exactly what R302's own guidance already anticipated; `ALL_SCREENS` generalizes to one `fn()` per biome family (not per fixed zone), contract shape unchanged, only the caller's iteration source changes. Confirmed unaffected: `class ROM`, `build_tile_data()`, `ZONE_COLLECTS`'s shape, `music_data()`. `docs/architecture/INDEX.md`/`ROADMAP.md` updated. No new findings; no drift. | `03-architecture-design-synthesis` again — **GDS-10** (RTM-level refresh), the last remaining level; closes stage 03 for this increment once done |
 | 41 | 2026-07-09 | advance (loop, run 12) | `03-architecture-design-synthesis` | GDS-10 delta (ID-scheme confirmation) | ✅ **Delta authored — closes stage 03's GDS-ladder-delta phase.** Refreshed the ID-namespace table (§2), stale since the bootstrap increment shipped through 04–09 without it being updated (`ADR-xxxx`/`RQ-0x`/`FP-0x`/`FS-xxx`/`IP-xxxx`/`VR-xxxx` all showed "not yet authored" despite being populated back at runs #16–#29). New "Scheme confirmation" subsection: no new ID prefix needed for this increment's artifacts — `MSTR-001` C8/C9/C10 are ordinary lettered commitments, `ADR-0009`/`0010`/`0011` are ordinary sequential ADRs (the first instance of one superseding another, handled by existing prose convention), the GDS-01/04/07/08/09 "delta section" pattern is an editing convention within existing documents, not a new ID class. **Incidental finding, harvested as new BL-0034** (Low, SCHEDULED): GDS-10's own 2026-07-06 merge decision said §3/§4 should become pointers to `RQ-04` once it was authored (it was, same day, run #17) — never executed; out of this light delta's scope, filed rather than restructured inline. `docs/architecture/INDEX.md`/`ROADMAP.md` updated. **All six GDS levels this increment touches (01/04/07/08/09/10) now carry a dated delta — stage 03 is fully closed for this increment** (the three ADRs + six deltas together satisfy the adopted plan's Phase 3 in full). | `04-requirements-engineering` — Phase 4 of the adopted plan, the increment's **terminal deliverable**: derive FR/NFR requirements per stream (aesthetic NFRs for C8; visual-narrative FRs incl. the biome-adjacency grammar as requirements, item-agnostic collect-goal for C9; world-generation FRs incl. determinism, seed/scale entry behavior, generator invariants for C10), RQ-03 review, RQ-04 RTM rows |
 | 42 | 2026-07-09 | advance (loop, run 13) | `04-requirements-engineering` | RQ-01…04 delta (16 new target requirements for the procgen-world increment) | ✅ **Delta authored — closes the adopted increment plan's Phase 4, its stated terminal deliverable.** **RQ-01** (+11 FRs): FR-1170/1180/1190 (main menu, seed/scale entry + generation trigger, exit-with-autosave — forward-pointer notes added to FR-1120/FR-1160, both left unmodified since still accurate for the shipped game); FR-3220 (item-agnostic KeyItem, generalizes FR-3210); FR-4300/4310 (one-biome-per-screen, grammar-valid-adjacency-only); new **FR-9000 group** (FR-9100 determinism, FR-9110 new-game-only immutable entry, FR-9120 reachability, FR-9130 one-KeyItem-per-region — generalizes `BL-0017`, now generator-guaranteed not convention-only, FR-9200 save-format extension). FR-9100's Notes records D1's no-dialogue non-goal explicitly. **RQ-02** (+6 NFRs): NFR-1300 (transition smoothness, tied to the existing LCD-off budget — generation itself is out of scope since it runs once at creation, not per-transition), NFR-2200 (generation determinism, extends A9), NFR-4200 (WRAM/SRAM headroom, extends `BL-0019`'s convention, cites R111's proposed figures), NFR-5300 (save-format version bump), NFR-6500/6510 (aesthetic craft/clean-screen standard, biome-transition palette-stepping — fill the previously-empty Usability category). **RQ-03**: four new findings — #7 flags a genuinely new pattern (target FRs coexisting with the current FRs they'll supersede, e.g. FR-1120/FR-1170) for `05-feature-decomposition` to resolve formally at implementation time, not a defect today; #8 confirms the expected not-yet-implemented verification gap (parallels finding #3's own resolution path); #9/#10 clean checks (ADR cross-reference accuracy; no requirement reverses D1's dialogue non-goal). Finding #6 (empty Usability category) marked superseded. Summary explicitly maps all ten owner decisions D1–D10 to their requirement-level descendants, satisfying the adopted plan §2 Phase 4's own definition of done. **RQ-04**: 16 new rows, `UNASSIGNED` forward columns throughout, module cells marked `(proposed)` where GDS-09's delta names a new module (`worldgen.py`). `docs/requirements/INDEX.md`/`ROADMAP.md` updated. Harvested: **BL-0029/BL-0030/BL-0031 → DONE** — each entry's full plan-stated stage path (01→02→03→04, or 01→03→04 for stream A) is now complete; the adopted plan itself flips ADOPTED → **PHASE 4 COMPLETE**. No new backlog entries beyond what's already tracked. No drift. **This is the increment's terminal deliverable — the aesthetics/visual-story-narrative/procgen-world-map increment's documentation-driven requirements baseline now exists, fully traced, nothing yet built.** | Two independent threads remain, neither blocking the other: (1) **`05-feature-decomposition`** would continue this increment past its own stated scope (decomposing the 16 new requirements into `FEAT-xxxx` rows, populating `FP-01`'s empty Release 2+ buckets) — explicitly named as *outside* the adopted plan's own boundary (§8), a genuinely new decision for the user, not an automatic continuation; (2) the **bootstrap increment's own remaining work** — `IP-9030`'s independent verification (blocked on a fresh session, per the same-session independence rule) and `11-release-readiness`'s GO/NO-GO call — has been waiting since run #30 and is not resolved by anything in this run. |
+| 43 | 2026-07-10 | advance (fresh session; user-directed multi-thread run) | `09-package-verification` | IP-9030 (root documentation refresh) | ✅ **VERIFIED.** Fresh session (no memory of run #30's implementation) — the independence requirement run #42 flagged is satisfied. PyBoy 2.7.0 + numpy freshly installed (no prior install in this container). ROM rebuilt byte-identical (sha256 match, 32768 bytes); full suite independently re-run: **125/125 pass, 0 failed**. All 4 DoD + 5 checklist items confirmed by direct read: stale-term sweep clean, README quick-start commands actually executed, `Claude.md`'s WRAM pointer spot-checked against `asm_game.py`'s constants via GDS-07 (exact match). **[VR-9030](../implementation/verification/VR-9030-root-doc-refresh.md)** written. Ledger: IP-9030 → **VERIFIED** — **all five bootstrap-tranche packages now VERIFIED.** Harvested: **BL-0007 → DONE**; **BL-0008 → DONE** (umbrella closes, its entire scope now complete). No new findings. No drift beyond the expected status flip. | `10-integration-review` on the bootstrap tranche (all five VERIFIED packages) — the next unblocked step for that thread; the procgen-world increment's `05-feature-decomposition` is this run's other independently-workable thread, per the user's explicit authorization to proceed past the adopted plan's own stated boundary |
