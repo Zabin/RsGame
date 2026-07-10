@@ -9,4 +9,5 @@ FEAT↔FS mapping in both directions.
 
 | FS ID | Title | FEAT source | Epic | Status | One-line summary |
 |---|---|---|---|---|---|
-| [FS-101](FS-101-per-zone-scoreitem-persistence.md) | Per-Zone ScoreItem Persistence | FEAT-5100 | EP-3000 | ✅ Specified (2026-07-07) | Extends the save system to persist which stars/flowers have been collected per zone, plus fixes a confirmed same-session respawn behavior as a side effect. |
+| [FS-101](FS-101-per-zone-scoreitem-persistence.md) | Per-Zone ScoreItem Persistence | FEAT-5100 | EP-3000 | ✅ Specified (2026-07-07); shipped/VERIFIED 2026-07-07 | Extends the save system to persist which stars/flowers have been collected per zone, plus fixes a confirmed same-session respawn behavior as a side effect. |
+| [FS-102](FS-102-procedural-world-generation.md) | Procedural World Generation & Item-Agnostic Collection | FEAT-9000 | EP-5000 | ✅ Specified (2026-07-10) — not yet implemented | Deterministic region-graph generation from `(seed, scale)` with grammar-valid adjacency, full reachability, and exactly one item-agnostic KeyItem per region; 3 Open Questions (grammar table contents, algorithm detail, ROM-pointer need) all routed to `07-implementation-planning`. |

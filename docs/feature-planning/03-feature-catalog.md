@@ -291,8 +291,10 @@
 
 ## FEAT-9000 — Procedural World Generation & Item-Agnostic Collection (new — not yet implemented)
 
-> **Target Feature, procgen-world increment (2026-07-09 RQ-01…04 delta).** No `FS-xxx` yet — the
-> next unspecified Feature this catalog names for `06-feature-specification`.
+> **Forward reference (metadata only):** specified by
+> [FS-102](../features/FS-102-procedural-world-generation.md) (2026-07-10). 3 Open Questions
+> recorded there (grammar-table contents, algorithm implementation detail, ROM-pointer need),
+> all routed to `07-implementation-planning`.
 
 - **Feature ID:** FEAT-9000
 - **Title:** Procedural World Generation & Item-Agnostic Collection
