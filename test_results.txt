@@ -1,4 +1,4 @@
-BunnyQuest ROM Tests  PASS=133/133  FAIL=0
+BunnyQuest ROM Tests  PASS=136/136  FAIL=0
 ==================================================
 [PASS] T1.1 ROM size = 32768  (32768)
 [PASS] T1.2 Entry = NOP; JP
@@ -45,7 +45,7 @@ BunnyQuest ROM Tests  PASS=133/133  FAIL=0
 [PASS] T5.6 Zone: col 2 = carrot-count digit  (0x20)
 [PASS] T5.7 Zone: col 7 = star icon (0x14)  (0x14)
 [PASS] T5.8 Zone: score digits at cols 8-10  (['20', '20', '20'])
-[PASS] T5.9 Zone 0 field uses Beach terrain family (0x70-0x76)  (299 beach-family tiles)
+[PASS] T5.9 Region 0 (pre-generation, biome-id 0) uses Water terrain family (0x88-0x8D)  (298 water-family tiles)
 [PASS] T6.1 Bunny OAM Y = player_y+16  (96 vs 96)
 [PASS] T6.2 Bunny OAM X = player_x+8  (88 vs 88)
 [PASS] T6.3 Bunny tile = frame*2 (0 or 2)  (0x00)
@@ -133,3 +133,6 @@ BunnyQuest ROM Tests  PASS=133/133  FAIL=0
 [PASS] T12.f seed=0 normalizes to a nonzero PRNG state, direct WRAM inspection (AC-7 precondition)  (state=(0,1))
 [PASS] T12.h Static audit: no LDH (hardware register, incl. DIV) read in generate_world/gw_prng_step (NFR-2200)  (source-scanned)
 [PASS] T12.i WRAM headroom: SEED..GW_SCALE_SQ extent stays inside bank-0 + boot-clear range (NFR-4200)  (SEED=0xC069 extent_end=0xC27C)
+[PASS] T13.a Tile-family audit: each of the 5 biome-ids renders its own family's tiles (AC-1)  (bad=[])
+[PASS] T13.b Transition call-site audit: exactly one copy_screen call site in dsr_p (AC-2)  (1 call site(s))
+[PASS] T13.c Regression: scale=3 arrow placement matches shipped 3x3 grid, every region/direction  (bad=[])

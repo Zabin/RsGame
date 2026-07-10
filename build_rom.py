@@ -98,7 +98,8 @@ def build(out_path='BunnyQuest.gbc'):
     music_addr = rom.pos
     for b in music_data(): rom.emit(b)
 
-    # Screens (zones first, then UI)
+    # Screens (5 biome-family representatives first, then UI) — IP-1030
+    # generalizes this from a fixed 9-zone list to ALL_SCREENS's new shape.
     screen_addrs = {}
     for name, fn in ALL_SCREENS:
         tiles, attrs = fn()
@@ -109,13 +110,10 @@ def build(out_path='BunnyQuest.gbc'):
         screen_addrs[name] = (t_addr, a_addr)
         print(f"  {name:8s}: T=0x{t_addr:04X} A=0x{a_addr:04X}")
 
-    # Zone screens lookup table (9 entries × 4 bytes: tile_lo, tile_hi, attr_lo, attr_hi)
-    zs_table_addr = rom.pos
-    for i in range(9):
-        t_addr, a_addr = screen_addrs[f'z{i}']
-        rom.emit(t_addr & 0xFF, (t_addr >> 8) & 0xFF)
-        rom.emit(a_addr & 0xFF, (a_addr >> 8) & 0xFF)
-    print(f"  zs_table: 0x{zs_table_addr:04X}")
+    # (zs_table retired — IP-1030. The 9-entry per-zone lookup table is
+    # replaced by 5 named per-biome-family patch pairs below, parallel to
+    # the existing title_t/title_a pattern; dispatched at runtime by
+    # REGION_GRAPH's generated biome-id, not a fixed CUR_ZONE*4 index.)
 
     # Zone collectibles tables
     zone_data_addrs = []
@@ -156,7 +154,19 @@ def build(out_path='BunnyQuest.gbc'):
     p16(patches['vic_t'],   screen_addrs['victory'][0])
     p16(patches['vic_a'],   screen_addrs['victory'][1])
 
-    p16(patches['zs_table'], zs_table_addr)
+    # IP-1030: one tile/attr address pair per biome family (5), parallel
+    # to the title_t/title_a pattern above — not one pair per region.
+    p16(patches['water_t'], screen_addrs['water'][0])
+    p16(patches['water_a'], screen_addrs['water'][1])
+    p16(patches['sand_t'],  screen_addrs['sand'][0])
+    p16(patches['sand_a'],  screen_addrs['sand'][1])
+    p16(patches['grass_t'], screen_addrs['grass'][0])
+    p16(patches['grass_a'], screen_addrs['grass'][1])
+    p16(patches['stone_t'], screen_addrs['stone'][0])
+    p16(patches['stone_a'], screen_addrs['stone'][1])
+    p16(patches['brick_t'], screen_addrs['brick'][0])
+    p16(patches['brick_a'], screen_addrs['brick'][1])
+
     p16(patches['zc_table'], zc_table_addr)
 
     rom.resolve()

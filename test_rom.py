@@ -19,6 +19,8 @@ Suites:
   T12 World generation (IP-1020) — determinism, oracle parity, reachability,
       grammar-validity, one-KeyItem-per-region, item-agnostic collection,
       seed=0 normalization, WRAM headroom
+  T13 Generated-region screen composition (IP-1030) — tile-family audit,
+      transition call-site audit, scale=3 arrow-placement regression
 
 WRAM model under test (see docs/architecture/07-data-model.md):
   C000 GAMESTATE (0=TITLE 1=INTRO 2=PLAYING 3=SAVE 4=MAP 5=VICTORY)
@@ -303,11 +305,11 @@ check("T5.3 Title: font tiles in row 4 (BUNNY QUEST)",
       f"{[f'{b:02X}' for b in row4]}")
 shoot(pb, "T5_title")
 
-# Advance to zone 0 (Beach)
+# Advance to region 0
 pb.button('start'); [pb.tick() for _ in range(80)]
 pb.button('a');     [pb.tick() for _ in range(80)]
 
-# Score bar (row 0, all zones share the pattern from _score_bar)
+# Score bar (row 0, all regions share the pattern from _score_bar)
 row0 = [pb.memory[0x9800 + i] for i in range(12)]
 check("T5.4 Zone: row 0 col 0 = BG blank",        row0[0] == TL_BG_BLANK, f"0x{row0[0]:02X}")
 check("T5.5 Zone: col 1 = carrot icon (0x13)",    row0[1] == TL_CARROT_ICON, f"0x{row0[1]:02X}")
@@ -316,13 +318,19 @@ check("T5.7 Zone: col 7 = star icon (0x14)",      row0[7] == TL_STAR_ICON_BG, f"
 check("T5.8 Zone: score digits at cols 8-10",     all(TL_DIGIT_0 <= row0[c] <= TL_DIGIT_0+9 for c in (8, 9, 10)),
       f"{[f'{row0[c]:02X}' for c in (8,9,10)]}")
 
-# Beach terrain: field rows should use the Beach tile family (0x70-0x76)
+# IP-1030: region 0's screen is now selected by REGION_GRAPH[0]'s biome-id,
+# not a fixed "zone 0 = Beach" mapping. Pre-generation (no call site exists
+# yet — IP-1040's scope), REGION_GRAPH is boot-clear zeroed, so biome-id=0
+# (Water, generate_world's own axis) selects the Water family (lake_screen)
+# rather than the old hardcoded Beach. This is the real, current, tested
+# default — not an assumption (T13.a below covers the full generated-biome
+# audit across IP-1020's corpus).
 field = [pb.memory[0x9800 + r*32 + c] for r in range(2, 17) for c in range(20)]
-beach_tiles = sum(1 for b in field if 0x70 <= b <= 0x76)
-check("T5.9 Zone 0 field uses Beach terrain family (0x70-0x76)", beach_tiles > 40,
-      f"{beach_tiles} beach-family tiles")
+water_tiles = sum(1 for b in field if 0x88 <= b <= 0x8D)
+check("T5.9 Region 0 (pre-generation, biome-id 0) uses Water terrain family (0x88-0x8D)",
+      water_tiles > 40, f"{water_tiles} water-family tiles")
 
-shoot(pb, "T5_beach")
+shoot(pb, "T5_region0")
 pb.stop()
 
 # ══════════════════════════════════════════════════════
@@ -857,6 +865,89 @@ check("T12.h Static audit: no LDH (hardware register, incl. DIV) read in generat
 check("T12.i WRAM headroom: SEED..GW_SCALE_SQ extent stays inside bank-0 + boot-clear range (NFR-4200)",
       SEED >= 0xC000 and GW_SCALE_SQ <= 0xC2FF,
       f"SEED=0x{SEED:04X} extent_end=0x{GW_SCALE_SQ:04X}")
+
+# ══════════════════════════════════════════════════════
+# T13 — Generated-Region Screen Composition (IP-1030)
+# ══════════════════════════════════════════════════════
+print("\n=== T13: Generated-Region Screen Composition ===")
+
+def force_region_redraw(pb, region):
+    pb.memory[CUR_ZONE] = region
+    pb.memory[NEED_REDRAW] = 1
+    for _ in range(10): pb.tick()
+
+def field_tiles(pb):
+    return [pb.memory[0x9800 + r*32 + c] for r in range(2, 17) for c in range(20)]
+
+# T13.a — tile-family audit (AC-1): one representative region per biome-id,
+# directly forced via REGION_GRAPH (isolates the rendering dispatch from
+# generation correctness, which T12 already covers exhaustively) — confirms
+# dsr_p's biome-id dispatch selects the right family screen for all 5 IDs.
+FAMILY_RANGES = {
+    0: (0x88, 0x8D),   # water -> lake_screen
+    1: (0x70, 0x76),   # sand  -> beach_screen
+    2: (0x78, 0x7D),   # grass -> forest_screen
+    3: (0x80, 0x85),   # stone -> mountain_screen
+    4: (0xB0, 0xB5),   # brick -> castle_screen
+}
+pb = fresh_boot(180)
+advance_to_playing(pb)
+family_bad = []
+for biome_id, (lo, hi) in FAMILY_RANGES.items():
+    pb.memory[REGION_GRAPH] = biome_id
+    for k in range(4): pb.memory[REGION_GRAPH + 1 + k] = 0xFF   # no neighbors
+    force_region_redraw(pb, 0)
+    field = field_tiles(pb)
+    in_family = sum(1 for b in field if lo <= b <= hi)
+    if in_family <= 40:
+        family_bad.append((biome_id, in_family))
+pb.stop()
+check("T13.a Tile-family audit: each of the 5 biome-ids renders its own family's tiles (AC-1)",
+      len(family_bad) == 0, f"bad={family_bad}")
+
+# T13.b — transition call-site audit (AC-2, Inspection): exactly one
+# copy_screen call site handles region-entry (PLAYING) rendering, mirroring
+# VR-9020's own sweep methodology (confirms no new/alternate VRAM write
+# path was introduced for generated content) — scoped to dsr_p's own body,
+# since the 5 UI screens (title/intro/save/map/victory) have always had
+# their own separate, pre-existing copy_screen call site (_dsr_screen).
+_src = (BASE / 'asm_game.py').read_text()
+_dsr_p_src = _src[_src.index("rom.label('dsr_p')"):_src.index("rom.label('dsr_done')")]
+_copy_screen_calls = _dsr_p_src.count("CALL('copy_screen')")
+check("T13.b Transition call-site audit: exactly one copy_screen call site in dsr_p (AC-2)",
+      _copy_screen_calls == 1, f"{_copy_screen_calls} call site(s)")
+
+# T13.c — regression: at scale=3, arrow placement matches the shipped 3x3
+# grid exactly, for every region. generate_world's neighbor computation is a
+# pure function of (row, col, scale) — independent of the PRNG/seed — so
+# this holds for any seed at scale=3, not just one fixed case. Neighbor
+# bytes are forced directly (not via invoke_generate_world, whose PC/SP
+# hijack traps the CPU in a self-loop that can't resume normal button-
+# driven gameplay afterward — T12 already exhaustively covers generation
+# correctness; this test isolates the rendering side, same as T13.a).
+def arrow_addr(x, y): return 0x9800 + y*32 + x
+ARROW_POS = {'up': arrow_addr(15, 1), 'down': arrow_addr(15, 16),
+             'left': arrow_addr(1, 9), 'right': arrow_addr(32-2, 9)}
+ARROW_TILE = {'up': 0x18, 'down': 0x19, 'left': 0x17, 'right': 0x16}  # TL_ARROW_U/D/L/R
+
+pb = fresh_boot(180)
+advance_to_playing(pb)
+arrow_bad = []
+for region in range(9):
+    row, col = region // 3, region % 3
+    expected = {'up': row > 0, 'down': row < 2, 'left': col > 0, 'right': col < 2}
+    pb.memory[REGION_GRAPH + region*5 + 1] = (region - 3) & 0xFF if row > 0 else 0xFF
+    pb.memory[REGION_GRAPH + region*5 + 2] = (region + 3) & 0xFF if row < 2 else 0xFF
+    pb.memory[REGION_GRAPH + region*5 + 3] = (region - 1) & 0xFF if col > 0 else 0xFF
+    pb.memory[REGION_GRAPH + region*5 + 4] = (region + 1) & 0xFF if col < 2 else 0xFF
+    force_region_redraw(pb, region)
+    for direction, addr in ARROW_POS.items():
+        present = pb.memory[addr] == ARROW_TILE[direction]
+        if present != expected[direction]:
+            arrow_bad.append((region, direction, present, expected[direction]))
+pb.stop()
+check("T13.c Regression: scale=3 arrow placement matches shipped 3x3 grid, every region/direction",
+      len(arrow_bad) == 0, f"bad={arrow_bad[:5]}")
 
 # ══════════════════════════════════════════════════════
 # SUMMARY

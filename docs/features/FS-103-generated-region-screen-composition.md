@@ -5,11 +5,13 @@
 > elaborates FEAT-4100, it does not modify its catalog entry, the requirements it implements, or
 > any architecture document.
 >
-> **Forward reference (metadata only):** planned by
-> [IP-1030](../implementation/packages/IP-1030-generated-region-screen-composition-code.md)
-> (code) and
+> **Forward reference (metadata only):** [IP-1030](../implementation/packages/IP-1030-generated-region-screen-composition-code.md)
+> (code) **implemented 2026-07-10** — AC-1/AC-2 demonstrably pass via T13.a/T13.b (136/136 total,
+> full suite green); independent verification pending `09-package-verification`.
 > [IP-1031](../implementation/packages/IP-1031-generated-region-screen-composition-content.md)
-> (content), both 2026-07-10, which jointly resolve this document's Open Questions 1–2.
+> (content) still planned, not yet implemented — jointly with IP-1030 resolves this document's
+> Open Questions 1–2 (IP-1030 resolved the code-side implementation-detail portion; the
+> content-sizing/registration portion awaits IP-1031).
 
 [↑ Features index](INDEX.md) · [Feature Catalog](../feature-planning/03-feature-catalog.md) ·
 [Epic Catalog](../feature-planning/02-epic-catalog.md)

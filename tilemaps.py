@@ -1,8 +1,12 @@
 """
 tilemaps.py — Bunny Quest screen layouts and per-zone collectibles.
-9 zones in a 3x3 world grid. Index = row*3 + col.
+ZONE_COLLECTS is still 9 zones in a 3x3 world grid, index = row*3 + col
+(unchanged — IP-1030's scope is screen composition, not collectibles).
+ALL_SCREENS (IP-1030) is now 5 biome-family screen representatives +
+5 UI screens, dispatched at runtime by REGION_GRAPH's generated biome-id,
+not by a fixed per-zone table.
 
-Grid layout:
+Grid layout (ZONE_COLLECTS only):
    col 0      col 1       col 2
   +----------+-----------+----------+
 0 | BEACH    | FOREST    | MOUNTAIN |
@@ -52,13 +56,10 @@ def _score_bar(tiles, attrs, zone_name=""):
     if zone_name:
         _str(tiles, attrs, 12, 0, zone_name, 2)
 
-def _zone_arrows(tiles, attrs, zone):
-    """Place edge arrows showing which directions you can travel from zone."""
-    row, col = zone // 3, zone % 3
-    if col < 2: _put(tiles, attrs, W-2, 9, TL_ARROW_R, 2)
-    if col > 0: _put(tiles, attrs, 1,   9, TL_ARROW_L, 2)
-    if row > 0: _put(tiles, attrs, 15,  1, TL_ARROW_U, 2)
-    if row < 2: _put(tiles, attrs, 15, 16, TL_ARROW_D, 2)
+# _zone_arrows (build-time, fixed 3x3 rectangle math) retired — IP-1030.
+# Region-transition arrows are now drawn at runtime from REGION_GRAPH's
+# per-region neighbor data (asm_game.py: draw_region_arrows), since a
+# generated world's neighbor structure isn't known until generation runs.
 
 # ── Zone screens ──────────────────────────────────────────
 def beach_screen():
@@ -85,7 +86,6 @@ def beach_screen():
     # shells (palette 5 — pink)
     for sx, sy in [(7, 9), (18, 7), (22, 11), (10, 5)]:
         _put(t, a, sx, sy, TL_SHELL, 5)
-    _zone_arrows(t, a, 0)
     return t, a
 
 def forest_screen():
@@ -105,7 +105,6 @@ def forest_screen():
         _put(t, a, sx, sy, TL_MUSHROOM, 7)
     _put(t, a, 17, 12, TL_LOG, 1)
     _put(t, a, 18, 12, TL_LOG, 1)
-    _zone_arrows(t, a, 1)
     return t, a
 
 def mountain_screen():
@@ -129,7 +128,6 @@ def mountain_screen():
     # icicles on bottom edge
     for ix in (4, 9, 17, 23, 28):
         _put(t, a, ix, 14, TL_ICICLE, 3)
-    _zone_arrows(t, a, 2)
     return t, a
 
 def lake_screen():
@@ -158,7 +156,6 @@ def lake_screen():
     # pier sticking down from top
     for py in range(2, 5):
         _put(t, a, 10, py, TL_PIER, 1)
-    _zone_arrows(t, a, 3)
     return t, a
 
 def village_screen():
@@ -184,7 +181,6 @@ def village_screen():
     for fx in (8, 17, 24):
         _put(t, a, fx, 6,  TL_FENCE, 1)
         _put(t, a, fx, 12, TL_FENCE, 1)
-    _zone_arrows(t, a, 4)
     return t, a
 
 def cave_screen():
@@ -209,7 +205,6 @@ def cave_screen():
         _put(t, a, dx, 2, TL_DRIP, 3)
     _put(t, a, 11, 3, TL_BAT, 4)
     _put(t, a, 20, 4, TL_BAT, 4)
-    _zone_arrows(t, a, 5)
     return t, a
 
 def desert_screen():
@@ -232,7 +227,6 @@ def desert_screen():
         _put(t, a, bx, by, TL_BONES, 4)
     _put(t, a, 14, 8, TL_PYRAMID, 1)
     _put(t, a, 22, 4, TL_PYRAMID, 1)
-    _zone_arrows(t, a, 6)
     return t, a
 
 def plains_screen():
@@ -261,7 +255,6 @@ def plains_screen():
         _put(t, a, tx, 10, TL_TALL_GRASS, 0)
     for bx, by in [(10, 5), (20, 9), (7, 14)]:
         _put(t, a, bx, by, TL_BUTTERFLY, 7)
-    _zone_arrows(t, a, 7)
     return t, a
 
 def castle_screen():
@@ -284,7 +277,6 @@ def castle_screen():
     for gx in (14, 15, 16):
         _put(t, a, gx, 14, TL_GATE, 1)
         _put(t, a, gx, 15, TL_GATE, 1)
-    _zone_arrows(t, a, 8)
     return t, a
 
 # ── Menu/story screens ────────────────────────────────────
@@ -358,17 +350,21 @@ def victory_screen():
         _put(t, a, x, y, TL_FLOWER_OBJ, p)
     return t, a
 
-# All screens (zones first 0..8, then UI screens)
+# All screens (5 biome-family representatives first, then UI screens).
+# IP-1030: generalizes from one entry per fixed zone (9) to one entry per
+# biome family (5), matching generate_world's Water=0..Brick=4 axis and
+# GDS-07's existing terrain-family palette grouping. Representative pick
+# per family (IP-1031's to revise; a one-line change, no structural impact):
+# water->lake (only zone on that palette), sand->beach, grass->forest,
+# stone->mountain, brick->castle (only zone on that palette). village_screen/
+# cave_screen/desert_screen/plains_screen are now orphaned (still defined,
+# no longer referenced) — same treatment as CARROT_FLAGS's own orphaning.
 ALL_SCREENS = [
-    ("z0", beach_screen),
-    ("z1", forest_screen),
-    ("z2", mountain_screen),
-    ("z3", lake_screen),
-    ("z4", village_screen),
-    ("z5", cave_screen),
-    ("z6", desert_screen),
-    ("z7", plains_screen),
-    ("z8", castle_screen),
+    ("water", lake_screen),
+    ("sand",  beach_screen),
+    ("grass", forest_screen),
+    ("stone", mountain_screen),
+    ("brick", castle_screen),
     ("title",   title_screen),
     ("intro",   intro_screen),
     ("save",    save_screen),

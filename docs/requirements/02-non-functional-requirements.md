@@ -90,7 +90,7 @@
 - **Notes:** Remediated by **IP-9020** (closes **BL-0003**, part of the umbrella remediation
   entry **BL-0008**).
 
-### NFR-1300 — Screen-transition smoothness for generated content (target — 2026-07-09)
+### NFR-1300 — Screen-transition smoothness for generated content (Met — 2026-07-10, `IP-1030`)
 
 - **ID:** NFR-1300
 - **Title:** A generated-region screen transition shall complete within the same LCD-off redraw
@@ -99,8 +99,13 @@
   using the existing `do_screen_redraw`/`copy_screen` LCD-off mechanism (NFR-1100's sibling
   requirement), with no new, slower transition path introduced for generated content.
 - **Rationale:** MSTR-001 C8/D4 ("smooth"); GDS-08 delta §7; GDS-07 delta; R102's extension.
-- **Priority:** Must (target — not yet implemented)
-- **Status: NOT YET IMPLEMENTED.** No generated-world transitions exist yet to measure.
+- **Priority:** Must (Met)
+- **Status: MET.** `dsr_p`'s biome-id dispatch (`IP-1030`) branches to one of 5 named patch pairs
+  purely to select the source address, then calls the exact same, unmodified `copy_screen` routine
+  inside the same LCD-off bracket every existing transition already used — confirmed by direct code
+  read (T13.b) and the T13.a tile-family audit. The new `draw_region_arrows` runtime routine
+  (retiring `_zone_arrows`' build-time math) also runs inside this same bracket, before LCD
+  re-enable — no new safe-window convention introduced.
 - **Acceptance Criteria:** A generated-region transition's tilemap/attribute write uses the same
   `copy_screen` routine and LCD-off bracket as every existing zone transition, with no additional
   per-frame cost beyond that routine's existing, already-budgeted 1152-byte copy.

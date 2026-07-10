@@ -12,7 +12,8 @@ Zone layout (CUR_ZONE = row*3 + col):
 """
 from gbc_lib import ROM
 from tiles import (TL_CARROT, TL_STAR, TL_FLOWER_OBJ,
-                   TL_HEART_FULL, TL_HEART_EMPTY, TL_DIGIT_0)
+                   TL_HEART_FULL, TL_HEART_EMPTY, TL_DIGIT_0,
+                   TL_ARROW_U, TL_ARROW_D, TL_ARROW_L, TL_ARROW_R)
 
 # ── WRAM addresses ─────────────────────────────────────────
 GAMESTATE      = 0xC000
@@ -618,19 +619,44 @@ def build_game_asm(rom: ROM) -> dict:
     _dsr_screen('dsr_v',  'vic_t',    'vic_a')
     _dsr_screen('dsr_m',  'map_t',    'map_a',  extra='update_map_hearts')
 
-    # PLAYING: zone screen lookup table
-    # Table format: 9 entries × 4 bytes (tile_lo, tile_hi, attr_lo, attr_hi)
+    # PLAYING: biome-family screen dispatch (IP-1030, generalizes the
+    # former fixed 9-entry zs_table). CUR_ZONE is read as the current
+    # region index into REGION_GRAPH (5 bytes/region: biome-id, then 4
+    # neighbor-index bytes in up/down/left/right order — GDS-07 §6,
+    # matching generate_world's own write order exactly).
     rom.label('dsr_p')
     rom.LD_A_nn(CUR_ZONE)
-    rom.ADD_A_A(); rom.ADD_A_A()       # *4
-    rom.LD_E_A(); rom.LD_D_n(0)
-    rom.LD_HL_nn(0); patches['zs_table'] = rom.pos - 2
-    rom.ADD_HL_DE()
-    rom.LD_A_HLI(); rom.LD_E_A()
-    rom.LD_A_HLI(); rom.LD_D_A()       # DE = tile addr
-    rom.LD_A_HLI(); rom.LD_C_A()
-    rom.LD_A_HL();  rom.LD_B_A()       # BC = attr addr
+    rom.LD_E_A(); rom.LD_D_n(0)        # DE = region index
+    rom.LD_HL_nn(REGION_GRAPH)
+    rom.ADD_HL_DE(); rom.ADD_HL_DE(); rom.ADD_HL_DE()
+    rom.ADD_HL_DE(); rom.ADD_HL_DE()   # HL = REGION_GRAPH + region*5 (16-bit,
+                                        # correct up to scale=9's 81 regions)
+    rom.LD_A_HLI()                     # A = biome-id (0..4); HL -> 'up' byte
+    rom.PUSH_HL()                      # save neighbor-byte pointer across CALLs
+
+    rom.CP_n(0); rom.JR_Z('dsr_p_water')
+    rom.CP_n(1); rom.JR_Z('dsr_p_sand')
+    rom.CP_n(2); rom.JR_Z('dsr_p_grass')
+    rom.CP_n(3); rom.JR_Z('dsr_p_stone')
+    rom.JR('dsr_p_brick')              # biome-id 4 (generate_world's own
+                                        # invariant: axis-clamped to 0..4)
+
+    def _dsr_family(lbl, pt_key, pa_key):
+        rom.label(lbl)
+        rom.LD_DE_nn(0); patches[pt_key] = rom.pos - 2
+        rom.LD_BC_nn(0); patches[pa_key] = rom.pos - 2
+        rom.JR('dsr_p_copy')
+
+    _dsr_family('dsr_p_water', 'water_t', 'water_a')
+    _dsr_family('dsr_p_sand',  'sand_t',  'sand_a')
+    _dsr_family('dsr_p_grass', 'grass_t', 'grass_a')
+    _dsr_family('dsr_p_stone', 'stone_t', 'stone_a')
+    _dsr_family('dsr_p_brick', 'brick_t', 'brick_a')
+
+    rom.label('dsr_p_copy')
     rom.CALL('copy_screen')
+    rom.POP_HL()                       # HL -> 'up' neighbor byte, restored
+    rom.CALL('draw_region_arrows')
     rom.JP('dsr_done')
 
     rom.label('dsr_done')
@@ -654,6 +680,49 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_DE(); rom.LD_HLI_A(); rom.INC_DE(); rom.DEC_BC()
     rom.LD_A_B(); rom.OR_C(); rom.JR_NZ('cs_a')
     rom.XOR_A(); rom.LDH_n_A(VBK)
+    rom.RET()
+
+    # ── draw_region_arrows (IP-1030) ──────────────────────
+    # Retires tilemaps.py's build-time _zone_arrows (fixed 3x3 rectangle
+    # math, ADR-0009 point 6). Reads the 4 neighbor-index bytes for the
+    # current region (HL, passed in by the caller, positioned at
+    # REGION_GRAPH's 'up' byte per dsr_p) and draws an arrow wherever the
+    # neighbor is valid (!= 0xFF) — same tile positions/palette as the
+    # retired build-time version, just resolved at runtime since a
+    # generated world's neighbor structure isn't known until generation
+    # runs. Called from inside do_screen_redraw's existing LCD-off
+    # bracket (NFR-1300: no new safe-window convention).
+    ARROW_ADDR_U = 0x9800 + 1*32 + 15
+    ARROW_ADDR_D = 0x9800 + 16*32 + 15
+    ARROW_ADDR_L = 0x9800 + 9*32 + 1
+    ARROW_ADDR_R = 0x9800 + 9*32 + (32-2)
+
+    def _arrow_write(addr, tile):
+        rom.XOR_A(); rom.LDH_n_A(VBK)
+        rom.LD_A_n(tile); rom.LD_HL_nn(addr); rom.LD_HL_A()
+        rom.LD_A_n(1); rom.LDH_n_A(VBK)
+        rom.LD_A_n(2); rom.LD_HL_nn(addr); rom.LD_HL_A()   # palette 2, matching
+                                                             # _zone_arrows' original
+        rom.XOR_A(); rom.LDH_n_A(VBK)
+
+    rom.label('draw_region_arrows')
+    rom.LD_A_HLI(); rom.LD_B_A()       # B = up
+    rom.LD_A_HLI(); rom.LD_C_A()       # C = down
+    rom.LD_A_HLI(); rom.LD_D_A()       # D = left
+    rom.LD_A_HL();  rom.LD_E_A()       # E = right
+
+    rom.LD_A_B(); rom.CP_n(0xFF); rom.JR_Z('dra_no_up')
+    _arrow_write(ARROW_ADDR_U, TL_ARROW_U)
+    rom.label('dra_no_up')
+    rom.LD_A_C(); rom.CP_n(0xFF); rom.JR_Z('dra_no_down')
+    _arrow_write(ARROW_ADDR_D, TL_ARROW_D)
+    rom.label('dra_no_down')
+    rom.LD_A_D(); rom.CP_n(0xFF); rom.JR_Z('dra_no_left')
+    _arrow_write(ARROW_ADDR_L, TL_ARROW_L)
+    rom.label('dra_no_left')
+    rom.LD_A_E(); rom.CP_n(0xFF); rom.JR_Z('dra_no_right')
+    _arrow_write(ARROW_ADDR_R, TL_ARROW_R)
+    rom.label('dra_no_right')
     rom.RET()
 
     # ── setup_zone_collects ───────────────────────────────
