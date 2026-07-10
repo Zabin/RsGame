@@ -133,7 +133,7 @@
   the writing rule that "implied by the architecture" is not itself a citation; the citation here
   is to the FR baseline's own testability need, which is a legitimate source.
 
-### NFR-2200 — Deterministic world generation (target — 2026-07-09)
+### NFR-2200 — Deterministic world generation (Met — 2026-07-10, `IP-1020`)
 
 - **ID:** NFR-2200
 - **Title:** World generation shall be deterministic in (seed, scale) alone — no dependence on
@@ -143,8 +143,13 @@
   read of the `DIV` register, uninitialized WRAM, or any other non-reproducible value anywhere
   in the generation algorithm.
 - **Rationale:** MSTR-001 C10; strategic assumption A9; R111.
-- **Priority:** Must (target — not yet implemented)
-- **Status: NOT YET IMPLEMENTED.**
+- **Priority:** Must
+- **Status: MET.** `generate_world`/`gw_prng_step` (`asm_game.py`) read only `SEED`/
+  `WORLD_SCALE`/`TMP1`/`TMP2`/`GW_*` scratch/`REGION_GRAPH` — no `LDH` (hardware register,
+  including `DIV`) anywhere in either routine, confirmed by `test_rom.py`'s **T12.h** source
+  scan. Determinism confirmed two ways: **T12.a** (byte-identical `REGION_GRAPH` across two
+  independent fresh-boot invocations of the same `(seed, scale)`) and **T12.b** (byte-identical
+  match against the `worldgen.py` reference oracle across a 15-entry seed/scale corpus).
 - **Acceptance Criteria:** Static inspection of the generation routine finds no read of `DIV` or
   any WRAM address not explicitly initialized from (seed, scale) or the routine's own prior
   output; a determinism property test (FR-9100) confirms identical output across repeated runs.
@@ -217,7 +222,7 @@
   and vice versa — the two must be checked independently for any future zone/content addition, per
   GDS-06 N1's explicit caution.
 
-### NFR-4200 — Generated-world WRAM/SRAM headroom (target — 2026-07-09)
+### NFR-4200 — Generated-world WRAM/SRAM headroom (WRAM half Met — 2026-07-10, `IP-1020`)
 
 - **ID:** NFR-4200
 - **Title:** The generated world's WRAM working set and SRAM save-field additions shall stay
@@ -227,11 +232,13 @@
   SRAM save-field additions shall remain a small fraction of the 8 KiB SRAM budget.
 - **Rationale:** GDS-07 delta §6/§7; R111; extends `BL-0019`'s ROM-headroom-watching convention
   to WRAM/SRAM specifically.
-- **Priority:** Must (target — not yet implemented)
-- **Status: NOT YET IMPLEMENTED** — proposed figures from GDS-07's delta (~489 bytes WRAM
-  worst-case against ~3.1 KiB confirmed bank-0 headroom; ~84 bytes SRAM against 8 KiB) indicate
-  this NFR is achievable, but the figures are architecture-level estimates, not measured against
-  shipped code.
+- **Priority:** Must
+- **Status: WRAM half MET (`IP-1020`); SRAM half still NOT YET IMPLEMENTED (`FEAT-5300`/
+  `IP-1050`'s scope).** Measured against shipped code, not estimated: `SEED`–`GW_SCALE_SQ`
+  (`0xC069`–`0xC27C`, confirmed [GDS-07](../architecture/07-data-model.md) §6) stays entirely
+  inside bank-0 and the existing boot-time WRAM clear (`0xC000`–`0xC2FF`); `test_rom.py`'s
+  **T12.i** confirms this directly against the built ROM at `scale=9`. The SRAM half's proposed
+  figures (~84 bytes against 8 KiB) remain architecture-level estimates pending `IP-1050`.
 - **Acceptance Criteria:** At world scale 9, the built ROM's WRAM working set for the region
   graph plus KeyItemFlags fits within bank-0 (`0xC000`–`0xCFFF`) without requiring `SVBK`
   banking; the SRAM save-field additions plus existing save data remain under 8 KiB.

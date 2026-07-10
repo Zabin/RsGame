@@ -1,7 +1,9 @@
 # FP-01 — Release Plan
 
 > **Status: ✅ Authored (bootstrap as-built, 2026-07-07); delta 2026-07-10 (procgen-world
-> increment + `BL-0036` correction).** Owned by `05-feature-decomposition`. Assigns every Feature
+> increment + `BL-0036` correction); Baseline + Release 1 assessed **GO** 2026-07-10
+> ([release-assessment-bootstrap-tranche.md](../reviews/release-assessment-bootstrap-tranche.md)).**
+> Owned by `05-feature-decomposition`. Assigns every Feature
 > in [FP-03](03-feature-catalog.md) (now thirteen) to exactly one bucket, using
 > [FP-04](04-feature-dependency-graph.md)'s dependency analysis. **Bootstrap framing: seven of
 > eight bootstrap-baseline Features are already shipped** (FEAT-5100 shipped and verified
@@ -9,6 +11,10 @@
 > **Release 2** now holds the procgen-world increment's five new Features.
 
 ## Bucket: Baseline (as-built)
+
+> **Release-readiness: GO (2026-07-10)** — see
+> [release-assessment-bootstrap-tranche.md](../reviews/release-assessment-bootstrap-tranche.md).
+> Assessed together with Release 1 below (one tranche, one integration review).
 
 Everything the shipped `BunnyQuest.gbc` ROM already does, as of this pipeline's bootstrap
 increment (2026-07-06/07). No scheduling decision was made for these — they are a record of what
@@ -24,7 +30,7 @@ exists, not a plan for what to build.
 | FEAT-6000 (Presentation & HUD) | Fully shipped; depends only on baseline Features. Its one tracked non-compliance (`NFR-1200`, `BL-0003`/`BL-0008`) is **resolved** (`IP-9020` VERIFIED, 2026-07-07). |
 | FEAT-7000 (Engine Quality & Build Infrastructure) | Fully shipped (6 of 6 included NFRs now Met). Its prior highest-severity non-compliance (`NFR-7100`, `BL-0006`/`BL-0008`) is **resolved** (`IP-9010` VERIFIED, 2026-07-07) — confirmed again by `10-integration-review`'s bootstrap-tranche pass (2026-07-10). |
 
-## Bucket: Release 1 — Save-System Completion (✅ shipped, VERIFIED 2026-07-07)
+## Bucket: Release 1 — Save-System Completion (✅ shipped, VERIFIED 2026-07-07; **GO 2026-07-10**)
 
 | Feature | Why here |
 |---|---|

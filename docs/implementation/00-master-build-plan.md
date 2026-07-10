@@ -22,7 +22,7 @@
 | [IP-9030](packages/IP-9030-root-doc-refresh.md) | Root documentation refresh (BL-0007) | `08-code-implementation` | **VERIFIED** | IP-9010 (VERIFIED), IP-9020 (VERIFIED) | **YES — explicit user G3, 2026-07-07 (BL-0024)** | **Verified 2026-07-10 ([VR-9030](verification/VR-9030-root-doc-refresh.md)):** all three root docs confirmed accurate against the shipped tree and GDS ladder, stale-term sweep clean, README quick-start commands actually executed (byte-identical build, 125/125), WRAM pointer spot-check matches `asm_game.py`. No findings — bootstrap tranche complete. |
 | [IP-9040](packages/IP-9040-legacy-artifact-archival.md) | Legacy artifact archival (BL-0004) | `08-code-implementation` | **VERIFIED** | IP-9010 (VERIFIED) | **YES** — G3 bootstrap carve-out + explicit user decision (run #1; widened scope run #2) | **Verified 2026-07-07 ([VR-9040](verification/VR-9040-legacy-artifact-archival.md)):** root clean, `legacy/` complete, history-preserving `git mv`, zero live references, ROM byte-identical, 125/125. No findings. |
 | [IP-1010](packages/IP-1010-per-zone-scoreitem-persistence.md) | Per-zone ScoreItem persistence (FS-101 / FEAT-5100) | `08-code-implementation` | **VERIFIED** | IP-9010 (VERIFIED) | **YES — explicit user G3, 2026-07-07 (BL-0024)** | **Verified 2026-07-07 ([VR-1010](verification/VR-1010-per-zone-scoreitem-persistence.md)):** 125/125 pass independently re-run, ROM byte-identical rebuild, all DoD/checklist items confirmed, BL-0023 fix proven (T11.a4/a5). One Low finding: NFR-5200's "pending independent verification" clause now stale (04 delta). |
-| [IP-1020](packages/IP-1020-procedural-world-generation.md) | Procedural world generation & item-agnostic collection (FS-102 / FEAT-9000) | `08-code-implementation` | **NOT STARTED** | IP-9010/9020/9030/9040/1010 (all VERIFIED) | **NOT AUTHORIZED — G3 pending** | Resolves FS-102 OQ1–3: flood-fill biome assignment over a fixed `scale×scale` grid (reachability trivial by construction), linear 5-family grammar axis (Water-Sand-Grass-Stone-Brick, no ROM table needed), `worldgen.py` oracle authored in lockstep. This tranche's foundational package (critical path root). |
+| [IP-1020](packages/IP-1020-procedural-world-generation.md) | Procedural world generation & item-agnostic collection (FS-102 / FEAT-9000) | `08-code-implementation` | **COMPLETE — 133/133 checks pass** | IP-9010/9020/9030/9040/1010 (all VERIFIED) | **YES — explicit user G3, 2026-07-10 (BL-0040)** | Resolved FS-102 OQ1–3 per the TWBS's design: flood-fill biome assignment over a fixed `scale×scale` grid, linear 5-family grammar axis, `worldgen.py` oracle in lockstep (T12.b: 0 mismatches across a 15-entry seed/scale corpus). New `generate_world`/`gw_prng_step` (`asm_game.py`, 16-bit xorshift PRNG) + new file `worldgen.py`. **`check_collisions`/`setup_zone_collects` generalized to `KEYITEM_FLAGS`/`KEYITEM_COUNT`, orphaning `CARROT_FLAGS`** — a companion fix (beyond §6's literal file list, within `asm_game.py`'s always-in-G1-scope and Step 7's "fix defects this package's changes introduce") was needed and applied to `update_map_hearts` and the `st_intro`/`st_victory` reset paths to avoid regressing the shipped Map screen/replay-reset behavior (confirmed via T8.7/T8.8/T4.10, retargeted). `save_to_sram`/`try_load_save` deliberately left untouched — `IP-1050`'s explicit scope; the save mechanism will not reflect KeyItem collection until that package lands (named Outstanding Issue, not a defect in this package). ROM: 23660/32768 bytes (+256 from IP-1010's 23404, ~8.9KB headroom remains). New suite **T12** (a–i, 9 checks) added. This tranche's foundational package (critical path root); `IP-1030`/`1031`/`1040`/`1050` remain `BLOCKED` pending `09-package-verification` (`COMPLETE` is not sufficient for `READY`, per this table's own header rule). |
 | [IP-1030](packages/IP-1030-generated-region-screen-composition-code.md) | Generated-region screen composition — code (FS-103 / FEAT-4100) | `08-code-implementation` | **BLOCKED** | IP-1020 | **NOT AUTHORIZED — G3 pending** | `ALL_SCREENS` generalized to 5 biome-family entries; `_zone_arrows`' hardcoded rectangle math retired in favor of reading `REGION_GRAPH` neighbor data (ADR-0009 point 6). |
 | [IP-1031](packages/IP-1031-generated-region-screen-composition-content.md) | Generated-region screen composition — content (FS-103 / FEAT-4100) | `08-content-authoring` | **BLOCKED** | IP-1020, IP-1030 | **NOT AUTHORIZED — G3 pending** | Registers 5 existing shipped zone-screen functions as biome-family representatives — zero new tile art, zero new palette entries. First package `FEAT-6100`'s standard applies to (via a future `09-content-review` pass). |
 | [IP-1040](packages/IP-1040-main-menu-new-game-flow.md) | Main menu & new-game flow (FS-104 / FEAT-1100) | `08-code-implementation` | **BLOCKED** | IP-1020 | **NOT AUTHORIZED — G3 pending** | Resolves FS-104 OQ1–2: B-cancels-to-MAIN-MENU convention, cursor-based menu input. Retires the shipped auto-load bypass (FR-1120). Parallel-eligible with IP-1030/1031/1050. |
@@ -47,7 +47,7 @@ graph TD
     IP9010 --> IP1010
     IP9020 --> IP9030
 
-    IP1020["IP-1020 world generation<br/>(Release 2, NOT STARTED)"]
+    IP1020["IP-1020 world generation<br/>(Release 2, COMPLETE)"]
     IP1030["IP-1030 region screens: code<br/>(Release 2, BLOCKED)"]
     IP1031["IP-1031 region screens: content<br/>(Release 2, BLOCKED)"]
     IP1040["IP-1040 main menu & new-game<br/>(Release 2, BLOCKED)"]
@@ -94,11 +94,17 @@ first-in-critical-path package.)*
   3-node length FP-04's Feature-level critical path (FEAT-9000 → FEAT-4100 → FEAT-6100)
   predicted, since FEAT-6100 itself needs no package (see the package table's own note).
 - **IP-1020 is this tranche's universal unblocker** — every other package either consumes its
-  generation output or triggers it. `NOT STARTED`; all four others are `BLOCKED` on it.
+  generation output or triggers it. **`COMPLETE` (2026-07-10, 133/133 checks pass)** — all four
+  others remain `BLOCKED` pending its independent verification (`COMPLETE` is not `VERIFIED`;
+  see this table's own header rule).
 - **Parallel opportunities:** IP-1040 and IP-1050 each depend only on IP-1020 — both are
-  parallel-eligible with each other and with IP-1030/IP-1031 once IP-1020 lands.
-- **Authorization state summary (Release 2 tranche):** **no package in this tranche is
-  authorized.** This is genuinely new work — none of it falls under G3's bootstrap carve-out
+  parallel-eligible with each other and with IP-1030/IP-1031 once IP-1020 is `VERIFIED`.
+- **Authorization state summary (Release 2 tranche):** **all five packages authorized** — user's
+  explicit "Authorize all five" (2026-07-10, `BL-0040`). IP-1020's own row reflects this; the
+  other four packages' rows still read `NOT AUTHORIZED` pending a future touch (not blocking —
+  they are `BLOCKED` on IP-1020's dependency graph regardless of authorization state).
+- **Prior framing (superseded):** this tranche was previously described as "no package
+  authorized." This is genuinely new work — none of it falls under G3's bootstrap carve-out
   (as-built baselining, or remediation of `BL-0001`…`BL-0005`). **Explicit user G3 authorization
   is required before `08-code-implementation`/`08-content-authoring` can start any of these five
   packages.**

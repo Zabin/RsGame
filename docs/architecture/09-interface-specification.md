@@ -73,34 +73,42 @@ Per **ADR-0009**/**ADR-0010** and [GDS-07](07-data-model.md)'s/
 [R302](../research/encyclopedia/R302-python-assembler-codegen-patterns.md)'s deltas: one new
 module contract and two extensions to existing contracts.
 
-### `worldgen.py` (new, proposed — build-side reference-generator oracle)
+### `worldgen.py` (shipped 2026-07-10, `IP-1020` — build-side reference-generator oracle)
 
 Per [R302](../research/encyclopedia/R302-python-assembler-codegen-patterns.md)'s extension: a
 new sibling module to `tiles.py`/`tilemaps.py`/`music.py`, reimplementing the SM83 world-
 generation algorithm ([ADR-0009](adr/ADR-0009-screen-graph-world-generation.md)) in Python.
-**Proposed contract**: `generate(seed: int, scale: int) -> RegionGraph`, where `RegionGraph`
-exposes at minimum `regions: list[{biome_id, neighbors}]` and `key_item_region_index: int`-style
-data matching [GDS-07](07-data-model.md)'s proposed `REGION_GRAPH` layout field-for-field.
-**Contract: `worldgen.py`'s algorithm and `asm_game.py`'s SM83 generation routine must produce
-byte-identical results for the same `(seed, scale)`** — this is the load-bearing correctness
-property [R305](../research/encyclopedia/R305-emulator-based-test-design.md)'s reference-
-generator-oracle testing strategy depends on; the two implementations are kept in lockstep by
-direct correspondence (same PRNG step order, same grammar-check order), not shared code, the
-same discipline this level's existing contracts already assume between `build_rom.py` and
+**Confirmed contract**: `generate(seed: int, scale: int) -> list[dict]`, matching the proposed
+shape exactly — each element is `{'biome_id': int, 'neighbors': [up, down, left, right]}`
+(`None` where the proposed contract's `0xFF` sentinel appears), row-major order matching
+[GDS-07](07-data-model.md) §6's confirmed `REGION_GRAPH` layout field-for-field (no separate
+`key_item_region_index` field was needed — every region unconditionally holds exactly one
+`KeyItem`, per FR-9130, so nothing distinguishes one region's item slot from another's).
+**Contract confirmed as shipped: `worldgen.py`'s algorithm and `asm_game.py`'s
+`generate_world`/`gw_prng_step` routines produce byte-identical results for the same `(seed,
+scale)`** — proven, not just asserted, by `test_rom.py`'s **T12.b** (a 15-entry seed/scale
+corpus, zero mismatches) — this is the load-bearing correctness property
+[R305](../research/encyclopedia/R305-emulator-based-test-design.md)'s reference-generator-oracle
+testing strategy depends on; the two implementations are kept in lockstep by direct
+correspondence (same PRNG step order — 16-bit xorshift, `x^=x<<1; x^=x>>1; x^=byteswap(x)` — same
+row-major visitation, same top/left-constraint-intersection clamp), not shared code, the same
+discipline this level's existing contracts already assume between `build_rom.py` and
 `asm_game.py`. **Consumer**: `test_rom.py` imports `worldgen.py` to compute expected values for
-any `(seed, scale)` in its determinism/property-test corpus; `build_rom.py`/`asm_game.py` do
-**not** import it — the SM83 routine is the actual runtime generator, `worldgen.py` is a test-only
-oracle, not a shared implementation.
+any `(seed, scale)` in its T12 property-test corpus, and to drive `generate_world` directly via a
+PC/SP hijack (`invoke_generate_world`, since no call site exists yet — `FEAT-1100`'s scope);
+`build_rom.py`/`asm_game.py` do **not** import it — the SM83 routine is the actual runtime
+generator, `worldgen.py` is a test-only oracle, not a shared implementation.
 
 ### `build_game_asm(rom: ROM) -> dict` — new patch-point keys (extends the existing contract)
 
-The world-generation and seed/scale-entry code
-([ADR-0009](adr/ADR-0009-screen-graph-world-generation.md)/
-[ADR-0010](adr/ADR-0010-seed-scale-model.md)) needs new entries in the existing `patches` dict,
-following the established naming convention — e.g. a patch point for the seed/scale-entry
-screen's tile/attribute addresses (parallel to today's `title_t`/`title_a` pattern) and any
-generator-data pointers `build_rom.py` lays out after `build_game_asm()` returns. **No new
-resolution mechanism** — this is the existing contract, exercised with new keys, exactly as
+**Confirmed (2026-07-10, `IP-1020`): `generate_world` itself needs no new `patches` dict key.**
+FS-102 Open Question 3 resolved during `07-implementation-planning`: the grammar check is inline
+arithmetic (adjacency legal iff axis indices differ by ≤1, a single comparison), not ROM-resident
+table data, so no generator-data pointer exists to patch. The seed/scale-entry *screen's*
+tile/attribute addresses (parallel to today's `title_t`/`title_a` pattern) remain
+`FEAT-1100`/`IP-1040`'s scope — still expected to use this same, unmodified `patches` dict
+mechanism, following the established naming convention. **No new resolution mechanism** — this is
+the existing contract, exercised with new keys where `IP-1040` needs them, exactly as
 [R302](../research/encyclopedia/R302-python-assembler-codegen-patterns.md)'s own guidance already
 anticipated for future growth ("many more zones means many more patch-point entries... still the
 same mechanism, no redesign needed").
