@@ -1,7 +1,9 @@
 # GDS-04 — Domain Model
 
 > **Status: ✅ Authored (bootstrap as-built, 2026-07-06; delta 2026-07-09 for the procgen-world
-> increment — see "Domain Model delta" below).** Owned by `03-architecture-design-synthesis`.
+> increment — see "Domain Model delta" below; delta 2026-07-10 — SaveGame relationship bullet
+> corrected to reflect shipped `ScoreItem` persistence, `BL-0033`).** Owned by
+> `03-architecture-design-synthesis`.
 > Builds on [GDS-03](03-architecture.md); the next level,
 > [GDS-05 Functional Requirements](05-functional-requirements.md), builds on this one.
 >
@@ -109,12 +111,18 @@ reads/writes the full SaveGame snapshot.
   ([`BL-0009`](../pipeline/backlog.md)). This domain model does not resolve which zones share,
   only names that the relationship is (or will become) many-to-one, not one-to-one as a reader
   might otherwise assume.
-- **SaveGame is a strict subset of live game state** — `Player.Direction`/`AnimationFrame`, and
-  all `ScoreItem` positions/consumed-state per zone, are **not** persisted. A reloaded zone's
-  score items are implicitly reset to "all present" (not tracked as collected/not, unlike
-  Carrots) — confirmed by the save routine's field list omitting any per-zone score-item state.
-  This is a real, as-built design choice (only the scarce tier's collection state persists) worth
-  stating plainly rather than leaving implicit.
+- **SaveGame is a strict subset of live game state, but narrower than it once was** —
+  `Player.Direction`/`AnimationFrame` remain **not** persisted (confirmed "not important" by the
+  user, 2026-07-07, `BL-0018`). Per-zone `ScoreItem` collected-state, by contrast, **does**
+  persist — `SCOREITEM_FLAGS` (`0xC060`–`0xC068`, mirrored to SRAM `0xA013`–`0xA01B`) was added by
+  [`IP-1010`](../implementation/packages/IP-1010-per-zone-scoreitem-persistence.md)/
+  [`FS-101`](../features/FS-101-per-zone-scoreitem-persistence.md) (implemented and independently
+  verified 2026-07-07, [`VR-1010`](../implementation/verification/VR-1010-per-zone-scoreitem-persistence.md)),
+  formalizing [`FR-5220`](../requirements/01-functional-requirements.md); confirmed directly
+  against [GDS-07](07-data-model.md) §2/§3's WRAM/SRAM tables (2026-07-10 correction, `BL-0033`
+  — this bullet previously said the opposite, stale since before `IP-1010` shipped). A reloaded
+  zone's score items now correctly reflect their collected/uncollected state from the prior
+  session, not an "all present" reset.
 
 ## Domain Model delta (2026-07-09 — target state, not yet shipped)
 

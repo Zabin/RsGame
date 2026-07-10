@@ -35,6 +35,15 @@
   full reachability, one-KeyItem-per-region as a generator-guaranteed property, save-format
   extension). **No FR was added for text dialogue** — `MSTR-001` D1/§4 records it as a
   deliberately non-required (not ruled out) non-goal at this vision's date; see FR-9100's Notes.
+- **2026-07-10 — 04-delta batch (`BL-0020`/`BL-0022`).** **FR-6400** added (new): player/
+  collectible sprite (OAM) rendering, shipped and tested (`test_rom.py` T6) but never formally
+  stated as a requirement — surfaced by `05-feature-decomposition`'s FP-05 review (finding #1,
+  run #19). **FR-3200**'s postcondition corrected: it previously claimed a collected `ScoreItem`
+  is "permanently inactive for the remainder of that play session" — direct code reading of
+  `setup_zone_collects` (surfaced by `06-feature-specification`'s FS-101 authoring, run #20)
+  shows `ScoreItem`s actually respawn on every zone re-entry within a session; only `Carrot`s are
+  session-permanent. The corrected text matches the shipped code exactly (and matches what
+  `FR-5220`/`IP-1010` already build on top of).
 
 ## FR-1000 — Game states & transitions
 
@@ -434,15 +443,23 @@
 - **Inputs:** A collection event for a ScoreItem.
 - **Outputs:** Score incremented; the collected ScoreItem no longer rendered or collectible.
 - **Preconditions:** The ScoreItem is active.
-- **Postconditions:** Score reflects the increment; the ScoreItem is permanently inactive for the
-  remainder of that play session, and across save/load per FR-5220 (see BL-0018, resolved).
+- **Postconditions:** Score reflects the increment; the ScoreItem is inactive for the remainder
+  of the current zone visit, and its collected-state persists across save/load per FR-5220 (see
+  BL-0018, resolved) — but **respawns as active on every zone re-entry within the same session**,
+  per the shipped `setup_zone_collects` behavior (corrected 2026-07-10, `BL-0022`; the prior text
+  read "permanently inactive for the remainder of that play session," which direct code reading
+  during `FS-101`'s authoring (2026-07-07) found does not match the shipped code — only `Carrot`s
+  are session-permanent, per FR-3210).
 - **Acceptance Criteria:** Collecting a ScoreItem increases Score by its defined value and the
-  item is not collectible again in the same session.
+  item is not collectible again until the player re-enters the zone.
 - **Dependencies:** FR-3100.
 - **Verification Method:** Test.
-- **Source Documents:** GDS-05 C3.
+- **Source Documents:** GDS-05 C3; `asm_game.py`'s `setup_zone_collects` (direct code read,
+  `BL-0022`).
 - **Related ADRs:** None.
-- **Notes:** None.
+- **Notes:** This is the shipped, intentional behavior `IP-1010`/`FS-101` built on top of (not a
+  bug in this requirement's own scope) — the farming-abuse risk this respawn created was
+  `BL-0023`, fixed by `FR-5220`'s persistence, not by this requirement changing.
 
 ### FR-3210 — Carrot collection sets zone flag and increments CarrotCount
 
@@ -798,6 +815,39 @@ FR-6000 for the presentation half)*
 - **Source Documents:** GDS-05 C6; GDS-04.
 - **Related ADRs:** None.
 - **Notes:** None.
+
+### FR-6400 — Player and collectible sprite rendering (added 2026-07-10, `BL-0020`)
+
+- **ID:** FR-6400
+- **Title:** The system shall render the player and each active Collectible as on-screen sprites.
+- **Description:** During PLAYING, the system shall render the player as a single 8×16 OBJ pair
+  at its current position and facing, and each active Collectible in the current zone as its own
+  OBJ sprite, using the shadow-OAM-DMA mechanism every frame.
+- **Rationale:** GDS-08 §2 (sprite strategy); ADR-0005 (shadow-OAM DMA every frame); ADR-0007
+  (8×16 OBJ mode). Shipped and exercised by `test_rom.py`'s T6 suite since before this
+  requirement existed — this FR formalizes already-shipped, already-tested behavior that had no
+  numbered requirement statement (surfaced by `05-feature-decomposition`'s FP-05 review, finding
+  #1, run #19, `BL-0020`).
+- **Priority:** Must
+- **Inputs:** Player position/facing (FR-2100/FR-2200); each active Collectible's position/type
+  (FR-3100's zone data).
+- **Outputs:** One 8×16 OBJ pair for the player (X-flipped per facing, per T6.5/T6.6); one OBJ
+  entry per active Collectible.
+- **Preconditions:** State is PLAYING.
+- **Postconditions:** The player's OBJ position/tile/attribute match its current
+  position/frame/facing; each active Collectible has a corresponding on-screen OBJ; a collected/
+  inactive Collectible has no OBJ.
+- **Acceptance Criteria:** The player's OBJ Y/X equal `PLAYER_Y+16`/`PLAYER_X+8`; its tile index
+  is one of the two walk-frame values; its palette is 0; X-flip matches facing direction (T6.1–
+  T6.6). Every active Collectible has an on-screen OBJ (Y>15) with a tile matching its type
+  (T6.9/T6.10).
+- **Dependencies:** FR-2100, FR-2200, FR-3100.
+- **Verification Method:** Test — `test_rom.py` T6.1–T6.10 (already passing, pre-existing
+  evidence; this requirement adds no new test).
+- **Source Documents:** GDS-08 §2; ADR-0005; ADR-0007; `test_rom.py` T6.
+- **Related ADRs:** ADR-0005, ADR-0007.
+- **Notes:** A formal-requirement-only addition — no behavior change, no new test. Closes
+  `BL-0020`.
 
 ## FR-9000 — World generation (target — 2026-07-09, new capability, not yet shipped)
 

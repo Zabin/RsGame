@@ -30,7 +30,7 @@ The PPU cycles through four modes per scanline (and one long mode across all 10 
 | Mode | Name | VRAM (CPU) | OAM (CPU) | Notes |
 |---|---|---|---|---|
 | 0 | HBlank | accessible | accessible (direct or DMA) | shortest mode, ends each visible line |
-| 1 | VBlank | accessible | accessible (direct or DMA) | lines 144–153, ~4560 T-states total |
+| 1 | VBlank | accessible | accessible (direct or DMA) | lines 144–153, exactly 4560 T-states total (10 lines × 456 T-states/line, directly confirmed against Pan Docs 2026-07-10, `BL-0032`) |
 | 2 | OAM Scan | accessible | **not accessible** to CPU | PPU reads OAM 1 entry/M-cycle |
 | 3 | Pixel Transfer | **not accessible** | **not accessible** | PPU actively rendering |
 
