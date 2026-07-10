@@ -32,7 +32,8 @@ score-bar VRAM write (`Claude.md`'s original bug note, re-flagged as
 relocated to the main loop's frame top by
 [`IP-9020`](../implementation/packages/IP-9020-score-bar-vblank-fix.md) — see
 [`NFR-1200`](../requirements/02-non-functional-requirements.md) for the full remediation record
-and test evidence (pending independent verification by `09-package-verification`).
+and test evidence — independently verified by `09-package-verification`
+([`VR-9020`](../implementation/verification/VR-9020-score-bar-vblank-fix.md), 2026-07-07).
 
 ### N3 — Save integrity
 
