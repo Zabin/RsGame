@@ -23,6 +23,16 @@
   **NFR-5300** (Data Integrity — save-format version bump for seed/scale/region-flags),
   **NFR-6500/6510** (Usability, previously empty — the C8 aesthetic-craft/clean-screen standard
   and the C9 biome-transition palette-stepping standard, both citing GDS-08's delta checklist).
+- **2026-07-10 — 04-delta batch (`BL-0026`/`BL-0028`).** Two stale "pending independent
+  verification" clauses corrected to reflect verifications that now exist: **NFR-1200**'s status
+  line (VR-9020 exists) and its stale "111/111" suite-count snapshot (now 125/125, with the delta
+  attributed to `IP-1010`'s later T11 suite); **NFR-5200**'s status line (VR-1010 exists) and its
+  Notes field (no longer "re-verify once implemented" — it *is* implemented and verified).
+  **NFR-6100**'s RTM Test cell filled (was `UNASSIGNED` despite direct evidence — the full T1–T10
+  suite already exercises PyBoy headless on every run, surfaced by `09-package-verification`'s
+  VR-9010, finding #1, run #23, `BL-0026`); `IP-9010`'s own citation of a nonexistent `NFR-7000`
+  (should read `NFR-6100`) is a package-document correction routed to a future
+  `07-implementation-planning` touch, not fixed here (out of this stage's write scope).
 
 ## Performance
 
@@ -53,8 +63,9 @@
   confirmed-VBlank window, consistent with every other VRAM write in the system.
 - **Rationale:** GDS-06 N2, citing `Claude.md`'s original bug note.
 - **Priority:** Must
-- **Status: MET (2026-07-07, via `IP-9020` — pending independent verification by
-  `09-package-verification`).** The `CALL('update_status_disp')` was relocated from `st_playing`
+- **Status: MET (2026-07-07, via `IP-9020`; independently confirmed by `09-package-verification`,
+  [VR-9020](../implementation/verification/VR-9020-score-bar-vblank-fix.md)).** The
+  `CALL('update_status_disp')` was relocated from `st_playing`
   (an unbounded distance into the frame) to the main loop's frame top, immediately after
   `VBLANK_FLAG` is cleared and before the `NEED_REDRAW`/`do_screen_redraw` dispatch —
   guaranteeing the write lands within the VBlank window (R102). The routine's existing internal
@@ -63,7 +74,9 @@
   same-frame) — no requirement states same-frame HUD latency. Evidence:
   [IP-9020](../implementation/packages/IP-9020-score-bar-vblank-fix.md); `test_rom.py` T8.10a/
   T8.10b force-dirty the HUD fields and confirm the digit tiles reflect the new values within 2
-  frames; full suite **111/111 pass** (`test_results.txt`, regenerated 2026-07-07).
+  frames; full suite **111/111 pass at IP-9020's own commit** (`test_results.txt`, regenerated
+  2026-07-07) — **125/125 today**, the +14 delta entirely `IP-1010`'s later, independently
+  verified T11 suite (2026-07-10 correction, `BL-0028`).
   *Historical note (pre-2026-07-07):* the write was called from `st_playing`, at an unbounded
   distance from the VBlank wake-up — a real correctness gap against actual hardware timing, even
   though it produced no observable corruption under headless PyBoy emulation.
@@ -259,8 +272,9 @@
   held at save time.
 - **Rationale:** GDS-06 N3; FR-5220 (widened field set).
 - **Priority:** Must
-- **Status: MET (2026-07-07, via `IP-1010` — pending independent verification by
-  `09-package-verification`)** for the full widened field set, including the new per-zone
+- **Status: MET (2026-07-07, via `IP-1010`; independently confirmed by
+  `09-package-verification`, [VR-1010](../implementation/verification/VR-1010-per-zone-scoreitem-persistence.md))**
+  for the full widened field set, including the new per-zone
   ScoreItem field. `test_rom.py` T11.b5/T11.c/T11.e1 (+ the existing T10 suite) round-trip
   `CurrentZone`/`PlayerPosition`/`Score`/`CarrotFlags`/`SCOREITEM_FLAGS` together in a single
   save/reload cycle; T11.d confirms the version-guard default (pre-upgrade saves load
@@ -272,8 +286,9 @@
 - **Verification Method:** Test.
 - **Source Documents:** GDS-06 N3; FR-5220.
 - **Related ADRs:** ADR-0006.
-- **Notes:** Re-verify this NFR's "Met" status once FR-5220 is implemented (stage 08) — its
-  compliance claim currently covers only the pre-widening field set.
+- **Notes:** FR-5220 is implemented and independently verified (2026-07-10 correction,
+  `BL-0028`) — this NFR's "Met" status now covers the full widened field set, not only the
+  pre-widening one.
 
 ### NFR-5300 — Save-format version bump for seed/scale/region-flags (target — 2026-07-09)
 
