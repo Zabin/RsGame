@@ -54,7 +54,7 @@ build order.
 | ID | Document | Path | Depends on | Status |
 |---|---|---|---|---|
 | RS-INDEX | Research index (tier tables) | `docs/research/INDEX.md` | — | ♻️ |
-| R101–R111 | Tier R100 — GBC hardware & SM83 (R111, CGB banked WRAM + SM83 PRNG determinism, added 2026-07-09 via `BL-0031`; R102/R106 extended same day) | `docs/research/encyclopedia/` | MSTR-001 | ✅ (2026-07-06; R111 + extensions 2026-07-09) |
+| R101–R111 | Tier R100 — GBC hardware & SM83 (R111, CGB banked WRAM + SM83 PRNG determinism, added 2026-07-09 via `BL-0031`; R102/R106 extended same day; R101/R102 VBlank-duration citation mismatch resolved 2026-07-10 via `BL-0032`, both confirmed against Pan Docs at 4560 T-states) | `docs/research/encyclopedia/` | MSTR-001 | ✅ (2026-07-06; R111 + extensions 2026-07-09; correction 2026-07-10) |
 | R201–R214 | Tier R200 — Game design (incl. R209–R211, pixel art / AI-generation workflow / GBC case studies, filed via `BL-0013`; R212–R214, wordless narrative / procgen algorithms / GBC procgen case studies, filed via `BL-0030`/`BL-0031`) | `docs/research/encyclopedia/` | MSTR-001 | ✅ (2026-07-06; R212–R214 added 2026-07-09) |
 | R301–R306 | Tier R300 — Tooling & verification (R302/R305 extended 2026-07-09 for MSTR-001 C10's reference-generator-oracle testing strategy, via `BL-0031`) | `docs/research/encyclopedia/` | MSTR-001 | ✅ (2026-07-06; extensions 2026-07-09) |
 
