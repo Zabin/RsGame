@@ -397,6 +397,10 @@
 
 ## FEAT-5300 — Generated-World Save Persistence (new — not yet implemented)
 
+> **Forward reference (metadata only):** specified by
+> [FS-105](../features/FS-105-generated-world-save-persistence.md) (2026-07-10). No Open
+> Questions — fully determined by ADR-0010/GDS-07's delta.
+
 - **Feature ID:** FEAT-5300
 - **Title:** Generated-World Save Persistence
 - **Purpose:** Persist a generated world's (seed, scale, per-region KeyItemFlags) to SRAM, and
