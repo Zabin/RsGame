@@ -14,35 +14,29 @@
 
 ## Position
 
-- **Updated:** 2026-07-10 (run #52)
-- **Increment:** **Two increments in flight, user is directing both via an explicit multi-thread
-  loop instruction (this session).** (1) **Bootstrap baseline** — 01–10 ✅, **stalled at
-  `11-release-readiness`** (user's GO/NO-GO decision). (2) **Aesthetics / visual-story-narrative /
-  procgen-world-map** — stage 07 closed, **stalled at G3** — none of the five new packages
-  authorized, no bootstrap carve-out applies. (3) **Third thread (backlog hygiene): exhausted.**
-  Every actionable `SCHEDULED`/`DEFERRED` entry closed across runs #49–52 (04-delta batch,
-  `BL-0033`/`0034`, `BL-0032`, `BL-0026`'s remainder + `BL-0027`, `BL-0037`) — nothing
-  independently workable remains.
-- **Pipeline state:** Bootstrap: stages 01–10 ✅, stalled at 11. New increment: stages 01–07 ✅,
-  stalled at G3 (pre-`08`). Requirements/architecture/research/feature-planning ledgers all
-  refreshed and internally consistent — no known stale cross-reference remains anywhere in the
-  tree as of this run. **All three threads are now blocked.**
-- **Backlog:** 40 entries, 2 open (down from 18 at the start of this session's multi-thread run).
-  Run #52 harvest: **BL-0037 → DONE**. Both remaining open entries are standing conventions, not
-  ripe work: **`BL-0014`** (`DEFERRED` — revisit only if a future task wants to import an
-  external reference image; trigger not fired) and **`BL-0017`/`BL-0019`** (`SCHEDULED` — each
-  names a Verification Checklist item any *future* `ZONE_COLLECTS`-touching or ROM-growing
-  package must include; no such package is currently unpackaged to attach the item to — both
-  already honored by every package authored this session that qualifies, e.g. `IP-1020`/`IP-1050`
-  both carry `NFR-4200` headroom items). Neither is independently actionable today.
-- **Next step:** **All three threads are blocked** — bootstrap at `11-release-readiness`'s
-  GO/NO-GO, procgen-world at G3 authorization for `IP-1020`/`1030`/`1031`/`1040`/`1050`, backlog
-  hygiene fully drained. The next `00-pipeline-manager` advance has nothing to do until one of
-  the two human decisions arrives, or new work enters via `00-intake`.
-- **Open gates:** `11-release-readiness`'s GO/NO-GO call — standing human gate, cleared for
-  evidence but the decision itself is reserved for the user. **G3 authorization needed for
-  IP-1020/1030/1031/1040/1050** (Release 2 tranche) — genuinely new work, no bootstrap carve-out
-  applies, so this is a real stop condition, not attempted this run.
+- **Updated:** 2026-07-10 (run #53)
+- **Increment:** **Both blocking gates cleared this run.** (1) **Bootstrap baseline** — 01–11 ✅,
+  **assessed GO** (Baseline + Release 1, [release-assessment-bootstrap-tranche.md](../reviews/release-assessment-bootstrap-tranche.md)) —
+  this increment's pipeline run is now fully closed end-to-end. (2) **Aesthetics /
+  visual-story-narrative / procgen-world-map** — stage 07 closed, **G3 now authorized** (all five
+  packages: `IP-1020`/`1030`/`1031`/`1040`/`1050`) — unblocked to enter `08`, starting with
+  `IP-1020` (the tranche's foundational, dependency-root package; the other four stay `BLOCKED` on
+  it per the Master Build Plan's own dependency graph, not on authorization). (3) **Backlog
+  hygiene:** still exhausted — no new independently-workable entries surfaced this run.
+- **Pipeline state:** Bootstrap: stages 01–11 ✅ — **complete, GO recorded.** New increment: stages
+  01–07 ✅, G3 cleared, next unblocked step is `08-code-implementation` on `IP-1020`.
+- **Backlog:** 41 entries, 2 open. Run #53 harvest: new **BL-0040** (gate, filed and immediately
+  `DONE` — both decisions resolved same run). The same two standing-convention entries from run #52
+  remain open, neither ripe: **`BL-0014`** (`DEFERRED`) and **`BL-0017`/`BL-0019`** (`SCHEDULED`,
+  riding future `ZONE_COLLECTS`/ROM-growing packages — `IP-1020` et al. now about to become exactly
+  such packages, so these may become ripe again once `08` actually implements them).
+- **Next step:** `08-code-implementation` on **`IP-1020`** (Procedural World Generation &
+  Item-Agnostic Collection, FS-102/FEAT-9000) — the Release-2 tranche's foundational,
+  dependency-root package, now G3-authorized and fully `READY` (all five bootstrap-tranche
+  dependencies `VERIFIED`). `IP-1030`/`1031`/`1040`/`1050` stay `BLOCKED` until `IP-1020` is
+  `VERIFIED`, per the Master Build Plan's own graph — not a further authorization gate.
+- **Open gates:** None. Both standing gates (bootstrap GO/NO-GO, Release-2 G3) were cleared this
+  run by the user's explicit answers to a single batched `AskUserQuestion`.
 
 ## Run log
 
@@ -101,3 +95,4 @@
 | 50 | 2026-07-10 | advance (both main threads gated; third thread — backlog hygiene) | `03-architecture-design-synthesis` | BL-0033 (GDS-04 stale SaveGame bullet), BL-0034 (GDS-10 §3/§4 → RQ-04 pointer conversion) | ✅ **Both small, independent fixes applied.** **GDS-04**'s "Relationships worth naming explicitly" bullet corrected: it claimed per-zone `ScoreItem` collected-state "is not persisted" — stale since `IP-1010`/`FS-101` shipped exactly that persistence (2026-07-07, independently verified `VR-1010`); corrected to match GDS-07 §2/§3's WRAM/SRAM tables exactly (closes `BL-0033`). **GDS-10**'s own 2026-07-06 merge decision said §3/§4 should become pointers to `RQ-04` once it was authored — it was, at run #17, four days before this fix; §3 converted from "how a future matrix will be built" to a direct pointer at the real, populated `RQ-04`; §4 confirmed as an actively-exercised traceability lane, citing `BL-0029`/`0030`/`0031`'s own three-stage (01→02→03→04) thread as a second, larger-scale instance of the pattern originally only anticipated (closes `BL-0034`, the last open item from GDS-10's original merge decision). Both documents' status headers, `docs/architecture/INDEX.md`, and `ROADMAP.md` updated in sync. Harvested: **BL-0033 → DONE**, **BL-0034 → DONE**. No new findings. No drift. | Both main threads remain gated on user decisions. **Third thread continues:** `BL-0032` (`02-research-gbc-hardware`, VBlank-duration citation mismatch between R101/R102) is next |
 | 51 | 2026-07-10 | advance (both main threads gated; third thread — backlog hygiene) | `02-research-gbc-hardware` | BL-0032 (R101/R102 VBlank-duration citation mismatch) | ✅ **Resolved with a direct primary-source fetch.** `gbdev.io` 403'd `WebFetch` again (consistent with prior sessions' experience, R111's own precedent); fetched the `gbdev/pandocs` GitHub mirror instead — confirmed VBlank is exactly **4560 T-states** (10 scanlines × 456 T-states/line). **R101**'s "~1140 T-state VBlank period" was a units error, not a conflicting fact: 1140 is the *M-cycle* count (R101's own Concepts section already states 1 M-cycle = 4 T-states: 1140 × 4 = 4560, matching R102 exactly) — corrected to state both units explicitly and cite the confirmed figure inline. **R102**'s "~4560 T-states" upgraded from approximate to exact, since the fetched source gives an exact dot count. `ROADMAP.md`'s R100 tier row updated. Harvested: **BL-0032 → DONE**. No new findings. No drift. | Both main threads remain gated on user decisions. **Third thread continues:** `BL-0026`'s remainder (`IP-9010`'s stale citation) + `BL-0027` (run-bunnygarden skill doc) both ride `07-implementation-planning`, bundleable in one pass; `BL-0037` (FEAT-6000/7000 Risk fields) rides `05-feature-decomposition` separately |
 | 52 | 2026-07-10 | advance (both main threads gated; third thread — backlog hygiene, final sweep) | `07-implementation-planning` (BL-0026 remainder + BL-0027), `05-feature-decomposition` (BL-0037) | ✅ **Backlog hygiene thread exhausted — every actionable item closed.** **`run-bunnygarden/SKILL.md`** rewritten in full (not just paths — stale filename, "v2.1"/"88/88" status line, "gifts" WRAM naming all corrected to current reality), with forward notes flagging where the still-unimplemented `FEAT-1100`/`FEAT-9000` packages will change two gotchas once they ship (closes `BL-0027`). **`IP-9010`**'s citation of nonexistent `NFR-7000` corrected to `NFR-6100` (closes `BL-0026`'s remainder — the RTM-side half closed at run #49). **`FEAT-6000`/`FEAT-7000`**'s own Risk fields in the Feature Catalog corrected from stale "not met" claims to Low risk citing their VERIFIED status (`VR-9020`/`VR-9010`); `FEAT-7000`'s Open Questions field also corrected (its sequencing question is moot, both items landed the same day); FP-05 finding #5 marked resolved (closes `BL-0037`). Harvested: **BL-0026 → DONE**, **BL-0027 → DONE**, **BL-0037 → DONE**. **Backlog swept end to end: 40 entries, 2 open, both standing conventions with no ripe instance today (`BL-0014` deferred, `BL-0017`/`BL-0019` riding future not-yet-existing packages).** No new findings. No drift. | **All three threads now blocked.** Bootstrap: `11-release-readiness` GO/NO-GO (user decision). Procgen-world: G3 authorization for `IP-1020`/`1030`/`1031`/`1040`/`1050` (user decision). Backlog hygiene: exhausted, nothing left to work. Next `00-pipeline-manager` advance has nothing to do until a human decision arrives or new work enters via `00-intake` |
+| 53 | 2026-07-10 | advance | `11-release-readiness` | Bootstrap tranche (Baseline + Release 1) | ✅ **Reconciled — no drift** (Master Build Plan/ROADMAP matched the journal exactly). Triage: no new/re-triggered backlog entries since run #52. **Step 4 gate check:** both standing gates (bootstrap GO/NO-GO, Release-2 G3) batched into one `AskUserQuestion` per the "batch the user questions" rule — user answered **"Run 11 release with a GO. Then move onto IP"** (bootstrap) and **"Authorize all five"** (Release 2), filed as **BL-0040** (immediately `DONE`, both parts resolved same run). Invoked `11-release-readiness` on the bootstrap tranche: scope audit (all 8 Features, 7 Baseline + FEAT-5100/Release-1, none dropped/deviated beyond two already-closed doc-lag findings), evidence (125/125, byte-identical build, 5/5 VRs, clean integration review), residual risks swept (all Low/Medium, all already `SCHEDULED`/`DEFERRED` in the backlog, none newly discovered) — **[release-assessment-bootstrap-tranche.md](../reviews/release-assessment-bootstrap-tranche.md) written, GO recorded** per the user's explicit direction. Baseline flipped: `ROADMAP.md`'s RV-RELEASE row, `01-release-plan.md`'s Baseline/Release-1 bucket headers + status banner, `Claude.md`'s Known Good Behavior heading, `docs/reviews/INDEX.md`. Release-2's G3 authorization recorded in the backlog (`BL-0040`) but **not** written into the Master Build Plan's own Authorized? column — that ledger is stage-07-owned per its own header note, so the flip is left to `08-code-implementation`'s own run on `IP-1020` rather than edited out-of-band by the manager. No new findings beyond `BL-0040`. | `08-code-implementation` on **`IP-1020`** — the Release-2 tranche's foundational, now-authorized, fully `READY` package; `IP-1030`/`1031`/`1040`/`1050` remain `BLOCKED` on it per the Master Build Plan's dependency graph, not on authorization |
