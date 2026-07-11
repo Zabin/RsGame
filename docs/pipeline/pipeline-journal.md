@@ -14,44 +14,47 @@
 
 ## Position
 
-- **Updated:** 2026-07-11 (run #81)
-- **Increment:** Bootstrap baseline remains fully closed (01–11 ✅, GO recorded). Release-2
-  procgen-world tranche unchanged since run #62: `IP-1031` `COMPLETE`, four of five `VERIFIED`,
-  blocked on a fresh session. Post-ship remediation tranche: all three packages `COMPLETE` since
-  run #68 (`IP-9070`/`IP-9060`/`IP-9050`), still blocked on `09-package-verification` by the
-  same-session independence rule. **Procgen-map-shape thread: `IP-1070` `COMPLETE` (run #80,
-  fresh-session verification still owed); `BL-0068`'s `GDS-08` delta authored (run #81)** —
-  [08-presentation-architecture.md §10](../architecture/08-presentation-architecture.md) decides
-  the maze-blocked edge indicator: a distinct broken/dashed-bar tile (not a recolored arrow),
-  4 new directional tiles at `0x1A`–`0x1D`, reusing the open arrow's own palette 2 verbatim (0 new
-  palette entries). `FS-108`'s metadata forward-referenced to the new delta; its own §19 Open
-  Question 1 text left for `06-feature-specification` to formally close. `R112` (run #69) →
-  `ADR-0012` (run #70) → `FR-9140`/`FR-9150`/`FR-2330` baselined (run #71) → `FEAT-9100`/
-  `FEAT-2100` decomposed (run #72) → `FS-107`/`FS-108` specified (run #73) → `IP-1070`/`IP-1080`
-  planned (run #74), `IP-1070` authorized (run #75) → Blocking Report (run #76) → `R113`
-  (run #77) → `ADR-0013` (run #78) → light re-plan (run #79) → implemented, `COMPLETE` (run #80)
-  → **`BL-0068`/`GDS-08` §10 authored (run #81).** **`BL-0066`** (biome-blob clustering) remains
-  `NEEDS-USER` (the `ADR-0012` pass-ordering conflict, routed as `CR-05`/RQ-03 finding #13).
-- **Pipeline state:** Bootstrap: stages 01–11 ✅ — complete, GO recorded. Release-2 + remediation
-  + procgen-map-shape tranches: five packages `COMPLETE` (`IP-1031`/`IP-9050`/`IP-9060`/`IP-9070`/
-  `IP-1070`), zero `VERIFIED` — all blocked on a fresh session's `09-package-verification`
-  (same-session independence rule). `IP-1080` `BLOCKED` on `IP-1070` reaching `VERIFIED`,
-  unauthorized. `FS-108`'s Open Question 1 is now unblocked (its own `GDS-08` dependency landed)
-  — `06-feature-specification` can close it next; the rendering half then becomes plannable at
-  `07-implementation-planning`.
-- **Backlog:** 71 entries, 23 open. Run #81: **`BL-0068`** flipped `DONE` (`GDS-08` §10 authored).
-  `BL-0064`/`0065`/`0067` remain `SCHEDULED` (their `IP-1070`-riding portion implemented, not yet
-  verified). `BL-0071` (new last run, supersession-sweep process gap) remains `SCHEDULED`, low
-  urgency. `BL-0066`/`BL-0050` (both standing `NEEDS-USER`) remain open, unrelated.
-- **Next step:** `06-feature-specification` on **`FS-108`** — close its own §19 Open Question 1
-  against the newly-landed `GDS-08` §10 delta (metadata/text-only closure, the delta itself is
-  already authored). Independently: `09-package-verification` on the five `COMPLETE` packages
-  remains blocked on a fresh session; `IP-1080` remains `BLOCKED` on `IP-1070` reaching `VERIFIED`;
-  `BL-0066`/`BL-0050` await the user whenever convenient; `BL-0071` is low-urgency, non-blocking
-  process debt for a future `07` pass, not this one.
+- **Updated:** 2026-07-11 (run #82)
+- **Increment:** Bootstrap baseline remains fully closed (01–11 ✅, GO recorded). Release-2 +
+  remediation + procgen-map-shape tranches: five packages `COMPLETE` (`IP-1031`/`IP-9050`/
+  `IP-9060`/`IP-9070`/`IP-1070`), zero `VERIFIED`, all blocked on a fresh session's
+  `09-package-verification`. `IP-1080` `BLOCKED` on `IP-1070` reaching `VERIFIED`, unauthorized.
+  `FS-108`'s Open Question 1 closed (run #81's `GDS-08` §10 delta formally cited); its rendering
+  half remains unspecified, deliberately deferred until `IP-1080` is nearer landing. **New thread
+  this run: a standing cluster of unpackaged bug-remediation backlog entries — `BL-0049` (SAVE
+  screen's silent third option), `BL-0051`/`BL-0052` (movement clamp off-by-N bugs, same
+  function), `BL-0053` (collectible pickup hitbox uses a symmetric window instead of the sprite's
+  real 8×16 bounding box) — all `SCHEDULED`, entry stage `07`, none packaged yet, none gated
+  (07-implementation-planning itself needs no G3; only a future 08 execution would).** `R112`
+  (run #69) → `ADR-0012` (run #70) → `FR-9140`/`FR-9150`/`FR-2330` baselined (run #71) →
+  `FEAT-9100`/`FEAT-2100` decomposed (run #72) → `FS-107`/`FS-108` specified (run #73) →
+  `IP-1070`/`IP-1080` planned (run #74), `IP-1070` authorized (run #75) → Blocking Report
+  (run #76) → `R113` (run #77) → `ADR-0013` (run #78) → light re-plan (run #79) → implemented,
+  `COMPLETE` (run #80) → `BL-0068`/`GDS-08` §10 authored (run #81) → `FS-108` OQ1 closed
+  (run #81). **`BL-0066`** (biome-blob clustering) remains `NEEDS-USER` (the `ADR-0012`
+  pass-ordering conflict, routed as `CR-05`/RQ-03 finding #13).
+- **Pipeline state:** Bootstrap: stages 01–11 ✅ — complete, GO recorded. Five `COMPLETE`
+  packages await a fresh-session `09-package-verification`. `IP-1080` `BLOCKED`/unauthorized.
+  The maze-shaped-adjacency thread is otherwise exhausted for this session (rendering-half spec
+  deliberately deferred). **A new, independent bug-remediation tranche
+  (`BL-0049`/`0051`/`0052`/`0053`) is unblocked and ready for `07-implementation-planning`** —
+  the only genuinely new actionable work surfaced by this run's reconciliation sweep (confirmed:
+  `ROADMAP.md`'s remaining `⛔` rows are both explicitly "on demand," not gating anything).
+- **Backlog:** 71 entries, 23 open. Run #82: no new entries; no re-triggered `DEFERRED`s. Triage
+  confirmed `BL-0049`/`0051`/`0052`/`0053` are the only `SCHEDULED`, entry-stage-`07`, unpackaged,
+  non-gated items — selected as this run's target. `BL-0066`/`BL-0050` (both standing
+  `NEEDS-USER`) remain open, unrelated. `BL-0071` remains `SCHEDULED`, low urgency, no active `07`
+  pass it must ride (this run's target packages don't retire a structural invariant, so its own
+  supersession-sweep-of-tests concern doesn't apply here).
+- **Next step:** `07-implementation-planning` on **`BL-0049`/`BL-0051`/`BL-0052`/`BL-0053`** —
+  package this standing bug-remediation cluster (mirroring the `BL-0047`/`0048`/`0058`/`0059`/
+  `0063` tranche's own precedent: multiple related `SCHEDULED` bugs planned together). No gate:
+  planning itself needs no G3; a future `08` execution will. Independently:
+  `09-package-verification` on the five `COMPLETE` packages remains blocked on a fresh session;
+  `BL-0066`/`BL-0050` await the user whenever convenient.
 - **Open gates:** None blocking this run's own thread. Two independent `NEEDS-USER` entries open:
   `BL-0050` (MAP/status-screen redesign, standing) and `BL-0066` (biome-blob clustering,
-  standing). Neither blocks `06-feature-specification`'s own work on `FS-108`.
+  standing). Neither blocks `07-implementation-planning`'s own work on this new bug cluster.
 
 ## Run log
 
@@ -141,3 +144,4 @@
 | 79 | 2026-07-11 | advance | `07-implementation-planning` | IP-1070 (light touch) | ✅ **No drift; no new/re-triggered backlog entries at triage.** **Step 3/5:** invoked `07-implementation-planning` for a light touch to `IP-1070`'s own package document, per `ADR-0013`. Added the counter-XOR perturbation detail to §4 (cites `ADR-0013`/`R113`), §6 (both the carve phase's direction-draw site and the braid phase's keep/prune-draw site, plus a note `worldgen.py`'s oracle mirror must replicate the perturbation step-for-step — the same lockstep discipline the carve/braid algorithm itself already required), §7 (task ordering), and §13 (records `ADR-0013`'s own explicit deferral of `gw_prng_step`'s underlying repair as a known, accepted limitation, not silently assumed away). **Sanity check confirmed clean:** direct grep of `asm_game.py` found zero leftover maze-pass symbols from the earlier blocked attempt — the revert was complete. Not a redesign — the carve/braid algorithm itself (§6 tasks 3–4) is unchanged. Flipped `IP-1070` back to `READY` across the Master Build Plan, `packages/INDEX.md`, `ROADMAP.md`; authorization `BL-0069` stood throughout, unaffected. Harvested: `BL-0070` updated (package touch done, remains `SCHEDULED`, riding `08-code-implementation` next). No new backlog entries. No open gates. | `08-code-implementation` on **`IP-1070`** — now `READY` and authorized, resuming where the earlier attempt was blocked. Separately: `BL-0068` (`GDS-08` delta) rides a future `03` pass, independent; `BL-0066`/`BL-0050` (both `NEEDS-USER`) remain open; `09-package-verification` on the four `COMPLETE` remediation packages remains blocked on a fresh session. |
 | 80 | 2026-07-11 | advance | `08-code-implementation` | IP-1070 (implementation, second attempt) | ✅ **No drift; no new/re-triggered backlog entries at triage beyond `BL-0070`.** **Step 3/5:** invoked `08-code-implementation` on `IP-1070`, `READY` and authorized (`BL-0069`), resuming the design already confirmed correct in the earlier attempt plus `ADR-0013`'s counter-XOR perturbation. Implemented the maze-generation pass (`asm_game.py`): iterative randomized DFS/recursive-backtracker spanning-tree carve, canonical-edge braid/prune pass, new WRAM (`GW_MAZE_STATE`/`GW_CUR_REGION`/`GW_MAZE_DIR`/`GW_BRAID_IDX`/`GW_MAZE_DRAW_CTR`), two new subroutines (`gw_neighbor_hl`/`gw_maze_state_hl`). Found and fixed two hand-assembly bugs via direct PyBoy debugging: a fall-through-into-subroutine premature-`RET` bug, and a register-clobber bug in the prune-write block (`gw_neighbor_hl` called twice without stashing the first result, corrupting the second call's target). `worldgen.py`'s `_carve_maze` oracle validated byte-identical across a 36-`(seed,scale)` corpus. New suite `T19` (7 checks, braid-fraction measured 25.80% against ~25% target). Found and fixed a supersession-sweep gap `IP-1070`'s own `07` pass missed: `test_rom.py`'s `T11`/`T17` suites hardcoded full-lattice traversal assumptions invalid under the new maze topology, including at the default scale=3 fixture — rewritten graph-driven (real DFS tour over the actual generated graph) rather than patched around, in scope per `08`'s own Step 7. Full suite: 211/211 pass, stable across repeated runs. Documentation/traceability updated: GDS-07 §7b (new section), FR-9140/FR-9150 Notes, NFR-4200 Notes, RTM rows, FS-107 §19 Open Questions 1–3 resolved, Master Build Plan/`packages/INDEX.md`/`ROADMAP.md` flipped to `COMPLETE`. Committed (`f9ecbc7`) and pushed. Harvested: `BL-0070` flipped `DONE`; new `BL-0071` filed (Medium, `finding`, `SCHEDULED`) for the supersession-sweep gap, riding a future `07-implementation-planning` pass. No open gates. | `03-architecture-design-synthesis` on **`BL-0068`** (the `GDS-08` tile-art delta for `FEAT-2100`'s blocked-edge indicator) — the only unblocked, non-gated actionable step; `09-package-verification` on the five `COMPLETE` packages remains blocked on a fresh session; `IP-1080` remains `BLOCKED` on `IP-1070` reaching `VERIFIED`; `BL-0066`/`BL-0050` (both `NEEDS-USER`) remain open for the user. |
 | 81 | 2026-07-11 | advance | `03-architecture-design-synthesis` | BL-0068 (GDS-08 delta for FS-108's rendering half) | ✅ **No drift; no new backlog entries at triage beyond flipping `BL-0068`.** **Step 3/5:** invoked `03-architecture-design-synthesis` on `BL-0068` (the only unblocked, non-gated actionable step — `09-package-verification` blocked on a fresh session, `IP-1080` blocked on `IP-1070` reaching `VERIFIED`, `BL-0066`/`BL-0050` standing `NEEDS-USER`). Authored [GDS-08 §10](../architecture/08-presentation-architecture.md): decided a distinct broken/dashed-bar tile shape for the maze-blocked edge indicator (silhouette-first per R209, not a recolored arrow — avoids relying on color alone), 4 new directional tiles at `0x1A`–`0x1D` (continuing the existing UI-icon block before `Digits` at `0x20`), reusing the open arrow's own palette-2 attribute verbatim (0 new palette entries spent; palettes 6/7 stay free). Exact pixel bitmap and screen-position offsets explicitly deferred to future `06`/`07`/`08-content-authoring` passes, per this skill's own no-production-code scope. `docs/architecture/INDEX.md`/`ROADMAP.md` flipped in sync. `FS-108`'s metadata updated with a forward-reference pointer to the new delta; its own §19 OQ1 text deliberately left for `06-feature-specification` to formally close (not this skill's job). Committed (`73e7507`) and pushed. Harvested: `BL-0068` flipped `DONE`. No new findings, no open gates. | `06-feature-specification` on **`FS-108`** — close its own §19 Open Question 1 against the newly-landed `GDS-08` delta; independently, `09-package-verification` on the five `COMPLETE` packages remains blocked on a fresh session, `IP-1080` remains `BLOCKED`, `BL-0066`/`BL-0050` (both `NEEDS-USER`) await the user. |
+| 82 | 2026-07-11 | advance | `06-feature-specification` | FS-108 (close Open Question 1) | ✅ **No drift; no new backlog entries at triage.** **Step 3/5:** invoked `06-feature-specification` on `FS-108` to close its own Open Question 1 now that run #81's `GDS-08` §10 delta resolved the blocking dependency (metadata/text-only closure per the recommended next step, not a re-specification). Updated every passage that framed the rendering half as architecturally unspecifiable (top-of-document scope note, §4 Scope, §5 Requirements Implemented, §6 Workflow step 5, §8 Module Responsibilities, §9 Interfaces Used, §15 AC-4, §16 Verification Plan, §18 Risks, §19 OQ1 itself) to instead say the rendering half is now specifiable but still unspecified — deliberately did not expand scope to actually write the rendering half's own FR/AC-level behavior contract (a judgment call: left for a future `06` pass once `IP-1080` is nearer landing, since it's still `BLOCKED`). `docs/features/INDEX.md` row and `ROADMAP.md`'s FS-101+ row updated to match. Committed (`db517a3`) and pushed. Harvested: no new backlog entries (`BL-0068` already flipped `DONE` at run #81). **Step 1 reconciliation for this run also swept `ROADMAP.md` for any remaining `⛔`/`🚧` rows** — found only two, both explicitly "on demand"/"zero-or-more," confirming no other ladder/requirements/feature-planning work is outstanding. **This surfaced a genuinely new actionable item**: a cluster of standing, unpackaged, non-gated bug-remediation backlog entries (`BL-0049`/`0051`/`0052`/`0053`, all `SCHEDULED`, entry stage `07`) that no prior run had picked up. | `07-implementation-planning` on **`BL-0049`/`BL-0051`/`BL-0052`/`BL-0053`** — package this standing bug-remediation cluster (mirroring the `BL-0047`/`0048`/`0058`/`0059`/`0063` tranche's own precedent). No gate: planning needs no G3. Independently: `09-package-verification` on the five `COMPLETE` packages remains blocked on a fresh session; `BL-0066`/`BL-0050` (both `NEEDS-USER`) await the user. |
