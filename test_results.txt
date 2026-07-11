@@ -1,4 +1,4 @@
-BunnyQuest ROM Tests  PASS=211/211  FAIL=0
+BunnyQuest ROM Tests  PASS=213/213  FAIL=0
 ==================================================
 [PASS] T1.1 ROM size = 32768  (32768)
 [PASS] T1.2 Entry = NOP; JP
@@ -66,9 +66,11 @@ BunnyQuest ROM Tests  PASS=211/211  FAIL=0
 [PASS] T7.5 UP decreases Y  (72->52)
 [PASS] T7.6 DOWN increases Y  (52->72)
 [PASS] T7.7 Frame flips after 10 walk frames  (frame=1)
-[PASS] T7.8 Can't move above Y=17 (zone 0)  (y=17 zone=0)
+[PASS] T7.8 UP clamp floors exactly at Y=8 (IP-9090/BL-0051 fix)  (y=8 zone=0)
+[PASS] T7.8b UP clamp does not go below Y=8  (y=8)
 [PASS] T7.9 X=0 in zone 0: no move, no zone change  (x=0 zone=0)
 [PASS] T7.10 X=159 in zone 2: no overflow, no zone change  (x=159 zone=2)
+[PASS] T7.10b RIGHT clamp floors exactly at X=152 via genuine movement (IP-9090/BL-0052 fix)  (x=152 zone=2)
 [PASS] T8.1 Score starts 0  (0)
 [PASS] T8.2 Carrots start 0  (0)
 [PASS] T8.3 COLL_COUNT = 7 in zone 0  (count=7)

@@ -28,7 +28,7 @@
 | FR-1140 | PLAYING↔SAVE transition | — | GDS-01 §4 | — | `asm_game.py` | UNASSIGNED | UNASSIGNED | T4.4/T4.5 |
 | FR-1150 | PLAYING↔MAP transition | — | GDS-01 §4 | — | `asm_game.py` | UNASSIGNED | UNASSIGNED | T4.6/T4.7 |
 | FR-1160 | PLAYING→VICTORY→TITLE transition | — | GDS-01 §4; GDS-05 C4 | — | `asm_game.py` | UNASSIGNED | UNASSIGNED | T4.8/T4.9/T4.10 |
-| FR-2100 | Continuous fixed-speed movement | R202 | GDS-05 C2 | — | `asm_game.py` | UNASSIGNED | UNASSIGNED | T7.1–T7.7 |
+| FR-2100 | Continuous fixed-speed movement | R202 | GDS-05 C2 | — | `asm_game.py` | UNASSIGNED | IP-9090 | T7.1–T7.7, T7.8/T7.8b/T7.10/T7.10b (boundary-clamp fix) |
 | FR-2200 | Facing-direction tracking | — | GDS-04; GDS-05 C2 | — | `asm_game.py` | UNASSIGNED | UNASSIGNED | T7.2/T7.4, T6.5/T6.6 |
 | FR-2300 | Zone-boundary transition on valid neighbor | — | GDS-05 C2; GDS-04 | — | `asm_game.py` | UNASSIGNED | UNASSIGNED | T17.a–b (all four edges, scale=5 + scale=3 regression — supersedes retired T9.2–T9.13, `IP-9050`) |
 | FR-2310 | No transition at grid boundary | — | GDS-05 C2 | — | `asm_game.py` | UNASSIGNED | UNASSIGNED | T7.9/T7.10, T17.c (supersedes retired T9.5/T9.11/T9.14, `IP-9050`) |

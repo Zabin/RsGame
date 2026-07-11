@@ -474,12 +474,18 @@ pb.button_release('right')
 frame = pb.memory[PLAYER_FRAME]
 check("T7.7 Frame flips after 10 walk frames", frame == 1, f"frame={frame}")
 
-# Upper Y boundary: movement floor is Y=17 (zone 0 = top row, no up-transition)
-pb.memory[PLAYER_Y] = 18; pb.memory[PLAYER_X] = 80
+# Upper Y boundary: movement floor is Y=8, one 8px tile row below the
+# static row-0 HUD -- IP-9090 (BL-0051) fix: previously incorrectly
+# floored at Y=17, ~9px short of the true playfield top edge.
+pb.memory[PLAYER_Y] = 18; pb.memory[PLAYER_X] = 80; pb.memory[CUR_ZONE] = 0
+pb.button_press('up'); [pb.tick() for _ in range(20)]; pb.button_release('up')
+[pb.tick() for _ in range(2)]
+check("T7.8 UP clamp floors exactly at Y=8 (IP-9090/BL-0051 fix)",
+      pb.memory[PLAYER_Y] == 8, f"y={pb.memory[PLAYER_Y]} zone={pb.memory[CUR_ZONE]}")
 pb.button_press('up'); [pb.tick() for _ in range(5)]; pb.button_release('up')
 [pb.tick() for _ in range(2)]
-check("T7.8 Can't move above Y=17 (zone 0)", pb.memory[PLAYER_Y] >= 17,
-      f"y={pb.memory[PLAYER_Y]} zone={pb.memory[CUR_ZONE]}")
+check("T7.8b UP clamp does not go below Y=8", pb.memory[PLAYER_Y] == 8,
+      f"y={pb.memory[PLAYER_Y]}")
 
 # Left X boundary: zone 0 is col 0 — X=0 must not move or change zone
 pb.memory[CUR_ZONE] = 0; pb.memory[PLAYER_X] = 0; pb.memory[NEED_REDRAW] = 0
@@ -489,13 +495,24 @@ check("T7.9 X=0 in zone 0: no move, no zone change",
       pb.memory[PLAYER_X] <= 5 and pb.memory[CUR_ZONE] == 0,
       f"x={pb.memory[PLAYER_X]} zone={pb.memory[CUR_ZONE]}")
 
-# Right X boundary: zone 2 is col 2 — no right-transition, X capped at 159
+# Right X boundary: zone 2 is col 2 (true grid boundary, no right-neighbor
+# regardless of maze) -- the sprite's true flush maximum is X=152 (screen
+# width 160, sprite width 8), not 159 -- IP-9090 (BL-0052) fix. This first
+# check forces X=159 directly (bypassing the clamp) so it only confirms
+# "no further increase," still true under the corrected ceiling; T7.10b
+# drives the clamp via genuine movement to confirm the real boundary.
 pb.memory[CUR_ZONE] = 2; pb.memory[PLAYER_X] = 159; pb.memory[NEED_REDRAW] = 0
 pb.button_press('right'); [pb.tick() for _ in range(3)]; pb.button_release('right')
 [pb.tick() for _ in range(2)]
 check("T7.10 X=159 in zone 2: no overflow, no zone change",
       pb.memory[PLAYER_X] <= 159 and pb.memory[CUR_ZONE] == 2,
       f"x={pb.memory[PLAYER_X]} zone={pb.memory[CUR_ZONE]}")
+
+pb.memory[CUR_ZONE] = 2; pb.memory[PLAYER_X] = 80; pb.memory[NEED_REDRAW] = 0
+pb.button_press('right'); [pb.tick() for _ in range(90)]; pb.button_release('right')
+[pb.tick() for _ in range(2)]
+check("T7.10b RIGHT clamp floors exactly at X=152 via genuine movement (IP-9090/BL-0052 fix)",
+      pb.memory[PLAYER_X] == 152, f"x={pb.memory[PLAYER_X]} zone={pb.memory[CUR_ZONE]}")
 
 pb.stop()
 

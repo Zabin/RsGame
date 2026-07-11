@@ -512,7 +512,7 @@ def build_game_asm(rom: ROM) -> dict:
     # RIGHT
     rom.BIT_b_B(J_RIGHT); rom.JR_Z('mv_nr')
     rom.LD_A_nn(PLAYER_X); rom.INC_A()
-    rom.CP_n(160); rom.JR_NC('mv_skip_r')
+    rom.CP_n(153); rom.JR_NC('mv_skip_r')
     rom.LD_nn_A(PLAYER_X)
     rom.label('mv_skip_r')
     rom.XOR_A(); rom.LD_nn_A(PLAYER_DIR)
@@ -529,7 +529,7 @@ def build_game_asm(rom: ROM) -> dict:
 
     # UP
     rom.BIT_b_B(J_UP); rom.JR_Z('mv_nu')
-    rom.LD_A_nn(PLAYER_Y); rom.CP_n(17); rom.JR_C('mv_skip_u')
+    rom.LD_A_nn(PLAYER_Y); rom.CP_n(8); rom.JR_C('mv_skip_u')
     rom.JR_Z('mv_skip_u'); rom.DEC_A(); rom.LD_nn_A(PLAYER_Y)
     rom.label('mv_skip_u')
     rom.LD_A_n(1); rom.LD_nn_A(TMP1)

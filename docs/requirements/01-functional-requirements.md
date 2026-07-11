@@ -343,7 +343,16 @@
 - **Source Documents:** GDS-05 C2; R202.
 - **Related ADRs:** None.
 - **Notes:** The exact per-frame speed value is a Data Model (GDS-07) concern, not restated here
-  per the architecture-independence writing rule.
+  per the architecture-independence writing rule. **2026-07-11 delta (`IP-9090`, `BL-0051`/
+  `BL-0052`):** the playfield's own pixel-edge clamp values (the point at which "blocked" per
+  this FR's own Preconditions actually applies within a screen, distinct from `FR-2300`'s
+  zone-boundary blocking) were corrected — UP floor `Y=8`, RIGHT ceiling `X=152` (both now flush
+  with the true playfield edge: one 8px tile row below the static HUD, and the screen's own
+  160px width minus the 8px sprite width, respectively) — previously `Y=17`/`X=159`, stopping the
+  sprite short of/past the true edge. **This FR still does not baseline the exact pixel bounds**
+  (a genuine requirements gap this delta does not close — see `IP-9090`'s own §3) — noted here as
+  a candidate for a future `04-requirements-engineering` pass to formalize, not resolved by this
+  Notes entry.
 
 ### FR-2200 — Facing-direction tracking
 
