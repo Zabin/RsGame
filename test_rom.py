@@ -28,6 +28,8 @@ Suites:
   T16 CUR_ZONE-indexed structure generalization (IP-9070) — SCOREITEM_FLAGS
       bounds, zc_table biome-keyed lookup, save-format v3 round-trip,
       pre-upgrade rejection, legacy-field regression
+  T18 Main menu cursor fix (IP-9060) — toggle with/without a save present,
+      genuine re-entry still resets correctly, new-game end-to-end reachable
 
 WRAM model under test (see docs/architecture/07-data-model.md):
   C000 GAMESTATE (0=TITLE 1=INTRO 2=PLAYING 3=SAVE 4=MAP 5=VICTORY)
@@ -56,6 +58,7 @@ SCOREITEM_FLAGS = 0xC286   # up to 81 bytes, C286-C2D6 — one bitfield per regi
                             # (FR-5220, generalized from the old 9-byte/9-zone array by IP-9070;
                             # relocated off 0xC060 to avoid colliding with REGION_GRAPH)
 SEED = 0xC069; WORLD_SCALE = 0xC06B; REGION_GRAPH = 0xC070
+MM_CURSOR = 0xC27E   # MAIN MENU highlighted option: 0=continue, 1=new game (IP-1040/IP-9060)
 KEYITEM_FLAGS = 0xC220     # up to 81 bytes — generalizes CARROT_FLAGS (IP-1020);
                             # only indices 0-8 are live until FEAT-1100 ships
 KEYITEM_COUNT = CARROTS_COUNT   # same WRAM slot as CARROTS_COUNT (IP-1020)
@@ -1462,6 +1465,85 @@ check("T16.e3 REGION_GRAPH regeneration unaffected (49 regions, scale=7)",
       region_graph_post16e == region_graph_pre16e, "")
 check("T16.e4 KEYITEM_FLAGS unaffected", kf_post16e == kf_pre16e, "")
 pb2.stop()
+wipe_save()
+
+# ══════════════════════════════════════════════════════
+# T18 — Main Menu Cursor Fix (IP-9060)
+# ══════════════════════════════════════════════════════
+print("\n=== T18: Main Menu Cursor Fix ===")
+
+# T18.a — toggle with a valid save present (the direct BL-0048 regression
+# test): every step asserts the exact MM_CURSOR value, not just "changed".
+pb = fresh_boot(200)
+advance_to_playing(pb)
+pb.button('start'); [pb.tick() for _ in range(40)]
+pb.button('a');      [pb.tick() for _ in range(40)]   # SAVE -> A -> PLAYING
+pb.stop()
+pb = PyBoy(ROM_PATH, window='null', sound_emulated=False)
+pb.set_emulation_speed(0)
+for _ in range(180): pb.tick()
+check("T18.a1 MAIN MENU with a valid save: MM_CURSOR defaults to 0 (continue)",
+      pb.memory[MM_CURSOR] == 0, f"cursor={pb.memory[MM_CURSOR]}")
+pb.button('down'); [pb.tick() for _ in range(40)]
+check("T18.a2 DOWN toggles MM_CURSOR to 1 (BL-0048 direct regression)",
+      pb.memory[MM_CURSOR] == 1, f"cursor={pb.memory[MM_CURSOR]}")
+pb.button('down'); [pb.tick() for _ in range(40)]
+check("T18.a3 DOWN again wraps MM_CURSOR back to 0",
+      pb.memory[MM_CURSOR] == 0, f"cursor={pb.memory[MM_CURSOR]}")
+pb.button('up'); [pb.tick() for _ in range(40)]
+check("T18.a4 UP toggles MM_CURSOR to 1",
+      pb.memory[MM_CURSOR] == 1, f"cursor={pb.memory[MM_CURSOR]}")
+
+# T18.d — "new game" is actually reachable end-to-end from this toggled
+# state (the full regression test proving the reported symptom is
+# resolved, not just that the byte value changes).
+pb.button('a'); [pb.tick() for _ in range(40)]
+check("T18.d New game reachable: A from MM_CURSOR=1 -> SEED/SCALE ENTRY (GS=7)",
+      pb.memory[GAMESTATE] == 7, f"GS={pb.memory[GAMESTATE]}")
+pb.stop()
+wipe_save()
+
+# T18.b — toggle with no save present: MM_CURSOR forced to 1 ("continue"
+# not offered); UP/DOWN are no-ops (mm_toggle's own existing
+# MM_SAVE_VALID-gate, unchanged by this package).
+pb = fresh_boot(200)
+check("T18.b1 MAIN MENU with no save: MM_CURSOR forced to 1",
+      pb.memory[MM_CURSOR] == 1, f"cursor={pb.memory[MM_CURSOR]}")
+pb.button('up'); [pb.tick() for _ in range(40)]
+check("T18.b2 UP is a no-op with no save (MM_SAVE_VALID gate)",
+      pb.memory[MM_CURSOR] == 1, f"cursor={pb.memory[MM_CURSOR]}")
+pb.button('down'); [pb.tick() for _ in range(40)]
+check("T18.b3 DOWN is a no-op with no save",
+      pb.memory[MM_CURSOR] == 1, f"cursor={pb.memory[MM_CURSOR]}")
+pb.stop()
+wipe_save()
+
+# T18.c — genuine re-entry still resets correctly: from MAIN MENU with
+# MM_CURSOR toggled to 1 (new game highlighted), navigate away and back
+# via a genuine state-entry path (SEED/SCALE ENTRY's B-cancel, T14.c1's
+# own path) — confirm MM_CURSOR resets to its correct entry default (0,
+# a valid save exists), proving the fix didn't simply delete the reset,
+# only mis-scoped it.
+pb = fresh_boot(200)
+advance_to_playing(pb)
+pb.button('start'); [pb.tick() for _ in range(40)]
+pb.button('a');      [pb.tick() for _ in range(40)]   # SAVE -> A -> PLAYING
+pb.stop()
+pb = PyBoy(ROM_PATH, window='null', sound_emulated=False)
+pb.set_emulation_speed(0)
+for _ in range(180): pb.tick()
+pb.button('down'); [pb.tick() for _ in range(40)]
+check("T18.c1 MM_CURSOR toggled to 1 before navigating away",
+      pb.memory[MM_CURSOR] == 1, f"cursor={pb.memory[MM_CURSOR]}")
+pb.button('a'); [pb.tick() for _ in range(40)]   # A from cursor=1 -> SEED/SCALE ENTRY
+check("T18.c2 Reached SEED/SCALE ENTRY (GS=7)", pb.memory[GAMESTATE] == 7,
+      f"GS={pb.memory[GAMESTATE]}")
+pb.button('b'); [pb.tick() for _ in range(40)]   # B-cancel -> MAIN MENU (genuine re-entry)
+check("T18.c3 B-cancel -> MAIN MENU (GS=6)", pb.memory[GAMESTATE] == 6,
+      f"GS={pb.memory[GAMESTATE]}")
+check("T18.c4 Genuine re-entry resets MM_CURSOR to its correct default (0, save exists)",
+      pb.memory[MM_CURSOR] == 0, f"cursor={pb.memory[MM_CURSOR]}")
+pb.stop()
 wipe_save()
 
 # ══════════════════════════════════════════════════════

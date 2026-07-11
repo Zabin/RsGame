@@ -105,15 +105,21 @@ named:
 
 ## 11. Verification Checklist
 
-- [ ] G5: ROM builds at exactly 32768 bytes with valid header.
-- [ ] G5: full `test_rom.py` suite passes.
-- [ ] T18.a–d each present and passing.
-- [ ] Direct code read: `check_save_valid`'s body contains no `MM_CURSOR` write.
-- [ ] Direct code read: `mm_on_entry`'s `MM_CURSOR`-reset is gated on the entry-vs-redraw
-      distinction, not unconditional.
-- [ ] Direct code read: every `GAMESTATE → GS_MAIN_MENU` transition site sets the new entry flag
-      (boot, `st_victory`'s A-press, `st_save`'s SELECT option) — none silently bypasses it.
-- [ ] GDS-01/Master-Build-Plan deltas applied exactly as §9 names.
+- [x] G5: ROM builds at exactly 32768 bytes with valid header.
+- [x] G5: full `test_rom.py` suite passes (205/205).
+- [x] T18.a–d each present and passing.
+- [x] Direct code read: `check_save_valid`'s body contains no `MM_CURSOR` write (confirmed by a
+      direct substring search of the routine's own body, not merely assumed).
+- [x] Direct code read: `mm_on_entry`'s `MM_CURSOR`-reset is gated on the entry-vs-redraw
+      distinction (`MM_JUST_ENTERED`), not unconditional.
+- [x] Direct code read: every `GAMESTATE → GS_MAIN_MENU` transition site sets the new entry flag
+      — **this package's own §6 task list named only 3 sites (boot, `st_victory`'s A-press,
+      `st_save`'s SELECT option); implementation found and fixed a 4th, `st_seed_scale_entry`'s
+      B-cancel (`asm_game.py:373`), which `T18.c`'s own test exercises** — confirmed by grepping
+      every `TRANSITION_TO = GS_MAIN_MENU` call site (exactly 4) against every
+      `MM_JUST_ENTERED` write site (exactly 4, one per transition site, plus `mm_on_entry`'s own
+      consuming clear) — no site silently bypasses it.
+- [x] GDS-01/Master-Build-Plan deltas applied exactly as §9 names.
 
 ## 12. Dependencies
 

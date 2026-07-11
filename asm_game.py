@@ -74,6 +74,14 @@ SCOREITEM_FLAGS = 0xC286  # up to 81 bytes, C286-C2D6 — one bitfield per regio
                           # its old 0xC060 address) to the confirmed-unused WRAM gap
                           # between SSE_CURSOR and OAM_BUF — growing to 81 bytes in place
                           # would have collided with REGION_GRAPH at 0xC070.
+MM_JUST_ENTERED = 0xC2D7  # 1 byte — set by every GAMESTATE -> GS_MAIN_MENU transition site
+                          # (boot, st_victory's A-press, st_save's SELECT option,
+                          # st_seed_scale_entry's B-cancel), cleared by mm_on_entry once
+                          # consumed. Lets mm_on_entry tell a genuine state entry (reset
+                          # MM_CURSOR to its default) apart from a same-state redraw the
+                          # player's own toggle causes (leave MM_CURSOR alone) — IP-9060,
+                          # BL-0048's fix. Sits in the confirmed-unused byte immediately
+                          # after SCOREITEM_FLAGS's own 81-byte extent.
 OAM_BUF        = 0xC300
 
 SAVE_VERSION_ADDR = 0xA012   # save-format version guard (FR-5220 / Design Decision 2)
@@ -200,7 +208,7 @@ def build_game_asm(rom: ROM) -> dict:
     # moves to become MAIN MENU's "continue" action only (ADR-0009/GDS-01 §2a).
     rom.LD_A_n(GS_MAIN_MENU)
     rom.LD_nn_A(GAMESTATE); rom.LD_nn_A(TRANSITION_TO)
-    rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW)
+    rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW); rom.LD_nn_A(MM_JUST_ENTERED)
 
     rom.LD_A_n(0x97); rom.LDH_n_A(LCDC)   # 0x97 = LCD on + 8x16 OBJ
     rom.LD_A_n(0x01); rom.LD_nn_A(0xFFFF)
@@ -292,7 +300,7 @@ def build_game_asm(rom: ROM) -> dict:
     rom.BIT_b_B(J_SELECT); rom.JP_Z('end_frame')
     rom.CALL('save_to_sram')
     rom.LD_A_n(GS_MAIN_MENU); rom.LD_nn_A(TRANSITION_TO)
-    rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW)
+    rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW); rom.LD_nn_A(MM_JUST_ENTERED)
     rom.JP('end_frame')
 
     # ── State: MAP ───────────────────────────────────────
@@ -309,7 +317,7 @@ def build_game_asm(rom: ROM) -> dict:
     rom.JP_Z('end_frame')
     # IP-1040: target is now MAIN MENU, not the superseded TITLE state.
     rom.LD_A_n(GS_MAIN_MENU); rom.LD_nn_A(TRANSITION_TO)
-    rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW)
+    rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW); rom.LD_nn_A(MM_JUST_ENTERED)
     # clear progress
     rom.XOR_A(); rom.LD_nn_A(CARROTS_COUNT); rom.LD_nn_A(SCORE)
     # clear KEYITEM_FLAGS (9 bytes — IP-1020, generalizes CARROT_FLAGS; see st_intro)
@@ -363,7 +371,11 @@ def build_game_asm(rom: ROM) -> dict:
 
     rom.BIT_b_B(J_B); rom.JP_Z('sse_no_b')
     rom.LD_A_n(GS_MAIN_MENU); rom.LD_nn_A(TRANSITION_TO)
-    rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW)
+    # IP-9060: also a genuine GAMESTATE -> GS_MAIN_MENU entry site (T18.c's
+    # own regression path) — not named in IP-9060's own §6 task list, but
+    # required for MM_CURSOR to reset correctly here too; caught during
+    # implementation, not silently left as a 4th unguarded entry point.
+    rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW); rom.LD_nn_A(MM_JUST_ENTERED)
     rom.JP('end_frame')
     rom.label('sse_no_b')
 
@@ -865,18 +877,31 @@ def build_game_asm(rom: ROM) -> dict:
     rom.label('dra_no_right')
     rom.RET()
 
-    # ── mm_on_entry / draw_menu_cursor (IP-1040) ──────────
+    # ── mm_on_entry / draw_menu_cursor (IP-1040 / IP-9060) ────
     # Runs once each time MAIN MENU is (re)entered/redrawn (state entry, or
     # after a cursor toggle — a full LCD-off redraw either way, matching
     # this codebase's existing menu-screen convention): recomputes
     # save-validity, blanks the baked "CONTINUE" label if no valid save
     # exists, and draws the highlight cursor next to MM_CURSOR's selection.
+    # IP-9060 (BL-0048): MM_CURSOR's own reset-to-default only fires here on
+    # a genuine state entry (MM_JUST_ENTERED, set by every GAMESTATE ->
+    # GS_MAIN_MENU transition site) — a same-state redraw the player's own
+    # toggle (mm_toggle) causes leaves MM_CURSOR at its just-toggled value.
     MM_CONT_ADDR = 0x9800 + 7*32 + 8   # "CONTINUE" label start (8 chars)
     MM_CURSOR_CONT_ADDR = 0x9800 + 7*32 + 6
     MM_CURSOR_NEW_ADDR  = 0x9800 + 9*32 + 6
 
     rom.label('mm_on_entry')
     rom.CALL('check_save_valid')
+    rom.LD_A_nn(MM_JUST_ENTERED); rom.OR_A(); rom.JR_Z('mm_oe_no_reset')
+    rom.XOR_A(); rom.LD_nn_A(MM_JUST_ENTERED)
+    rom.LD_A_nn(MM_SAVE_VALID); rom.OR_A(); rom.JR_NZ('mm_oe_cur_cont')
+    rom.LD_A_n(1); rom.JR('mm_oe_cur_set')
+    rom.label('mm_oe_cur_cont')
+    rom.XOR_A()
+    rom.label('mm_oe_cur_set')
+    rom.LD_nn_A(MM_CURSOR)
+    rom.label('mm_oe_no_reset')
     rom.LD_A_nn(MM_SAVE_VALID); rom.OR_A(); rom.JR_NZ('mm_oe_have_save')
     rom.LD_HL_nn(MM_CONT_ADDR); rom.LD_B_n(8); rom.LD_A_n(TL_BG_BLANK)
     rom.label('mm_oe_blank'); rom.LD_HLI_A(); rom.DEC_B(); rom.JR_NZ('mm_oe_blank')
@@ -1315,7 +1340,10 @@ def build_game_asm(rom: ROM) -> dict:
     # try_load_save's own magic-only gate, which still loads a mismatched
     # save with ScoreItem restore skipped, IP-1010's shipped behavior,
     # unchanged). Writes no game-state field, only the cached MM_SAVE_VALID
-    # flag and MM_CURSOR's entry default.
+    # flag — IP-9060 (BL-0048) removed this routine's own MM_CURSOR-reset
+    # tail, which used to fire on every call (i.e. every MAIN MENU redraw,
+    # including the player's own toggle), silently undoing it. The reset
+    # itself moved to mm_on_entry, gated on a genuine state-entry flag.
     rom.label('check_save_valid')
     rom.LD_A_n(0x0A); rom.LD_nn_A(0x0000)
     for addr, val in [(0xA000,0x42),(0xA001,0x55),(0xA002,0x4E),(0xA003,0x59)]:
@@ -1327,12 +1355,6 @@ def build_game_asm(rom: ROM) -> dict:
     rom.XOR_A(); rom.LD_nn_A(MM_SAVE_VALID)
     rom.label('csv_done')
     rom.XOR_A(); rom.LD_nn_A(0x0000)
-    rom.LD_A_nn(MM_SAVE_VALID); rom.OR_A(); rom.JR_NZ('csv_cur_cont')
-    rom.LD_A_n(1); rom.JR('csv_cur_set')
-    rom.label('csv_cur_cont')
-    rom.XOR_A()
-    rom.label('csv_cur_set')
-    rom.LD_nn_A(MM_CURSOR)
     rom.RET()
 
     # ── try_load_save ─────────────────────────────────────

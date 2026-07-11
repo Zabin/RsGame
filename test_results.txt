@@ -1,4 +1,4 @@
-BunnyQuest ROM Tests  PASS=193/193  FAIL=0
+BunnyQuest ROM Tests  PASS=205/205  FAIL=0
 ==================================================
 [PASS] T1.1 ROM size = 32768  (32768)
 [PASS] T1.2 Entry = NOP; JP
@@ -193,3 +193,15 @@ BunnyQuest ROM Tests  PASS=193/193  FAIL=0
 [PASS] T16.e2 WORLD_SCALE unaffected  (7->7)
 [PASS] T16.e3 REGION_GRAPH regeneration unaffected (49 regions, scale=7)
 [PASS] T16.e4 KEYITEM_FLAGS unaffected
+[PASS] T18.a1 MAIN MENU with a valid save: MM_CURSOR defaults to 0 (continue)  (cursor=0)
+[PASS] T18.a2 DOWN toggles MM_CURSOR to 1 (BL-0048 direct regression)  (cursor=1)
+[PASS] T18.a3 DOWN again wraps MM_CURSOR back to 0  (cursor=0)
+[PASS] T18.a4 UP toggles MM_CURSOR to 1  (cursor=1)
+[PASS] T18.d New game reachable: A from MM_CURSOR=1 -> SEED/SCALE ENTRY (GS=7)  (GS=7)
+[PASS] T18.b1 MAIN MENU with no save: MM_CURSOR forced to 1  (cursor=1)
+[PASS] T18.b2 UP is a no-op with no save (MM_SAVE_VALID gate)  (cursor=1)
+[PASS] T18.b3 DOWN is a no-op with no save  (cursor=1)
+[PASS] T18.c1 MM_CURSOR toggled to 1 before navigating away  (cursor=1)
+[PASS] T18.c2 Reached SEED/SCALE ENTRY (GS=7)  (GS=7)
+[PASS] T18.c3 B-cancel -> MAIN MENU (GS=6)  (GS=6)
+[PASS] T18.c4 Genuine re-entry resets MM_CURSOR to its correct default (0, save exists)  (cursor=0)
