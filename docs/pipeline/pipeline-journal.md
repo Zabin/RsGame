@@ -14,43 +14,47 @@
 
 ## Position
 
-- **Updated:** 2026-07-11 (run #85)
-- **Increment:** Bootstrap baseline remains fully closed (01–11 ✅, GO recorded). Six packages
-  `COMPLETE` (`IP-1031`/`IP-9050`/`IP-9060`/`IP-9070`/`IP-1070`/`IP-9090`), zero `VERIFIED`, all
-  blocked on a fresh session's `09-package-verification`. `IP-1080` `BLOCKED`/unauthorized;
-  `FS-108`'s rendering half deliberately unspecified until `IP-1080` is nearer landing.
-  **Movement/pickup/UI bug-remediation tranche: `IP-9100` implemented, `COMPLETE` (run #85)** —
-  `check_collisions`' pickup hitbox corrected. **Notable: the package's own originally-planned
-  formula (a symmetric threshold change) was found wrong during implementation** — verified via
-  PyBoy against `BL-0053`'s own two reproduction points, re-derived to the correct asymmetric
-  point-in-box test, package document corrected in place to match what was actually built; `T11.a1`
-  also fixed (a near-miss position only valid under the old buggy tolerance). Full suite 217/217.
-  Filed **`BL-0073`** (process finding: `07-implementation-planning` packages specifying an exact
-  formula should verify it against embedded reproduction data before writing it down). `IP-9080`
-  (`BL-0049`, SAVE screen text) remains `READY`, authorized, the last package in this tranche.
-  `R112` (run #69) → `ADR-0012` (run #70) → `FR-9140`/`FR-9150`/`FR-2330` baselined (run #71) →
-  `FEAT-9100`/`FEAT-2100` decomposed (run #72) → `FS-107`/`FS-108` specified (run #73) →
-  `IP-1070`/`IP-1080` planned (run #74), `IP-1070` authorized (run #75) → Blocking Report
-  (run #76) → `R113` (run #77) → `ADR-0013` (run #78) → light re-plan (run #79) → implemented,
-  `COMPLETE` (run #80) → `BL-0068`/`GDS-08` §10 authored (run #81) → `FS-108` OQ1 closed (run #81)
-  → new bug cluster surfaced (run #82) → `IP-9080`/`IP-9090`/`IP-9100` planned + G3-authorized
-  (run #83) → `IP-9090` implemented, `COMPLETE` (run #84) → **`IP-9100` implemented, `COMPLETE`
-  (run #85).** `BL-0066` (biome-blob clustering) remains `NEEDS-USER` (the `ADR-0012`
-  pass-ordering conflict, routed as `CR-05`/RQ-03 finding #13).
-- **Pipeline state:** Bootstrap: stages 01–11 ✅ — complete, GO recorded. Six `COMPLETE` packages
-  await a fresh-session `09-package-verification`. `IP-1080` `BLOCKED`/unauthorized. `IP-9080`
-  `READY` and authorized — the only remaining unimplemented package from this tranche.
-- **Backlog:** 73 entries, 24 open. Run #85: new **`BL-0073`** filed (Medium, `finding`,
-  `SCHEDULED`, riding a future `07-implementation-planning` pass) — the planning-formula
-  verification gap this run's own correction exposed. `BL-0053` implicitly resolved by `IP-9100`
-  reaching `COMPLETE`. `BL-0066`/`BL-0050` (both standing `NEEDS-USER`) remain open, unrelated.
-  `BL-0071` remains `SCHEDULED`, low urgency, no active `07` pass to ride yet — could ride the
-  same future `07` pass as `BL-0073` (both are `07`-process discipline additions).
-- **Next step:** `08-content-authoring` on **`IP-9080`** (SAVE screen third-option labeling,
-  `BL-0049`) — `READY` and authorized, the last unimplemented package from this tranche.
-  Independently: `09-package-verification` on the six `COMPLETE` packages remains blocked on a
-  fresh session; `BL-0066`/`BL-0050` (both `NEEDS-USER`) await the user whenever convenient.
-- **Open gates:** None. Two standing, independent: `BL-0050` (MAP/status-screen redesign) and
+- **Updated:** 2026-07-11 (run #86 — pipeline exhausted, all remaining paths gated)
+- **Increment:** Bootstrap baseline remains fully closed (01–11 ✅, GO recorded). **The
+  movement/pickup/UI bug-remediation tranche is now fully implemented end-to-end**: `IP-9080`
+  (SAVE screen text, run #86, 220/220), `IP-9090` (movement clamps, run #84, 213/213), `IP-9100`
+  (pickup hitbox, run #85, 217/217 — its own originally-planned formula was found wrong during
+  implementation and corrected). Eight packages now `COMPLETE` overall (`IP-1031`/`IP-9050`/
+  `IP-9060`/`IP-9070`/`IP-1070`/`IP-9090`/`IP-9100`/`IP-9080`), zero `VERIFIED`. `IP-1080`
+  `BLOCKED`/unauthorized; `FS-108`'s rendering half deliberately unspecified until `IP-1080` is
+  nearer landing. `R112` (run #69) → `ADR-0012` (run #70) → `FR-9140`/`FR-9150`/`FR-2330`
+  baselined (run #71) → `FEAT-9100`/`FEAT-2100` decomposed (run #72) → `FS-107`/`FS-108` specified
+  (run #73) → `IP-1070`/`IP-1080` planned (run #74), `IP-1070` authorized (run #75) → Blocking
+  Report (run #76) → `R113` (run #77) → `ADR-0013` (run #78) → light re-plan (run #79) →
+  implemented, `COMPLETE` (run #80) → `BL-0068`/`GDS-08` §10 authored (run #81) → `FS-108` OQ1
+  closed (run #81) → new bug cluster surfaced (run #82) → `IP-9080`/`IP-9090`/`IP-9100` planned +
+  G3-authorized (run #83) → `IP-9090` `COMPLETE` (run #84) → `IP-9100` `COMPLETE` (run #85) →
+  **`IP-9080` `COMPLETE` (run #86) — tranche closed.** `BL-0066` (biome-blob clustering) remains
+  `NEEDS-USER` (the `ADR-0012` pass-ordering conflict, routed as `CR-05`/RQ-03 finding #13).
+- **Pipeline state:** Bootstrap: stages 01–11 ✅ — complete, GO recorded. Eight `COMPLETE`
+  packages await a fresh-session `09-package-verification`. `IP-1080` `BLOCKED`/unauthorized (and
+  cannot become eligible this session — its own hard prerequisite, `IP-1070`, needs `VERIFIED`,
+  which needs a fresh session). **Reconciliation confirms no further unblocked, non-gated,
+  actionable work remains this session**: `ROADMAP.md`'s only remaining `⛔` rows are both
+  explicitly "on demand" (not gating anything); every open `SCHEDULED` backlog entry either rides
+  a future package that doesn't exist yet (no standalone action available) or is a `07`-skill-file
+  process-discipline addition (`BL-0071`/`BL-0073`) that this manager has no standing instruction
+  to perform unilaterally (the one precedent for such an edit, `BL-0054`, was explicitly
+  user-directed, not self-initiated).
+- **Backlog:** 73 entries, 24 open. Run #86: no new entries. `BL-0049` implicitly resolved by
+  `IP-9080` reaching `COMPLETE` (status stays `SCHEDULED`, not `DONE`, pending
+  `09-package-verification`, per this project's own standing convention for every other
+  `COMPLETE`-but-unverified package). `BL-0066`/`BL-0050` (both standing `NEEDS-USER`) remain the
+  only two entries actually needing the user. `BL-0071`/`BL-0073` remain `SCHEDULED`, low urgency,
+  no active `07` pass to ride.
+- **Next step:** **Pipeline exhausted for this session.** The only paths forward are: (a)
+  `09-package-verification` on any of the eight `COMPLETE` packages, blocked on a fresh session
+  (same-session independence rule); (b) the user's decision on `BL-0050` (MAP/status-screen
+  redesign) or `BL-0066` (biome-blob clustering pass-ordering conflict), whenever convenient; (c)
+  explicit user direction to fold `BL-0071`/`BL-0073`'s process-discipline additions into
+  `07-implementation-planning`'s own `SKILL.md`, mirroring `BL-0054`'s precedent — not something
+  this manager will do unprompted. Next advance, once any of these unblocks, resumes normally.
+- **Open gates:** None new. Two standing, independent: `BL-0050` (MAP/status-screen redesign) and
   `BL-0066` (biome-blob clustering pass-ordering conflict) — both ripe, neither urgent.
 
 ## Run log
@@ -145,3 +149,4 @@
 | 83 | 2026-07-11 | advance | `07-implementation-planning` | BL-0049/BL-0051/BL-0052/BL-0053 (movement/pickup/UI bug tranche) | ✅ **No drift.** **Step 3/5:** invoked `07-implementation-planning` on the four standing bug entries surfaced by run #82's reconciliation sweep. New TWBS section authored; verb inventory not applicable (single-function fixes, no multi-verb capability); supersession sweep run (including `test_rom.py` per `BL-0071`'s own newly-established discipline) — found `T7.8` asserts the pre-fix buggy UP-clamp floor as correct (folded into `IP-9090`'s own scope), confirmed clean otherwise. Three packages authored: **`IP-9090`** (`BL-0051`+`BL-0052`, `handle_play_input`'s UP/RIGHT clamps, magic bounds `17`→`8`/`160`→`153`, `08-code-implementation`), **`IP-9100`** (`BL-0053`, `check_collisions`' pickup overlap test, `10`→`8` X / `10`→`16` Y, a true zero-margin AABB derived from 8×16 OBJ-mode geometry — directly contradicts `FR-3100`'s own currently-baselined text, correction routed to a future `04` pass rather than modified here, `08-code-implementation`), **`IP-9080`** (`BL-0049`, SAVE screen's silent third option, content-only, UI-input-mapping question resolved directly — kept the existing `A`/`B`/`SELECT` scheme, `08-content-authoring`). All three `READY`, mutually independent (no critical path), **none authorized** — no G3 answer on record for any of the four backlog entries (`BL-0062` named only the prior tranche's five bugs). Master Build Plan/`packages/INDEX.md`/`ROADMAP.md` updated in sync (new rows, dependency-graph edges, tranche summary). Committed (`d18abe8`) and pushed. Harvested: `BL-0049`/`0051`/`0052`/`0053` updated (each points at its own package). No new backlog entries. **Gate hit and resolved same run:** asked via `AskUserQuestion`; user authorized all three ("Authorize IP-9080 (SAVE screen text), Authorize IP-9090 (movement clamps), Authorize IP-9100 (pickup hitbox)"). Filed `BL-0072` (gate entry, immediately `DONE`); Master Build Plan/`packages/INDEX.md`/`ROADMAP.md` re-flipped to authorized in the same pass. | All three `IP-9080`/`IP-9090`/`IP-9100` now `READY` and authorized. Next: `08-code-implementation`/`08-content-authoring` on one of the three (mutually independent, no critical path). Independently: `09-package-verification` on the five `COMPLETE` packages remains blocked on a fresh session; `BL-0066`/`BL-0050` (both `NEEDS-USER`) await the user whenever convenient. |
 | 84 | 2026-07-11 | advance | `08-code-implementation` | IP-9090 (movement clamp boundary fix) | ✅ **No drift** — package's own cited lines matched exactly. **Step 3/5:** invoked `08-code-implementation` on `IP-9090`, `READY` and authorized (`BL-0072`). Corrected `handle_play_input`'s UP clamp (magic bound `17`→`8`) and RIGHT clamp (`CP_n(160)`→`CP_n(153)`); DOWN/LEFT confirmed unchanged. `test_rom.py`'s `T7.8` rewritten from asserting the pre-fix buggy `Y>=17` floor to the corrected exact `Y==8`; new `T7.8b` confirms it holds under continued input; `T7.10`'s stale comment corrected; new `T7.10b` drives the RIGHT clamp via genuine movement, confirming it settles at exactly `X=152`. Full suite: 213/213 pass (up from 211/211), stable. Documentation updated: `FR-2100` Notes (corrected boundary values, plus an honest note that no FR baselines the exact pixel bounds — a genuine gap, not resolved here), RTM `FR-2100` row. Master Build Plan/`packages/INDEX.md`/`ROADMAP.md` flipped to `COMPLETE`. Committed (`0116fb5`) and pushed. Harvested: no new backlog entries — `BL-0051`/`BL-0052` already point at this package. No open gates. | `08-code-implementation` on **`IP-9100`** (pickup hitbox fix) — the next-lowest-ID `READY`/authorized package from this tranche. `IP-9080` (`08-content-authoring`) remains available afterward. Independently: `09-package-verification` on the six `COMPLETE` packages remains blocked on a fresh session; `BL-0066`/`BL-0050` (both `NEEDS-USER`) await the user whenever convenient. |
 | 85 | 2026-07-11 | advance | `08-code-implementation` | IP-9100 (collectible pickup hitbox fix) | ✅ **No drift** in cited files/lines. **Step 3/5:** invoked `08-code-implementation` on `IP-9100`, `READY` and authorized (`BL-0072`). Implemented the package's own originally-planned symmetric `CP_n(8)`/`CP_n(16)` threshold change first — **direct PyBoy verification against `BL-0053`'s own two reproduction data points (item at `item_y=75` must NOT collect, `item_y=94` must collect) found it still wrong** (symmetric formula still collected `item_y=75`, since `\|80-75\|=5<16`). Re-derived the correct model: the Collectible is a collision point, not a same-sized second box — pickup fires iff that point falls inside the player's real 8×16 box, an asymmetric one-directional range test (`0<=item_x-PLAYER_X<=7`, `0<=item_y-PLAYER_Y<=15`), implemented as a single unsigned subtract+compare per axis using `H` as scratch (not `B`/`C`, both live/needed later in the same routine for the loop counter and item type). Re-verified via PyBoy against both reproduction points plus all four exact boundary values (`dx∈{-1,0,7,8}`, `dy∈{-1,0,15,16}`) — all correct. Found and fixed a real regression this correction exposed: `T11.a1` forced the player 8px away from its target item on both axes, valid only under the old buggy tolerance — corrected to the item's exact coordinates, matching every other pickup test's own convention (in scope, Step 7). New checks `T8.x`/`T8.y`/`T8.z1`/`T8.z2`. Full suite: 217/217 pass, stable. **Corrected the package document itself** (`IP-9100`'s own §6/§7/§10/§11) to match what was actually built and verified, rather than leaving it describing the wrong formula. Documentation updated: `FR-3100` Notes (corrected formula, `FR-3100`'s own baselined text flagged for a future `04` rewrite), RTM `FR-3100` row. Master Build Plan/`packages/INDEX.md`/`ROADMAP.md` flipped to `COMPLETE`. Committed (`623c33a`) and pushed. Harvested: new **`BL-0073`** filed (process finding — `07-implementation-planning` packages specifying an exact formula should verify it against embedded reproduction data). No open gates. | `08-content-authoring` on **`IP-9080`** (SAVE screen third-option labeling) — the last unimplemented package from this tranche. Independently: `09-package-verification` on the six `COMPLETE` packages remains blocked on a fresh session; `BL-0066`/`BL-0050` (both `NEEDS-USER`) await the user whenever convenient. |
+| 86 | 2026-07-11 | advance (pipeline exhausted) | `08-content-authoring` | IP-9080 (SAVE screen third-option labeling) | ✅ **No drift.** **Step 3/5:** invoked `08-content-authoring` on `IP-9080`, `READY` and authorized (`BL-0072`). Added two `_str()` lines to `save_screen` (`tilemaps.py`): "SELECT: SAVE" / "AND EXIT" (rows 12–13, columns 5–16/5–12), reusing the screen's existing font tiles and palette 2 — zero new tile art, zero new palette entries; `'+'` avoided (not in the font's char set). `asm_game.py` left untouched, per this package's own content-only scope. New checks `T5.10`–`T5.12` (SAVE screen reachable, label present, no collision with existing rows). Screenshot `T5_save_screen.png` captured and visually confirmed clean, sent to the user. Full suite: 220/220 pass. Documentation updated: `FR-1190` Notes, RTM `FR-1190` row. Master Build Plan/`packages/INDEX.md`/`ROADMAP.md` flipped to `COMPLETE`. Committed (`7298fca`) and pushed. **This closes the movement/pickup/UI bug-remediation tranche end-to-end** — all three packages (`IP-9080`/`IP-9090`/`IP-9100`) now `COMPLETE`. Harvested: no new backlog entries. **Step 1 reconciliation for this run found no further unblocked, non-gated actionable work**: `ROADMAP.md` swept clean (only two explicitly-"on demand" `⛔` rows remain); every other open backlog entry either rides a not-yet-existing future package or is a `07`-skill-file process addition (`BL-0071`/`BL-0073`) with no standing instruction to self-invoke, per `BL-0054`'s own precedent requiring explicit user direction for that class of edit. **Pipeline genuinely exhausted for this session** — ending the advance loop here. | **None available this session.** Three paths remain, all requiring something outside this session's own reach: (a) `09-package-verification` on any of the eight `COMPLETE` packages — needs a fresh session (same-session independence rule); (b) the user's decision on `BL-0050`/`BL-0066` (both standing `NEEDS-USER`), whenever convenient; (c) explicit user direction to fold `BL-0071`/`BL-0073` into `07-implementation-planning`'s own `SKILL.md`. The next `00-pipeline-manager` advance resumes normally once any of these unblocks. |
