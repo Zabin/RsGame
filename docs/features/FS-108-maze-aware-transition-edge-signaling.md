@@ -21,7 +21,11 @@
 > **Forward reference (metadata only):** logic half planned by
 > [IP-1080](../implementation/packages/IP-1080-maze-aware-edge-classification.md) (2026-07-11),
 > which resolves this document's Open Question 2. Open Question 1 (the rendering half's tile art)
-> remains open, tracked as `BL-0068`.
+> tracked as `BL-0068` — the blocking `GDS-08` delta has now landed
+> ([08-presentation-architecture.md §10](../architecture/08-presentation-architecture.md), decided
+> 2026-07-11: a distinct broken/dashed-bar tile shape at `0x1A`–`0x1D`, reusing the open arrow's
+> palette 2, zero new palette entries). This document's own §19 Open Question 1 text is left as-is
+> pending `06-feature-specification`'s own pass to formally close it against the new delta.
 
 ## 1. Feature ID
 
