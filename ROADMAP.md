@@ -100,21 +100,21 @@ build order.
 
 | ID | Document | Path | Depends on | Status |
 |---|---|---|---|---|
-| FS-101+ | One spec per approved Feature | `docs/features/FS-xxx-*.md` | FP catalog, RQ baseline | ✅ (FS-101 ✅ shipped/VERIFIED 2026-07-07; FS-102–106 ✅ 2026-07-10, all five Release-2 Features specified, none yet implemented — 7 Open Questions total routed to `07`) |
+| FS-101+ | One spec per approved Feature | `docs/features/FS-xxx-*.md` | FP catalog, RQ baseline | ✅ (FS-101 ✅ shipped/VERIFIED 2026-07-07; FS-102–106 ✅ specified 2026-07-10, all five Release-2 Features now implemented — `IP-1020`/`1030`/`1040`/`1050` VERIFIED, `IP-1031` COMPLETE with a clean content review; all 7 Open Questions resolved at `07-implementation-planning`'s 2026-07-10 pass) |
 
 ## Theme: Implementation (`docs/implementation/`) — owners `07`/`08`/`09`
 
 | ID | Document | Path | Depends on | Status |
 |---|---|---|---|---|
-| IM-00 | Master Build Plan | `docs/implementation/00-master-build-plan.md` | FS specs | ♻️ (live — bootstrap tranche's 5 packages all VERIFIED 2026-07-10; Release 2 tranche's 5 packages planned 2026-07-10, none authorized) |
+| IM-00 | Master Build Plan | `docs/implementation/00-master-build-plan.md` | FS specs | ♻️ (live — bootstrap tranche's 5 packages all VERIFIED 2026-07-10; Release 2 tranche authorized 2026-07-10 (user G3, `BL-0040`) — 4 of 5 packages VERIFIED 2026-07-11 (`IP-1020`/`1030`/`1040`/`1050`), `IP-1031` `COMPLETE` with a clean content review, awaiting its own verification) |
 | IM-01 | Technical Work Breakdown | `docs/implementation/01-technical-work-breakdown.md` | FS specs | ✅ (bootstrap pass 2026-07-07; Release-2 tranche delta 2026-07-10) |
-| IP-xxxx | Implementation Packages | `docs/implementation/packages/` | IM-01 | 🚧 (bootstrap: IP-9010/9020/9030/9040/1010, all VERIFIED; Release 2: IP-1020/1030/1031/1040/1050 planned 2026-07-10, not authorized — G3 pending) |
-| VR-xxxx | Verification Reports | `docs/implementation/verification/` | IP-xxxx at COMPLETE | ✅ (five reports: VR-9010/9020/9030/9040/1010, all bootstrap packages VERIFIED) |
+| IP-xxxx | Implementation Packages | `docs/implementation/packages/` | IM-01 | ♻️ (bootstrap: IP-9010/9020/9030/9040/1010, all VERIFIED; Release 2: IP-1020/1030/1040/1050 VERIFIED, IP-1031 COMPLETE — all ten packages implemented, one verification outstanding) |
+| VR-xxxx | Verification Reports | `docs/implementation/verification/` | IP-xxxx at COMPLETE | ♻️ (nine reports: VR-9010/9020/9030/9040/1010 bootstrap + VR-1020/1030/1040/1050 Release 2, all VERIFIED; `IP-1031`'s own VR still pending — same-session independence block, needs a fresh session) |
 
 ## Theme: Reviews (`docs/reviews/`) — owners `09-content-review`/`10`/`11`
 
 | ID | Document | Path | Depends on | Status |
 |---|---|---|---|---|
-| RV-CONTENT | Content reviews | `docs/reviews/content-review-*.md` | content packages | ⛔ (per scope) |
+| RV-CONTENT | Content reviews | `docs/reviews/content-review-*.md` | content packages | ✅ (IP-1031, 2026-07-11 — clean, 1 Low informational per NFR-6510's "Should," no Critical/High/Medium — [content-review-IP-1031.md](docs/reviews/content-review-IP-1031.md)) |
 | RV-INTEG | Integration reviews | `docs/reviews/integration-review-*.md` | tranche VERIFIED | ✅ (bootstrap tranche, 2026-07-10 — clean, 2 Medium doc-drift findings, no Critical/High) |
 | RV-RELEASE | Release assessments | `docs/reviews/release-assessment-*.md` | RV-INTEG | ✅ (bootstrap tranche — Baseline + Release 1, 2026-07-10 — **GO**, [release-assessment-bootstrap-tranche.md](docs/reviews/release-assessment-bootstrap-tranche.md); Release 2 not yet assessed) |

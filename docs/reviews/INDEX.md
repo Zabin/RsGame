@@ -12,3 +12,4 @@ Critical / High / Medium / Low.
 |---|---|---|---|---|
 | Integration review | Bootstrap tranche (IP-9010/9020/9030/9040/1010, all VERIFIED) | 2026-07-10 | **Clean** — 2 Medium (stale ROADMAP/feature-planning cross-refs), no Critical/High | [integration-review-bootstrap-tranche.md](integration-review-bootstrap-tranche.md) |
 | Release assessment | Bootstrap tranche (Baseline + Release 1, 8 Features) | 2026-07-10 | **GO** — user-confirmed | [release-assessment-bootstrap-tranche.md](release-assessment-bootstrap-tranche.md) |
+| Content review | IP-1031 (Generated-Region Screen Composition, content — FEAT-6100's first exercise) | 2026-07-11 | **Clean** — 1 Low (Stone↔Brick palette-step, informational per NFR-6510's "Should"), no Critical/High/Medium | [content-review-IP-1031.md](content-review-IP-1031.md) |

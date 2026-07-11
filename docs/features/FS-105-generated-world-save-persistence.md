@@ -6,9 +6,9 @@
 > any architecture document.
 >
 > **Forward reference (metadata only):** [IP-1050](../implementation/packages/IP-1050-generated-world-save-persistence.md)
-> **implemented 2026-07-10** — both Acceptance Criteria (§15) demonstrably pass via
-> `test_rom.py`'s T15 suite (180/180 total, full suite green); independent verification pending
-> `09-package-verification`.
+> **VERIFIED 2026-07-11** ([VR-1050](../implementation/verification/VR-1050-generated-world-save-persistence.md))
+> — both Acceptance Criteria (§15) demonstrably pass via `test_rom.py`'s T15 suite (17/17, full
+> suite 180/180 green).
 
 [↑ Features index](INDEX.md) · [Feature Catalog](../feature-planning/03-feature-catalog.md) ·
 [Epic Catalog](../feature-planning/02-epic-catalog.md)

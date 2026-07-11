@@ -6,9 +6,9 @@
 > any architecture document.
 >
 > **Forward reference (metadata only):** [IP-1040](../implementation/packages/IP-1040-main-menu-new-game-flow.md)
-> **implemented 2026-07-10** — all six Acceptance Criteria (§15) demonstrably pass via
-> `test_rom.py`'s T14 suite (163/163 total, full suite green); independent verification pending
-> `09-package-verification`. Resolves this document's Open Questions 1–2 (§19).
+> **VERIFIED 2026-07-11** ([VR-1040](../implementation/verification/VR-1040-main-menu-new-game-flow.md))
+> — all six Acceptance Criteria (§15) demonstrably pass via `test_rom.py`'s T14 suite (20/20,
+> full suite 180/180 green). Resolves this document's Open Questions 1–2 (§19).
 
 [↑ Features index](INDEX.md) · [Feature Catalog](../feature-planning/03-feature-catalog.md) ·
 [Epic Catalog](../feature-planning/02-epic-catalog.md)

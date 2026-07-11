@@ -7,9 +7,10 @@
 >
 > **Forward reference (metadata only):** planned by
 > [IP-1020](../implementation/packages/IP-1020-procedural-world-generation.md) (2026-07-10),
-> which resolves this document's Open Questions 1–3. **Implemented 2026-07-10** — all eight
-> Acceptance Criteria (§15) demonstrably pass via `test_rom.py`'s T12 suite (133/133 total,
-> full suite green); independent verification pending `09-package-verification`.
+> which resolves this document's Open Questions 1–3. **VERIFIED 2026-07-10**
+> ([VR-1020](../implementation/verification/VR-1020-procedural-world-generation.md)) — all eight
+> Acceptance Criteria (§15) confirmed via `test_rom.py`'s T12 suite, 133/133 pass independently
+> re-run, ROM byte-identical.
 
 [↑ Features index](INDEX.md) · [Feature Catalog](../feature-planning/03-feature-catalog.md) ·
 [Epic Catalog](../feature-planning/02-epic-catalog.md)
