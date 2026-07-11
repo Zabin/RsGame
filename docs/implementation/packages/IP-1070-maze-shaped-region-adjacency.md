@@ -26,10 +26,13 @@ FR-9140, FR-9150 (FS-107's full Included-Requirements set).
 
 ## 4. Architecture Components
 
-`ADR-0012` (algorithm choice, pass ordering, data-format non-change) · `ADR-0009` point 1 (refined,
-not reversed) · GDS-04 delta (`Region`'s "generated adjacency edges" becoming selective) · GDS-07
-§6 (WRAM layout — this package proposes the new transient-scratch addresses) · GDS-09 (`worldgen.py`
-contract, extended in place) · `R112` (algorithm/WRAM-cost grounding) · `R111` (existing PRNG).
+`ADR-0012` (algorithm choice, pass ordering, data-format non-change) · `ADR-0013` (2026-07-11 —
+the counter-XOR perturbation this package's carve and braid draws must apply, `gw_prng_step`
+itself unchanged; see §6/§7/§13) · `ADR-0009` point 1 (refined, not reversed) · GDS-04 delta
+(`Region`'s "generated adjacency edges" becoming selective) · GDS-07 §6 (WRAM layout — this
+package proposes the new transient-scratch addresses) · GDS-09 (`worldgen.py` contract, extended
+in place) · `R112` (algorithm/WRAM-cost grounding) · `R111`/`R113` (existing PRNG and its
+back-to-back-draw degeneracy `ADR-0013` decides around).
 
 ## 5. Interfaces
 
@@ -78,7 +81,12 @@ contract, extended in place) · `R112` (algorithm/WRAM-cost grounding) · `R111`
        disambiguated from a real "up" parent by region 0's own index — see task 4 below, resolving
        FS-107 Open Question 3). Set `GW_CUR_REGION = 0`.
     3. **Spanning-tree carve loop** (iterative — no `CALL`-based recursion, per `ADR-0012` point 3):
-       at `GW_CUR_REGION = R`, draw one PRNG byte (`gw_prng_step`, already exists) and mask it
+       at `GW_CUR_REGION = R`, draw one PRNG byte (`gw_prng_step`, already exists), **XOR it
+       against a loop-local, never-persisted per-draw counter before use** (`ADR-0013` — the
+       counter can piggyback on this loop's own already-tracked region-visit progress, e.g. a
+       running count of carve-loop iterations; the perturbed byte is used for the direction mask
+       only and is never written back into `TMP1`/`TMP2`, so `gw_prng_step`'s own carried state
+       and every other call site continue completely unaffected), then mask the perturbed byte
        `AND 3` for a starting direction `D0` (`GW_MAZE_DIR`). Try directions `D0`, `(D0+1) mod 4`,
        `(D0+2) mod 4`, `(D0+3) mod 4` in turn: for each tried direction `Di`, read `REGION_GRAPH[R]`'s
        existing candidate byte at slot `Di` (still the full-lattice value the unchanged loop wrote —
@@ -106,9 +114,14 @@ contract, extended in place) · `R112` (algorithm/WRAM-cost grounding) · `R111`
        direction was set at carve time in task 3. If it **is** a tree edge: leave both
        `REGION_GRAPH[R]`'s `Di` slot and `REGION_GRAPH[V]`'s `opposite(Di)` slot unchanged (both
        already hold the correct, live values from the unchanged biome-loop write). If it is **not**
-       a tree edge (a pruned candidate): draw one PRNG byte (`gw_prng_step`) and compare against
-       the braid-fraction threshold (`FR-9150`, a fixed ROM constant, task 6 below); if the drawn
-       byte is at or below the threshold, **reopen** — leave both slots unchanged (braided back
+       a tree edge (a pruned candidate): draw one PRNG byte (`gw_prng_step`), **XOR it against the
+       prune pass's own loop-local, never-persisted per-edge counter before use** (`ADR-0013` —
+       the counter can piggyback on this pass's own canonical-edge iteration index, e.g. a running
+       count of `(region, direction)` pairs evaluated so far; same non-feedback discipline as the
+       carve phase's own perturbation above — the perturbed byte is consumed for the keep/prune
+       comparison only), then compare the perturbed byte against the braid-fraction threshold
+       (`FR-9150`, a fixed ROM constant, task 6 below); if the perturbed byte is at or below the
+       threshold, **reopen** — leave both slots unchanged (braided back
        in); otherwise **prune** — write `0xFF` into both `REGION_GRAPH[R]`'s `Di` slot and
        `REGION_GRAPH[V]`'s `opposite(Di)` slot. **Both slots of an undirected edge always receive
        the same keep/prune decision** — this is what keeps `REGION_GRAPH` symmetric (if `V` is
@@ -126,8 +139,12 @@ contract, extended in place) · `R112` (algorithm/WRAM-cost grounding) · `R111`
   given the Python structure already separates biome computation from the `regions` list build at
   line 80: run maze carving as a mutation over the already-built `neighbors` lists, using the
   identical algorithm task 3/4 above describes, in the identical step order — same starting
-  direction draw, same canonical `down`/`right` prune-pass order — so the oracle and the SM83
-  routine stay in lockstep (`ADR-0012` point 7). A Python `visited: set[int]` and
+  direction draw, same canonical `down`/`right` prune-pass order, **and the identical counter-XOR
+  perturbation at both draw sites, same counter-increment order** (`ADR-0013`'s own lockstep-
+  discipline extension — the perturbation is as load-bearing to oracle-vs-SM83 parity as the
+  carve/braid algorithm itself, since a mismatched counter sequence would desync which edges get
+  reopened even if both sides independently draw "correct" PRNG bytes) — so the oracle and the
+  SM83 routine stay in lockstep (`ADR-0012` point 7). A Python `visited: set[int]` and
   `parent_dir: dict[int,int]` stand in for `GW_MAZE_STATE`'s bit-packed WRAM encoding — same
   logical state, natural Python representation, not required to bit-pack identically to the SM83
   side (the oracle only needs to produce the identical *output* graph, not identical internal
@@ -161,13 +178,15 @@ adjacency; `test_rom.py`'s `T12` suite — confirmed clean, iterates existing ed
 other call site found; sweep confirmed clean.**
 
 Ordered: (1) new WRAM constants (`GW_MAZE_STATE`/`GW_CUR_REGION`/`GW_MAZE_DIR`/`GW_BRAID_IDX`,
-§6); (2) the spanning-tree carve loop, appended to `generate_world` after the existing
-biome-assignment loop; (3) the canonical-edge prune pass, including the `gw_braid_threshold`
-constant; (4) `worldgen.py`'s `_carve_maze`, written against tasks 2–3's exact step order and
-cross-checked line-by-line before task 6 — the oracle-vs-SM83 lockstep is this package's single
-most load-bearing correctness property (FS-107 §14), exactly as `IP-1020`'s own §7 already
-established for biome assignment; (5) rebuild ROM; (6) author T19; (7) full suite run; (8)
-documentation/traceability updates (§9).
+§6); (2) the spanning-tree carve loop **including its own counter-XOR perturbation at the
+direction-draw site** (`ADR-0013`), appended to `generate_world` after the existing
+biome-assignment loop; (3) the canonical-edge prune pass **including its own counter-XOR
+perturbation at the keep/prune-draw site** (`ADR-0013`), including the `gw_braid_threshold`
+constant; (4) `worldgen.py`'s `_carve_maze`, written against tasks 2–3's exact step order
+**including both perturbation steps** and cross-checked line-by-line before task 6 — the
+oracle-vs-SM83 lockstep is this package's single most load-bearing correctness property
+(FS-107 §14), exactly as `IP-1020`'s own §7 already established for biome assignment; (5) rebuild
+ROM; (6) author T19; (7) full suite run; (8) documentation/traceability updates (§9).
 
 ## 8. Tests to Add
 
@@ -277,6 +296,18 @@ addition to the fixed default threshold.
   expected to be a modest ROM addition (comparable in scale to `IP-9050`'s `check_zone_transition`
   rewrite, not a new subsystem); exact delta is an implementation-time measurement. WRAM growth: up
   to 84 bytes worst case at `scale=9` (§11), trivial against the confirmed ~3.09 KiB headroom.
+- **`gw_prng_step`'s own underlying degeneracy is not repaired by this package** (`ADR-0013`'s own
+  explicit, deliberate deferral — see `R113` for the full root-cause grounding: the shipped
+  routine's mixing step forces its state's high/low bytes equal on every call, collapsing its
+  reachable state space and readily converging to a fixed point or short cycle under back-to-back
+  draws). This package's own counter-XOR perturbation (§6) fully resolves the problem *for this
+  package's own draws*, scoped narrowly and with zero effect on `gw_prng_step` itself or any other
+  caller — but it is a known, accepted, and explicitly recorded limitation, not a general repair:
+  a future feature drawing `gw_prng_step` many times back-to-back with no counter of its own handy
+  could hit the same wall and would need its own perturbation (or `gw_prng_step`'s own eventual
+  repair, gated on explicit user authorization per `ADR-0013` point 1, since `REGION_GRAPH`
+  regenerates from `(seed, scale)` on every save load and a PRNG-algorithm change would silently
+  redefine any existing save's world).
 
 ## 14. Rollback Considerations
 
