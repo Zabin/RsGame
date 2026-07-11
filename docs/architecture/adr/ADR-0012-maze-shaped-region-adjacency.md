@@ -2,6 +2,14 @@
 
 **Status:** Accepted (2026-07-11)
 
+> **Forward-pointer note (append-only, 2026-07-11):** an `IP-1070` implementation attempt found
+> the shipped PRNG (`gw_prng_step`) degenerates under the many back-to-back draws this ADR's own
+> carve/braid pass performs — see
+> [ADR-0013](ADR-0013-maze-pass-prng-decorrelation.md), which decides a per-draw decorrelation
+> technique scoped to this pass, without amending anything decided here (point 3's mod-4 draw and
+> point 4's braid mechanism both stand exactly as written; ADR-0013 only adds how the drawn byte
+> is perturbed before use).
+
 ## Context
 
 [BL-0064](../../pipeline/backlog.md) (project owner, design discussion this session) asks to

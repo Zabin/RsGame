@@ -27,3 +27,4 @@ Phase 3); ADR-0009's decision supersedes ADR-0001's single-bank scope.
 | [ADR-0010](ADR-0010-seed-scale-model.md) | Seed & world-scale parameter model (16-bit seed, scale 2–9, new-game-only entry) | Accepted | 2026-07-09 |
 | [ADR-0011](ADR-0011-bank-switching-mbc1-default-wiring.md) | MBC1 default-wiring ROM bank switching (supersedes ADR-0001) | Accepted | 2026-07-09 |
 | [ADR-0012](ADR-0012-maze-shaped-region-adjacency.md) | Maze-shaped region adjacency — spanning tree (recursive backtracker) + braid pass, refines ADR-0009 point 1 | Accepted | 2026-07-11 |
+| [ADR-0013](ADR-0013-maze-pass-prng-decorrelation.md) | Maze-pass PRNG decorrelation via a per-draw loop-index perturbation (`gw_prng_step` itself unchanged) | Accepted | 2026-07-11 |
