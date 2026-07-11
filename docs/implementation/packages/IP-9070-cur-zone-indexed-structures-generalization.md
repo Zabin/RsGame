@@ -152,18 +152,23 @@ New `test_rom.py` suite **`T16: CUR_ZONE-Indexed Structure Generalization`**:
 
 ## 11. Verification Checklist
 
-- [ ] G5: ROM builds at exactly 32768 bytes with valid header.
-- [ ] G5: full `test_rom.py` suite passes.
-- [ ] T16.a–e each present and passing.
-- [ ] Direct code read: `SCOREITEM_FLAGS`'s new address range (`0xC286`–`0xC2D6`) does not
-      overlap `REGION_GRAPH` (`0xC070` onward, up to 405 bytes), `KEYITEM_FLAGS` (`0xC220`
-      onward), or any `GW_*`/`MM_*`/`SSE_*` scratch constant.
-- [ ] Direct code read: `SRAM_SCOREITEM`'s new address range (`0xA070`–`0xA0C0`) does not
-      overlap `SRAM_SEED`/`SRAM_WORLD_SCALE`/`SRAM_KEYITEM_FLAGS`'s existing, unmoved addresses.
-- [ ] Direct code read: `ZONE_COLLECTS` has exactly 5 entries; `zc_table`'s build-side emission
-      (`build_rom.py`) requires no code change (confirmed, not merely assumed).
-- [ ] BL-0019/NFR-4200 rider: SRAM headroom re-affirmed (net +72 bytes against 8 KiB).
-- [ ] GDS-07/GDS-08/NFR-4200/NFR-5300/Master-Build-Plan deltas applied exactly as §9 names.
+- [x] G5: ROM builds at exactly 32768 bytes with valid header.
+- [x] G5: full `test_rom.py` suite passes (193/193).
+- [x] T16.a–e each present and passing.
+- [x] Direct code read: `SCOREITEM_FLAGS`'s new address range (`0xC286`–`0xC2D6`) does not
+      overlap `REGION_GRAPH` (`0xC070`–`0xC204`), `KEYITEM_FLAGS` (`0xC220`–`0xC270`), or any
+      `GW_*`/`MM_*`/`SSE_*` scratch constant (`GW_TOP_ROW`…`SSE_CURSOR` occupy `0xC271`–`0xC285`,
+      immediately below `SCOREITEM_FLAGS`; full sorted WRAM-constant dump confirms no overlap).
+- [x] Direct code read: `SRAM_SCOREITEM`'s new address range (`0xA070`–`0xA0C0`) does not
+      overlap `SRAM_SEED`/`SRAM_WORLD_SCALE`/`SRAM_KEYITEM_FLAGS`'s existing, unmoved addresses
+      (`SRAM_KEYITEM_FLAGS` occupies `0xA01F`–`0xA06F`, ending exactly where `SRAM_SCOREITEM`
+      begins).
+- [x] Direct code read: `ZONE_COLLECTS` has exactly 5 entries (confirmed via
+      `len(ZONE_COLLECTS) == 5`); `zc_table`'s build-side emission (`build_rom.py`'s
+      `for clist in ZONE_COLLECTS:`) is already list-length-agnostic — confirmed no code change
+      needed, not merely assumed.
+- [x] BL-0019/NFR-4200 rider: SRAM headroom re-affirmed (net +72 bytes against 8 KiB).
+- [x] GDS-07/GDS-08/NFR-4200/NFR-5300/Master-Build-Plan deltas applied exactly as §9 names.
 
 ## 12. Dependencies
 

@@ -25,6 +25,9 @@ Suites:
       digit-cursor seed/scale entry, exit-to-main-menu, FR-9110 negative sweep
   T15 Generated-world save persistence (IP-1050) — seed/scale/KeyItemFlags
       round-trip, pre-upgrade rejection, legacy-field regression
+  T16 CUR_ZONE-indexed structure generalization (IP-9070) — SCOREITEM_FLAGS
+      bounds, zc_table biome-keyed lookup, save-format v3 round-trip,
+      pre-upgrade rejection, legacy-field regression
 
 WRAM model under test (see docs/architecture/07-data-model.md):
   C000 GAMESTATE (0=TITLE 1=INTRO 2=PLAYING 3=SAVE 4=MAP 5=VICTORY)
@@ -49,7 +52,9 @@ PLAYER_DIR = 0xC003; PLAYER_FRAME = 0xC004; ANIM_CTR = 0xC005
 SCORE = 0xC006; SCORE_DIRTY = 0xC007; CUR_ZONE = 0xC008
 CARROTS_COUNT = 0xC009; NEED_REDRAW = 0xC00A
 CARROT_FLAGS = 0xC015; COLL_DATA = 0xC020; COLL_COUNT = 0xC050
-SCOREITEM_FLAGS = 0xC060   # 9 bytes — one bitfield per zone (FR-5220, IP-1010)
+SCOREITEM_FLAGS = 0xC286   # up to 81 bytes, C286-C2D6 — one bitfield per region
+                            # (FR-5220, generalized from the old 9-byte/9-zone array by IP-9070;
+                            # relocated off 0xC060 to avoid colliding with REGION_GRAPH)
 SEED = 0xC069; WORLD_SCALE = 0xC06B; REGION_GRAPH = 0xC070
 KEYITEM_FLAGS = 0xC220     # up to 81 bytes — generalizes CARROT_FLAGS (IP-1020);
                             # only indices 0-8 are live until FEAT-1100 ships
@@ -59,8 +64,9 @@ KEYITEM_COUNT = CARROTS_COUNT   # same WRAM slot as CARROTS_COUNT (IP-1020)
 SRAM_MAGIC = 0xA000; SRAM_CUR_ZONE = 0xA004; SRAM_PLAYER_X = 0xA005
 SRAM_PLAYER_Y = 0xA006; SRAM_CARROTS_COUNT = 0xA007; SRAM_SCORE = 0xA008
 SRAM_CARROT_FLAGS = 0xA009   # 9 bytes, A009-A011
-SAVE_VERSION_ADDR = 0xA012; SAVE_VERSION_VAL = 0x01
-SRAM_SCOREITEM = 0xA013      # 9 bytes, A013-A01B
+SAVE_VERSION_ADDR = 0xA012; SAVE_VERSION_VAL = 0x03
+SRAM_SCOREITEM = 0xA070      # up to 81 bytes, A070-A0C0 — relocated off A013-A01B by
+                              # IP-9070, immediately after SRAM_KEYITEM_FLAGS's own end
 
 # Tile indices (must match tiles.py)
 TL_BG_BLANK = 0x10; TL_HEART_FULL = 0x11; TL_HEART_EMPTY = 0x12
@@ -191,11 +197,14 @@ check("T1.7 Header checksum valid",        chk == raw[0x14D], f"0x{chk:02X}=0x{r
 check("T1.8 VBlank ISR @ 0x40 = PUSH AF", raw[0x40] == 0xF5, f"0x{raw[0x40]:02X}")
 check("T1.9 VBlank ISR sets VBLANK_FLAG", raw[0x41:0x44] == bytes([0x3E, 0x01, 0xEA]))
 
-# Source-data invariants (BL-0017 rider): exactly one carrot per zone list.
+# Source-data invariants (BL-0017 rider): exactly one carrot per list.
+# IP-9070: ZONE_COLLECTS is now 5 biome-family-representative lists (indexed
+# by REGION_GRAPH's biome-id), not 9 zone-named lists.
 from tilemaps import ZONE_COLLECTS
-check("T1.10 ZONE_COLLECTS has 9 zones",   len(ZONE_COLLECTS) == 9, f"{len(ZONE_COLLECTS)}")
+check("T1.10 ZONE_COLLECTS has 5 biome-family lists (IP-9070)",
+      len(ZONE_COLLECTS) == 5, f"{len(ZONE_COLLECTS)}")
 carrots_per_zone = [sum(1 for (_, _, t) in z if t == 2) for z in ZONE_COLLECTS]
-check("T1.11 Exactly one carrot per zone", all(c == 1 for c in carrots_per_zone),
+check("T1.11 Exactly one carrot per list", all(c == 1 for c in carrots_per_zone),
       f"{carrots_per_zone}")
 check("T1.12 No zone exceeds 8 collectibles (1-byte bitfield capacity)",
       all(len(z) <= 8 for z in ZONE_COLLECTS), f"{[len(z) for z in ZONE_COLLECTS]}")
@@ -487,8 +496,16 @@ pb.stop()
 
 # ══════════════════════════════════════════════════════
 # T8 — Collision, Score, Carrots, Map Hearts
-#      Zone 0 (Beach) collectibles, from tilemaps.ZONE_COLLECTS[0]:
-#      [0]=(20,32,star) ... [6]=(132,88,CARROT). Hit radius: |dx|<10, |dy|<10.
+#      IP-9070: region 0's biome-id is always Grass (worldgen.py's own
+#      "region (0,0) is always Grass" invariant), so setup_zone_collects
+#      now pulls from ZONE_COLLECTS[2] (Forest, the Grass-family
+#      representative) rather than ZONE_COLLECTS[0] (which is Water/Lake
+#      under the new biome-id-ordered indexing) — the exact content this
+#      package's fix is supposed to deliver (spawn content tracking the
+#      region's real biome, not a fixed CUR_ZONE-indexed slot).
+#      Forest's list: [0]=(28,40,flower) [1]=(64,32,star) [2]=(120,40,flower)
+#      [3]=(40,96,star) [4]=(104,96,flower) [5]=(140,88,star) [6]=(84,56,CARROT).
+#      Hit radius: |dx|<10, |dy|<10.
 # ══════════════════════════════════════════════════════
 print("\n=== T8: Collision / Score / Carrots ===")
 pb = fresh_boot()
@@ -501,20 +518,20 @@ check("T8.1 Score starts 0",   pb.memory[SCORE] == 0, f"{pb.memory[SCORE]}")
 check("T8.2 Carrots start 0",  pb.memory[CARROTS_COUNT] == 0, f"{pb.memory[CARROTS_COUNT]}")
 check("T8.3 COLL_COUNT = 7 in zone 0", pb.memory[COLL_COUNT] == 7, f"count={pb.memory[COLL_COUNT]}")
 
-# Collect the star at (20,32) — teleport onto it from a safe spot
+# Collect the star at (64,32) — entry index 1 — teleport onto it from a safe spot
 pb.memory[PLAYER_X] = 80; pb.memory[PLAYER_Y] = 80
 [pb.tick() for _ in range(3)]
-pb.memory[PLAYER_X] = 20; pb.memory[PLAYER_Y] = 32
+pb.memory[PLAYER_X] = 64; pb.memory[PLAYER_Y] = 32
 [pb.tick() for _ in range(5)]
 sc1 = pb.memory[SCORE]
 check("T8.4 Score++ on ScoreItem collision", sc1 > 0, f"score={sc1}")
-check("T8.5 ScoreItem deactivated in COLL_DATA", pb.memory[COLL_DATA + 3] == 0,
-      f"active={pb.memory[COLL_DATA + 3]}")
+check("T8.5 ScoreItem deactivated in COLL_DATA", pb.memory[COLL_DATA + 1*4 + 3] == 0,
+      f"active={pb.memory[COLL_DATA + 1*4 + 3]}")
 check("T8.6 ScoreItem does not touch CARROTS_COUNT", pb.memory[CARROTS_COUNT] == 0,
       f"{pb.memory[CARROTS_COUNT]}")
 
-# Collect zone 0's carrot at (132,88) — entry index 6
-pb.memory[PLAYER_X] = 132; pb.memory[PLAYER_Y] = 88
+# Collect the carrot at (84,56) — entry index 6
+pb.memory[PLAYER_X] = 84; pb.memory[PLAYER_Y] = 56
 [pb.tick() for _ in range(5)]
 # IP-1020: check_collisions' carrot branch now targets KEYITEM_FLAGS (CARROT_FLAGS
 # is orphaned — nothing writes it anymore; save routines still mirror it pending IP-1050).
@@ -717,8 +734,9 @@ wipe_save()   # leave no runtime save behind
 
 # ══════════════════════════════════════════════════════
 # T11 — Per-Zone ScoreItem Persistence (IP-1010 / FR-5220)
-#       Zone 0 (Beach) ZONE_COLLECTS: [0]=(20,32,star) [1]=(52,40,*)
-#       [4]=(32,80,*) ... [6]=(132,88,CARROT).
+#       IP-9070: region 0 is always Grass, so ZONE_COLLECTS[2] (Forest)
+#       applies here too — see T8's header for the full list. Hit radius:
+#       |dx|<10, |dy|<10 (same as T8).
 # ══════════════════════════════════════════════════════
 print("\n=== T11: Per-Zone ScoreItem Persistence ===")
 
@@ -749,10 +767,10 @@ pb.stop()
 wipe_save()
 pb = fresh_boot()
 advance_to_playing(pb)
-pb.memory[PLAYER_X] = 32; pb.memory[PLAYER_Y] = 80   # index 4
+pb.memory[PLAYER_X] = 104; pb.memory[PLAYER_Y] = 96   # index 4 (Forest flower)
 [pb.tick() for _ in range(5)]
 sc_pre = pb.memory[SCORE]
-check("T11.b1 Star (index 4) collected", sc_pre > 0, f"score={sc_pre}")
+check("T11.b1 ScoreItem (index 4) collected", sc_pre > 0, f"score={sc_pre}")
 zone_pre = pb.memory[CUR_ZONE]; x_pre = pb.memory[PLAYER_X]; y_pre = pb.memory[PLAYER_Y]
 pb.button('start'); [pb.tick() for _ in range(40)]
 pb.button('a');     [pb.tick() for _ in range(40)]
@@ -1206,7 +1224,7 @@ seed_pre15 = pb.memory[SEED] | (pb.memory[SEED + 1] << 8)
 scale_pre15 = pb.memory[WORLD_SCALE]
 pb.button('a'); [pb.tick() for _ in range(80)]   # INTRO -> PLAYING
 region_graph_pre15 = read_region_graph(pb, scale_pre15)
-pb.memory[PLAYER_X] = 132; pb.memory[PLAYER_Y] = 88   # zone 0's KeyItem
+pb.memory[PLAYER_X] = 84; pb.memory[PLAYER_Y] = 56   # region 0's KeyItem (Forest CARROT, IP-9070)
 [pb.tick() for _ in range(5)]
 keyitem_pre15 = [pb.memory[KEYITEM_FLAGS + i] for i in range(9)]
 check("T15.a0 KeyItem collected (KEYITEM_FLAGS[0] set)", keyitem_pre15[0] == 1,
@@ -1309,6 +1327,142 @@ _save_lines = _src15[_sts_start:_sts_end].splitlines()
 _save_code_only = "\n".join(ln.split('#', 1)[0] for ln in _save_lines)
 check("T15.d REGION_GRAPH never written to SRAM by save_to_sram",
       "REGION_GRAPH" not in _save_code_only, "")
+
+# ══════════════════════════════════════════════════════
+# T16 — CUR_ZONE-Indexed Structure Generalization (IP-9070)
+# ══════════════════════════════════════════════════════
+print("\n=== T16: CUR_ZONE-Indexed Structure Generalization ===")
+
+# T16.a — SCOREITEM_FLAGS bounds (direct regression for BL-0058): force
+# CUR_ZONE to a region above the old 9-zone ceiling and a real ScoreItem
+# collection event; confirm the write lands inside SCOREITEM_FLAGS's new
+# 81-byte extent and REGION_GRAPH's own bytes are byte-for-byte unchanged.
+pb = fresh_boot(180)
+advance_to_playing(pb)
+pb.memory[REGION_GRAPH + 40*5] = 2   # force region 40 = Grass (Forest list)
+for k in range(4): pb.memory[REGION_GRAPH + 40*5 + 1 + k] = 0xFF
+force_region_redraw(pb, 40)
+check("T16.a1 COLL_COUNT = 7 in forced region 40 (Forest list, biome-id lookup)",
+      pb.memory[COLL_COUNT] == 7, f"count={pb.memory[COLL_COUNT]}")
+region_graph_snapshot = [pb.memory[REGION_GRAPH + i] for i in range(405)]
+pb.memory[PLAYER_X] = 64; pb.memory[PLAYER_Y] = 32   # Forest index 1 (star)
+[pb.tick() for _ in range(5)]
+check("T16.a2 ScoreItem collected in region 40", pb.memory[SCORE] > 0,
+      f"score={pb.memory[SCORE]}")
+check("T16.a3 SCOREITEM_FLAGS[40] bit 1 set, inside the new 81-byte extent",
+      pb.memory[SCOREITEM_FLAGS + 40] == 0b10, f"{pb.memory[SCOREITEM_FLAGS + 40]:#04b}")
+region_graph_after = [pb.memory[REGION_GRAPH + i] for i in range(405)]
+check("T16.a4 REGION_GRAPH bytes unaffected by the region-40 collection (BL-0058)",
+      region_graph_after == region_graph_snapshot, "")
+pb.stop()
+
+# T16.b — zc_table/ZONE_COLLECTS biome-keyed lookup (direct regression for
+# BL-0059): for each of the 5 biome-ids, force REGION_GRAPH's biome byte and
+# confirm setup_zone_collects populates COLL_DATA from the correct
+# biome-family list, cross-checked against the 5 retained lists' own
+# contents (imported directly from tilemaps.ZONE_COLLECTS, not re-typed).
+pb = fresh_boot(180)
+advance_to_playing(pb)
+lookup_bad = []
+for biome_id in range(5):
+    pb.memory[REGION_GRAPH] = biome_id
+    for k in range(4): pb.memory[REGION_GRAPH + 1 + k] = 0xFF
+    force_region_redraw(pb, 0)
+    expected = ZONE_COLLECTS[biome_id]
+    count = pb.memory[COLL_COUNT]
+    actual = [(pb.memory[COLL_DATA + i*4], pb.memory[COLL_DATA + i*4 + 1],
+               pb.memory[COLL_DATA + i*4 + 2]) for i in range(count)]
+    if count != len(expected) or actual != list(expected):
+        lookup_bad.append((biome_id, count, actual, expected))
+pb.stop()
+check("T16.b zc_table biome-keyed lookup: each of the 5 biome-ids populates COLL_DATA from its own ZONE_COLLECTS list (BL-0059)",
+      len(lookup_bad) == 0, f"bad={lookup_bad}")
+
+# T16.c — save-format version-3 round-trip: a known SCOREITEM_FLAGS state
+# spanning multiple regions, including one above the old 9-zone ceiling,
+# round-trips exactly through a fresh PyBoy reload (extends T11/T15's
+# two-instance pattern).
+wipe_save()
+pb = fresh_boot(180)
+advance_to_playing(pb)
+for zone, bits in {0: 0b101, 8: 0b1, 40: 0b10, 80: 0b1000001}.items():
+    pb.memory[SCOREITEM_FLAGS + zone] = bits
+sf_pre16c = [pb.memory[SCOREITEM_FLAGS + i] for i in range(81)]
+pb.button('start'); [pb.tick() for _ in range(40)]
+pb.button('a');      [pb.tick() for _ in range(40)]
+pb.stop()
+
+pb2 = PyBoy(ROM_PATH, window='null', sound_emulated=False)
+pb2.set_emulation_speed(0)
+for _ in range(180): pb2.tick()
+pb2.button('a'); [pb2.tick() for _ in range(40)]
+sf_post16c = [pb2.memory[SCOREITEM_FLAGS + i] for i in range(81)]
+check("T16.c SCOREITEM_FLAGS round-trips exactly across all 81 bytes, including region 80 (save-format v3)",
+      sf_post16c == sf_pre16c,
+      f"mismatch at {[i for i in range(81) if sf_post16c[i] != sf_pre16c[i]]}")
+pb2.stop()
+wipe_save()
+
+# T16.d — pre-upgrade rejection: a synthetic IP-1050-vintage (version=2)
+# save fixture -> confirm "continue" is not offered under the new
+# version-3 guard (AC-2 extended a third time, following T15.b1-3's exact
+# precedent).
+fixture = bytearray(8192)
+fixture[0:4] = bytes([0x42, 0x55, 0x4E, 0x59])
+fixture[SRAM_CUR_ZONE - 0xA000] = 0
+fixture[SRAM_PLAYER_X - 0xA000] = 76
+fixture[SRAM_PLAYER_Y - 0xA000] = 80
+fixture[SAVE_VERSION_ADDR - 0xA000] = 0x02   # IP-1050's own vintage, now superseded
+for i in range(81): fixture[SRAM_SCOREITEM - 0xA000 + i] = 0xFF
+with open(RAM_PATH, 'wb') as f:
+    f.write(bytes(fixture))
+pb = PyBoy(ROM_PATH, window='null', sound_emulated=False)
+pb.set_emulation_speed(0)
+for _ in range(180): pb.tick()
+check("T16.d1 Boot with IP-1050-vintage (version=2) save -> MAIN MENU",
+      pb.memory[GAMESTATE] == 6, f"GS={pb.memory[GAMESTATE]}")
+check("T16.d2 Version-2 save -> CONTINUE absent (AC-2, third guard extension)",
+      not continue_offered(pb), "")
+advance_to_playing(pb)
+check("T16.d3 New game still reaches PLAYING cleanly despite the old version-2 save",
+      pb.memory[GAMESTATE] == 2, f"GS={pb.memory[GAMESTATE]}")
+pb.stop()
+wipe_save()
+
+# T16.e — legacy-field regression (scope audit, not just a DoD claim):
+# SEED/WORLD_SCALE/KEYITEM_FLAGS/REGION_GRAPH regeneration are all
+# unaffected by this package's SCOREITEM_FLAGS relocation. Uses scale=7
+# (49 regions) so the region range genuinely exceeds the old 9-zone model.
+wipe_save()
+pb = fresh_boot(200)
+pb.button('a'); [pb.tick() for _ in range(40)]
+enter_seed_scale(pb, [0, 0, 7, 7, 7], 7)   # seed=777, scale=7
+seed_pre16e = pb.memory[SEED] | (pb.memory[SEED + 1] << 8)
+scale_pre16e = pb.memory[WORLD_SCALE]
+pb.button('a'); [pb.tick() for _ in range(80)]   # INTRO -> PLAYING
+region_graph_pre16e = read_region_graph(pb, scale_pre16e)
+kf_pre16e = [pb.memory[KEYITEM_FLAGS + i] for i in range(81)]
+pb.button('start'); [pb.tick() for _ in range(40)]
+pb.button('a');      [pb.tick() for _ in range(40)]
+pb.stop()
+
+pb2 = PyBoy(ROM_PATH, window='null', sound_emulated=False)
+pb2.set_emulation_speed(0)
+for _ in range(180): pb2.tick()
+pb2.button('a'); [pb2.tick() for _ in range(40)]
+seed_post16e = pb2.memory[SEED] | (pb2.memory[SEED + 1] << 8)
+scale_post16e = pb2.memory[WORLD_SCALE]
+region_graph_post16e = read_region_graph(pb2, scale_post16e)
+kf_post16e = [pb2.memory[KEYITEM_FLAGS + i] for i in range(81)]
+check("T16.e1 SEED unaffected by SCOREITEM_FLAGS relocation",
+      seed_post16e == seed_pre16e, f"{seed_pre16e}->{seed_post16e}")
+check("T16.e2 WORLD_SCALE unaffected", scale_post16e == scale_pre16e,
+      f"{scale_pre16e}->{scale_post16e}")
+check("T16.e3 REGION_GRAPH regeneration unaffected (49 regions, scale=7)",
+      region_graph_post16e == region_graph_pre16e, "")
+check("T16.e4 KEYITEM_FLAGS unaffected", kf_post16e == kf_pre16e, "")
+pb2.stop()
+wipe_save()
 
 # ══════════════════════════════════════════════════════
 # SUMMARY

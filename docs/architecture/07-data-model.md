@@ -67,7 +67,9 @@ Confirmed directly against `asm_game.py`'s constant declarations:
 | `C015`–`C01D` | `CARROT_FLAGS` | **9 bytes**, one per zone, 0/1 |
 | `C020` | `COLL_DATA` | working collectible struct |
 | `C050` | `COLL_COUNT` | collectible count for current zone |
-| `C060`–`C068` | `SCOREITEM_FLAGS` | **9 bytes** — one bitfield per zone, bit *N* = the *N*th `ZONE_COLLECTS` list entry ([FR-5220](../requirements/01-functional-requirements.md), [IP-1010](../implementation/packages/IP-1010-per-zone-scoreitem-persistence.md), 2026-07-07). Assigned here (deferred by [FS-101](../features/FS-101-per-zone-scoreitem-persistence.md) Open Question 3): sits inside the boot clear of `C000`–`C2FF`, 8-aligned, with headroom to `COLL_COUNT` on one side and `OAM_BUF` on the other. |
+| `C220`–`C270` | `KEYITEM_FLAGS` | **up to 81 bytes**, one per region — generalizes the original `CARROT_FLAGS` ([IP-1020](../implementation/packages/IP-1020-world-generation-engine.md)); only indices 0–8 are live until `FEAT-1100` ships. |
+| `C070`–`C204` | `REGION_GRAPH` | **up to 405 bytes**, 5 bytes/region (biome-id + 4 neighbor-region-index bytes: up/down/left/right, `0xFF`=none), up to 81 regions ([IP-1020](../implementation/packages/IP-1020-world-generation-engine.md)/[IP-1030](../implementation/packages/IP-1030-generated-region-screen-composition.md)). Never persisted to SRAM — regenerated from `SEED`/`WORLD_SCALE` on load. |
+| `C286`–`C2D6` | `SCOREITEM_FLAGS` | **up to 81 bytes**, one bitfield per region, bit *N* = the *N*th `ZONE_COLLECTS`-family-list entry ([FR-5220](../requirements/01-functional-requirements.md); originally 9 bytes at `C060`–`C068` per [IP-1010](../implementation/packages/IP-1010-per-zone-scoreitem-persistence.md), 2026-07-07; relocated and widened to 81 bytes by [IP-9070](../implementation/packages/IP-9070-cur-zone-indexed-structures-generalization.md), 2026-07-11, to the confirmed-unused gap between `SSE_CURSOR` (ends `C285`) and `OAM_BUF` — growing in place at `C060` would have collided with `REGION_GRAPH` at `C070`). `setup_zone_collects` now indexes `zc_table` by `REGION_GRAPH`'s biome-id rather than `CUR_ZONE` directly ([BL-0059](../../pipeline/backlog.md) fix). |
 | `C300` | `OAM_BUF` | 160 bytes, shadow OAM ([R105](../research/encyclopedia/R105-oam-sprites-dma.md)) |
 
 ### 3. SRAM save format (`0xA000`+)
@@ -82,8 +84,8 @@ Confirmed directly against `try_load_save`/the save routine:
 | `A007` | `CARROTS_COUNT` |
 | `A008` | `SCORE` |
 | `A009`–`A011` | `CARROT_FLAGS` (9 bytes) |
-| `A012` | Save-format version guard ([FR-5220](../requirements/01-functional-requirements.md); `SAVE_VERSION_VAL = 0x01`) — added 2026-07-07 by [IP-1010](../implementation/packages/IP-1010-per-zone-scoreitem-persistence.md), the first save-format change since ship (`ADR-0006`). A save lacking this byte or not matching it is treated as pre-upgrade: `SCOREITEM_FLAGS` loads as all-zero (all uncollected) rather than trusting whatever garbage occupies `A013`–`A01B`. |
-| `A013`–`A01B` | `SCOREITEM_FLAGS` mirror (9 bytes) — same addition. |
+| `A012` | Save-format version guard ([FR-5220](../requirements/01-functional-requirements.md); `SAVE_VERSION_VAL = 0x03`) — added 2026-07-07 by [IP-1010](../implementation/packages/IP-1010-per-zone-scoreitem-persistence.md) at `0x01`; bumped to `0x02` by [IP-1050](../implementation/packages/IP-1050-generated-world-save-persistence.md) (seed/scale/`REGION_GRAPH`-regen/`KEYITEM_FLAGS` fields); bumped to `0x03` by [IP-9070](../implementation/packages/IP-9070-cur-zone-indexed-structures-generalization.md), 2026-07-11 (`SRAM_SCOREITEM` relocation/widening below). A save whose version byte doesn't match the current value is treated as pre-upgrade: every version-guarded field loads as its fresh-new-game default rather than trusting stale/relocated SRAM bytes. |
+| `A070`–`A0C0` | `SRAM_SCOREITEM` — `SCOREITEM_FLAGS` mirror, **up to 81 bytes**. Originally 9 bytes at `A013`–`A01B` ([IP-1010](../implementation/packages/IP-1010-per-zone-scoreitem-persistence.md)); relocated by [IP-9070](../implementation/packages/IP-9070-cur-zone-indexed-structures-generalization.md) to immediately after `SRAM_KEYITEM_FLAGS`'s own end, leaving `SRAM_SEED`/`SRAM_WORLD_SCALE`/`SRAM_KEYITEM_FLAGS`'s addresses untouched. |
 
 **This updates `BL-0018`'s prior field-set finding** ([GDS-04](04-domain-model.md)): per-zone
 ScoreItem state is no longer absent — `A012`–`A01B` now cover it (per the user's 2026-07-07
@@ -202,6 +204,32 @@ world's region graph/biome content is *not* persisted** — only `SEED`+`WORLD_S
 on load, per ADR-0009's determinism requirement. Per **ADR-0010**'s decision, a save whose version
 byte does not match this new value is not offered on the main menu's "continue" path (the world
 *model* differs, not just a field — the same reasoning ADR-0010 already recorded).
+
+### 7a. `SCOREITEM_FLAGS`/`SRAM_SCOREITEM` relocation — `IP-9070` (confirmed 2026-07-11)
+
+Playtesting (`BL-0058`) found `SCOREITEM_FLAGS` had never been widened past its original
+`IP-1010` 9-byte/9-zone array, despite `IP-1020` generalizing `CUR_ZONE` to the full generated
+world (up to 81 regions): `setup_zone_collects` was writing collection state through
+`CUR_ZONE`-as-byte-offset into only 9 bytes, silently corrupting adjacent WRAM once a real,
+scale≥4 world made `CUR_ZONE > 8` reachable. `IP-9070` fixes this a level below `IP-9050`
+(`BL-0047`'s own navigation fix, which is what actually makes `CUR_ZONE > 8` reachable at
+runtime) — the two are sequenced so the storage is safe before the value range that exercises it
+expands.
+
+- `SCOREITEM_FLAGS` (WRAM): widened 9→81 bytes, **relocated** `0xC060`→`0xC286` (growing in place
+  at `0xC060` would have collided with `REGION_GRAPH` at `0xC070`; `0xC286` is the
+  confirmed-unused gap between `SSE_CURSOR` (ends `0xC285`, `IP-1040`) and `OAM_BUF` (`0xC300`)).
+- `SRAM_SCOREITEM` (SRAM): widened 9→81 bytes, **relocated** `0xA013`→`0xA070` (immediately after
+  `SRAM_KEYITEM_FLAGS`'s own end, leaving `SRAM_SEED`/`SRAM_WORLD_SCALE`/`SRAM_KEYITEM_FLAGS`'s
+  existing addresses untouched).
+- `SAVE_VERSION_VAL` bumped `0x02`→`0x03` (third bump in the same version-guard chain `IP-1010`
+  started); a version-2 or earlier save is excluded from "continue," the same pattern `IP-1040`/
+  `IP-1050` already established twice.
+- `setup_zone_collects` now reads `REGION_GRAPH[CUR_ZONE]`'s biome-id first and indexes
+  `zc_table` by biome-id, not `CUR_ZONE` directly (`BL-0059` fix) — `ZONE_COLLECTS` (GDS-08) was
+  reduced from 9 zone-named lists to 5 biome-family-representative lists to match.
+- Net SRAM growth: +72 bytes (9→81 at `SRAM_SCOREITEM`), trivial against the ~10 KiB headroom
+  margin already confirmed by `IP-1050`.
 
 ### 8. Tile index map implication (cross-reference only — GDS-08 decides the actual strategy)
 

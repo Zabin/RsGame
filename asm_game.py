@@ -41,7 +41,6 @@ TMP2           = 0xC014
 CARROT_FLAGS   = 0xC015   # 9 bytes — one per zone, 0/1
 COLL_DATA      = 0xC020
 COLL_COUNT     = 0xC050
-SCOREITEM_FLAGS = 0xC060  # 9 bytes — one bitfield per zone, bit = list-position (FR-5220)
 SEED           = 0xC069  # 2 bytes, C069-C06A — player-entered generation seed (IP-1020)
 WORLD_SCALE    = 0xC06B  # 1 byte — regions per grid axis, 2-9 (IP-1020)
 REGION_GRAPH   = 0xC070  # 5 bytes/region (1 biome-id + 4 neighbor-region-index), up to 81
@@ -68,12 +67,18 @@ SSE_DIGITS     = 0xC27F  # 5 bytes, C27F-C283 — SEED/SCALE ENTRY's 5 independe
 SSE_SCALE      = 0xC284  # 1 byte — SEED/SCALE ENTRY's scale value, 2-9, default 3 (IP-1040)
 SSE_CURSOR     = 0xC285  # 1 byte — SEED/SCALE ENTRY's cursor position, 0-4 = digit index
                           # (MSB first), 5 = scale slot (IP-1040)
+SCOREITEM_FLAGS = 0xC286  # up to 81 bytes, C286-C2D6 — one bitfield per region, bit =
+                          # list-position (FR-5220), generalized from the old fixed
+                          # 9-byte/9-zone array (IP-9070) the same way KEYITEM_FLAGS
+                          # generalized CARROT_FLAGS. Relocated (not grown in place at
+                          # its old 0xC060 address) to the confirmed-unused WRAM gap
+                          # between SSE_CURSOR and OAM_BUF — growing to 81 bytes in place
+                          # would have collided with REGION_GRAPH at 0xC070.
 OAM_BUF        = 0xC300
 
 SAVE_VERSION_ADDR = 0xA012   # save-format version guard (FR-5220 / Design Decision 2)
-SAVE_VERSION_VAL  = 0x02     # bumped 0x01->0x02 (IP-1050, second bump since ship — the
+SAVE_VERSION_VAL  = 0x03     # bumped 0x02->0x03 (IP-9070, third bump since ship — the
                               # value sequence is strictly monotonic, never reused)
-SRAM_SCOREITEM    = 0xA013   # 9 bytes, SCOREITEM_FLAGS mirror
 SRAM_SEED          = 0xA01C  # 2 bytes, A01C-A01D — SEED mirror (IP-1050)
 SRAM_WORLD_SCALE   = 0xA01E  # 1 byte — WORLD_SCALE mirror (IP-1050)
 SRAM_KEYITEM_FLAGS = 0xA01F  # up to 81 bytes, A01F-A06F — KEYITEM_FLAGS mirror,
@@ -81,6 +86,11 @@ SRAM_KEYITEM_FLAGS = 0xA01F  # up to 81 bytes, A01F-A06F — KEYITEM_FLAGS mirro
                               # (IP-1050). REGION_GRAPH itself is never persisted —
                               # it regenerates deterministically from (SEED, WORLD_SCALE)
                               # via generate_world on load (ADR-0009).
+SRAM_SCOREITEM    = 0xA070   # up to 81 bytes, A070-A0C0 — SCOREITEM_FLAGS mirror,
+                              # generalized from the old fixed 9-byte/9-zone mirror at
+                              # A013-A01B (IP-9070). Relocated to immediately after
+                              # SRAM_KEYITEM_FLAGS's own end, leaving SRAM_SEED/
+                              # SRAM_WORLD_SCALE/SRAM_KEYITEM_FLAGS's addresses untouched.
 
 J_A=0; J_B=1; J_SELECT=2; J_START=3; J_RIGHT=4; J_LEFT=5; J_UP=6; J_DOWN=7
 
@@ -240,8 +250,10 @@ def build_game_asm(rom: ROM) -> dict:
     # first 9 slots are live until FEAT-1100 wires up world generation)
     rom.LD_HL_nn(KEYITEM_FLAGS); rom.LD_B_n(9); rom.XOR_A()
     rom.label('si_clr'); rom.LD_HLI_A(); rom.DEC_B(); rom.JR_NZ('si_clr')
-    # clear SCOREITEM_FLAGS (9 bytes) — FR-5220 new-game reset
-    rom.LD_HL_nn(SCOREITEM_FLAGS); rom.LD_B_n(9); rom.XOR_A()
+    # clear SCOREITEM_FLAGS (81 bytes — IP-9070, generalized from the old fixed
+    # 9-byte/9-zone clear the same way KEYITEM_FLAGS's own boot-clear was sized
+    # for CARROT_FLAGS's 9-byte predecessor) — FR-5220 new-game reset
+    rom.LD_HL_nn(SCOREITEM_FLAGS); rom.LD_B_n(81); rom.XOR_A()
     rom.label('si_clr2'); rom.LD_HLI_A(); rom.DEC_B(); rom.JR_NZ('si_clr2')
     rom.LD_A_n(76); rom.LD_nn_A(PLAYER_X)
     rom.LD_A_n(80); rom.LD_nn_A(PLAYER_Y)
@@ -303,8 +315,9 @@ def build_game_asm(rom: ROM) -> dict:
     # clear KEYITEM_FLAGS (9 bytes — IP-1020, generalizes CARROT_FLAGS; see st_intro)
     rom.LD_HL_nn(KEYITEM_FLAGS); rom.LD_B_n(9); rom.XOR_A()
     rom.label('sv_clrf'); rom.LD_HLI_A(); rom.DEC_B(); rom.JR_NZ('sv_clrf')
-    # clear SCOREITEM_FLAGS (9 bytes) — FR-5220 victory progress-clear
-    rom.LD_HL_nn(SCOREITEM_FLAGS); rom.LD_B_n(9); rom.XOR_A()
+    # clear SCOREITEM_FLAGS (81 bytes — IP-9070, see st_intro's identical widening)
+    # — FR-5220 victory progress-clear
+    rom.LD_HL_nn(SCOREITEM_FLAGS); rom.LD_B_n(81); rom.XOR_A()
     rom.label('sv_clrf2'); rom.LD_HLI_A(); rom.DEC_B(); rom.JR_NZ('sv_clrf2')
     rom.JP('end_frame')
 
@@ -989,8 +1002,19 @@ def build_game_asm(rom: ROM) -> dict:
     rom.JP('scs_store')
 
     # ── setup_zone_collects ───────────────────────────────
+    # IP-9070: zc_table is now indexed by REGION_GRAPH's biome-id (0-4, the
+    # 5 biome-family-representative lists) instead of CUR_ZONE directly (a
+    # 9-entry-only ROM table could not survive CUR_ZONE values above 8, which
+    # IP-9050 makes reachable) -- mirrors dsr_p's own REGION_GRAPH read
+    # exactly (same region*5 addressing, same biome-id byte position).
     rom.label('setup_zone_collects')
-    rom.LD_A_nn(CUR_ZONE); rom.ADD_A_A()
+    rom.LD_A_nn(CUR_ZONE)
+    rom.LD_E_A(); rom.LD_D_n(0)        # DE = region index
+    rom.LD_HL_nn(REGION_GRAPH)
+    rom.ADD_HL_DE(); rom.ADD_HL_DE(); rom.ADD_HL_DE()
+    rom.ADD_HL_DE(); rom.ADD_HL_DE()   # HL = REGION_GRAPH + region*5
+    rom.LD_A_HL()                      # A = biome-id (0..4)
+    rom.ADD_A_A()                      # A = biome-id * 2 (zc_table index)
     rom.LD_E_A(); rom.LD_D_n(0)
     rom.LD_HL_nn(0); patches['zc_table'] = rom.pos - 2
     rom.ADD_HL_DE()
@@ -1266,10 +1290,13 @@ def build_game_asm(rom: ROM) -> dict:
     # Save 9 carrot flags A009..A011
     for i in range(9):
         rom.LD_A_nn(CARROT_FLAGS + i); rom.LD_nn_A(0xA009 + i)
-    # FR-5220: save-format version guard + 9 ScoreItem flags A012..A01B
+    # FR-5220: save-format version guard
     rom.LD_A_n(SAVE_VERSION_VAL); rom.LD_nn_A(SAVE_VERSION_ADDR)
-    for i in range(9):
-        rom.LD_A_nn(SCOREITEM_FLAGS + i); rom.LD_nn_A(SRAM_SCOREITEM + i)
+    # IP-9070: ScoreItem flags, generalized from a 9-byte per-byte loop to an
+    # 81-byte memcpy (SCOREITEM_FLAGS widened the same way KEYITEM_FLAGS was
+    # by IP-1050 — see immediately below).
+    rom.LD_DE_nn(SCOREITEM_FLAGS); rom.LD_HL_nn(SRAM_SCOREITEM); rom.LD_BC_nn(81)
+    rom.CALL('memcpy')
     # FR-9200 (IP-1050): SEED/WORLD_SCALE mirrors + KEYITEM_FLAGS mirror
     # (up to 81 bytes). REGION_GRAPH itself is never written here — it
     # regenerates from (SEED, WORLD_SCALE) on load (ADR-0009).
@@ -1329,8 +1356,10 @@ def build_game_asm(rom: ROM) -> dict:
     # play (MM_SAVE_VALID gates it upstream) — kept as a defensive-correct
     # fallback matching tls_no's own precedent, not a live path.
     rom.LD_A_nn(SAVE_VERSION_ADDR); rom.CP_n(SAVE_VERSION_VAL); rom.JR_NZ('tls_si_skip')
-    for i in range(9):
-        rom.LD_A_nn(SRAM_SCOREITEM + i); rom.LD_nn_A(SCOREITEM_FLAGS + i)
+    # IP-9070: 81-byte memcpy, generalized from the old 9-byte per-byte loop
+    # (SCOREITEM_FLAGS widened the same way KEYITEM_FLAGS was by IP-1050).
+    rom.LD_DE_nn(SRAM_SCOREITEM); rom.LD_HL_nn(SCOREITEM_FLAGS); rom.LD_BC_nn(81)
+    rom.CALL('memcpy')
     # FR-9200 (IP-1050): restore SEED/WORLD_SCALE, regenerate REGION_GRAPH
     # via IP-1020's generate_world (never persisted itself — ADR-0009's
     # determinism guarantee), then restore KEYITEM_FLAGS onto the

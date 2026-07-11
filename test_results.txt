@@ -1,4 +1,4 @@
-BunnyQuest ROM Tests  PASS=180/180  FAIL=0
+BunnyQuest ROM Tests  PASS=193/193  FAIL=0
 ==================================================
 [PASS] T1.1 ROM size = 32768  (32768)
 [PASS] T1.2 Entry = NOP; JP
@@ -9,9 +9,9 @@ BunnyQuest ROM Tests  PASS=180/180  FAIL=0
 [PASS] T1.7 Header checksum valid  (0xB0=0xB0)
 [PASS] T1.8 VBlank ISR @ 0x40 = PUSH AF  (0xF5)
 [PASS] T1.9 VBlank ISR sets VBLANK_FLAG
-[PASS] T1.10 ZONE_COLLECTS has 9 zones  (9)
-[PASS] T1.11 Exactly one carrot per zone  ([1, 1, 1, 1, 1, 1, 1, 1, 1])
-[PASS] T1.12 No zone exceeds 8 collectibles (1-byte bitfield capacity)  ([7, 7, 6, 7, 7, 7, 7, 8, 6])
+[PASS] T1.10 ZONE_COLLECTS has 5 biome-family lists (IP-9070)  (5)
+[PASS] T1.11 Exactly one carrot per list  ([1, 1, 1, 1, 1])
+[PASS] T1.12 No zone exceeds 8 collectibles (1-byte bitfield capacity)  ([7, 7, 7, 6, 6])
 [PASS] T2.1 Tile 0x00 (bunny head) non-zero  ([[102, 102, 90, 126]])
 [PASS] T2.2 Tile 0x04 (carrot) non-zero  ([[24, 24, 60, 60]])
 [PASS] T2.3 Tile 0x06 (star) non-zero  ([[0, 24, 24, 60]])
@@ -56,9 +56,9 @@ BunnyQuest ROM Tests  PASS=180/180  FAIL=0
 [PASS] T6.6 DIR=1 sets X-flip (attr bit 5)  (attr=0x20)
 [PASS] T6.7 Bunny region has non-BG pixels  (non-bg pixels=128)
 [PASS] T6.8 Zone 0 COLL_COUNT = 7  (count=7)
-[PASS] T6.9 Collectible OAM on-screen (Y>15)  (Y=48)
-[PASS] T6.10 Collectible tile = carrot/star/flower  (tile=0x06)
-[PASS] T6.11 Collectible palette = type+1  (attr=0x01)
+[PASS] T6.9 Collectible OAM on-screen (Y>15)  (Y=56)
+[PASS] T6.10 Collectible tile = carrot/star/flower  (tile=0x08)
+[PASS] T6.11 Collectible palette = type+1  (attr=0x02)
 [PASS] T7.1 RIGHT increases X  (80->100)
 [PASS] T7.2 RIGHT sets DIR=0
 [PASS] T7.3 LEFT decreases X  (100->80)
@@ -111,20 +111,20 @@ BunnyQuest ROM Tests  PASS=180/180  FAIL=0
 [PASS] T10.8 PLAYER_X preserved  (60->60)
 [PASS] T10.9 PLAYER_Y preserved  (40->40)
 [PASS] T10.10 CARROTS_COUNT preserved  (2->2)
-[PASS] T10.11 SCORE preserved  (7->7)
+[PASS] T10.11 SCORE preserved  (8->8)
 [PASS] T10.12 CARROT_FLAGS preserved (z0, z4 set; z1 clear)  (flags=[1, 0, 0, 0, 1, 0, 0, 0, 0])
 [PASS] T10.13 B cancels -> PLAYING
-[PASS] T10.14 B cancel: reload still has saved data  (x=60 score=7)
+[PASS] T10.14 B cancel: reload still has saved data  (x=60 score=8)
 [PASS] T11.a1 Star (index 0) collected  (score=1)
 [PASS] T11.a2 Transitioned out of zone 0  (zone=1)
 [PASS] T11.a3 Back in zone 0  (zone=0)
 [PASS] T11.a4 Collected item (index 0) stays inactive on re-entry (AC-1)  (active=0)
 [PASS] T11.a5 SCORE did not re-increment on re-entry (BL-0023 fix)  (1->1)
-[PASS] T11.b1 Star (index 4) collected  (score=1)
+[PASS] T11.b1 ScoreItem (index 4) collected  (score=1)
 [PASS] T11.b2 Saved -> PLAYING
 [PASS] T11.b3a Reload -> MAIN MENU (not auto-loaded, IP-1040)  (GS=6)
 [PASS] T11.b3 A (continue) -> PLAYING  (GS=2)
-[PASS] T11.e1 Legacy fields still round-trip (zone/x/y/score, AC-5)  (zone=0 x=32 y=80 score=1)
+[PASS] T11.e1 Legacy fields still round-trip (zone/x/y/score, AC-5)  (zone=0 x=104 y=96 score=1)
 [PASS] T11.b5 Collected item (index 4) stays inactive after save/reload (AC-2)  (active=0)
 [PASS] T11.c Never-collected item (index 1) remains active (AC-3)  (active=1)
 [PASS] T11.d1 Pre-upgrade save loads without crash -> MAIN MENU  (GS=6)
@@ -175,8 +175,21 @@ BunnyQuest ROM Tests  PASS=180/180  FAIL=0
 [PASS] T15.b3 New game still reaches PLAYING cleanly despite the old version-1 save  (GS=2)
 [PASS] T15.c1 CUR_ZONE preserved (version-2 format)  (0->0)
 [PASS] T15.c2 PLAYER_X/Y preserved  ((20,32)->(20,32))
-[PASS] T15.c3 KEYITEM_COUNT preserved  (1->1)
-[PASS] T15.c4 SCORE preserved  (1->1)
+[PASS] T15.c3 KEYITEM_COUNT preserved  (0->0)
+[PASS] T15.c4 SCORE preserved  (2->2)
 [PASS] T15.c5 KEYITEM_FLAGS preserved
 [PASS] T15.c6 SCOREITEM_FLAGS preserved
 [PASS] T15.d REGION_GRAPH never written to SRAM by save_to_sram
+[PASS] T16.a1 COLL_COUNT = 7 in forced region 40 (Forest list, biome-id lookup)  (count=7)
+[PASS] T16.a2 ScoreItem collected in region 40  (score=1)
+[PASS] T16.a3 SCOREITEM_FLAGS[40] bit 1 set, inside the new 81-byte extent  (0b10)
+[PASS] T16.a4 REGION_GRAPH bytes unaffected by the region-40 collection (BL-0058)
+[PASS] T16.b zc_table biome-keyed lookup: each of the 5 biome-ids populates COLL_DATA from its own ZONE_COLLECTS list (BL-0059)  (bad=[])
+[PASS] T16.c SCOREITEM_FLAGS round-trips exactly across all 81 bytes, including region 80 (save-format v3)  (mismatch at [])
+[PASS] T16.d1 Boot with IP-1050-vintage (version=2) save -> MAIN MENU  (GS=6)
+[PASS] T16.d2 Version-2 save -> CONTINUE absent (AC-2, third guard extension)
+[PASS] T16.d3 New game still reaches PLAYING cleanly despite the old version-2 save  (GS=2)
+[PASS] T16.e1 SEED unaffected by SCOREITEM_FLAGS relocation  (777->777)
+[PASS] T16.e2 WORLD_SCALE unaffected  (7->7)
+[PASS] T16.e3 REGION_GRAPH regeneration unaffected (49 regions, scale=7)
+[PASS] T16.e4 KEYITEM_FLAGS unaffected

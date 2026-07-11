@@ -73,11 +73,14 @@ bit 3 = START    bit 7 = DOWN
 
 ## Collectible Positions
 
-Per-zone collectible layouts (stars/flowers/one carrot each) are authored in `tilemaps.py`'s
-`ZONE_COLLECTS` table, one entry per zone — that table is the single source of truth for
-positions; this file no longer duplicates the coordinates (a 9-zone hand-copy is exactly the
-kind of table that drifts). To find a zone's layout: open `tilemaps.py`, search
-`ZONE_COLLECTS`, and match the zone index (`0`=Beach … `8`=Castle, row = `÷3`, col = `%3`).
+Collectible layouts (stars/flowers/one carrot each) are authored in `tilemaps.py`'s
+`ZONE_COLLECTS` table — that table is the single source of truth for positions; this file no
+longer duplicates the coordinates (a hand-copy is exactly the kind of table that drifts). As of
+`IP-9070` (2026-07-11), `ZONE_COLLECTS` has **5 biome-family-representative lists**, indexed by
+biome-id (`0`=Water `1`=Sand `2`=Grass `3`=Stone `4`=Brick), not 9 zone-indexed lists —
+`setup_zone_collects` reads `REGION_GRAPH`'s biome-id and indexes by that, mirroring the screen
+dispatch's own biome-id lookup (`IP-1030`). To find a biome family's layout: open `tilemaps.py`,
+search `ZONE_COLLECTS`.
 
 ## Emulator Test Command
 

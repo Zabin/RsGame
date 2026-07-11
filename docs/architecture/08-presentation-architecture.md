@@ -167,6 +167,16 @@ tile art, zero new palette entries), dispatched at runtime by `REGION_GRAPH`'s g
 revision of it; the four remaining shipped zone screens (`village_screen`, `cave_screen`,
 `desert_screen`, `plains_screen`) remain unwired, available as future per-family variety.
 
+**Extended to spawn content by `IP-9070` (2026-07-11):** the identical five-way representative
+choice above now also governs `ZONE_COLLECTS` (`docs/architecture/07-data-model.md`
+`setup_zone_collects`) — reduced from 9 zone-named collectible lists to the same 5
+biome-family-representative lists (Water→old `Z3`/Lake, Sand→old `Z0`/Beach, Grass→old
+`Z1`/Forest, Stone→old `Z2`/Mountain, Brick→old `Z8`/Castle), reusing each list's original item
+positions verbatim. `setup_zone_collects` now reads `REGION_GRAPH`'s biome-id and indexes
+`zc_table` by it, mirroring `dsr_p`'s own screen dispatch exactly — spawn content and screen
+art now track the same biome-id, closing the gap `BL-0059` found (spawn content had been left on
+the old fixed `CUR_ZONE`-indexed model while screen art was already generalized by `IP-1030`).
+
 ### 9. Cross-reference: tile index budget (informational, per GDS-07's delta)
 
 [GDS-07](07-data-model.md)'s delta forward-referenced this section for the actual biome-family

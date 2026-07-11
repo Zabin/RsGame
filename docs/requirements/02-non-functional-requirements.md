@@ -234,7 +234,8 @@
   and vice versa — the two must be checked independently for any future zone/content addition, per
   GDS-06 N1's explicit caution.
 
-### NFR-4200 — Generated-world WRAM/SRAM headroom (WRAM half Met — 2026-07-10, `IP-1020`)
+### NFR-4200 — Generated-world WRAM/SRAM headroom (Met — WRAM half 2026-07-10 `IP-1020`; SRAM half
+2026-07-10 `IP-1050`, re-affirmed 2026-07-11 `IP-9070`)
 
 - **ID:** NFR-4200
 - **Title:** The generated world's WRAM working set and SRAM save-field additions shall stay
@@ -245,21 +246,23 @@
 - **Rationale:** GDS-07 delta §6/§7; R111; extends `BL-0019`'s ROM-headroom-watching convention
   to WRAM/SRAM specifically.
 - **Priority:** Must
-- **Status: WRAM half MET (`IP-1020`); SRAM half still NOT YET IMPLEMENTED (`FEAT-5300`/
-  `IP-1050`'s scope).** Measured against shipped code, not estimated: `SEED`–`GW_SCALE_SQ`
-  (`0xC069`–`0xC27C`, confirmed [GDS-07](../architecture/07-data-model.md) §6) stays entirely
-  inside bank-0 and the existing boot-time WRAM clear (`0xC000`–`0xC2FF`); `test_rom.py`'s
-  **T12.i** confirms this directly against the built ROM at `scale=9`. The SRAM half's proposed
-  figures (~84 bytes against 8 KiB) remain architecture-level estimates pending `IP-1050`.
+- **Status: MET, both halves.** WRAM half measured against shipped code, not estimated:
+  `SEED`–`GW_SCALE_SQ` (`0xC069`–`0xC27C`, confirmed [GDS-07](../architecture/07-data-model.md)
+  §6) stays entirely inside bank-0 and the existing boot-time WRAM clear (`0xC000`–`0xC2FF`);
+  `test_rom.py`'s **T12.i** confirms this directly against the built ROM at `scale=9`. SRAM half
+  implemented by `IP-1050` (`SEED`/`WORLD_SCALE`/`KEYITEM_FLAGS` mirrors, ~84 bytes) and further
+  grown by `IP-9070` (2026-07-11, `SRAM_SCOREITEM` widened 9→81 bytes, +72 bytes, relocated to
+  `0xA070`–`0xA0C0`) — net SRAM save-format footprint against the 8 KiB MBC1 SRAM budget remains
+  trivial; re-affirmed by direct build, not merely re-estimated.
 - **Acceptance Criteria:** At world scale 9, the built ROM's WRAM working set for the region
   graph plus KeyItemFlags fits within bank-0 (`0xC000`–`0xCFFF`) without requiring `SVBK`
   banking; the SRAM save-field additions plus existing save data remain under 8 KiB.
 - **Verification Method:** Inspection (WRAM/SRAM layout audit at implementation) / Test.
-- **Source Documents:** GDS-07 delta §6/§7; R111.
+- **Source Documents:** GDS-07 delta §6/§7, §7a; R111.
 - **Related ADRs:** ADR-0010.
 - **Notes:** Re-affirm this NFR's status the same way `BL-0019`'s convention already requires for
   ROM-growing packages — any package materially growing the WRAM/SRAM footprint should include a
-  checklist item re-checking headroom against this NFR's figures. Not yet implemented.
+  checklist item re-checking headroom against this NFR's figures, as `IP-9070` did.
 
 ## Data Integrity
 
@@ -322,20 +325,23 @@
 - **Rationale:** ADR-0010; GDS-07 delta §7; R106's extension; the FS-101/`IP-1010` version-byte
   precedent this NFR extends.
 - **Priority:** Must (Met)
-- **Status: MET.** `SAVE_VERSION_VAL` bumped `0x01`→`0x02`; `check_save_valid` (`IP-1040`) and
-  `try_load_save`'s own version check (both consuming the same symbolic constant) now reject a
-  version-1 save from "continue" entirely — confirmed by `T15.b1`/`b2` (a synthetic IP-1010-vintage
-  fixture, following T11.d's exact pattern) and `T11.d1b` (the pre-upgrade case IP-1040 already
-  covers). No partial load of garbage seed/scale/region-flags bytes occurs in either case.
-- **Acceptance Criteria:** Given a save written under the prior version value, after boot that
+- **Status: MET.** `SAVE_VERSION_VAL` bumped `0x01`→`0x02` (`IP-1050`), then `0x02`→`0x03`
+  (`IP-9070`, 2026-07-11, `SRAM_SCOREITEM` relocation/widening); `check_save_valid` (`IP-1040`)
+  and `try_load_save`'s own version check (both consuming the same symbolic constant) reject any
+  save whose version byte doesn't match the current value from "continue" entirely — confirmed
+  by `T15.b1`/`b2` (a synthetic IP-1010-vintage fixture) and `T16.d1`/`d2` (a synthetic
+  IP-1050-vintage, version-2 fixture, extending the same pattern a third time). No partial load
+  of garbage seed/scale/region-flags/scoreitem bytes occurs in any case.
+- **Acceptance Criteria:** Given a save written under any prior version value, after boot that
   save is not offered as a "continue" option — verified by a synthetic pre-upgrade SRAM fixture,
   following the same test pattern `IP-1010`'s T11.d established for `SCOREITEM_FLAGS`.
-- **Verification Method:** Test (synthetic pre-upgrade fixture, `IP-1010`'s T11.d precedent).
-- **Source Documents:** GDS-07 delta §7; ADR-0010.
+- **Verification Method:** Test (synthetic pre-upgrade fixture, `IP-1010`'s T11.d precedent,
+  extended by `IP-1050`'s T15.b and `IP-9070`'s T16.d).
+- **Source Documents:** GDS-07 delta §7, §7a; ADR-0010.
 - **Related ADRs:** ADR-0010, ADR-0006.
-- **Notes:** Implemented 2026-07-10 (`IP-1050`). The version-value sequence (`0x01`→`0x02`) is now
-  strictly monotonic by convention — a future save-format extension must bump to `0x03`, never
-  reuse either prior value.
+- **Notes:** Implemented 2026-07-10 (`IP-1050`), extended 2026-07-11 (`IP-9070`). The
+  version-value sequence (`0x01`→`0x02`→`0x03`) is strictly monotonic by convention — a future
+  save-format extension must bump to `0x04`, never reuse a prior value.
 
 ## Portability
 
