@@ -25,8 +25,13 @@
 > traversal assumptions — a genuine supersession-sweep gap this package's own planning missed).
 > `IP-1070` awaits independent verification (`09-package-verification`, same-session-independence
 > rule — needs a fresh session). `IP-1080` remains unauthorized and `BLOCKED` on `IP-1070` reaching
-> `VERIFIED` (`COMPLETE` is not sufficient). `FS-108`'s rendering half remains unplanned, riding
-> `BL-0068`'s still-open `GDS-08` delta. Owned by
+> `VERIFIED` (`COMPLETE` is not sufficient). `FS-108`'s rendering half remains unplanned (its own
+> blocking `GDS-08` delta landed, `BL-0068` closed, but the rendering half's own spec is
+> deliberately deferred until `IP-1080` is nearer landing). **Movement/pickup/UI bug-remediation
+> tranche planned 2026-07-11** (`IP-9080`/`IP-9090`/`IP-9100`, four standing backlog bugs —
+> `BL-0049`/`0051`/`0052`/`0053` — see below) — all three packages `READY`, fully specified,
+> mutually independent (no critical path), **none authorized yet** — no G3 answer on record for
+> any of the three. Owned by
 > `07-implementation-planning`
 > (rows/graph/authorization state) with status transitions written by the stage-08 peers
 > (`IN PROGRESS`/`COMPLETE`/`BLOCKED`) and `09-package-verification` (`VERIFIED`, exclusively).
@@ -57,6 +62,9 @@
 | [IP-9060](packages/IP-9060-main-menu-cursor-fix.md) | Main menu cursor fix (BL-0048) | `08-code-implementation` | **COMPLETE — 205/205 checks pass** | IP-1040 (VERIFIED) | **YES — explicit user G3, 2026-07-11 (BL-0062)** | **Implementation Summary (2026-07-11).** Files Modified: `asm_game.py` (new 1-byte WRAM flag `MM_JUST_ENTERED` at `0xC2D7`; `check_save_valid`'s own `MM_CURSOR`-reset tail removed entirely; reset logic moved into `mm_on_entry`, gated on `MM_JUST_ENTERED`; the flag is set at every genuine `GAMESTATE → GS_MAIN_MENU` transition site — **4 found, not the 3 the package's own §6 task list named**: boot, `st_victory`'s A-press, `st_save`'s SELECT option, and `st_seed_scale_entry`'s B-cancel, the last one caught only because `T18.c`'s own test exercises it), `test_rom.py` (new suite **T18 a–d**, 12 checks). Files Created: none. Tests Added: T18.a (direct `BL-0048` regression — toggle with a valid save, exact-value assertions at every step), T18.b (toggle no-op with no save), T18.c (genuine re-entry via SEED/SCALE ENTRY B-cancel still resets correctly — the test that surfaced the 4th transition site), T18.d (new game end-to-end reachable from the toggled state). Tests Passed: 205/205 (up from 193/193; ROM unchanged at 22216/32768 bytes — one new 1-byte WRAM flag, no ROM growth after 0x100-boundary padding). Requirements Implemented: `FR-1170` regression fix (no requirement text change — the target behavior was always correctly specified). Documentation Updated: confirmed GDS-01's target-state diagram needed no change (already describes the correct, now-actually-achieved toggle behavior); this row. Traceability Updated: this row. Outstanding Issues: none. Independent of `IP-9050`/`IP-9070` — implemented in parallel, no shared file region touched by either. |
 | [IP-1070](packages/IP-1070-maze-shaped-region-adjacency.md) | Maze-shaped region adjacency (FS-107 / FEAT-9100) | `08-code-implementation` | **COMPLETE** | IP-1020 (VERIFIED) | **YES — explicit user G3, 2026-07-11 (BL-0069)** | **Implemented 2026-07-11.** `generate_world` (`asm_game.py`) runs a new maze-generation pass after biome assignment: an iterative randomized DFS/recursive-backtracker spanning-tree carve (`GW_MAZE_STATE`/`GW_CUR_REGION`/`GW_MAZE_DIR`/`GW_BRAID_IDX`, new subroutines `gw_neighbor_hl`/`gw_maze_state_hl`), then a canonical-edge (down/right only) braid/prune pass — `REGION_GRAPH`'s 5-bytes/region format unchanged, only some neighbor bytes rewritten. Every `gw_prng_step` draw this pass makes is decorrelated via `ADR-0013`'s loop-local `GW_MAZE_DRAW_CTR` counter (XOR-perturbed, stepped +97/draw, never fed back into `gw_prng_step`'s own state); `gw_prng_step` itself and the biome-assignment loop are untouched. `worldgen.py`'s `_carve_maze` mirrors the SM83 routine step-for-step (validated byte-identical, 36-`(seed,scale)`-combination corpus). Two hand-assembly bugs found and fixed during implementation (fall-through into a subroutine body reached before any `CALL`; a register clobber in the prune-write block from calling `gw_neighbor_hl` twice without stashing the first result) — both confirmed fixed via direct PyBoy inspection. New suite **T19** (7 checks: subgraph, reachability, oracle parity, grammar, braid-fraction statistics — measured 25.80% against the ~25% target, static audit, WRAM headroom). Fixed a genuine supersession-sweep gap this package's own `07-implementation-planning` pass missed: `test_rom.py`'s `T11`/`T17` suites hardcoded a full-lattice-connectivity assumption (both at scale=5 and, more significantly, at the default scale=3 fixture used throughout the rest of the suite) — rewritten graph-driven (a real DFS tour over whatever edges the actual generated graph provides) rather than patched around. Full suite: **211/211 pass**. Documentation updated: GDS-07 §7b (new WRAM entries), FR-9140/FR-9150 (implemented), NFR-4200 (measured 85-byte WRAM addition), RTM rows, FS-107 Open Questions 1–3 resolved. Awaits `09-package-verification` (same-session independence rule — needs a fresh session). |
 | [IP-1080](packages/IP-1080-maze-aware-edge-classification.md) | Maze-aware transition-edge classification, logic half (FS-108 / FEAT-2100) | `08-code-implementation` | **BLOCKED** | IP-1070 (must reach VERIFIED — hard prerequisite; now COMPLETE, not yet VERIFIED), IP-1030 (VERIFIED) | **NOT AUTHORIZED — no G3 on record** | Planned 2026-07-11. Render-time open/blocked/absent classification inside `draw_region_arrows`'s existing per-direction loop, reusing `check_zone_transition`'s own grid-boundary arithmetic pattern; the blocked case is a logic-only no-op render-wise in this package (no new WRAM, no new tile). Covers `FR-2330` **partially** — the rendering half (tile art/palette) is not planned by this package, still blocked on `BL-0068`'s unrouted `GDS-08` delta; FS-108's own Acceptance Criterion 4 stays explicitly open in this package's Definition of Done, not silently implied covered. New suite **T20** planned (open/blocked/absent classification checks, sharing `IP-1070`'s T19 corpus). `BLOCKED` (not merely `NOT STARTED`) on `IP-1070` reaching `VERIFIED` — `IP-1070` reaching `COMPLETE` this session does not lift this block, per this skill's own `READY` convention. |
+| [IP-9090](packages/IP-9090-movement-clamp-boundary-fix.md) | Movement clamp boundary fix (BL-0051 + BL-0052) | `08-code-implementation` | **READY** | IP-1010 (VERIFIED, `handle_play_input`'s own shipped implementation) | **NOT AUTHORIZED — no G3 on record** | Planned 2026-07-11. Corrects `handle_play_input`'s UP clamp (magic bound `17`→`8`) and RIGHT clamp (`CP_n(160)`→`CP_n(153)`), matching the already-correct DOWN/LEFT sibling pattern. Supersession sweep found `test_rom.py`'s own `T7.8` asserts the pre-fix buggy floor as if correct — folded into this package's own scope (updates `T7.8`, corrects `T7.10`'s stale comment, adds a new genuine-movement boundary check). No requirements-baseline conflict (`FR-2100` never stated exact pixel bounds — a genuine baseline gap, noted for a future `04` pass, not blocking). Parallel-eligible with `IP-9080`/`IP-9100` — no shared file region. |
+| [IP-9100](packages/IP-9100-collectible-pickup-hitbox-fix.md) | Collectible pickup hitbox fix (BL-0053) | `08-code-implementation` | **READY** | IP-1010 (VERIFIED, `check_collisions`' own shipped implementation) | **NOT AUTHORIZED — no G3 on record** | Planned 2026-07-11. Corrects `check_collisions`' symmetric ±9px/±9px proximity window to a true zero-margin axis-aligned bounding-box overlap test against the sprite's real 8×16 extent (X threshold `10`→`8`, Y threshold `10`→`16`) — derived directly from 8×16 OBJ mode geometry (GDS-08), not an arbitrary tolerance choice. Supersession sweep confirmed clean against `test_rom.py` (every existing `T8` pickup check places the player at the item's exact coordinates, unaffected). **This fix directly contradicts `FR-3100`'s own currently-baselined `10px`/`10px` Acceptance Criteria** — implemented per this package's own scope, `FR-3100`'s text left unmodified, flagged as a Notes-only forward pointer for a future `04-requirements-engineering` correction (mirrors `IP-9050`'s own `FR-2300`/`FR-2310` precedent). Parallel-eligible with `IP-9080`/`IP-9090` — no shared file region. |
+| [IP-9080](packages/IP-9080-save-screen-third-option-labeling.md) | SAVE screen third-option labeling (BL-0049) | `08-content-authoring` | **READY** | IP-1040 (VERIFIED, `st_save`'s own shipped SELECT-option behavior) | **NOT AUTHORIZED — no G3 on record** | Planned 2026-07-11. Adds on-screen text for the SAVE screen's third (`SELECT`) option — today silent, though its underlying save-and-exit behavior (`st_save`, `IP-1040`) is already correct and already tested. Content-only (`tilemaps.py`'s `save_screen`); `asm_game.py` untouched. UI-input-mapping question (keep `A`/`B`/`SELECT` vs. redesign to a cursor-based scheme) resolved directly by this pass, per `FS-104` OQ2's own precedent — kept as-is, a working three-option scheme doesn't need a control-model redesign to fix a missing label. Exact wording/placement left to `08-content-authoring`'s own judgment within named constraints (columns 2–17, rows 12–13). Parallel-eligible with `IP-9090`/`IP-9100` — different stage-08 peer, no shared file region. |
 
 **FEAT-6100 (Aesthetic & Biome-Transition Compliance) needs no package** — per FS-106 §8/§10, it
 has no runtime behavior or module of its own; its standard (GDS-08 delta §7/§8) is already
@@ -95,6 +103,30 @@ unplanned — riding `BL-0068`'s still-open `GDS-08` delta, not a package in thi
   Authorization stood throughout — the blocker was a dependency defect, not a missing go-ahead.
   **`IP-1080` remains unauthorized** — a separate G3 question once it becomes eligible (and
   `IP-1070` must first reach `VERIFIED`, not merely `COMPLETE`).
+
+## Movement/pickup/UI bug-remediation tranche (planned 2026-07-11)
+
+Three packages, four standing backlog bugs (`BL-0049`/`BL-0051`/`BL-0052`/`BL-0053`), all
+independently reported/reproduced prior to this pass. **None falls under the `BL-0001`…`BL-0005`
+G3 bootstrap carve-out; explicit user authorization is required before `08-code-implementation`/
+`08-content-authoring` can start any of them.** No critical path — all three are mutually
+independent (different root causes, no shared symbol, two different stage-08 peers) and fully
+parallel-eligible.
+
+- **`IP-9090`** (`BL-0051`/`BL-0052`, movement clamps) depends only on `IP-1010` (`VERIFIED`,
+  `handle_play_input`'s own shipped implementation).
+- **`IP-9100`** (`BL-0053`, pickup hitbox) depends only on `IP-1010` (`VERIFIED`,
+  `check_collisions`' own shipped implementation).
+- **`IP-9080`** (`BL-0049`, SAVE screen text) depends only on `IP-1040` (`VERIFIED`, `st_save`'s
+  own shipped SELECT-option behavior).
+- **Authorization state: none of the three authorized** — no G3 answer on record for
+  `BL-0049`/`0051`/`0052`/`0053` (distinct from the `BL-0062` answer, which named only
+  `BL-0047`/`0048`/`0058`/`0059`/`0063` explicitly).
+- **Notable finding:** `IP-9100`'s own fix directly contradicts `FR-3100`'s currently-baselined
+  Acceptance Criteria (the requirement describes the pre-fix symmetric-window behavior as if
+  intended) — implemented per this package's own scope, `FR-3100`'s text left unmodified, flagged
+  as a Notes-only forward pointer for a future `04-requirements-engineering` correction (see the
+  package status table's own `IP-9100` row).
 
 ## Dependency graph
 
@@ -144,6 +176,17 @@ graph TD
 
     style IP1070 fill:#9cf,stroke:#333,stroke-width:2px
     style IP1080 fill:#9cf,stroke:#333,stroke-width:2px
+
+    IP9090["IP-9090 movement clamp<br/>boundary fix<br/>(READY)"]
+    IP9100["IP-9100 collectible pickup<br/>hitbox fix<br/>(READY)"]
+    IP9080["IP-9080 SAVE screen<br/>third-option labeling<br/>(READY)"]
+    IP1010 --> IP9090
+    IP1010 --> IP9100
+    IP1040 --> IP9080
+
+    style IP9090 fill:#cfc,stroke:#333,stroke-width:2px
+    style IP9100 fill:#cfc,stroke:#333,stroke-width:2px
+    style IP9080 fill:#cfc,stroke:#333,stroke-width:2px
 ```
 
 *(The dotted edge into `IP1020` represents the Master Build Plan's own package-status
@@ -234,5 +277,30 @@ first-in-critical-path package.)*
 - **Authorization state: `IP-1070` authorized 2026-07-11** (explicit user G3, `BL-0069`) —
   authorization stood throughout, unaffected by the block-and-resolve cycle. `IP-1080` remains
   unauthorized.
-- **`FS-108`'s rendering half is not part of this tranche** — `BL-0068`'s `GDS-08` delta must
-  resolve first; a third package will be planned once it does, per this pass's own TWBS note.
+- **`FS-108`'s rendering half is not part of this tranche** — `BL-0068`'s `GDS-08` delta has since
+  resolved (2026-07-11, `GDS-08` §10); the rendering half's own spec is deliberately deferred to a
+  future `06-feature-specification` pass rather than authored now, per that run's own judgment
+  call (`IP-1080` is still `BLOCKED`, not close to landing).
+
+### Movement/pickup/UI bug-remediation tranche (planned 2026-07-11)
+
+- **No critical path** — `IP-9090`/`IP-9100`/`IP-9080` are mutually independent (three different
+  root causes, two different stage-08 peers, no shared file region between `IP-9080` and the other
+  two; `IP-9090`/`IP-9100` share `asm_game.py` but touch different functions with no dependency
+  either direction). Fully parallel-eligible.
+- **`IP-9090`** (`BL-0051`/`BL-0052`): corrects `handle_play_input`'s UP/RIGHT movement clamps.
+  Folded in a same-pass supersession-sweep finding — `test_rom.py`'s own `T7.8` asserts the pre-fix
+  buggy floor as correct; the package's own scope includes updating it.
+- **`IP-9100`** (`BL-0053`): corrects `check_collisions`' pickup-overlap test to a true zero-margin
+  AABB test against the sprite's real 8×16 extent. Directly contradicts `FR-3100`'s own currently-
+  baselined text — implemented anyway (in scope per this stage's own remediation-package
+  discipline), with the requirement-text correction routed to a future `04` pass, not silently
+  absorbed here.
+- **`IP-9080`** (`BL-0049`): adds on-screen text for the SAVE screen's silent third option.
+  Content-only (`08-content-authoring`); the entry's own open UI-input-mapping question resolved
+  directly by this pass (keep the existing `A`/`B`/`SELECT` scheme, not a cursor-based redesign).
+- **Authorization state: none of the three authorized** — `BL-0049`/`0051`/`0052`/`0053` are not
+  covered by the `BL-0001`…`BL-0005` G3 bootstrap carve-out, nor by `BL-0062`'s authorization
+  (which named only the prior remediation tranche's five bugs explicitly). Explicit user
+  authorization is required before `08-code-implementation`/`08-content-authoring` can start any
+  of the three.

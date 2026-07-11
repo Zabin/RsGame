@@ -400,3 +400,105 @@ no-op render-wise until the rendering half ships).
   explicitly rather than silently absorbed into `IP-1080`.
 - **`BL-0019`** (ROM/WRAM-headroom watch): `IP-1070` adds up to 84 bytes of new transient WRAM
   scratch at `scale=9` — carries an `NFR-4200` headroom re-affirmation checklist item.
+
+## Movement/pickup/UI bug-remediation tranche (`BL-0049`/`BL-0051`/`BL-0052`/`BL-0053`, planned 2026-07-11)
+
+Four standing, unpackaged backlog entries, each already carrying a reproduced root cause and a
+recommended remediation shape from prior triage (three filed via `00-intake` this session, one —
+`BL-0053` — likewise). None depends on the maze-shaped-adjacency thread or the five packages
+awaiting fresh-session verification; all four are independently plannable and, once authorized,
+independently implementable.
+
+### Verb inventory
+
+Not applicable — none of these four touches a multi-verb capability (generate/render/navigate/
+persist/review). Each is a narrow, single-function correctness fix: `handle_play_input`'s own
+movement-clamp arithmetic (`BL-0051`/`BL-0052`), `check_collisions`' own pickup-overlap arithmetic
+(`BL-0053`), and `save_screen`'s own static tilemap content (`BL-0049`). No verb-inventory gap risk
+of the `BL-0054` kind exists at this granularity.
+
+### Supersession sweep
+
+None of these four bugs retires or supersedes an existing model — each corrects a magic-constant/
+threshold defect within an already-generalized routine (`handle_play_input`/`check_collisions`
+already operate identically across every generated world; `save_screen` is static content, not
+dispatched by any generalized model). Per this skill's own mandatory discipline (including the
+`BL-0071`-established extension to check `test_rom.py` itself, not just production call sites), a
+sweep was still run:
+
+- **`BL-0051`/`BL-0052` (movement clamps):** `grep` for `CP_n(17)`/`CP_n(160)` and their sibling
+  magic bounds (`CP_n(156)`, `CP_n(128)`, `CP_n(129)`, `CP_n(0xFF)`) across `asm_game.py` found no
+  other call site referencing these two specific clamp constants — `handle_play_input`'s own four
+  directional blocks (`asm_game.py:512-545`) are the only place `PLAYER_X`/`PLAYER_Y` are
+  clamped by direct movement (as opposed to `check_zone_transition`'s separate, correct,
+  already-`REGION_GRAPH`-driven edge-detection constants at `156`/`0`/`18`/`128`, which this
+  tranche does not touch). **Found in `test_rom.py`, not production code:** `T7.8` (`test_rom.py:
+  477-482`) directly asserts the *current buggy* UP floor (`17`) as if it were correct behavior
+  ("movement floor is Y=17 (zone 0 = top row, no up-transition)") — this test will fail once
+  `BL-0051` ships unless updated in the same package. `T7.10`'s own comment ("X capped at 159")
+  is similarly stale once `BL-0052` ships (real cap becomes `152`), though the check's own
+  assertion (`x<=159`) happens not to break numerically since it forces `X=159` directly rather
+  than deriving it via the clamp — flagged for a comment correction, not a behavior-changing fix.
+- **`BL-0053` (pickup hitbox):** `grep` for `CP_n(10)` across `asm_game.py` found exactly the two
+  instances `check_collisions`' own X/Y overlap test uses (`asm_game.py:573`/`578`) — no other
+  routine reuses this threshold. In `test_rom.py`, every existing `T8` pickup check places the
+  player at the item's own exact `(x, y)` coordinates (`dx=dy=0`) — well inside any reasonable
+  bounding-box definition — so **no existing test assumes the old symmetric window's specific
+  asymmetry; the sweep found nothing to fix, only new boundary-exactness checks to add.**
+- **`BL-0049` (SAVE screen text):** `grep` for `save_screen`/`GS_SAVE`/`st_save` across
+  `asm_game.py`/`tilemaps.py`/`test_rom.py` found no existing test exercises the SAVE screen's own
+  tilemap content at all (only `T14.d0`'s state-transition check reaches `GS_SAVE`, asserting
+  nothing about what's drawn there) — nothing to break, a pure content addition.
+
+### Work units and package cut
+
+| Work unit | Package | Owner |
+|---|---|---|
+| Correct `handle_play_input`'s UP/RIGHT movement-clamp magic bounds to match the already-correct DOWN/LEFT pattern (`BL-0051`/`BL-0052`); update `T7.8`'s own stale-floor assertion and `T7.10`'s stale comment | [IP-9090](packages/IP-9090-movement-clamp-boundary-fix.md) | `08-code-implementation` |
+| Correct `check_collisions`' pickup-overlap test from a symmetric ±9/±9 window to a true axis-aligned bounding-box overlap test against the sprite's real 8×16 extent (`BL-0053`) | [IP-9100](packages/IP-9100-collectible-pickup-hitbox-fix.md) | `08-code-implementation` |
+| Add on-screen text for the SAVE screen's third (SELECT) option, currently silent (`BL-0049`) | [IP-9080](packages/IP-9080-save-screen-third-option-labeling.md) | `08-content-authoring` |
+
+**Split rationale:**
+
+- **`BL-0051`/`BL-0052` fused into one package (`IP-9090`)** — same function
+  (`handle_play_input`), same class of defect (a magic clamp bound inconsistent with its own
+  already-correct sibling direction), one coherent Definition of Done ("every directional clamp
+  matches its own established-correct sibling pattern"), following `IP-9070`'s own precedent for
+  fusing same-class-same-sweep defects rather than splitting further.
+- **`BL-0053` split out from `IP-9090`** despite sharing `asm_game.py` as a file, because it is a
+  different function (`check_collisions`, not `handle_play_input`), a different root-cause class
+  (an overlap-test formula, not a magic boundary constant), and independently testable/rollback-
+  able — no shared root cause with the movement clamps beyond incidental file co-location.
+- **`IP-9080` split out from both `08-code-implementation` packages** because it is
+  `08-content-authoring` scope (a `tilemaps.py` data-only change — `st_save`'s own input-handling
+  logic, `asm_game.py:319-339`, already correctly implements the SELECT option's save-and-exit
+  behavior; only the missing on-screen text needs adding), a different stage-08 peer entirely, and
+  genuinely parallel-eligible with the other two.
+
+**UI-input-mapping question resolved directly (per this entry's own disposition note, citing
+`FS-104` OQ2's established precedent):** keep the existing `A`/`B`/`SELECT` one-button-per-option
+scheme unchanged — do **not** redesign it into a cursor-based UP/DOWN-select/A-confirm scheme
+matching MAIN MENU's own convention. Rationale: the existing scheme already works correctly and
+is a single-screen, three-fixed-option menu (not a growing/reorderable list, unlike MAIN MENU);
+redesigning the input model to fix a missing *label* would be solving a problem the user never
+reported (the report is specifically "no on-screen text," not "the controls are confusing") and
+would touch `st_save`'s already-correct, already-tested control flow for no behavioral gain — out
+of proportion to the actual defect. `IP-9080`'s own scope is therefore text-only, no
+`asm_game.py` change.
+
+### Sequencing summary
+
+All three packages are mutually independent (three different root causes, three different
+Definitions of Done, two different files with no shared symbol) — fully parallel-eligible, no
+critical path within this tranche. None depends on the maze-shaped-adjacency thread, the five
+packages awaiting fresh-session verification, or each other.
+
+### Backlog riders honored in this pass
+
+- **`BL-0051`**/**`BL-0052`** (movement-clamp magic-bound defects): packaged as `IP-9090`.
+- **`BL-0053`** (pickup-hitbox asymmetric window): packaged as `IP-9100`.
+- **`BL-0049`** (SAVE screen's silent third option): packaged as `IP-9080`; the entry's own
+  UI-input-mapping open question resolved directly above, not escalated.
+- **`BL-0071`** (supersession-sweep-must-include-`test_rom.py` discipline, filed after `IP-1070`):
+  honored directly in this pass's own sweep above (`T7.8`/`T7.10` checked and one real conflict
+  found and routed into `IP-9090`'s own scope).
