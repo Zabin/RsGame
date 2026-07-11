@@ -14,41 +14,41 @@
 
 ## Position
 
-- **Updated:** 2026-07-11 (run #63, triage)
+- **Updated:** 2026-07-11 (run #64)
 - **Increment:** Bootstrap baseline remains fully closed (01–11 ✅, GO recorded). Release-2
-  procgen-world tranche unchanged since run #62: `IP-1031` `COMPLETE` with a clean content
-  review, four of five packages `VERIFIED`, blocked on a fresh session for its own
-  `09-package-verification`. **Between run #62 and this run, this same session ran `00-intake`
-  and a user-requested retrospective directly (outside a manager-driven advance), the same
-  pattern the journal has already noted for out-of-band `08` work** — reconciled now: 7 bugs
-  filed from the project owner's own playtesting (`BL-0047`–`BL-0053`, with cheap read-only
-  repro evidence each), then 4 process-improvement items from a retrospective on why all six
-  confirmed bugs survived a 180/180 suite (`BL-0054`–`BL-0057`) — three of which were actioned
-  directly as skill-file edits (`07-implementation-planning`/`09-package-verification`/
-  `09-content-review` `SKILL.md`, now `DONE`) and one as an `R305` research delta (`DONE`).
-- **This run (triage):** the 7 intake entries' Status columns still read `NEW` even though each
-  entry's own prose already recorded a disposition (an intake-session gap, not a defect in the
-  entries themselves) — corrected to match: **`BL-0047`/`BL-0048`/`BL-0049`/`BL-0051`/`BL-0052`/
-  `BL-0053` → `SCHEDULED`**; **`BL-0050` → `NEEDS-USER`** (its own prose already says "NEEDS-USER
-  at triage, not a mechanical fix" — the disposition column just hadn't caught up). No new
-  findings this run. No `DEFERRED` triggers fired.
-- **Pipeline state:** Bootstrap: stages 01–11 ✅ — complete, GO recorded. Release-2: unchanged
-  (see above), still blocked on a fresh session. **User has now explicitly directed work on
-  `BL-0047`/`BL-0048` specifically** (Critical + High severity remediations) — this is genuinely
-  unblocked, independent-session work, separate from `IP-1031`'s own verification thread.
-- **Backlog:** 53 entries, 6 open (`BL-0014`/`0017`/`0019`/`0043`/`0044` unchanged from run #62,
-  plus `BL-0050` now `NEEDS-USER`). `BL-0047`/`BL-0048`/`BL-0049`/`BL-0051`/`BL-0052`/`BL-0053`
-  `SCHEDULED`, not counted "open" in the blocking sense — each has a clear remediation shape
-  already recorded, ready to ride a `07` pass.
-- **Next step:** `07-implementation-planning` on **`BL-0047`** and **`BL-0048`**, per the user's
-  explicit direction — both are `bug`-type entries entering at stage `07`, both already carry a
-  reproduced root cause and a recommended remediation shape in their own backlog text. `BL-0050`
-  remains `NEEDS-USER` (out of this run's directed scope, not acted on) — the exact decision it
-  needs (what a generated-world-appropriate quick-status screen should show) stays open for a
-  separate ask.
-- **Open gates:** `BL-0050` (`NEEDS-USER`, not this run's target). G3 authorization for whatever
-  package(s) `07` authors for `BL-0047`/`BL-0048` will very likely be needed before `08` can run
-  — neither bug is covered by the `BL-0001`…`BL-0005` bootstrap carve-out.
+  procgen-world tranche unchanged since run #62: `IP-1031` `COMPLETE`, four of five `VERIFIED`,
+  blocked on a fresh session. **This run: `07-implementation-planning` on `BL-0047`/`BL-0048`**,
+  per the user's explicit direction. Both packaged (`IP-9050` for `BL-0047`, `IP-9060` for
+  `BL-0048`), following the skill's own new verb-inventory + supersession-sweep discipline
+  (`BL-0054`, added this same session) — the sweep itself, mandatory before either package could
+  be called complete, **found two more Critical defects `BL-0047` didn't name**:
+  `SCOREITEM_FLAGS` and `ZONE_COLLECTS`/`zc_table` are both still indexed by `CUR_ZONE` against
+  the old fixed-9-zone model (`BL-0058`/`BL-0059`) — fixing navigation alone, without
+  generalizing these, would convert a currently-dormant bug into live WRAM corruption /
+  out-of-bounds ROM reads the moment `CUR_ZONE` legitimately exceeds 8. Packaged as **`IP-9070`**,
+  sequenced as `IP-9050`'s hard prerequisite (not parallel-eligible with it — a correctness
+  ordering, not a scheduling one). Two further Low findings routed to a future `04` delta, not
+  blocking (`BL-0060`: no FR covers generated-region collectible-spawn content; `BL-0061`:
+  `FR-2300`/`FR-2310` have no target-state counterpart generalizing them past "the 3×3 grid").
+  TWBS, Master Build Plan, `packages/INDEX.md`, `ROADMAP.md` all updated; `IP-9070`/`IP-9060`
+  `READY`, `IP-9050` `BLOCKED` on `IP-9070`.
+- **Pipeline state:** Bootstrap: stages 01–11 ✅ — complete, GO recorded. Release-2: unchanged,
+  still blocked on a fresh session for `IP-1031`'s own verification. **New: post-ship remediation
+  tranche planned** (`IP-9050`/`9060`/`9070`) — fully specified, **not authorized**.
+- **Backlog:** 61 entries, 10 open. Run #64 harvest: new **`BL-0058`**/**`BL-0059`** (Critical,
+  `SCHEDULED`, riding `IP-9070` — already packaged same run, not merely filed) and
+  **`BL-0060`**/**`BL-0061`** (Low, `SCHEDULED`, routed to a future `04` delta, not blocking).
+  Standing entries unchanged: `BL-0014`/`0017`/`0019`/`0043`/`0044` (none ripened), `BL-0050`
+  (`NEEDS-USER`, untouched — out of this run's directed scope), `BL-0049`/`0051`/`0052`/`0053`
+  (`SCHEDULED`, not this run's target — the user directed `BL-0047`/`0048` specifically).
+- **Next step:** **G3 authorization decision needed from the user** before `08-code-implementation`
+  can start `IP-9050`/`IP-9060`/`IP-9070` — none of `BL-0047`/`0048`/`0058`/`0059` fall under the
+  `BL-0001`…`BL-0005` bootstrap carve-out. Once authorized: `IP-9070` first (the hard prerequisite,
+  also parallel-eligible with `IP-9060`), then `IP-9050` once `IP-9070` reaches `VERIFIED`/
+  `COMPLETE`.
+- **Open gates:** **G3 authorization for `IP-9050`/`IP-9060`/`IP-9070`** — asked this run, per
+  the pipeline's own Step-4 discipline (batched as one question, not three). `BL-0050`
+  (`NEEDS-USER`) remains open separately, out of this run's directed scope.
 
 ## Run log
 
@@ -118,4 +118,5 @@
 | 61 | 2026-07-11 | advance | `04-requirements-engineering` | BL-0045 (`NFR-6500`/`NFR-6510` → Met) | ✅ **No drift beyond BL-0045 itself.** Delta update (Step 0 re-run on the delta only, per this skill's own Gotchas): flipped both NFRs' Status fields to Met citing `content-review-IP-1031.md`'s actual dimension-by-dimension evidence, not just its headline result. RTM's two rows updated (Test column now cites the review, not `UNASSIGNED`); dated changelog entries added to `02-non-functional-requirements.md`/`04-requirements-traceability-matrix.md`/`INDEX.md`; Requirements Review finding #12 added (confirms the evidence was checked against the source document, per this stage's own Step-3 discipline). Harvested: **BL-0045 → DONE**. No new findings. No open gates. | `06-feature-specification` on **`BL-0046`** (refresh `ROADMAP.md`'s stale `FS-101+` row) — the last genuinely-ready, independently-workable backlog item this session can act on; every other open entry (`BL-0014`/`0017`/`0019`/`0043`/`0044`) rides a specific future trigger with no current instance |
 | 62 | 2026-07-11 | advance | `06-feature-specification` | BL-0046 (`ROADMAP.md`'s stale `FS-101+` row + `features/INDEX.md`) | ✅ **No drift beyond BL-0046 itself.** Refreshed `ROADMAP.md`'s `FS-101+` row and `docs/features/INDEX.md`'s FS-102–106 rows to state all five Release-2 Features implemented (4 `VERIFIED`, `IP-1031` `COMPLETE` with a clean review), zero Open Questions outstanding. Incidentally caught and fixed `FS-102`'s own forward-reference metadata (stale "verification pending" despite `VR-1020` existing since 2026-07-10) in the same pass. Harvested: **BL-0046 → DONE**. **Final triage of all remaining open backlog entries** (`BL-0014`/`0017`/`0019`/`0043`/`0044`): none independently actionable — each rides a specific future trigger (a not-yet-existing package, an image-import request, a deliberate design second-opinion) this session cannot manufacture. **This session's independently-workable backlog is exhausted.** No open gates. | **Session stops here** — the sole remaining thread (`09-package-verification` on `IP-1031`, and `10-integration-review`/`11-release-readiness` downstream of it) is blocked on a fresh session's independence, not a human decision or further in-session work. A fresh-session `00-pipeline-manager` advance should verify `IP-1031` next. |
 | 63 | 2026-07-11 | triage | — | — | ✅ **Reconciled un-journaled out-of-band work between run #62 and this run** (same session, same pattern as prior `08`-out-of-band drift, run this time via directly-invoked `00-intake` and a user-requested retrospective rather than a manager advance): 7 bugs filed from playtesting (`BL-0047`–`BL-0053`, each with cheap read-only repro evidence), then 4 process-improvement items from a retrospective on why all six survived a 180/180 suite (`BL-0054`–`BL-0057`) — three actioned as skill-file edits (`07`/`09-package-verification`/`09-content-review` `SKILL.md`, `DONE`), one as an `R305` research delta (`DONE`). **Triage:** the 7 intake entries' Status columns were still `NEW` despite each already carrying a recorded disposition in its own prose — corrected: `BL-0047`/`0048`/`0049`/`0051`/`0052`/`0053` → `SCHEDULED`; `BL-0050` → `NEEDS-USER` (its own text already named this). No new findings. No `DEFERRED` triggers fired. | `07-implementation-planning` on **`BL-0047`** and **`BL-0048`**, per the user's explicit direction this run — both `bug`-type, entering at `07`, both already carrying a reproduced root cause and remediation shape |
+| 64 | 2026-07-11 | advance | `07-implementation-planning` | BL-0047, BL-0048 | ✅ **No drift.** Triage: no new/re-triggered entries beyond this run's own harvest. Packaged **`IP-9050`** (`BL-0047` — regeneralize `check_zone_transition` to read `REGION_GRAPH`) and **`IP-9060`** (`BL-0048` — fix `check_save_valid`'s `MM_CURSOR`-reset clobbering). Per this skill's own new Step-1 discipline (`BL-0054`, added this same session), ran the mandatory verb-inventory + supersession sweep before calling either complete — **found two more Critical defects, not named by `BL-0047` itself**: `SCOREITEM_FLAGS` (9-byte array, `CUR_ZONE`-indexed, would corrupt `REGION_GRAPH`'s own adjacent WRAM once `CUR_ZONE > 8`) and `ZONE_COLLECTS`/`zc_table` (9-entry ROM table, same indexing defect, out-of-bounds ROM read). Both currently dormant only because `BL-0047`'s own bug caps `CUR_ZONE` at 8 — shipping `IP-9050` without fixing these would convert a latent bug into active corruption. Filed **`BL-0058`**/**`BL-0059`** (Critical) and packaged as **`IP-9070`**, sequenced as `IP-9050`'s hard prerequisite (not parallel — a correctness ordering). Also filed **`BL-0060`**/**`BL-0061`** (Low, requirements-traceability gaps this pass surfaced but does not resolve — no FR for generated-region spawn content; `FR-2300`/`FR-2310` have no target-state counterpart past "the 3×3 grid" — both routed to a future `04` delta, not blocking). TWBS, Master Build Plan, `packages/INDEX.md`, `ROADMAP.md` all updated. `IP-9070`/`IP-9060` `READY` (dependencies all `VERIFIED`); `IP-9050` `BLOCKED` on `IP-9070`. **None of the four bugs fall under the `BL-0001`…`BL-0005` G3 bootstrap carve-out.** Harvested: new `BL-0058`/`BL-0059`/`BL-0060`/`BL-0061`, all `SCHEDULED`. No drift. | **GATE: G3 authorization needed** for `IP-9050`/`IP-9060`/`IP-9070` before `08-code-implementation` can start any of them — asked this run, batched as one question per the pipeline's own Step-4 discipline |
 
