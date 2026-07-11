@@ -7,13 +7,15 @@
 >
 > **Scope note (deliberate, not an oversight):** this document specifies FEAT-2100's **logic
 > half only** — the render-time classification of each screen edge into one of three states. The
-> **rendering half** (the blocked-edge indicator's actual tile art/palette assignment) cannot be
-> specified yet: it needs a `GDS-08` presentation-architecture delta that has not been authored,
-> named as `03-architecture-design-synthesis`'s own open item by Feature Review finding #7
-> ([05-feature-review.md](../feature-planning/05-feature-review.md)) and carried forward here as
-> Open Question 1. This is a partial specification of one Feature by design, not a defect — the
-> classification logic is independently specifiable and independently testable before the tile
-> art exists.
+> **rendering half** (the blocked-edge indicator's actual tile art/palette assignment) is **now
+> specifiable but still not specified here** — `03-architecture-design-synthesis` closed the
+> blocking `GDS-08` delta ([08-presentation-architecture.md §10](../architecture/08-presentation-architecture.md),
+> 2026-07-11), resolving this document's former Open Question 1 (§19). Extending this document (or
+> authoring a sibling `FS-xxx`) to actually specify the rendering half's behavior in FR/AC terms is
+> a real spec-writing task left for a future `06-feature-specification` pass — not performed by
+> this edit, which only closes the open question the missing architecture created. This remains a
+> partial specification of one Feature by design: the classification logic is independently
+> specifiable and independently testable without the tile art existing yet.
 
 [↑ Features index](INDEX.md) · [Feature Catalog](../feature-planning/03-feature-catalog.md) ·
 [Epic Catalog](../feature-planning/02-epic-catalog.md) · [ADR-0012](../architecture/adr/ADR-0012-maze-shaped-region-adjacency.md)
@@ -21,11 +23,8 @@
 > **Forward reference (metadata only):** logic half planned by
 > [IP-1080](../implementation/packages/IP-1080-maze-aware-edge-classification.md) (2026-07-11),
 > which resolves this document's Open Question 2. Open Question 1 (the rendering half's tile art)
-> tracked as `BL-0068` — the blocking `GDS-08` delta has now landed
-> ([08-presentation-architecture.md §10](../architecture/08-presentation-architecture.md), decided
-> 2026-07-11: a distinct broken/dashed-bar tile shape at `0x1A`–`0x1D`, reusing the open arrow's
-> palette 2, zero new palette entries). This document's own §19 Open Question 1 text is left as-is
-> pending `06-feature-specification`'s own pass to formally close it against the new delta.
+> **resolved 2026-07-11** — see §19; `BL-0068` closed. The rendering half itself remains
+> unspecified (no `FS-xxx` document covers it yet) but is no longer architecturally blocked.
 
 ## 1. Feature ID
 
@@ -53,9 +52,12 @@ and comparing it against `REGION_GRAPH`'s own neighbor byte, since the data form
 distinguish the latter two cases (both are `0xFF`, `ADR-0012` point 2).
 
 **Out of scope (this document, and not specified here):** the blocked-edge indicator's actual
-tile art, palette assignment, or any new tile-budget accounting — blocked on the `GDS-08` delta
-named above (§19 Open Question 1); this is a genuine gap in what can be specified today, not an
-omission. Also excluded, per FEAT-2100's own catalog entry: the maze generation this Feature
+rendering behavior in FR/AC terms — the architecture-level tile shape, tile-index slots
+(`0x1A`–`0x1D`), and palette assignment (palette 2, reused) are now decided
+([GDS-08 §10](../architecture/08-presentation-architecture.md), closing former Open Question 1,
+§19), but turning that decision into a specified rendering-half workflow/behavior contract is a
+separate spec-writing task for a future `06-feature-specification` pass, not performed by this
+edit. Also excluded, per FEAT-2100's own catalog entry: the maze generation this Feature
 signals the output of (`FEAT-9100`/`FS-107`); the open-edge case's existing rendering (`FEAT-2000`'s
 `FR-2320`, reused verbatim, not reimplemented); any mid-screen collision/wall enforcement (out of
 scope for any current Feature).
@@ -65,9 +67,10 @@ scope for any current Feature).
 FR-2330 — the exact requirement FEAT-2100 owns. **Only the classification behavior this
 requirement describes is fully specified here** (its Description's "render-time logic must
 independently re-derive... and compare" clause); the requirement's own rendered-*appearance*
-obligation for the blocked state cannot be closed until the `GDS-08` delta lands (§19 OQ1) — this
-is recorded as a partial-coverage note against FR-2330, not a silent narrowing of the requirement
-Requirements Implemented cross-check.
+obligation for the blocked state is architecturally unblocked (`GDS-08` §10 landed, §19 OQ1
+resolved) but still not specified in FR/AC terms by this document — this is recorded as a
+partial-coverage note against FR-2330, not a silent narrowing of the requirement Requirements
+Implemented cross-check.
 
 ## 6. User Workflows
 
@@ -89,7 +92,8 @@ render dispatch that draws `FR-2320`'s open-edge arrows, per `IP-1030`'s shipped
    already performs at each edge, `IP-9050`).
 5. If that arithmetic confirms a grid-adjacent region exists, the edge is classified **blocked** —
    this Feature's own new case. *(Rendering the blocked indicator itself is not specified in this
-   document — see §19 OQ1.)*
+   document — the tile/palette decision exists at [GDS-08 §10](../architecture/08-presentation-architecture.md),
+   §19 OQ1 resolved, but the rendering-half workflow itself awaits a future spec pass.)*
 6. If the arithmetic confirms no grid-adjacent region exists, the edge is classified **absent** —
    no indicator renders, identical to today's shipped behavior.
 
@@ -131,8 +135,10 @@ Per GDS-03's module decomposition:
   step 4) and produces the blocked/absent classification. The existing open-edge branch (`FR-2320`)
   is unchanged.
 - **`tiles.py`/`tilemaps.py`** — **not specified by this document.** The blocked-edge indicator's
-  tile art is FEAT-2100's rendering half, blocked on the `GDS-08` delta (§19 OQ1); this
-  specification names the module that will eventually own it without committing to its content.
+  tile art is FEAT-2100's rendering half; its architecture-level shape/budget is now decided
+  ([GDS-08 §10](../architecture/08-presentation-architecture.md), §19 OQ1 resolved), but this
+  specification still only names the module that will eventually own it, without committing to a
+  rendering-half workflow/behavior contract — that remains a future spec-writing task.
 
 ## 9. Interfaces Used
 
@@ -142,8 +148,10 @@ Per GDS-03's module decomposition:
   in place with a new conditional branch inside the existing per-direction loop, not a new
   routine or a new call site.
 - **No new `patches` dict key** for the classification logic itself — it is pure WRAM-read/
-  arithmetic, not ROM-resident content. (A new tile/attribute patch-point pair would be needed for
-  the rendering half once the `GDS-08` delta specifies it — out of this document's scope.)
+  arithmetic, not ROM-resident content. (A new tile/attribute patch-point pair will be needed for
+  the rendering half — `GDS-08` §10 has already sized its tile-index/palette cost, but wiring an
+  actual patch point is implementation-level detail for whichever future package specifies and
+  builds the rendering half — out of this document's scope.)
 
 ## 10. Data Model Changes
 
@@ -198,8 +206,11 @@ This Feature introduces no new determinism or save-integrity concern of its own.
    arithmetic confirms no grid-adjacent region exists in that direction, the classification
    routine reports **absent** (FR-2330 AC-c).
 4. **Not yet closeable by this document:** "the blocked-edge indicator renders visually distinct
-   from the open/absent states" — depends on the `GDS-08` delta (§19 OQ1); recorded here as an
-   explicitly open criterion, not silently dropped from FR-2330's own Acceptance Criteria.
+   from the open/absent states" — the architecture-level design this criterion depends on is now
+   decided ([GDS-08 §10](../architecture/08-presentation-architecture.md), §19 OQ1 resolved), but
+   turning it into a checkable acceptance criterion is a future spec-writing task for the
+   rendering half, not performed by this document; recorded here as an explicitly open criterion,
+   not silently dropped from FR-2330's own Acceptance Criteria.
 
 ## 16. Verification Plan
 
@@ -216,7 +227,9 @@ after `FS-107`'s proposed T19):
 - **Visual/rendering criterion (AC-4):** explicitly **not verifiable yet** — no suite section is
   authored for it; `09-package-verification`'s own checklist should confirm this gap is still open
   when this Feature's implementation package is verified, not silently treated as covered by the
-  classification tests above.
+  classification tests above. (The architecture-level design this criterion will eventually be
+  checked against is now decided, `GDS-08` §10 — this note is about verification-plan coverage,
+  not about whether the design exists.)
 
 **Corpus:** shares `FS-107`'s T19 corpus (`scale=2`, `scale=9`, `scale=3`, `seed=0`, plus at least
 one braid-fraction extreme) — a maze with zero braided edges (pure spanning tree) is the corpus
@@ -234,22 +247,30 @@ maze pass ships, but not before).
 ## 18. Risks
 
 Carried forward from FEAT-2100's own Risk assessment (Low, contingent on one real blocker): the
-classification logic itself is low-risk (simple arithmetic, no new algorithm family) — the actual
-named risk is entirely the rendering half's missing `GDS-08` delta (§19 OQ1), which this document
-does not resolve and explicitly does not attempt to work around (e.g. by reusing an existing tile
-as a stand-in) — that would be inventing a presentation decision outside this stage's authority.
+classification logic itself is low-risk (simple arithmetic, no new algorithm family). **The
+formerly-named blocker (the rendering half's missing `GDS-08` delta, §19 OQ1) is now resolved** —
+`GDS-08` §10 decided the tile shape and budget. Residual risk is now Low, not contingent: the
+rendering half's actual behavior/acceptance criteria still need their own future spec pass before
+`FEAT-2100`'s rendering half can be planned or implemented, but that is ordinary unstarted work,
+not an open architectural blocker.
 
 ## 19. Open Questions
 
-1. **The blocked-edge indicator's actual tile art and palette assignment are undecided.** No
-   `GDS-08` delta exists yet for this new visual state — Feature Review finding #7
-   ([05-feature-review.md](../feature-planning/05-feature-review.md)) already flagged this as
-   real and open, not yet routed to an actual `03-architecture-design-synthesis` invocation as of
-   this document's authoring. This blocks FEAT-2100's rendering half entirely — AC-4 (§15) and its
-   corresponding verification gap (§16) cannot close until it resolves. Resolves at:
-   `03-architecture-design-synthesis` (a `GDS-08` delta), then a follow-up pass of this skill to
-   extend this document (or author a sibling `FS-xxx`) covering the rendering half once the tile
-   art exists.
+1. **RESOLVED (2026-07-11).** The blocked-edge indicator's tile art and palette assignment were
+   undecided (Feature Review finding #7,
+   [05-feature-review.md](../feature-planning/05-feature-review.md); tracked as `BL-0068`).
+   `03-architecture-design-synthesis` closed the gap:
+   [GDS-08 §10](../architecture/08-presentation-architecture.md) decides a distinct
+   broken/dashed-bar tile shape (silhouette-different from the open-path arrow, not a recolor), 4
+   new directional tiles at `0x1A`–`0x1D` (continuing the existing UI-icon block before `Digits` at
+   `0x20`), reusing the open arrow's own palette 2 (UI/gold) attribute verbatim — 0 new palette
+   entries spent. The exact pixel bitmap and per-direction screen-position offsets were
+   deliberately left to whichever future implementation work builds the rendering half. **This
+   resolves the architectural blocker only** — AC-4 (§15) and its verification gap (§16) still
+   cannot close until a future `06-feature-specification` pass turns this decision into an actual
+   rendering-half workflow/behavior contract (extending this document or authoring a sibling
+   `FS-xxx`); that spec-writing work was not performed by this edit, which closes only the open
+   question the missing architecture created.
 2. **Whether the classification result needs any transient storage of its own** (e.g. a per-
    direction scratch byte holding the 3-way state before the render decision consumes it) or can
    be computed and consumed inline within the existing loop iteration, is an implementation-detail
