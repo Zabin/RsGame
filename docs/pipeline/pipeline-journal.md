@@ -14,49 +14,48 @@
 
 ## Position
 
-- **Updated:** 2026-07-11 (run #76)
+- **Updated:** 2026-07-11 (run #77)
 - **Increment:** Bootstrap baseline remains fully closed (01–11 ✅, GO recorded). Release-2
   procgen-world tranche unchanged since run #62: `IP-1031` `COMPLETE`, four of five `VERIFIED`,
   blocked on a fresh session. Post-ship remediation tranche: all three packages `COMPLETE` since
   run #68 (`IP-9070`/`IP-9060`/`IP-9050`), still blocked on `09-package-verification` by the
   same-session independence rule. **Procgen-map-shape thread: research → architecture →
   requirements → feature decomposition → feature specification → implementation planning all
-  closed; implementation itself now blocked on a newly-discovered PRNG defect.** `R112` (run #69)
-  → `ADR-0012` (run #70) → `FR-9140`/`FR-9150`/`FR-2330` baselined (run #71) →
+  closed; implementation blocked on a newly-discovered PRNG defect, now formally root-caused.**
+  `R112` (run #69) → `ADR-0012` (run #70) → `FR-9140`/`FR-9150`/`FR-2330` baselined (run #71) →
   `FEAT-9100`/`FEAT-2100` decomposed (run #72) → `FS-107`/`FS-108` specified (run #73) →
-  `IP-1070`/`IP-1080` planned (run #74), `IP-1070` authorized (run #75) → **`08-code-
-  implementation` attempt on `IP-1070` hit a Blocking Report (run #76): the shipped
-  `gw_prng_step` collapses to a degenerate fixed point/short cycle across the many back-to-back
-  draws the braid pass needs, undermining `FR-9150`'s reopen-fraction guarantee.** The
-  spanning-tree carve itself is directly confirmed correct; only the braid pass's PRNG-draw
-  strategy is in question. Filed **`BL-0070`** (High, `SCHEDULED`, riding
-  `02-research-gbc-hardware` next). `IP-1070` `BLOCKED` (authorization `BL-0069` stands, unaffected
-  — a dependency defect, not a missing go-ahead); `IP-1080` `BLOCKED` transitively, further out.
+  `IP-1070`/`IP-1080` planned (run #74), `IP-1070` authorized (run #75) → `08-code-implementation`
+  attempt on `IP-1070` hit a Blocking Report (run #76) → **`R113` (run #77): formally grounds the
+  root cause — the shipped `gw_prng_step` substitutes a literal byte-swap for a byte-shift in its
+  final mixing step, forcing the new state's high/low bytes equal on every call by algebraic
+  construction (XOR commutativity), a rank-reducing transformation, not a valid xorshift variant.
+  Two candidate fixes presented (repair the mixing step, compatibility-relevant; or a
+  narrowly-scoped per-draw perturbation, zero compatibility impact), neither adopted.** `IP-1070`
+  `BLOCKED` (authorization `BL-0069` stands, unaffected); `IP-1080` `BLOCKED` transitively.
   `FS-108`'s rendering half remains blocked on `BL-0068`'s `GDS-08` delta, independent of this.
   **`BL-0066`** (biome-blob clustering) remains `NEEDS-USER` (the `ADR-0012` pass-ordering
   conflict, routed as `CR-05`/RQ-03 finding #13).
 - **Pipeline state:** Bootstrap: stages 01–11 ✅ — complete, GO recorded. Release-2 + remediation
   tranche: four packages `COMPLETE`, zero `VERIFIED` — all blocked on a fresh session's
-  `09-package-verification` (same-session independence rule). Procgen-map-shape thread: `02-07`
-  design/planning work all done; `IP-1070`/`IP-1080` both `BLOCKED` — `02-research-gbc-hardware`
-  is next, on `BL-0070` (characterize `gw_prng_step`'s actual degeneracy), no gate. `BL-0068`
-  (`GDS-08` delta) rides a separate future `03` pass, independent of `BL-0070`.
-- **Backlog:** 70 entries, 24 open. Run #76: **`BL-0070`** filed (High, `SCHEDULED`, riding
-  `02-research-gbc-hardware`) — the PRNG defect `08-code-implementation`'s `IP-1070` attempt
-  discovered. `BL-0064`/`0065`/`0067` remain `SCHEDULED`, now blocked pending `BL-0070`'s
-  resolution. `BL-0068`/`BL-0066`/`BL-0050` (all standing) remain open, unrelated.
-- **Next step:** `02-research-gbc-hardware` on **`BL-0070`** — characterize `gw_prng_step`'s
-  actual period/degeneracy under back-to-back draws (the byteswap-XOR mixing step's
-  every-state-has-hi==lo property, the observed collapse-to-0/short-cycle risk), grounding
-  whatever fix `03-architecture-design-synthesis` decides next. Independently: `BL-0068` rides a
-  future `03` pass (unrelated, the `GDS-08` tile-art delta); `BL-0066` and `BL-0050` (both
-  `NEEDS-USER`) await the user whenever convenient; `09-package-verification` on the four
-  `COMPLETE` packages remains blocked on a fresh session — none of the three actionable from here.
+  `09-package-verification` (same-session independence rule). Procgen-map-shape thread: research
+  on `BL-0070` done (`R113`); `03-architecture-design-synthesis` is next, to decide the PRNG fix,
+  no gate. `BL-0068` (`GDS-08` delta) rides a separate future `03` pass, independent of `BL-0070`.
+- **Backlog:** 70 entries, 24 open. Run #77: **`BL-0070`** updated (research half done via
+  `R113`, remains `SCHEDULED`, riding `03-architecture-design-synthesis` next). No new entries.
+  `BL-0064`/`0065`/`0067` remain `SCHEDULED`, blocked pending `BL-0070`'s resolution.
+  `BL-0068`/`BL-0066`/`BL-0050` (all standing) remain open, unrelated.
+- **Next step:** `03-architecture-design-synthesis` on **`BL-0070`** — decide the PRNG fix `R113`
+  grounds (repair `gw_prng_step`'s own mixing step, vs. a narrowly-scoped per-draw perturbation
+  in `IP-1070` alone, vs. another option). Independently: `BL-0068` rides a future `03` pass
+  (unrelated, the `GDS-08` tile-art delta — parallel-eligible but not bundled with `BL-0070`);
+  `BL-0066` and `BL-0050` (both `NEEDS-USER`) await the user whenever convenient;
+  `09-package-verification` on the four `COMPLETE` packages remains blocked on a fresh session —
+  none of the three actionable from here.
 - **Open gates:** None blocking this run's own thread. Two independent `NEEDS-USER` entries open:
   `BL-0050` (MAP/status-screen redesign, standing) and `BL-0066` (biome-blob clustering,
-  standing). Neither blocks `02-research-gbc-hardware`'s own work on `BL-0070`. `IP-1070`'s G3
-  authorization (`BL-0069`) stands and does not need to be re-asked once the PRNG issue resolves,
-  unless whatever fix is decided changes the package's own scope materially.
+  standing). Neither blocks `03-architecture-design-synthesis`'s own work on `BL-0070`. `IP-1070`'s
+  G3 authorization (`BL-0069`) stands and does not need to be re-asked once the PRNG issue
+  resolves, unless whatever fix is decided changes the package's own scope materially.
 
 ## Run log
 
@@ -139,5 +138,6 @@
 | 74 | 2026-07-11 | advance | `07-implementation-planning` | FS-107, FS-108 (logic half) | ✅ **No drift; no new/re-triggered backlog entries at triage.** **Step 3/5:** invoked `07-implementation-planning` on both eligible targets. **`IP-1070`** (`FS-107`/`FEAT-9100`) fully plans the maze pass — spanning-tree carve (randomized DFS/recursive backtracker, iterative, a combined visited/parent-direction WRAM byte reused as backtracking state per `R112`'s cited technique) followed by a canonical-edge (`down`/`right` only, avoiding double-decision of the same undirected edge) braid/prune pass, inserted into `generate_world` immediately after the existing unchanged biome-assignment loop; `worldgen.py`'s oracle mirror in lockstep. **Resolved all three FS-107 Open Questions with a concrete design**, not left for `08` to improvise: combined single-byte visited+parent-direction encoding (81 bytes, resolving OQ1 in favor of simplicity over further bit-packing); proposed new WRAM at `0xC3A0`+ (the first unclaimed byte past `OAM_BUF`, resolving OQ2); the root's own backtrack-termination rule (resolving OQ3). **Mandatory verb inventory**: pure *generate*, `render`/`navigate`/`persist`/`review` all explicitly deferred-not-applicable (`ADR-0012` point 2 confirms zero downstream code changes). **Mandatory supersession sweep**: confirmed clean by direct re-read — `dsr_p`/`draw_region_arrows`/`check_zone_transition`/`tilemaps.py` all generic, no full-lattice assumption; `test_rom.py`'s existing `T12` suite needs zero changes (already iterates only existing edges, confirmed by direct code read, not assumed). New suite **T19** planned (7 checks). **`IP-1080`** (`FS-108` logic half/`FEAT-2100`) plans only the render-time open/blocked/absent classification inside `draw_region_arrows`, explicitly **not** the rendering half (no tile/palette interface guessed ahead of `BL-0068`'s still-open `GDS-08` delta) — `FR-2330`'s partial coverage stated explicitly in every field that could otherwise imply completeness. New suite **T20** planned (3 closeable checks; AC-4 named as explicitly not exercised, not silently dropped). `IP-1080` correctly `BLOCKED` (not `NOT STARTED`) on `IP-1070` reaching `VERIFIED`, per this skill's own `READY` convention. Updated TWBS, Master Build Plan (new tranche section + dependency-graph edges + critical-path summary), `packages/INDEX.md`, both FS documents' forward-reference metadata, `docs/features/INDEX.md`, `ROADMAP.md` — also corrected pre-existing stale `ROADMAP.md`/`packages/INDEX.md` prose that still described the already-`COMPLETE` `IP-9050`/`9060`/`9070` remediation tranche as "planned, not authorized" (drift predating this run, corrected in the same pass since it was the exact row being edited). **Harvested:** no new findings beyond the G3 authorization requirement itself (not a backlog item — a Step-4 gate). No `NEW` entries. | **GATE: G3 authorization needed** for `IP-1070` before `08-code-implementation` can start it — asked this run. `IP-1080` not yet askable (still `BLOCKED`, not `READY`). |
 | 75 | 2026-07-11 | advance (gate resolution) | — | — | ✅ **User answered the run #74 gate: "Authorize IP-1070 (Recommended)."** Filed **`BL-0069`** (High, gate, `DONE` same run). Master Build Plan's `Authorized?` column flipped to **YES — explicit user G3, 2026-07-11 (BL-0069)** for `IP-1070`; status flipped `NOT STARTED` → **`READY`** (its sole dependency `IP-1020` is `VERIFIED`); `packages/INDEX.md`/`ROADMAP.md` updated in sync. `IP-1080` remains unauthorized and `BLOCKED` — a separate G3 question once it becomes eligible, not resolved by this answer. No new findings. No open gates. | `08-code-implementation` on **`IP-1070`** — the tranche's `READY`, authorized, critical-path root. |
 | 76 | 2026-07-11 | advance | `08-code-implementation` | IP-1070 | ⛔ **Blocking Report.** Invoked `08-code-implementation` on `IP-1070`. The spanning-tree carve was implemented and directly confirmed correct via PyBoy (all regions visited/reachable at `scale=5`, every kept edge a genuine subgraph-of-full-lattice member) — including catching and fixing a real bug along the way (helper subroutines `gw_neighbor_hl`/`gw_maze_state_hl` initially placed where normal fall-through execution entered them before any `CALL`, causing a premature `RET`; moved past the pass's own final `RET`, matching every other subroutine's existing placement convention in this file). But the canonical-edge braid/prune pass exposed a **structural defect in the shipped `gw_prng_step`** (`asm_game.py`, `IP-1020`, `VERIFIED`): its final `x ^= byteswap(x)` mixing step always produces equal high/low state bytes by construction, collapsing the effective state space 65536→256 and frequently collapsing further to the `0` absorbing state or a short cycle within 1-2 draws — confirmed directly (seed 12345 hits state 0 after 2 calls, stays there forever). `IP-1070`'s braid pass is the first caller to draw many `gw_prng_step` values back-to-back; the existing biome-loop's single-draw-per-region usage, and `T12`'s existing checks, never exercised or could have caught this (determinism/reachability/grammar-validity all hold trivially even from a degenerate stream). Measured: some seeds prune 0/16 non-tree edges, others ~11/16 — neither near `FR-9150`'s ~25% target. **Correctly stopped rather than worked around** — per this skill's own SHALL-NOT-redesign-architecture rule, fixing/perturbing the PRNG is outside `08`'s authority. **Reverted all code changes** (`asm_game.py`/`BunnyQuest.gbc`/`test_results.txt` back to the pre-attempt, all-green 213/213 baseline) rather than leave a broken G5 gate on the tree. `IP-1070` set `BLOCKED` (G3 authorization `BL-0069` stands, unaffected — this is a dependency defect, not a missing go-ahead); Master Build Plan/`packages/INDEX.md`/`ROADMAP.md` updated in sync. **Harvested: `BL-0070`** (High, `SCHEDULED`, riding a future `02-research-gbc-hardware` pass to characterize the defect, then `03-architecture-design-synthesis` to decide the fix). | `02-research-gbc-hardware` on **`BL-0070`** (characterize `gw_prng_step`'s actual period/degeneracy under back-to-back draws), then `03-architecture-design-synthesis` to decide the fix, before any further work on `IP-1070`/`IP-1080`. Separately: `BL-0068` (`GDS-08` delta) rides a future `03` pass independently; `BL-0066`/`BL-0050` (both `NEEDS-USER`) remain open; `09-package-verification` on the four `COMPLETE` remediation packages remains blocked on a fresh session. |
+| 77 | 2026-07-11 | advance | `02-research-gbc-hardware` | BL-0070 (PRNG degeneracy) | ✅ **No drift; no new/re-triggered backlog entries at triage.** **Step 3/5:** invoked `02-research-gbc-hardware` on `BL-0070`. Authored **R113** — formally grounds the root cause `08-code-implementation`'s Blocking Report only measured empirically: the shipped `gw_prng_step` deviates from `R111`'s own cited precedent (a genuine 7/9/8-shift-triplet xorshift) by substituting a literal byte-**swap** for the precedent's own byte-**shift** in the final mixing step — since `hi^lo == lo^hi` (XOR commutativity), this forces the new state's high and low bytes equal on *every* call, unconditionally, a rank-reducing linear transformation over `GF(2)^16`, not a valid xorshift variant at all (grounded against the formal primitive-characteristic-polynomial requirement real xorshift theory imposes on shift-triplet choice). Explains why `T12`'s existing checks never caught this (none are sensitive to draw *quality*, only determinism, which a degenerate stream still satisfies) and confirms the maze pass's own spanning-tree carve phase is unaffected (tolerates low-variety draws gracefully; only the braid pass's binary per-edge decision is sensitive). **Two candidate fixes presented, neither adopted** (a repair to the mixing step itself — compatibility-relevant, changes every existing seed's biome output; or a narrowly-scoped per-draw perturbation — zero compatibility impact, doesn't fix the underlying PRNG for future callers) — correctly left to `03-architecture-design-synthesis`, mirroring `R112`'s own identical restraint on the maze-algorithm choice. Cross-linked `R111` both directions. Harvested: `BL-0070` updated (research half done, remains `SCHEDULED`, riding `03-architecture-design-synthesis` next). No new backlog entries. No open gates. | `03-architecture-design-synthesis` on **`BL-0070`** (decide the PRNG fix). Separately, parallel-eligible but not bundled this run: `BL-0068` (the unrelated `GDS-08` tile-art delta) also rides a future `03` pass. `BL-0066`/`BL-0050` (both `NEEDS-USER`) remain open; `09-package-verification` on the four `COMPLETE` remediation packages remains blocked on a fresh session. |
 
 
