@@ -36,7 +36,16 @@
 > point-in-box test — the package's own originally-planned symmetric-threshold formula was found
 > wrong during implementation (verified against `BL-0053`'s own reproduction data) and replaced
 > with the correct asymmetric unsigned-range test. `IP-9080`: 220/220 suite passing, content-only
-> on-screen label added for the SAVE screen's previously-silent third option. Owned by
+> on-screen label added for the SAVE screen's previously-silent third option. **`gw_prng_step`
+> mixing-step repair planned 2026-07-11** (`IP-9110`, `BL-0074`/`ADR-0014`) — a much larger defect
+> than first reported: the shipped PRNG degenerates for effectively every seed (100% of 2000
+> tested), not just the literal default (`SEED=0`); at `scale=9`, 55% of seeds already produce a
+> majority-Water world today. `ADR-0014` confirmed the `7,9,8` shift-triplet repair as the correct
+> fix and the user explicitly authorized shipping it ("Yes, ship the fix (Recommended)," in direct,
+> specific response to a question naming the exact save-compatibility consequence) — **`IP-9110` is
+> authorized on that basis**, treated as equivalent to an explicit G3 go-ahead for this package
+> specifically, not requiring a second separate authorization round (the question and answer were
+> unambiguously about shipping this exact fix, not a vaguer expression of interest). Owned by
 > `07-implementation-planning`
 > (rows/graph/authorization state) with status transitions written by the stage-08 peers
 > (`IN PROGRESS`/`COMPLETE`/`BLOCKED`) and `09-package-verification` (`VERIFIED`, exclusively).
@@ -70,6 +79,7 @@
 | [IP-9090](packages/IP-9090-movement-clamp-boundary-fix.md) | Movement clamp boundary fix (BL-0051 + BL-0052) | `08-code-implementation` | **COMPLETE — 213/213 checks pass** | IP-1010 (VERIFIED, `handle_play_input`'s own shipped implementation) | **YES — explicit user G3, 2026-07-11 (BL-0072)** | **Implementation Summary (2026-07-11).** Files Modified: `asm_game.py` (UP clamp magic bound `17`→`8`; RIGHT clamp comparison `CP_n(160)`→`CP_n(153)`; DOWN/LEFT unchanged, confirmed byte-for-byte), `test_rom.py` (`T7.8` rewritten to assert the corrected floor exactly, `Y==8`, not the old `Y>=17`; new `T7.8b` confirms the floor holds under continued input; `T7.10`'s stale comment corrected; new `T7.10b` drives the RIGHT clamp via genuine movement input, confirming it settles at exactly `X=152`). Files Created: none. Tests Added: T7.8b, T7.10b (T7.8/T7.10 corrected in place). Tests Passed: 213/213 (up from 211/211; ROM unchanged at 22472/32768 bytes — constant-value changes only, no new bytes). Requirements Implemented: `FR-2100` (Notes entry recording the corrected boundary values and the still-open requirements-baseline gap — no FR states the exact pixel bounds, flagged for a future `04` pass, not resolved here). Documentation Updated: `FR-2100` Notes, RTM `FR-2100` row. Traceability Updated: this row. Outstanding Issues: none — the requirements-baseline gap named in §3/§9 is a forward pointer, not a defect in this package's own scope. |
 | [IP-9100](packages/IP-9100-collectible-pickup-hitbox-fix.md) | Collectible pickup hitbox fix (BL-0053) | `08-code-implementation` | **COMPLETE — 217/217 checks pass** | IP-1010 (VERIFIED, `check_collisions`' own shipped implementation) | **YES — explicit user G3, 2026-07-11 (BL-0072)** | **Implementation Summary (2026-07-11).** The package's own planned fix (a symmetric `|diff|<8`/`|diff|<16` threshold change, keeping the existing abs-value code shape) was found **wrong during implementation** — direct PyBoy verification against `BL-0053`'s own two reproduction points showed it still incorrectly collected `item_y=75` (`\|80-75\|=5<16`). Re-derived the correct model: the item is a collision *point*, not a second box — pickup fires iff that point falls inside the player's real 8×16 box (`0<=item_x-PLAYER_X<=7`, `0<=item_y-PLAYER_Y<=15`), an asymmetric unsigned-range test, not a symmetric one. Files Modified: `asm_game.py` (`check_collisions`' X/Y overlap test rewritten as a single unsigned subtract+compare per axis, using `H` as scratch — not `B`/`C`, both live/needed later in the same routine), `test_rom.py` (new `T8.x`/`T8.y`/`T8.z1`/`T8.z2`; `T11.a1` corrected from an `(dx,dy)=(8,8)` near-miss position — valid only under the old buggy tolerance — to the item's exact coordinates, matching every other pickup test's own convention). Files Created: none. Tests Added: T8.x, T8.y, T8.z1, T8.z2. Tests Passed: 217/217 (up from 213/213; ROM unchanged at 22472/32768 bytes). Requirements Implemented: `FR-3100` (Notes entry with the corrected formula — `FR-3100`'s own Title/Description/AC text still describes the old `10px`-symmetric model, left unmodified, flagged for a future `04` pass to correct properly, not just note). Documentation Updated: `FR-3100` Notes, RTM `FR-3100` row, `IP-9100`'s own package document (§6/§7/§10/§11 corrected to match what was actually built and verified). Traceability Updated: this row. Outstanding Issues: none — the `FR-3100` text correction is a named forward pointer, not a defect in this package's own scope. Parallel-eligible with `IP-9080`/`IP-9090` — no shared file region. |
 | [IP-9080](packages/IP-9080-save-screen-third-option-labeling.md) | SAVE screen third-option labeling (BL-0049) | `08-content-authoring` | **COMPLETE — 220/220 checks pass** | IP-1040 (VERIFIED, `st_save`'s own shipped SELECT-option behavior) | **YES — explicit user G3, 2026-07-11 (BL-0072)** | **Implementation Summary (2026-07-11).** Files Modified: `tilemaps.py` (`save_screen` gains two new `_str()` lines, "SELECT: SAVE" / "AND EXIT," rows 12–13, columns 5–16/5–12, reusing the screen's existing font tiles/palette 2 — zero new tile art, zero new palette entries), `test_rom.py` (new `T5.10`–`T5.12` checks: SAVE screen reachable, label present in rows 12–13, no collision with the existing "A: YES"/"B: NO"/bottom-border rows; screenshot `T5_save_screen.png` captured and visually confirmed clean). `asm_game.py` untouched, per this package's own content-only scope. Files Created: none. Tests Added: T5.10, T5.11, T5.12. Tests Passed: 220/220 (up from 217/217; ROM unchanged at 22472/32768 bytes — text reuses existing font tiles, no new tile-index/palette-table entries). Requirements Implemented: `FR-1190` (Notes entry — behavior was already Met, this closes the discoverability gap). Documentation Updated: `FR-1190` Notes, RTM `FR-1190` row. Traceability Updated: this row. Outstanding Issues: none. UI-input-mapping question resolved directly (kept the existing `A`/`B`/`SELECT` scheme, no cursor-based redesign) — see this row's own planning note and the TWBS's fuller rationale. Parallel-eligible with `IP-9090`/`IP-9100` — different stage-08 peer, no shared file region. |
+| [IP-9110](packages/IP-9110-gw-prng-step-mixing-step-repair.md) | `gw_prng_step` mixing-step repair (BL-0074) | `08-code-implementation` | **READY** | IP-1010 (VERIFIED, `gw_prng_step`'s own shipped implementation) | **YES — explicit user G3, 2026-07-11 (BL-0074, "Yes, ship the fix")** | Planned 2026-07-11. Replaces `gw_prng_step`'s degenerate mixing step (`x^=x<<1; x^=x>>1; x^=byteswap(x)`) with the verified period-sound `7,9,8` shift triplet (`x^=x<<7; x^=x>>9; x^=x<<8`) — 0/2000 seeds degenerate under the fix vs. 2000/2000 under the shipped version. `x>>9` decomposes exactly as a free byte-move + one shift (verified exhaustively); `x<<8` is a free byte-move (cheaper than today's byte-swap); `x<<7` needs 7 chained single-bit shifts (no cheap decomposition exists — verified the naive `(x<<8)>>1` shortcut is wrong for ~half of all values, don't use it). Bumps `SAVE_VERSION_VAL` `0x03`→`0x04` (a real, intentional save-compatibility break, per `ADR-0014`'s own explicit authorization). `worldgen.py`'s oracle updated in lockstep. Supersession sweep confirmed clean — every `test_rom.py` check that depends on `worldgen.py` compares against the live oracle for the same `(seed,scale)`, none hardcodes an independent value, so no test needs its own values updated. `IP-1070`'s own `GW_MAZE_DRAW_CTR` perturbation deliberately kept, not removed (simulated both ways: 26.3% braid-reopen with it, 20.7% without — both reasonable, no correctness reason to remove it now). New checks `T12.j`/`T12.k` (non-degeneracy statistical check, direct `BL-0074` reproduction re-check). |
 
 **FEAT-6100 (Aesthetic & Biome-Transition Compliance) needs no package** — per FS-106 §8/§10, it
 has no runtime behavior or module of its own; its standard (GDS-08 delta §7/§8) is already
@@ -192,6 +202,11 @@ graph TD
     style IP9090 fill:#cfc,stroke:#333,stroke-width:2px
     style IP9100 fill:#cfc,stroke:#333,stroke-width:2px
     style IP9080 fill:#cfc,stroke:#333,stroke-width:2px
+
+    IP9110["IP-9110 gw_prng_step<br/>mixing-step repair<br/>(READY, authorized)"]
+    IP1010 --> IP9110
+
+    style IP9110 fill:#f9c,stroke:#333,stroke-width:2px
 ```
 
 *(The dotted edge into `IP1020` represents the Master Build Plan's own package-status
@@ -314,3 +329,19 @@ first-in-critical-path package.)*
   `BL-0049`/`0051`/`0052`/`0053` were not covered by the `BL-0001`…`BL-0005` G3 bootstrap
   carve-out, nor by `BL-0062`'s authorization (which named only the prior remediation tranche's
   five bugs explicitly), so a fresh explicit answer was needed and is now on record.
+
+### `gw_prng_step` mixing-step repair (planned 2026-07-11)
+
+- **No critical path** — a single package, `IP-9110`, no split.
+- **`IP-9110`** (`BL-0074`): repairs the shipped PRNG's mixing step, root-caused and
+  architecturally decided this session (`ADR-0014`). Investigation found the defect's true scope
+  far exceeds the original report — 100% of 2000 tested seeds degenerate under the shipped
+  routine, not just the literal default seed; 55% of `scale=9` worlds are already majority-Water
+  today. `READY`, not yet implemented.
+- **Authorization state: authorized 2026-07-11** (explicit user G3, `BL-0074` — "Yes, ship the
+  fix (Recommended)," in direct response to a question naming the exact save-compatibility
+  consequence). Treated as sufficient G3 authorization for `IP-9110` specifically, not requiring a
+  second separate round — the question and answer were unambiguously about shipping this exact
+  fix. `IP-9110` interacts with `IP-1070`'s own not-yet-`VERIFIED` maze pass (both consume
+  `gw_prng_step`'s output) — named as a real risk in the package's own §13, not a blocking
+  dependency (`IP-1070`'s functional dependency is only on `IP-1020`, `VERIFIED`).

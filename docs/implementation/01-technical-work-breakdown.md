@@ -502,3 +502,58 @@ packages awaiting fresh-session verification, or each other.
 - **`BL-0071`** (supersession-sweep-must-include-`test_rom.py` discipline, filed after `IP-1070`):
   honored directly in this pass's own sweep above (`T7.8`/`T7.10` checked and one real conflict
   found and routed into `IP-9090`'s own scope).
+
+## `gw_prng_step` mixing-step repair (`BL-0074`/`ADR-0014`, planned 2026-07-11)
+
+One package: the core PRNG fix `ADR-0014` decided and the user explicitly authorized (2026-07-11,
+"Yes, ship the fix"). No FS — this is a repair to an already-shipped, `VERIFIED` (`IP-1020`)
+routine's own internal algorithm, not a new capability; the observable contract (`gw_prng_step`'s
+own `TMP1:TMP2` in/out interface, called once per biome-assignment region and repeatedly within
+`IP-1070`'s maze pass) is unchanged.
+
+### Verb inventory
+
+Not applicable — a single-routine algorithmic repair, not a multi-verb capability.
+
+### Supersession sweep
+
+Run directly (per `BL-0071`'s own extension of this discipline to `test_rom.py`, not just
+production call sites): every `test_rom.py` check that depends on `worldgen.py`'s `generate()`
+compares its output against the **live SM83 output for the same `(seed, scale)` pair**
+(`T12.a/b`, `T19.c`, `T5.9`, `T11.a`'s own region-0 star position, `T17`'s DFS-tour checks) — none
+hardcodes a literal expected biome-id/neighbor byte sequence independent of the oracle. Since this
+package updates `worldgen.py`'s own `_step` function in the same lockstep discipline
+`ADR-0012`/`ADR-0013` already established, every one of these checks continues to pass
+automatically once both sides change together — **no test needs its own hardcoded values
+updated**, only the shared oracle algorithm. `T12.f` (seed=0 normalization) hooks *before* any
+`gw_prng_step` call and asserts a property of `ADR-0010`'s own normalization step, not of the
+mixing algorithm — unaffected either way. **Sweep result: clean, nothing to update beyond the
+oracle mirror itself (already this package's own §6 task).**
+
+### Work unit and package cut
+
+| Work unit | Package | Owner |
+|---|---|---|
+| Repair `gw_prng_step`'s mixing step to the period-sound `7,9,8` shift triplet; bump `SAVE_VERSION_VAL`; update `worldgen.py`'s oracle mirror in lockstep; re-measure `ADR-0013`'s own maze-pass perturbation's continued necessity; add a non-degeneracy statistical check (`BL-0074`) | [IP-9110](packages/IP-9110-gw-prng-step-mixing-step-repair.md) | `08-code-implementation` |
+
+**No split** — one routine, one coherent Definition of Done ("the shipped PRNG no longer
+degenerates for any seed in a representative corpus"), a single `asm_game.py`/`worldgen.py`/
+`test_rom.py` change set with no independently-shippable sub-piece.
+
+### Sequencing summary
+
+No dependency on any other in-flight package this session. Independent of the (exhausted)
+movement/pickup/UI tranche and the (blocked/unauthorized) maze-shaped-adjacency tranche's
+`IP-1080`. Touches `gw_prng_step`, which `IP-1070`'s own maze pass calls — but `IP-1070` is
+`COMPLETE`, not yet `VERIFIED`, so this package's own change to the routine `IP-1070` depends on
+is a real (if narrow) risk surface, named explicitly in Risks below rather than silently assumed
+safe.
+
+### Backlog riders honored in this pass
+
+- **`BL-0074`** (default-seed/effectively-all-seeds biome-flooding, root-caused and architecturally
+  decided this session): packaged as `IP-9110`.
+- **`BL-0071`**/**`BL-0073`** (supersession-sweep-must-include-`test_rom.py`; planning-formula
+  verification-against-reproduction-data): both honored directly in this pass (see Supersession
+  sweep above; the `7,9,8` triplet's own non-degeneracy was verified against a 2000-seed corpus
+  before this package was written, not merely asserted from `ADR-0014`'s own citation).
