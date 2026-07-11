@@ -7,7 +7,11 @@
 - **Referenced By:** R213 (this topic grounds R213's screen/room-graph + xorshift-PRNG
   recommendation in real hardware terms), R305 (the reference-generator oracle must mirror this
   topic's PRNG step-for-step), R112 (re-measures this topic's WRAM-headroom estimate against the
-  shipped, post-generation tree, for the maze-generation hardware-feasibility comparison)
+  shipped, post-generation tree, for the maze-generation hardware-feasibility comparison), **R113
+  (2026-07-11 — found the shipped `gw_prng_step` deviates from this topic's own cited precedent
+  and degenerates under repeated back-to-back draws; this topic's own PRNG characterization was
+  accurate for the biome-loop's single-draw-per-region usage but incomplete against that usage
+  pattern, never previously exercised or tested)**
 - **Produces:** grounds `asm_game.py`'s future WRAM working-set for a generated world and its
   future PRNG routine; grounds strategic assumption **A9** (seed is the sole determinism input)
 - **Feature Mapping:** *(none yet)*
@@ -116,4 +120,8 @@ across ≥2 sources each, consistent with R213's identical citation set.
 R101 (SM83 opcode-level implementation of the PRNG) · R102 (the sibling generated-world hardware
 topic — redraw cost vs. this topic's working-set/RNG cost) · R106 (SRAM cost of persisting the
 seed this PRNG is initialized from) · R110 (interrupt/RETI discipline the PRNG/generation routine
-must respect) · R213 (the generation algorithm this topic's PRNG and WRAM-budget findings ground).
+must respect) · R213 (the generation algorithm this topic's PRNG and WRAM-budget findings ground)
+· **R113 (2026-07-11 — the as-shipped `gw_prng_step` routine's degeneracy under repeated draws,
+found via `IP-1070`'s Blocking Report, `BL-0070`; extends this topic's characterization rather
+than contradicting it — the single-draw-per-region usage this topic grounded remains accurately
+described).**
