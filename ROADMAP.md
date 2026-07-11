@@ -100,7 +100,7 @@ build order.
 
 | ID | Document | Path | Depends on | Status |
 |---|---|---|---|---|
-| FS-101+ | One spec per approved Feature | `docs/features/FS-xxx-*.md` | FP catalog, RQ baseline | ✅ (FS-101 ✅ shipped/VERIFIED 2026-07-07; FS-102–106 ✅ 2026-07-10, all five Release-2 Features specified, none yet implemented — 7 Open Questions total routed to `07`) |
+| FS-101+ | One spec per approved Feature | `docs/features/FS-xxx-*.md` | FP catalog, RQ baseline | ✅ (FS-101 ✅ shipped/VERIFIED 2026-07-07; FS-102–106 ✅ specified 2026-07-10, all five Release-2 Features now implemented — `IP-1020`/`1030`/`1040`/`1050` VERIFIED, `IP-1031` COMPLETE with a clean content review; all 7 Open Questions resolved at `07-implementation-planning`'s 2026-07-10 pass) |
 
 ## Theme: Implementation (`docs/implementation/`) — owners `07`/`08`/`09`
 
