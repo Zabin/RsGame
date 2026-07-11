@@ -6,12 +6,15 @@
 > any architecture document.
 >
 > **Forward reference (metadata only):** [IP-1030](../implementation/packages/IP-1030-generated-region-screen-composition-code.md)
-> (code) **implemented 2026-07-10** — AC-1/AC-2 demonstrably pass via T13.a/T13.b (136/136 total,
-> full suite green); independent verification pending `09-package-verification`.
+> (code) **VERIFIED 2026-07-10** ([VR-1030](../implementation/verification/VR-1030-generated-region-screen-composition-code.md))
+> — AC-1/AC-2 confirmed via T13.a/T13.b, 180/180 full suite green, ROM byte-identical.
 > [IP-1031](../implementation/packages/IP-1031-generated-region-screen-composition-content.md)
-> (content) still planned, not yet implemented — jointly with IP-1030 resolves this document's
-> Open Questions 1–2 (IP-1030 resolved the code-side implementation-detail portion; the
-> content-sizing/registration portion awaits IP-1031).
+> (content) **implemented 2026-07-11** — registers the 5 biome-family screen mapping
+> (Water→`lake_screen`, Sand→`beach_screen`, Grass→`forest_screen`, Stone→`mountain_screen`,
+> Brick→`castle_screen`) IP-1030's own `ALL_SCREENS` shape already carried; independent
+> verification pending `09-package-verification`. Jointly with IP-1030, this document's Open
+> Questions 1–2 are now both resolved (IP-1030 resolved the code-side implementation-detail
+> portion; IP-1031 resolves the content-sizing/registration portion).
 
 [↑ Features index](INDEX.md) · [Feature Catalog](../feature-planning/03-feature-catalog.md) ·
 [Epic Catalog](../feature-planning/02-epic-catalog.md)

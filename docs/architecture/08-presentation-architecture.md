@@ -158,6 +158,15 @@ palette assignment for a specific `WorldScale` is deferred to the implementation
 sizes it** — this level confirms the *strategy* (family-based reuse, adjacency-aware stepping),
 not a final palette table.
 
+**Shipped as of `IP-1031`:** the biome-family vocabulary this section named in the abstract is
+now the concrete, running mapping — Water→`lake_screen()`, Sand→`beach_screen()`,
+Grass→`forest_screen()`, Stone→`mountain_screen()`, Brick→`castle_screen()` — five of the nine
+pre-existing zone screens reused verbatim as each family's canonical representative (zero new
+tile art, zero new palette entries), dispatched at runtime by `REGION_GRAPH`'s generated biome-id
+(`IP-1030`). This is the concrete instantiation of §8's family-based-reuse strategy, not a
+revision of it; the four remaining shipped zone screens (`village_screen`, `cave_screen`,
+`desert_screen`, `plains_screen`) remain unwired, available as future per-family variety.
+
 ### 9. Cross-reference: tile index budget (informational, per GDS-07's delta)
 
 [GDS-07](07-data-model.md)'s delta forward-referenced this section for the actual biome-family
