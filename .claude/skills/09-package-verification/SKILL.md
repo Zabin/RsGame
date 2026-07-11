@@ -67,7 +67,17 @@ cites, and the live source tree + `test_rom.py`.
    exact counts. For content packages, also re-drive the affected screens via `run-bunnygarden`
    and compare against the spec's acceptance criteria/screenshots. Any failure — even one that
    looks pre-existing — is investigated far enough to assign ownership: this package's defect
-   (fail the verification) or pre-existing (finding with evidence).
+   (fail the verification) or pre-existing (finding with evidence). **If the package's Definition
+   of Done references a tunable or generated parameter** (a seed, a scale, a count the player or
+   a generator sets at runtime — anything the suite's own shared fixtures default to one fixed
+   value for), **drive the built ROM via `run-bunnygarden` at a non-default value of that
+   parameter yourself**, live, and check the claimed behavior directly — a full green suite is not
+   sufficient evidence on its own if every suite that exercises the package shares a fixture that
+   never varies the parameter (`BL-0055`: `IP-1020`/`IP-1030` both passed 133/133 and 180/180 with
+   `WORLD_SCALE` always defaulting to `3` in every consuming suite; navigation for any other scale
+   was completely broken and no VR caught it, because neither VR drove the game at `scale≠3`
+   itself — it trusted the suite's own coverage instead of checking whether that coverage actually
+   varied the parameter the package's own DoD was about).
 5. **Audit traceability.** Every Requirements Covered ID traces in the RTM to real files and
    real checks this package shipped.
 6. **Write the report**, update the ledgers, commit as `docs(verification): VR-xxxx — <result>`.
@@ -80,6 +90,8 @@ cites, and the live source tree + `test_rom.py`.
 - [ ] The implementing change stayed in scope, or every excursion is explained and accepted.
 - [ ] The report's Result matches the ledger status written.
 - [ ] No code, package, spec, or requirement was edited by this run.
+- [ ] For any tunable/generated parameter the DoD references, this run itself drove the ROM at a
+      non-default value — not just re-run the suite and trusted its existing fixture coverage.
 
 ## Gotchas
 
