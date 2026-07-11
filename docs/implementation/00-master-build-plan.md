@@ -14,7 +14,11 @@
 > packages VERIFIED; only `IP-1031` remains.** **Post-ship remediation tranche planned
 > 2026-07-11** (`IP-9050`/`IP-9060`/`IP-9070`, five bugs from playtesting — see below) — **all
 > three packages authorized 2026-07-11 (user G3, `BL-0062`); all three reached `COMPLETE` the
-> same session (implementer independence required before any can reach `VERIFIED`).** Owned by
+> same session (implementer independence required before any can reach `VERIFIED`).** **Maze-
+> shaped region adjacency tranche planned 2026-07-11** (`IP-1070`/`IP-1080`, `FS-107`/`FS-108`
+> logic half, `ADR-0012`) — **not yet authorized; no G3 on record.** `IP-1070` `NOT STARTED`;
+> `IP-1080` `BLOCKED` on `IP-1070` reaching `VERIFIED`. `FS-108`'s rendering half remains
+> unplanned, riding `BL-0068`'s still-open `GDS-08` delta. Owned by
 > `07-implementation-planning`
 > (rows/graph/authorization state) with status transitions written by the stage-08 peers
 > (`IN PROGRESS`/`COMPLETE`/`BLOCKED`) and `09-package-verification` (`VERIFIED`, exclusively).
@@ -43,6 +47,8 @@
 | [IP-9070](packages/IP-9070-cur-zone-indexed-structures-generalization.md) | `CUR_ZONE`-indexed structure generalization (BL-0058 + BL-0059) | `08-code-implementation` | **COMPLETE — 193/193 checks pass** | IP-1020 (VERIFIED), IP-1030 (VERIFIED), IP-1040 (VERIFIED), IP-1050 (VERIFIED) | **YES — explicit user G3, 2026-07-11 (BL-0062)** | **Implementation Summary (2026-07-11).** Files Modified: `asm_game.py` (`SCOREITEM_FLAGS` relocated `0xC060`→`0xC286`, widened 9→81 bytes; `SRAM_SCOREITEM` relocated `0xA013`→`0xA070`, widened 9→81 bytes; `SAVE_VERSION_VAL` `0x02`→`0x03`; `st_intro`/`st_victory` clear loops widened to 81 bytes; `save_to_sram`/`try_load_save` converted to 81-byte `memcpy` transfers; `setup_zone_collects` rewritten to read `REGION_GRAPH`'s biome-id and index `zc_table` by it, not `CUR_ZONE`), `tilemaps.py` (`ZONE_COLLECTS` reduced 9→5 biome-family lists, docstring corrected), `test_rom.py` (T1.10 fixed; T8/T11/T15 hardcoded-position fixes for the Forest-list region-0 default; new suite **T16 a–e**, 13 checks; stale pre-relocation `SCOREITEM_FLAGS`/`SRAM_SCOREITEM` test constants corrected to the real new addresses — a latent gap where T11.d2/T15.c5-6 had been passing against the wrong WRAM location). Files Created: none. Tests Added: T16.a (bounds/BL-0058 regression), T16.b (biome-keyed lookup/BL-0059 regression), T16.c (save-format v3 round-trip incl. region 80), T16.d (pre-upgrade rejection, version-2 fixture), T16.e (legacy-field regression at scale=7). Tests Passed: 193/193 (up from 180/180; ROM 22216/32768 bytes, down from 22344 — net WRAM/ROM layout change, zero code-size regression). Requirements Implemented: FR-5220 generalization, `BL-0058`/`BL-0059` fixes. Documentation Updated: GDS-07 §2/§3 tables + new §7a, GDS-08 §8 extension, `memory.md` collectible quick-ref, NFR-4200 (SRAM half MET), NFR-5300 (third version bump). Traceability Updated: this row. Outstanding Issues: none — `IP-9050` (`BL-0047`'s own fix) is the dependent package this unblocks. Discovered by `BL-0047`'s own mandatory supersession sweep. |
 | [IP-9050](packages/IP-9050-generated-world-navigation-fix.md) | Generated-world navigation fix (BL-0047) | `08-code-implementation` | **COMPLETE — 213/213 checks pass** | IP-9070 (COMPLETE — hard prerequisite), IP-1020 (VERIFIED), IP-1030 (VERIFIED) | **YES — explicit user G3, 2026-07-11 (BL-0062)** | **Implementation Summary (2026-07-11).** Files Modified: `asm_game.py` (`check_zone_transition` fully rewritten — new shared `czt_region_hl` subroutine computes `HL = REGION_GRAPH + CUR_ZONE*5` mirroring `dsr_p`'s own addressing exactly; all four edge-branches now read a `REGION_GRAPH` neighbor byte, `0xFF` = blocked, otherwise `CUR_ZONE` ← the neighbor byte's own value directly — zero hardcoded `CUR_ZONE` literal comparisons/arithmetic remain; the pre-fix cascade control-flow, kept bit-for-bit, per `T17.b`'s scale=3 regression), plus companion fix `BL-0063` (`KEYITEM_FLAGS`'s `st_intro`/`st_victory` clear loops widened 9→81 bytes — found incidental to this package's own supersession sweep, folded in as same-package scope per the finding's own note), `test_rom.py` (retired **T9** entirely, replaced by new suite **T17 a–d**, 24 checks — `T17.b` is `T9`'s own 14 checks renamed/relocated, bit-for-bit unchanged). Files Created: none. Tests Added: T17.a (scale=5, 25-region full-world traversal via real button-driven navigation, oracle-cross-checked — the direct `BL-0047` regression test), T17.b (scale=3 regression, `T9`'s retired checks), T17.c (boundary halt at a genuine generated-world edge, not an assumed `CUR_ZONE` value), T17.d (entry-position correctness, folded into T17.a's own per-step assertions). Tests Passed: 213/213 (up from 205/205; ROM unchanged at 22216/32768 bytes). Requirements Implemented: `FR-2300`/`FR-2310` (forward-pointer notes only, per this package's own SHALL-NOT-modify-requirements scope — `BL-0061` routes the actual text generalization upstream). Documentation Updated: GDS-04 (`Region` adjacency confirmed navigation-driven, completing `ADR-0009` Decision point 1), FR-2300/FR-2310 Notes fields, RTM Test cells (now cite `T17`, superseding `T9`). Traceability Updated: this row. Outstanding Issues: none — the tranche's critical path (`IP-9070`→`IP-9050`) is now fully implemented end-to-end. |
 | [IP-9060](packages/IP-9060-main-menu-cursor-fix.md) | Main menu cursor fix (BL-0048) | `08-code-implementation` | **COMPLETE — 205/205 checks pass** | IP-1040 (VERIFIED) | **YES — explicit user G3, 2026-07-11 (BL-0062)** | **Implementation Summary (2026-07-11).** Files Modified: `asm_game.py` (new 1-byte WRAM flag `MM_JUST_ENTERED` at `0xC2D7`; `check_save_valid`'s own `MM_CURSOR`-reset tail removed entirely; reset logic moved into `mm_on_entry`, gated on `MM_JUST_ENTERED`; the flag is set at every genuine `GAMESTATE → GS_MAIN_MENU` transition site — **4 found, not the 3 the package's own §6 task list named**: boot, `st_victory`'s A-press, `st_save`'s SELECT option, and `st_seed_scale_entry`'s B-cancel, the last one caught only because `T18.c`'s own test exercises it), `test_rom.py` (new suite **T18 a–d**, 12 checks). Files Created: none. Tests Added: T18.a (direct `BL-0048` regression — toggle with a valid save, exact-value assertions at every step), T18.b (toggle no-op with no save), T18.c (genuine re-entry via SEED/SCALE ENTRY B-cancel still resets correctly — the test that surfaced the 4th transition site), T18.d (new game end-to-end reachable from the toggled state). Tests Passed: 205/205 (up from 193/193; ROM unchanged at 22216/32768 bytes — one new 1-byte WRAM flag, no ROM growth after 0x100-boundary padding). Requirements Implemented: `FR-1170` regression fix (no requirement text change — the target behavior was always correctly specified). Documentation Updated: confirmed GDS-01's target-state diagram needed no change (already describes the correct, now-actually-achieved toggle behavior); this row. Traceability Updated: this row. Outstanding Issues: none. Independent of `IP-9050`/`IP-9070` — implemented in parallel, no shared file region touched by either. |
+| [IP-1070](packages/IP-1070-maze-shaped-region-adjacency.md) | Maze-shaped region adjacency (FS-107 / FEAT-9100) | `08-code-implementation` | **NOT STARTED** | IP-1020 (VERIFIED) | **NOT AUTHORIZED — no G3 on record** | Planned 2026-07-11. Spanning-tree carve (randomized DFS/recursive backtracker, iterative — current-region pointer + `GW_MAZE_STATE`'s combined visited/parent-direction byte, no separate stack) followed by a canonical-edge (`down`/`right` only) braid/prune pass, inserted into `generate_world` immediately after the existing, unchanged biome-assignment loop; `worldgen.py`'s `_carve_maze` oracle mirror, same step order. New transient WRAM (`GW_MAZE_STATE`/`GW_CUR_REGION`/`GW_MAZE_DIR`/`GW_BRAID_IDX`, up to 84 bytes, proposed at `0xC3A0`+, the first unclaimed byte past `OAM_BUF`). Resolves FS-107 Open Questions 1–3. New suite **T19** planned (7 checks across subgraph/reachability/determinism/grammar/braid-statistics/static-audit/headroom). Zero changes to `dsr_p`/`draw_region_arrows`/`check_zone_transition` (confirmed by direct re-read, `ADR-0012` point 2) — supersession sweep confirmed clean, including `test_rom.py`'s existing `T12` suite (needs no change, already edge-existence-only). |
+| [IP-1080](packages/IP-1080-maze-aware-edge-classification.md) | Maze-aware transition-edge classification, logic half (FS-108 / FEAT-2100) | `08-code-implementation` | **BLOCKED** | IP-1070 (must reach VERIFIED — hard prerequisite), IP-1030 (VERIFIED) | **NOT AUTHORIZED — no G3 on record** | Planned 2026-07-11. Render-time open/blocked/absent classification inside `draw_region_arrows`'s existing per-direction loop, reusing `check_zone_transition`'s own grid-boundary arithmetic pattern; the blocked case is a logic-only no-op render-wise in this package (no new WRAM, no new tile). Covers `FR-2330` **partially** — the rendering half (tile art/palette) is not planned by this package, still blocked on `BL-0068`'s unrouted `GDS-08` delta; FS-108's own Acceptance Criterion 4 stays explicitly open in this package's Definition of Done, not silently implied covered. New suite **T20** planned (open/blocked/absent classification checks, sharing `IP-1070`'s T19 corpus). `BLOCKED` (not merely `NOT STARTED`) on `IP-1070` reaching `VERIFIED`, per this skill's own `READY` convention. |
 
 **FEAT-6100 (Aesthetic & Biome-Transition Compliance) needs no package** — per FS-106 §8/§10, it
 has no runtime behavior or module of its own; its standard (GDS-08 delta §7/§8) is already
@@ -60,6 +66,23 @@ for the full sweep record). **None of these five bugs — nor the three packages
 them — fall under the `BL-0001`…`BL-0005` G3 bootstrap carve-out; explicit user authorization is
 required before `08-code-implementation` can start any of them.** Critical path: **IP-9070 →
 IP-9050** (2 packages); `IP-9060` is independent and parallel-eligible with both.
+
+## Maze-shaped region adjacency tranche (planned 2026-07-11)
+
+Two packages implementing `ADR-0012`'s maze-generation decision (`BL-0064`/`BL-0065`/`BL-0067`,
+`FS-107`/`FS-108`). **Neither falls under the `BL-0001`…`BL-0005` G3 bootstrap carve-out; explicit
+user authorization is required before `08-code-implementation` can start either.** Critical path:
+**IP-1070 → IP-1080** (2 packages, the tranche's full extent). `FS-108`'s rendering half remains
+unplanned — riding `BL-0068`'s still-open `GDS-08` delta, not a package in this tranche.
+
+- **`IP-1070`** (`FEAT-9100`) depends functionally only on `IP-1020` (`VERIFIED`) — the maze pass
+  reads `REGION_GRAPH`'s already-written full-lattice candidate bytes as its own input.
+- **`IP-1080`** (`FEAT-2100`, logic half) depends on `IP-1070` reaching `VERIFIED` — no maze-
+  blocked case exists to classify before the maze exists.
+- **Authorization state: neither package authorized.** `BL-0064`/`BL-0065`/`BL-0067` are all
+  post-ship enhancement requests from the project owner's own design discussion, not remediation
+  of `BL-0001`…`BL-0005` — the same category `IP-9050`/`IP-9060`/`IP-9070` fell into, requiring
+  the explicit `BL-0062` authorization those three packages needed.
 
 ## Dependency graph
 
@@ -100,6 +123,15 @@ graph TD
 
     style IP9070 fill:#f96,stroke:#333,stroke-width:2px
     style IP9050 fill:#f96,stroke:#333,stroke-width:2px
+
+    IP1070["IP-1070 maze-shaped<br/>region adjacency<br/>(NOT STARTED)"]
+    IP1080["IP-1080 maze-aware edge<br/>classification, logic half<br/>(BLOCKED)"]
+    IP1020 --> IP1070
+    IP1070 --> IP1080
+    IP1030 --> IP1080
+
+    style IP1070 fill:#9cf,stroke:#333,stroke-width:2px
+    style IP1080 fill:#9cf,stroke:#333,stroke-width:2px
 ```
 
 *(The dotted edge into `IP1020` represents the Master Build Plan's own package-status
@@ -175,3 +207,17 @@ first-in-critical-path package.)*
   — "Authorize all three"). None of `BL-0047`/`0048`/`0058`/`0059` fall under the
   `BL-0001`…`BL-0005` G3 bootstrap carve-out; this authorization was required before
   `08-code-implementation` could start any of them, and now covers all three.
+
+### Maze-shaped region adjacency tranche (planned 2026-07-11)
+
+- **Critical path: IP-1070 → IP-1080** (2 packages, the tranche's full extent) — `IP-1080` cannot
+  classify a maze-blocked edge before `IP-1070`'s maze pass exists; this is a hard functional
+  dependency (`FS-108`'s own Dependencies), not a scheduling convenience.
+- **Neither package started.** `IP-1070` is `NOT STARTED` (fully specified and eligible — `FS-107`
+  has no blocking Open Questions, all three resolved by this package's own §6). `IP-1080` is
+  `BLOCKED` on `IP-1070` reaching `VERIFIED`.
+- **Authorization state: neither package authorized.** `BL-0064`/`BL-0065`/`BL-0067` do not fall
+  under the `BL-0001`…`BL-0005` G3 bootstrap carve-out — explicit user authorization is required
+  before `08-code-implementation` can start `IP-1070` (and, later, `IP-1080`).
+- **`FS-108`'s rendering half is not part of this tranche** — `BL-0068`'s `GDS-08` delta must
+  resolve first; a third package will be planned once it does, per this pass's own TWBS note.

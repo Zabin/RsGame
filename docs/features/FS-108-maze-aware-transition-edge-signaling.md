@@ -18,6 +18,11 @@
 [↑ Features index](INDEX.md) · [Feature Catalog](../feature-planning/03-feature-catalog.md) ·
 [Epic Catalog](../feature-planning/02-epic-catalog.md) · [ADR-0012](../architecture/adr/ADR-0012-maze-shaped-region-adjacency.md)
 
+> **Forward reference (metadata only):** logic half planned by
+> [IP-1080](../implementation/packages/IP-1080-maze-aware-edge-classification.md) (2026-07-11),
+> which resolves this document's Open Question 2. Open Question 1 (the rendering half's tile art)
+> remains open, tracked as `BL-0068`.
+
 ## 1. Feature ID
 
 `FS-108` — expands `FEAT-2100` (Maze-Aware Transition-Edge Signaling), Epic `EP-1000` (Core Game

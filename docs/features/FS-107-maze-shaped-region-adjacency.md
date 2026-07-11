@@ -8,6 +8,10 @@
 [↑ Features index](INDEX.md) · [Feature Catalog](../feature-planning/03-feature-catalog.md) ·
 [Epic Catalog](../feature-planning/02-epic-catalog.md) · [ADR-0012](../architecture/adr/ADR-0012-maze-shaped-region-adjacency.md)
 
+> **Forward reference (metadata only):** planned by
+> [IP-1070](../implementation/packages/IP-1070-maze-shaped-region-adjacency.md) (2026-07-11),
+> which resolves this document's Open Questions 1–3.
+
 ## 1. Feature ID
 
 `FS-107` — expands `FEAT-9100` (Maze-Shaped Region Adjacency), Epic `EP-5000` (World Generation &

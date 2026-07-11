@@ -322,3 +322,81 @@ authoring` scope (WRAM/SRAM layout and control-flow only, no tile/palette/screen
   sweep): packaged as `IP-9070`, sequenced as `IP-9050`'s hard prerequisite.
 - **`BL-0019`** (ROM/SRAM-headroom watch): `IP-9070` grows SRAM usage (9→81 bytes, ×1, net +72
   bytes) — carries an `NFR-4200` headroom re-affirmation checklist item.
+
+## Maze-shaped region adjacency (`FS-107`/`FS-108`, planned 2026-07-11)
+
+Two tranches's worth of specified work, planned together since the second (`FS-108`) is a direct
+functional dependent of the first (`FS-107`): `FS-107` (`FEAT-9100`, `ADR-0012`'s maze-generation
+decision) and `FS-108`'s logic half (`FEAT-2100`, blocked-edge classification — rendering half not
+planned this pass, see below).
+
+### Verb inventory
+
+`FS-107` (`FEAT-9100`) is pure **generate** — `render`/`navigate`/`persist`/`review` all get an
+explicit deferral-not-applicable note (`IP-1070` §7): `dsr_p`/`draw_region_arrows`/
+`check_zone_transition` already consume `REGION_GRAPH` generically and need zero changes
+(`ADR-0012` point 2, confirmed by direct re-read); `REGION_GRAPH` is never persisted; no new
+content is authored. `FS-108`'s logic half (`FEAT-2100`) is pure **render** — `generate` is
+`FS-107`'s own scope (a hard dependency, not this tranche's to redo); `navigate`/`persist` don't
+apply; `review` doesn't apply to the logic-only package (no new visible tile drawn yet), though it
+will apply to the eventual rendering-half package once `BL-0068` resolves.
+
+### Supersession sweep
+
+Neither package retires an existing model — `FS-107` is new generation logic layered onto an
+unchanged biome-assignment pass (`ADR-0012` point 1: "entirely unchanged"); `FS-108`'s logic half
+extends `draw_region_arrows`'s existing 2-state branch into a 3-state one without removing the
+open-edge case. Both packages' own mandatory sweeps (run per this skill's own rule regardless) are
+recorded in full in `IP-1070`§7/`IP-1080`§7 — summary: `dsr_p`/`draw_region_arrows`/
+`check_zone_transition`/`tilemaps.py` all confirmed to have no full-lattice-connectivity
+assumption baked in; `test_rom.py`'s existing `T12` suite (`T12.c`/`T12.d`) confirmed, by direct
+read (`test_rom.py:799–819`), to already iterate only *existing* neighbor entries — **needs no
+change** for either package, a genuine "found nothing" result, not silence.
+
+### Work units and package cut
+
+| Work unit | Package | Owner |
+|---|---|---|
+| Spanning-tree carve (randomized DFS/recursive backtracker) + canonical-edge braid/prune pass, `generate_world`'s new second pass; `worldgen.py` oracle mirror (`FR-9140`/`FR-9150`) | [IP-1070](packages/IP-1070-maze-shaped-region-adjacency.md) | `08-code-implementation` |
+| Render-time open/blocked/absent edge classification inside `draw_region_arrows`, logic half only (`FR-2330`, partial) | [IP-1080](packages/IP-1080-maze-aware-edge-classification.md) | `08-code-implementation` |
+
+**Split rationale:**
+
+- **One package for `FS-107`, not split further.** The spanning-tree carve and the braid/prune
+  pass are two steps of one algorithm operating on the same data in the same routine, with one
+  coherent Definition of Done ("`REGION_GRAPH` holds a maze, not a full lattice, with reachability
+  preserved") — splitting them would create an intermediate, untestable half-state (a tree with no
+  braid pass is not what `FR-9140` specifies).
+- **`IP-1080` split out from `IP-1070`**, sequenced as a hard dependent, not fused into one
+  package, because they implement two different Features (`FEAT-9100` vs. `FEAT-2100`) owned by
+  two different Epics (`EP-5000` vs. `EP-1000`) with independently statable Definitions of Done —
+  mirroring `IP-9070`→`IP-9050`'s own precedent of splitting causally-coupled work along Feature
+  boundaries rather than fusing it for convenience.
+- **`FS-108`'s rendering half is deliberately not packaged this pass.** `BL-0068` (the `GDS-08`
+  tile-art delta) has not resolved — packaging a rendering interface ahead of that decision would
+  mean guessing at tile/palette allocation this stage has no authority to invent (this skill's own
+  SHALL-NOT-modify-specs-around-a-gap rule). `IP-1080` covers only the closeable logic half;
+  FS-108's own Acceptance Criterion 4 (the visual claim) stays explicitly open in `IP-1080`'s own
+  Definition of Done (§10) rather than silently implied covered.
+
+### Sequencing summary
+
+**`IP-1070` is this tranche's own prerequisite** — `IP-1080` depends on it reaching `VERIFIED`
+(not merely `COMPLETE`, per this skill's own `READY` convention), since there is no maze-blocked
+case to classify before a maze exists. Critical path: **`IP-1070` → `IP-1080`** (2 packages, the
+tranche's full extent — no parallel-eligible package this pass). Both are `08-code-implementation`
+scope (no tile/palette/screen changes in either — `IP-1080`'s own classification branch is a
+no-op render-wise until the rendering half ships).
+
+### Backlog riders honored in this pass
+
+- **`BL-0064`** (maze-shaped region adjacency): packaged as `IP-1070`.
+- **`BL-0065`** (braid-fraction parameter): folded into `IP-1070` (same generation pass, per
+  `FS-107`'s own scope — not a separate package).
+- **`BL-0067`** (3-state edge indicator): logic half packaged as `IP-1080`; rendering half remains
+  riding `BL-0068`, not packaged this pass.
+- **`BL-0068`** (the `GDS-08` tile-art delta `FEAT-2100`'s rendering half needs): **not resolved
+  by this pass** — still rides a future `03-architecture-design-synthesis` invocation, named
+  explicitly rather than silently absorbed into `IP-1080`.
+- **`BL-0019`** (ROM/WRAM-headroom watch): `IP-1070` adds up to 84 bytes of new transient WRAM
+  scratch at `scale=9` — carries an `NFR-4200` headroom re-affirmation checklist item.
