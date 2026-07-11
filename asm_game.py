@@ -46,8 +46,9 @@ WORLD_SCALE    = 0xC06B  # 1 byte — regions per grid axis, 2-9 (IP-1020)
 REGION_GRAPH   = 0xC070  # 5 bytes/region (1 biome-id + 4 neighbor-region-index), up to 81
                           # regions = 405 bytes worst case (IP-1020)
 KEYITEM_FLAGS  = 0xC220  # up to 81 bytes, one collected-flag per region — generalizes
-                          # CARROT_FLAGS (IP-1020); only indices 0-8 are live until FEAT-1100
-                          # wires up world generation, matching CUR_ZONE's current 0-8 range
+                          # CARROT_FLAGS (IP-1020). All 81 indices are live as of IP-9050
+                          # (CUR_ZONE reaches the full generated-world range); both reset
+                          # sites (st_intro/st_victory) widened to match (BL-0063)
 KEYITEM_COUNT  = CARROTS_COUNT  # same WRAM slot as CARROTS_COUNT — item-agnostic alias
                                   # for the running collected-count (IP-1020, FR-3220)
 GW_TOP_ROW     = 0xC271  # 9 bytes — generate_world's own transient scratch: the biome
@@ -254,9 +255,11 @@ def build_game_asm(rom: ROM) -> dict:
     # reset run
     rom.XOR_A()
     rom.LD_nn_A(SCORE); rom.LD_nn_A(CARROTS_COUNT); rom.LD_nn_A(CUR_ZONE)
-    # clear KEYITEM_FLAGS (9 bytes — IP-1020, generalizes CARROT_FLAGS; only the
-    # first 9 slots are live until FEAT-1100 wires up world generation)
-    rom.LD_HL_nn(KEYITEM_FLAGS); rom.LD_B_n(9); rom.XOR_A()
+    # clear KEYITEM_FLAGS (81 bytes — IP-1020, generalizes CARROT_FLAGS; widened
+    # from the old 9-byte clear by IP-9050/BL-0063 now that CUR_ZONE can exceed
+    # 8 — a same-session "new game" replay after this fix would otherwise leave
+    # KEYITEM_FLAGS[9..80]'s prior-playthrough bits intact)
+    rom.LD_HL_nn(KEYITEM_FLAGS); rom.LD_B_n(81); rom.XOR_A()
     rom.label('si_clr'); rom.LD_HLI_A(); rom.DEC_B(); rom.JR_NZ('si_clr')
     # clear SCOREITEM_FLAGS (81 bytes — IP-9070, generalized from the old fixed
     # 9-byte/9-zone clear the same way KEYITEM_FLAGS's own boot-clear was sized
@@ -320,8 +323,9 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW); rom.LD_nn_A(MM_JUST_ENTERED)
     # clear progress
     rom.XOR_A(); rom.LD_nn_A(CARROTS_COUNT); rom.LD_nn_A(SCORE)
-    # clear KEYITEM_FLAGS (9 bytes — IP-1020, generalizes CARROT_FLAGS; see st_intro)
-    rom.LD_HL_nn(KEYITEM_FLAGS); rom.LD_B_n(9); rom.XOR_A()
+    # clear KEYITEM_FLAGS (81 bytes — IP-1020, generalizes CARROT_FLAGS; widened
+    # by IP-9050/BL-0063, see st_intro's identical widening)
+    rom.LD_HL_nn(KEYITEM_FLAGS); rom.LD_B_n(81); rom.XOR_A()
     rom.label('sv_clrf'); rom.LD_HLI_A(); rom.DEC_B(); rom.JR_NZ('sv_clrf')
     # clear SCOREITEM_FLAGS (81 bytes — IP-9070, see st_intro's identical widening)
     # — FR-5220 victory progress-clear
@@ -588,40 +592,61 @@ def build_game_asm(rom: ROM) -> dict:
     rom.POP_BC(); rom.DEC_B(); rom.JP_NZ('cc_loop'); rom.RET()
 
     # ── check_zone_transition ────────────────────────────
+    # czt_region_hl: HL = REGION_GRAPH + CUR_ZONE*5 (region base, biome-id
+    # byte) — the identical addressing dsr_p/draw_region_arrows (IP-1030)
+    # already perform, correct up to scale=9's 81 regions. check_zone_
+    # transition's 4 branches each add the fixed GDS-07 §6 offset for their
+    # own direction (+1 up, +2 down, +3 left, +4 right) after calling this.
+    rom.label('czt_region_hl')
+    rom.LD_A_nn(CUR_ZONE)
+    rom.LD_E_A(); rom.LD_D_n(0)
+    rom.LD_HL_nn(REGION_GRAPH)
+    rom.ADD_HL_DE(); rom.ADD_HL_DE(); rom.ADD_HL_DE()
+    rom.ADD_HL_DE(); rom.ADD_HL_DE()
+    rom.RET()
+
+    # IP-9050 (BL-0047): regeneralized from the pre-procgen hardcoded
+    # fixed-3x3 CUR_ZONE arithmetic to REGION_GRAPH neighbor-byte reads —
+    # 0xFF = no neighbor in that direction (blocked, clamp at the edge),
+    # otherwise the neighbor byte's own value is the new CUR_ZONE directly
+    # (no arithmetic). The branch-cascade control flow (right-blocked falls
+    # through to check the vertical edges; left/top/bottom-blocked RET
+    # immediately) is unchanged from the pre-fix shipped code (T17.b's own
+    # scale=3 regression requires bit-for-bit identical behavior there).
     rom.label('check_zone_transition')
     # right edge: x >= 156
     rom.LD_A_nn(PLAYER_X); rom.CP_n(156); rom.JR_C('czt_left')
-    rom.LD_A_nn(CUR_ZONE)
-    rom.CP_n(2); rom.JR_Z('czt_left')
-    rom.CP_n(5); rom.JR_Z('czt_left')
-    rom.CP_n(8); rom.JR_Z('czt_left')
-    rom.INC_A(); rom.LD_nn_A(CUR_ZONE)
+    rom.CALL('czt_region_hl')
+    rom.INC_HL(); rom.INC_HL(); rom.INC_HL(); rom.INC_HL()   # HL -> +4 (right)
+    rom.LD_A_HL(); rom.CP_n(0xFF); rom.JR_Z('czt_left')
+    rom.LD_nn_A(CUR_ZONE)
     rom.LD_A_n(8); rom.LD_nn_A(PLAYER_X)
     rom.JP('czt_redraw')
 
     rom.label('czt_left')
     rom.LD_A_nn(PLAYER_X); rom.OR_A(); rom.JR_NZ('czt_top')
-    rom.LD_A_nn(CUR_ZONE)
-    rom.OR_A(); rom.RET_Z()
-    rom.CP_n(3); rom.RET_Z()
-    rom.CP_n(6); rom.RET_Z()
-    rom.DEC_A(); rom.LD_nn_A(CUR_ZONE)
+    rom.CALL('czt_region_hl')
+    rom.INC_HL(); rom.INC_HL(); rom.INC_HL()   # HL -> +3 (left)
+    rom.LD_A_HL(); rom.CP_n(0xFF); rom.RET_Z()
+    rom.LD_nn_A(CUR_ZONE)
     rom.LD_A_n(150); rom.LD_nn_A(PLAYER_X)
     rom.JP('czt_redraw')
 
     rom.label('czt_top')
     rom.LD_A_nn(PLAYER_Y); rom.CP_n(18); rom.JR_NC('czt_bot')
-    rom.LD_A_nn(CUR_ZONE)
-    rom.CP_n(3); rom.RET_C()
-    rom.SUB_n(3); rom.LD_nn_A(CUR_ZONE)
+    rom.CALL('czt_region_hl')
+    rom.INC_HL()   # HL -> +1 (up)
+    rom.LD_A_HL(); rom.CP_n(0xFF); rom.RET_Z()
+    rom.LD_nn_A(CUR_ZONE)
     rom.LD_A_n(120); rom.LD_nn_A(PLAYER_Y)
     rom.JP('czt_redraw')
 
     rom.label('czt_bot')
     rom.LD_A_nn(PLAYER_Y); rom.CP_n(128); rom.RET_C()
-    rom.LD_A_nn(CUR_ZONE)
-    rom.CP_n(6); rom.RET_NC()
-    rom.ADD_A_n(3); rom.LD_nn_A(CUR_ZONE)
+    rom.CALL('czt_region_hl')
+    rom.INC_HL(); rom.INC_HL()   # HL -> +2 (down)
+    rom.LD_A_HL(); rom.CP_n(0xFF); rom.RET_Z()
+    rom.LD_nn_A(CUR_ZONE)
     rom.LD_A_n(24); rom.LD_nn_A(PLAYER_Y)
 
     rom.label('czt_redraw')

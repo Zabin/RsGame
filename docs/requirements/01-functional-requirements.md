@@ -372,7 +372,12 @@
 - **Verification Method:** Test.
 - **Source Documents:** GDS-05 C2; GDS-04.
 - **Related ADRs:** None.
-- **Notes:** None.
+- **Notes:** Forward-pointer only (metadata, not a rewrite — `BL-0061` routes the actual
+  target-state generalization of this FR's text to a future `04-requirements-engineering`
+  delta): as of `IP-9050` (2026-07-11), generated-world navigation (`check_zone_transition`
+  reading `REGION_GRAPH`'s neighbor bytes, `ADR-0009`) honors this FR's intent for the full
+  `scale`×`scale` region graph, not just the 3×3 case its Description/Acceptance Criteria still
+  name verbatim.
 
 ### FR-2310 — No transition at grid boundary
 
@@ -395,7 +400,10 @@
 - **Verification Method:** Test.
 - **Source Documents:** GDS-05 C2.
 - **Related ADRs:** None.
-- **Notes:** None.
+- **Notes:** Forward-pointer only (metadata, not a rewrite — see `FR-2300`'s identical note,
+  `BL-0061`). As of `IP-9050` (2026-07-11), the boundary-halt behavior this FR describes is
+  honored for the full generated world (a `REGION_GRAPH` neighbor byte of `0xFF`), not just the
+  3×3 grid's row/column edges its text still names verbatim.
 
 ### FR-2320 — On-screen transition-edge signaling
 

@@ -13,7 +13,6 @@ Suites:
   T6  OAM / sprite rendering (single 8x16 bunny entry + collectibles)
   T7  Joypad movement and boundaries
   T8  Collision, score, carrot tracking, map hearts
-  T9  Zone transitions (3x3 grid, all four edges)
   T10 SRAM save/load persistence (BUNY magic, full field set)
   T11 Per-zone ScoreItem persistence (IP-1010)
   T12 World generation (IP-1020) — determinism, oracle parity, reachability,
@@ -28,6 +27,9 @@ Suites:
   T16 CUR_ZONE-indexed structure generalization (IP-9070) — SCOREITEM_FLAGS
       bounds, zc_table biome-keyed lookup, save-format v3 round-trip,
       pre-upgrade rejection, legacy-field regression
+  T17 Generated-world navigation (IP-9050) — scale=5 full-world traversal,
+      scale=3 regression, boundary halt, entry-position correctness
+      (supersedes/retires T9's fixed-3x3-grid checks)
   T18 Main menu cursor fix (IP-9060) — toggle with/without a save present,
       genuine re-entry still resets correctly, new-game end-to-end reachable
 
@@ -586,78 +588,6 @@ pb.stop()
 # deliberately not asserted either way here; T11 will assert non-respawn
 # once IP-1010 (per-zone ScoreItem persistence) ships.
 
-# ══════════════════════════════════════════════════════
-# T9 — Zone Transitions (3x3 grid)
-#      right: x>=156 (cols 0,1) -> zone+1, X=8
-#      left:  x==0  (cols 1,2) -> zone-1, X=150
-#      up:    y<18  (rows 1,2) -> zone-3, Y=120
-#      down:  y>=128 (rows 0,1) -> zone+3, Y=24
-# ══════════════════════════════════════════════════════
-print("\n=== T9: Zone Transitions ===")
-pb = fresh_boot()
-advance_to_playing(pb)
-
-check("T9.1 Starts in zone 0", pb.memory[CUR_ZONE] == 0, f"zone={pb.memory[CUR_ZONE]}")
-
-def settle(pb, frames=80):
-    [pb.tick() for _ in range(frames)]
-
-# Right: z0 -> z1
-pb.memory[PLAYER_X] = 156; pb.memory[PLAYER_Y] = 72
-settle(pb)
-check("T9.2 Right edge z0 -> z1", pb.memory[CUR_ZONE] == 1, f"zone={pb.memory[CUR_ZONE]}")
-check("T9.3 X reset to 8 after right transition", pb.memory[PLAYER_X] <= 20,
-      f"x={pb.memory[PLAYER_X]}")
-shoot(pb, "T9_forest")
-
-# Right: z1 -> z2
-pb.memory[PLAYER_X] = 156
-settle(pb)
-check("T9.4 Right edge z1 -> z2", pb.memory[CUR_ZONE] == 2, f"zone={pb.memory[CUR_ZONE]}")
-
-# Right blocked in col 2: z2 stays z2
-pb.memory[PLAYER_X] = 159
-settle(pb, 40)
-check("T9.5 No right transition from col 2 (z2)", pb.memory[CUR_ZONE] == 2,
-      f"zone={pb.memory[CUR_ZONE]}")
-
-# Left: z2 -> z1
-pb.memory[PLAYER_X] = 0
-settle(pb)
-check("T9.6 Left edge z2 -> z1", pb.memory[CUR_ZONE] == 1, f"zone={pb.memory[CUR_ZONE]}")
-check("T9.7 X reset to 150 going left", pb.memory[PLAYER_X] >= 140, f"x={pb.memory[PLAYER_X]}")
-
-# Down: z1 -> z4 (row 0 -> row 1)
-pb.memory[PLAYER_Y] = 128
-settle(pb)
-check("T9.8 Bottom edge z1 -> z4", pb.memory[CUR_ZONE] == 4, f"zone={pb.memory[CUR_ZONE]}")
-check("T9.9 Y reset to 24 going down", pb.memory[PLAYER_Y] <= 40, f"y={pb.memory[PLAYER_Y]}")
-shoot(pb, "T9_village")
-
-# Down: z4 -> z7, then blocked at row 2
-pb.memory[PLAYER_Y] = 128
-settle(pb)
-check("T9.10 Bottom edge z4 -> z7", pb.memory[CUR_ZONE] == 7, f"zone={pb.memory[CUR_ZONE]}")
-pb.memory[PLAYER_Y] = 128
-settle(pb, 40)
-check("T9.11 No down transition from row 2 (z7)", pb.memory[CUR_ZONE] == 7,
-      f"zone={pb.memory[CUR_ZONE]}")
-
-# Up: z7 -> z4
-pb.memory[PLAYER_Y] = 17
-settle(pb)
-check("T9.12 Top edge z7 -> z4", pb.memory[CUR_ZONE] == 4, f"zone={pb.memory[CUR_ZONE]}")
-check("T9.13 Y reset to 120 going up", pb.memory[PLAYER_Y] >= 100, f"y={pb.memory[PLAYER_Y]}")
-
-# Up blocked in row 0: force z2, y=17 -> stays z2 (movement floor, no transition)
-pb.memory[CUR_ZONE] = 2; pb.memory[NEED_REDRAW] = 0
-[pb.tick() for _ in range(3)]
-pb.memory[PLAYER_Y] = 17
-settle(pb, 40)
-check("T9.14 No up transition from row 0 (z2)", pb.memory[CUR_ZONE] == 2,
-      f"zone={pb.memory[CUR_ZONE]}")
-
-pb.stop()
 
 # ══════════════════════════════════════════════════════
 # T10 — SRAM Save/Load (magic 'BUNY' at A000; fields A004-A011)
@@ -1467,6 +1397,164 @@ check("T16.e4 KEYITEM_FLAGS unaffected", kf_post16e == kf_pre16e, "")
 pb2.stop()
 wipe_save()
 
+# ══════════════════════════════════════════════════════
+# T17 — Generated-World Navigation (IP-9050)
+#      check_zone_transition regeneralized to read REGION_GRAPH's neighbor
+#      bytes (BL-0047's fix) — supersedes T9's fixed-3x3-grid checks
+#      entirely (retired, not kept alongside these, per R305's "rewrite,
+#      don't patch" precedent).
+#      right: x>=156 -> zone=REGION_GRAPH[zone].right, X=8
+#      left:  x==0  -> zone=REGION_GRAPH[zone].left, X=150
+#      up:    y<18  -> zone=REGION_GRAPH[zone].up, Y=120
+#      down:  y>=128 -> zone=REGION_GRAPH[zone].down, Y=24
+# ══════════════════════════════════════════════════════
+print("\n=== T17: Generated-World Navigation ===")
+
+def settle(pb, frames=80):
+    [pb.tick() for _ in range(frames)]
+
+# T17.a/T17.d — scale=5 full-world traversal (the direct BL-0047 regression
+# test): a snake (boustrophedon) walk visiting every one of the 25 regions
+# exactly once via real button-driven navigation (memory-forced edge
+# crossings, matching T9's own established method — not force_region_
+# redraw, which only isolates rendering). At every step, CUR_ZONE is
+# asserted against worldgen.py's own oracle (T17.a) and the entry position
+# against the exact edge constant (T17.d, mirroring T9.3/T9.7/T9.9's own
+# tolerance style) — the runtime-driven reachability check R305's
+# 2026-07-11 delta (BL-0057) names as necessary, paired with (not
+# replacing) T12.c's existing oracle-only check.
+T17_SEED, T17_SCALE = 4242, 5
+pb = fresh_boot(200)
+pb.button('a'); [pb.tick() for _ in range(40)]        # MAIN MENU -> new game -> SEED/SCALE ENTRY
+enter_seed_scale(pb, [int(c) for c in f"{T17_SEED:05d}"], T17_SCALE)   # -> INTRO
+pb.button('a'); [pb.tick() for _ in range(80)]        # INTRO -> PLAYING
+check("T17.a0 New game at scale=5 reaches PLAYING", pb.memory[GAMESTATE] == 2,
+      f"GS={pb.memory[GAMESTATE]}")
+
+regions = worldgen.generate(T17_SEED, T17_SCALE)
+check("T17.a0b Oracle region count == scale^2 (25)", len(regions) == T17_SCALE ** 2,
+      f"{len(regions)}")
+
+pb.memory[PLAYER_X] = 80; pb.memory[PLAYER_Y] = 72
+[pb.tick() for _ in range(5)]
+
+zone_bad, pos_bad = [], []
+cur = 0
+for row in range(T17_SCALE):
+    going_right = (row % 2 == 0)
+    for _ in range(T17_SCALE - 1):
+        nb_idx = 3 if going_right else 2   # REGION_GRAPH order: up,down,left,right
+        expected = regions[cur]['neighbors'][nb_idx]
+        pb.memory[PLAYER_X] = 156 if going_right else 0
+        settle(pb)
+        actual, x = pb.memory[CUR_ZONE], pb.memory[PLAYER_X]
+        if actual != expected:
+            zone_bad.append((cur, 'right' if going_right else 'left', expected, actual))
+        x_ok = (x <= 20) if going_right else (x >= 140)
+        if not x_ok:
+            pos_bad.append((cur, 'right' if going_right else 'left', x))
+        cur = expected
+    if row < T17_SCALE - 1:
+        expected = regions[cur]['neighbors'][1]   # down
+        pb.memory[PLAYER_Y] = 128
+        settle(pb)
+        actual, y = pb.memory[CUR_ZONE], pb.memory[PLAYER_Y]
+        if actual != expected:
+            zone_bad.append((cur, 'down', expected, actual))
+        if y > 40:
+            pos_bad.append((cur, 'down', y))
+        cur = expected
+
+check("T17.a Scale=5 full-world traversal: every transition matches REGION_GRAPH, oracle-cross-checked (BL-0047 direct regression)",
+      len(zone_bad) == 0, f"bad={zone_bad[:3]}")
+check("T17.d Entry position correct at every transition (mirrors T9.3/T9.7/T9.9's own tolerance)",
+      len(pos_bad) == 0, f"bad={pos_bad[:3]}")
+check("T17.a1 Traversal reached the grid's final region (bottom-right corner, 24)",
+      cur == T17_SCALE * T17_SCALE - 1, f"cur={cur}")
+
+# T17.c — boundary halt: the bottom-right corner region (reached above) has
+# no right/down neighbor by construction (a genuine generated-world edge,
+# not assumed CUR_ZONE==2 the way the retired T9.5/T9.11/T9.14 were) —
+# confirm no transition occurs and CUR_ZONE is unchanged (FR-2310).
+check("T17.c0 Final region (24) genuinely has no right/down neighbor (oracle)",
+      regions[24]['neighbors'][3] is None and regions[24]['neighbors'][1] is None, "")
+pb.memory[PLAYER_X] = 159
+settle(pb, 40)
+check("T17.c1 No right transition at the true grid edge (region 24)",
+      pb.memory[CUR_ZONE] == 24, f"zone={pb.memory[CUR_ZONE]}")
+pb.memory[PLAYER_X] = 80; pb.memory[PLAYER_Y] = 128
+settle(pb, 40)
+check("T17.c2 No down transition at the true grid edge (region 24)",
+      pb.memory[CUR_ZONE] == 24, f"zone={pb.memory[CUR_ZONE]}")
+pb.stop()
+wipe_save()
+
+# T17.b — scale=3 regression: the existing shipped scale=3 behavior (the
+# case every prior suite already covered) must be bit-for-bit unchanged —
+# REGION_GRAPH-driven navigation at scale=3 produces identical transitions
+# to the old hardcoded CUR_ZONE math, since generate_world's row/col grid
+# shape is unchanged, only the *mechanism* reading it is (ADR-0009).
+pb = fresh_boot()
+advance_to_playing(pb)
+
+check("T17.b1 Starts in zone 0", pb.memory[CUR_ZONE] == 0, f"zone={pb.memory[CUR_ZONE]}")
+
+# Right: z0 -> z1
+pb.memory[PLAYER_X] = 156; pb.memory[PLAYER_Y] = 72
+settle(pb)
+check("T17.b2 Right edge z0 -> z1", pb.memory[CUR_ZONE] == 1, f"zone={pb.memory[CUR_ZONE]}")
+check("T17.b3 X reset to 8 after right transition", pb.memory[PLAYER_X] <= 20,
+      f"x={pb.memory[PLAYER_X]}")
+shoot(pb, "T9_forest")
+
+# Right: z1 -> z2
+pb.memory[PLAYER_X] = 156
+settle(pb)
+check("T17.b4 Right edge z1 -> z2", pb.memory[CUR_ZONE] == 2, f"zone={pb.memory[CUR_ZONE]}")
+
+# Right blocked in col 2: z2 stays z2
+pb.memory[PLAYER_X] = 159
+settle(pb, 40)
+check("T17.b5 No right transition from col 2 (z2)", pb.memory[CUR_ZONE] == 2,
+      f"zone={pb.memory[CUR_ZONE]}")
+
+# Left: z2 -> z1
+pb.memory[PLAYER_X] = 0
+settle(pb)
+check("T17.b6 Left edge z2 -> z1", pb.memory[CUR_ZONE] == 1, f"zone={pb.memory[CUR_ZONE]}")
+check("T17.b7 X reset to 150 going left", pb.memory[PLAYER_X] >= 140, f"x={pb.memory[PLAYER_X]}")
+
+# Down: z1 -> z4 (row 0 -> row 1)
+pb.memory[PLAYER_Y] = 128
+settle(pb)
+check("T17.b8 Bottom edge z1 -> z4", pb.memory[CUR_ZONE] == 4, f"zone={pb.memory[CUR_ZONE]}")
+check("T17.b9 Y reset to 24 going down", pb.memory[PLAYER_Y] <= 40, f"y={pb.memory[PLAYER_Y]}")
+shoot(pb, "T9_village")
+
+# Down: z4 -> z7, then blocked at row 2
+pb.memory[PLAYER_Y] = 128
+settle(pb)
+check("T17.b10 Bottom edge z4 -> z7", pb.memory[CUR_ZONE] == 7, f"zone={pb.memory[CUR_ZONE]}")
+pb.memory[PLAYER_Y] = 128
+settle(pb, 40)
+check("T17.b11 No down transition from row 2 (z7)", pb.memory[CUR_ZONE] == 7,
+      f"zone={pb.memory[CUR_ZONE]}")
+
+# Up: z7 -> z4
+pb.memory[PLAYER_Y] = 17
+settle(pb)
+check("T17.b12 Top edge z7 -> z4", pb.memory[CUR_ZONE] == 4, f"zone={pb.memory[CUR_ZONE]}")
+check("T17.b13 Y reset to 120 going up", pb.memory[PLAYER_Y] >= 100, f"y={pb.memory[PLAYER_Y]}")
+
+# Up blocked in row 0: force z2, y=17 -> stays z2 (movement floor, no transition)
+pb.memory[CUR_ZONE] = 2; pb.memory[NEED_REDRAW] = 0
+[pb.tick() for _ in range(3)]
+pb.memory[PLAYER_Y] = 17
+settle(pb, 40)
+check("T17.b14 No up transition from row 0 (z2)", pb.memory[CUR_ZONE] == 2,
+      f"zone={pb.memory[CUR_ZONE]}")
+
+pb.stop()
 # ══════════════════════════════════════════════════════
 # T18 — Main Menu Cursor Fix (IP-9060)
 # ══════════════════════════════════════════════════════

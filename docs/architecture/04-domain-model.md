@@ -177,6 +177,15 @@ ship** — the entities and rules above remain the accurate as-shipped model unt
   `Region` via legal transitions. A real invariant a generator could violate that the fixed
   layout never had to guard against; also a generator-property test target.
 
+**Confirmed, implemented (`IP-9050`, 2026-07-11):** the "generated adjacency edges, read from
+generated data rather than computed from arithmetic" property this section describes for
+`Region` now also holds for *navigation*, not just generation/rendering — `check_zone_transition`
+was found still running the pre-`ADR-0009` fixed-3×3 `Zone` arithmetic (`BL-0047`), silently
+capping real gameplay at 9 reachable regions regardless of `WorldScale`. Regeneralized to read
+`REGION_GRAPH`'s own neighbor bytes, the same data `dsr_p`/`draw_region_arrows` (`IP-1030`)
+already correctly consumed for rendering — completing `ADR-0009`'s Decision point 1 for the last
+consumer that hadn't yet moved off the retired fixed-grid model.
+
 ### Updated relationship overview (target state)
 
 ```

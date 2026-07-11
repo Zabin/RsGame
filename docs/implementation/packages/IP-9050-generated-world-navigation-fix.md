@@ -129,20 +129,23 @@ patch" precedent (`BL-0006`'s own resolution).
 
 ## 11. Verification Checklist
 
-- [ ] G5: ROM builds at exactly 32768 bytes with valid header.
-- [ ] G5: full `test_rom.py` suite passes.
-- [ ] T17.a–d each present and passing.
-- [ ] Direct code read: `check_zone_transition` contains no `CUR_ZONE` literal-integer comparison
+- [x] G5: ROM builds at exactly 32768 bytes with valid header.
+- [x] G5: full `test_rom.py` suite passes (213/213).
+- [x] T17.a–d each present and passing.
+- [x] Direct code read: `check_zone_transition` contains no `CUR_ZONE` literal-integer comparison
       or `±1`/`±3` arithmetic step anywhere in its body — every branch reads a `REGION_GRAPH`
-      byte.
-- [ ] Direct code read: the neighbor-byte addressing (`REGION_GRAPH + CUR_ZONE*5`, `+1..+4` for
+      byte. Confirmed by a direct regex sweep of the routine's own body: the only `CP_n(...)`
+      literals remaining are `156`/`18`/`128` (the unchanged screen-edge-detection thresholds,
+      per §6) and four `0xFF` (the `REGION_GRAPH` neighbor-byte sentinel checks); zero
+      `INC_A`/`DEC_A`/`SUB_n`/`ADD_A_n` occurrences.
+- [x] Direct code read: the neighbor-byte addressing (`REGION_GRAPH + CUR_ZONE*5`, `+1..+4` for
       up/down/left/right) matches `dsr_p`/`draw_region_arrows`'s own addressing exactly — no
-      independent/divergent reimplementation of the same lookup.
-- [ ] **This session's own independence rule**: confirm `IP-9070` (§12 dependency) is `VERIFIED`
-      or at minimum `COMPLETE` with its own DoD met before this package's own suite run — a
-      `CUR_ZONE > 8` reachable via this fix, without `IP-9070`'s array widening, is not a partial
-      success; it is active data corruption and must block this package's own completion.
-- [ ] GDS-04/FR-2300/FR-2310 RTM/Master-Build-Plan deltas applied exactly as §9 names.
+      independent/divergent reimplementation of the same lookup (`check_zone_transition` calls a
+      new shared `czt_region_hl` subroutine using the identical `LD_E_A`/`LD_D_n(0)`/`ADD_HL_DE`×5
+      sequence `dsr_p` already uses).
+- [x] **This session's own independence rule**: confirmed `IP-9070` is `COMPLETE` (its own DoD
+      met, 193/193 at the time) before this package's own suite run.
+- [x] GDS-04/FR-2300/FR-2310 RTM/Master-Build-Plan deltas applied exactly as §9 names.
 
 ## 12. Dependencies
 
