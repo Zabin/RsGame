@@ -1,8 +1,9 @@
 # RQ-02 — Non-Functional Requirements
 
 > **Status: ✅ Authored (bootstrap as-built, 2026-07-06; delta 2026-07-09 for the procgen-world
-> increment, NFR-1300/2200/4200/5300/6500/6510; delta 2026-07-11 — NFR-6500/6510 flipped to Met
-> — see Changelog).** Owned by
+> increment, NFR-1300/2200/4200/5300/6500/6510; delta 2026-07-11 — NFR-6500/6510 flipped to Met;
+> delta 2026-07-11 — NFR-4200 extended for ADR-0012's maze-generation WRAM cost — see
+> Changelog).** Owned by
 > `04-requirements-engineering`. Derives from
 > [GDS-06](../architecture/06-non-functional-requirements.md)'s five NFRs (N1–N5) — formalized
 > into numbered `NFR-xxxx` requirements per
@@ -40,6 +41,14 @@
   palette assignment either NFR had to judge. NFR-6500: clean, no findings. NFR-6510: Met with
   one Low/informational note (the Stone↔Brick pairing sits outside GDS-08 §8's worked example —
   does not fail the requirement, per its own "Should" priority). RTM rows for both updated.
+- **2026-07-11 — 04-delta for `ADR-0012`'s maze-shaped region adjacency** (`BL-0064`–`BL-0067`;
+  re-run Step 0 on the delta only, per this skill's own Gotchas). **NFR-4200**'s Notes field
+  extended with `R112`'s directly-measured maze-generation WRAM cost (81 bytes worst case, or 11
+  bit-packed, against 3168 bytes/3.09 KiB current free headroom) — WRAM budget does not gate
+  `FR-9140`. No new NFR category needed; no Performance/Reliability NFR text changes required
+  (the maze-generation pass stays within `generate_world`'s existing one-time, LCD-off-bracketed
+  cost class already covered by `NFR-1300`/`NFR-2200`'s existing wording, which does not name a
+  specific algorithm and needed no update).
 
 ## Performance
 
@@ -262,7 +271,13 @@
 - **Related ADRs:** ADR-0010.
 - **Notes:** Re-affirm this NFR's status the same way `BL-0019`'s convention already requires for
   ROM-growing packages — any package materially growing the WRAM/SRAM footprint should include a
-  checklist item re-checking headroom against this NFR's figures, as `IP-9070` did.
+  checklist item re-checking headroom against this NFR's figures, as `IP-9070` did. **2026-07-11
+  delta (`FR-9140`/`ADR-0012`):** the maze-generation pass's own worst-case WRAM cost was
+  measured directly against the shipped tree, not estimated — `R112` found 928 bytes used /
+  3168 bytes (3.09 KiB) free in bank 0 as of this delta, and the chosen algorithm (randomized
+  DFS/recursive backtracker) needs only an 81-byte visited-flag array (or 11 bytes bit-packed) at
+  `scale=9` worst case, comfortably inside that headroom — WRAM budget does not gate this feature.
+  Re-affirm again by direct build once implemented, per this NFR's own standing convention.
 
 ## Data Integrity
 

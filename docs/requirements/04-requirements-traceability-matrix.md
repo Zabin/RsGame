@@ -4,8 +4,9 @@
 > increment — 17 new rows, target requirements; delta 2026-07-10 — FR-6400 added (BL-0020),
 > Feature Spec/Implementation Package columns filled for the 17 target rows now that
 > `06`/`07` have run, NFR-6100/NFR-1200/NFR-7100/NFR-5200 Test cells refreshed; delta 2026-07-11
-> — NFR-6500/6510 Test cells filled with real evidence, `BL-0045`).** Owned by
-> `04-requirements-engineering`.
+> — NFR-6500/6510 Test cells filled with real evidence, `BL-0045`; delta 2026-07-11 —
+> FR-9140/9150/2330 and CR-05 added for `ADR-0012`'s maze-adjacency decision, `BL-0064`–`BL-0067`).**
+> Owned by `04-requirements-engineering`.
 > One row per [RQ-01](01-functional-requirements.md)/[RQ-02](02-non-functional-requirements.md)
 > requirement (Candidates marked). Populates the row-level matrix
 > [GDS-10](../architecture/10-requirements-traceability-matrix.md) §3 deferred to this stage, using
@@ -32,6 +33,7 @@
 | FR-2300 | Zone-boundary transition on valid neighbor | — | GDS-05 C2; GDS-04 | — | `asm_game.py` | UNASSIGNED | UNASSIGNED | T17.a–b (all four edges, scale=5 + scale=3 regression — supersedes retired T9.2–T9.13, `IP-9050`) |
 | FR-2310 | No transition at grid boundary | — | GDS-05 C2 | — | `asm_game.py` | UNASSIGNED | UNASSIGNED | T7.9/T7.10, T17.c (supersedes retired T9.5/T9.11/T9.14, `IP-9050`) |
 | FR-2320 | On-screen transition-edge signaling | R203 | GDS-05 C2 | — | `tilemaps.py` | UNASSIGNED | UNASSIGNED | UNASSIGNED |
+| FR-2330 | Three-state transition-edge signaling for a maze-shaped world (target — 2026-07-11) | — | ADR-0012 point 2 | ADR-0009, ADR-0012 | `asm_game.py` | UNASSIGNED | UNASSIGNED | UNASSIGNED |
 | FR-3100 | Collection-proximity detection | R202 | GDS-05 C3 | — | `asm_game.py` | UNASSIGNED | UNASSIGNED | T8.4 |
 | FR-3200 | ScoreItem collection increments Score | — | GDS-05 C3; GDS-04 | — | `asm_game.py` | UNASSIGNED | UNASSIGNED | T8.4/T8.5/T8.6/T8.10 — trustworthy; postcondition corrected 2026-07-10 (`BL-0022`) to match shipped respawn-on-re-entry behavior |
 | FR-3210 | Carrot collection sets zone flag, increments CarrotCount | — | GDS-05 C3; GDS-04 | — | `asm_game.py` | UNASSIGNED | UNASSIGNED | T8.7/T8.8/T8.9 |
@@ -48,6 +50,7 @@
 | FR-6400 | Player and collectible sprite rendering (added 2026-07-10, BL-0020) | — | GDS-08 §2 | ADR-0005, ADR-0007 | `asm_game.py` | UNASSIGNED | UNASSIGNED | T6.1–T6.10 — trustworthy, pre-existing evidence, formal requirement only |
 | CR-01 | Full save-field persistence — **RESOLVED/SPLIT 2026-07-07**: facing/frame half REJECTED (no row — see FR-5210); ScoreItem half APPROVED → see **FR-5220** row above | — | GDS-05 C5; BL-0018 (resolved) | — | `asm_game.py` | `RESOLVED — SEE FR-5220` | `RESOLVED — SEE FR-5220` | `RESOLVED — SEE FR-5220` |
 | CR-02 | Carrot-invariant enforcement | — | GDS-04; BL-0017 | — | `tilemaps.py` | `CANDIDATE — NOT BASELINED` | `CANDIDATE — NOT BASELINED` | `CANDIDATE — NOT BASELINED` |
+| CR-05 | Biome-blob clustering seeded from maze dead-ends (`BL-0066`) — conflicts with `ADR-0012` point 1's fixed biome-first pass ordering, per RQ-03 finding #13 | — | GDS-04; BL-0066 | ADR-0012 | `worldgen.py` | `CANDIDATE — NOT BASELINED` | `CANDIDATE — NOT BASELINED` | `CANDIDATE — NOT BASELINED` |
 | FR-1170 | MAIN MENU state (Met, 2026-07-10) | — | GDS-01 §2a/§4a | ADR-0010 | `asm_game.py` | FS-104 | IP-1040 | T14.a1–a4 — 180/180 pass (T14 sub-total 20/20) |
 | FR-1180 | New-game seed/scale entry + generation trigger (Met) | R111 | GDS-01 §4a | ADR-0009, ADR-0010 | `asm_game.py` | FS-104 | IP-1040 | T14.b1–b3, T14.c1 — 180/180 pass (T14 sub-total 20/20) |
 | FR-1190 | Exit-to-main-menu with auto-save (Met) | — | GDS-01 §4a | — | `asm_game.py` | FS-104 | IP-1040 | T14.d1–d2 — 180/180 pass (T14 sub-total 20/20) |
@@ -58,6 +61,8 @@
 | FR-9110 | Seed/scale immutable per save, new-game-only (Met, 2026-07-10) | — | ADR-0010 | ADR-0010 | `asm_game.py` (only `sse_compose_seed`, reachable only via `st_seed_scale_entry`'s A-confirm, writes `SEED`/`WORLD_SCALE`) | FS-102, FS-104 | IP-1020, IP-1040 | T14.e1 (static write-site audit), T14.e2 (runtime sweep, PLAYING/SAVE/MAP) — 180/180 pass (T14 sub-total 20/20) |
 | FR-9120 | Full reachability of every generated region | — | GDS-04 delta; ADR-0009 | ADR-0009 | `worldgen.py` | FS-102 | IP-1020 | T12.c (BFS from region 0, 15-entry corpus, 0 unreachable) |
 | FR-9130 | Exactly one KeyItem per generated region (generalizes BL-0017) | — | GDS-04 delta; BL-0017 | ADR-0009 | `worldgen.py` | FS-102 | IP-1020 | T12.e (region count == scale², 15-entry corpus) |
+| FR-9140 | Maze-shaped region adjacency (target — 2026-07-11) | R112 | GDS-04 delta | ADR-0009, ADR-0012 | `worldgen.py`, `asm_game.py` | UNASSIGNED | UNASSIGNED | UNASSIGNED |
+| FR-9150 | Braid-fraction parameter (target — 2026-07-11) | R112 | — | ADR-0012 | `worldgen.py`, `asm_game.py` | UNASSIGNED | UNASSIGNED | UNASSIGNED |
 | FR-9200 | Save-format extension: seed/scale/region-flags (Met, 2026-07-10) | R106 (ext.) | GDS-07 delta §7 | ADR-0010, ADR-0006 | `asm_game.py` | FS-105 | IP-1050 | T15.a1–a6, T15.c1–c6, T15.d — 180/180 pass |
 
 ## Non-Functional Requirements

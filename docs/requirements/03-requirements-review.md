@@ -3,7 +3,8 @@
 > **Status: ✅ Authored (bootstrap as-built, 2026-07-06; delta 2026-07-09 reviewing the
 > procgen-world increment's new FR/NFR content — see findings #7–10; delta 2026-07-10 reviewing
 > the 04-delta batch — see finding #11; delta 2026-07-11 reviewing the NFR-6500/6510 Met flip —
-> see finding #12).** Owned by
+> see finding #12; delta 2026-07-11 reviewing `ADR-0012`'s maze-adjacency FR/NFR delta — see
+> finding #13).** Owned by
 > `04-requirements-engineering`. Reviews the final
 > [RQ-01](01-functional-requirements.md)/[RQ-02](02-non-functional-requirements.md)
 > baseline for duplicates, conflicts, ambiguities, gaps, impossible requirements, architecture
@@ -26,6 +27,7 @@
 | 10 | Scope-boundary check: D1's non-goal | FR-9100 (Notes), MSTR-001 §4 | Confirmed no FR/NFR in the delta requires a text/dialogue system, consistent with `MSTR-001` D1/§4's explicit non-goal (not ruled out, not required). FR-9100's Notes field states this explicitly rather than leaving it implicit. | — (clean check, no finding) | None — a future request to add dialogue would reverse a recorded non-goal and re-open at `01-vision` (per MSTR-001 §4's own framing), not enter here as a requirements-stage addition. |
 | 11 | 04-delta batch review (`BL-0020`/`BL-0022`/`BL-0026`/`BL-0028`) | FR-6400, FR-3200, NFR-6100, NFR-1200, NFR-5200, NFR-7100 | Reviewed all four corrections together: **FR-6400** (new) cites only shipped, already-passing evidence (T6.1–T6.10) — no new behavior, no new test, clean. **FR-3200**'s corrected postcondition matches `setup_zone_collects`'s actual shipped behavior exactly (direct code re-read during this review); does not contradict `FR-5220`/`IP-1010`, which build persistence *on top of* the respawn behavior rather than assuming it away. **NFR-6100/NFR-1200/NFR-7100/NFR-5200**'s corrected Test cells/status lines all cite real, existing Verification Reports (`VR-9010`/`VR-9020`/`VR-1010`) — no forward reference invented. **Finding #7's own pattern** (target FRs coexisting with current ones) is now further along than when filed: `05-feature-decomposition`/`06-feature-specification`/`07-implementation-planning` have all since run for the procgen-world increment's five target Features — the RTM's Feature Spec/Implementation Package columns for FR-1170–9200/NFR-1300–6510 were filled in this same pass (citing `FS-102`…`FS-106`/`IP-1020`/`IP-1030`/`IP-1031`/`IP-1040`/`IP-1050`) to keep the matrix current, per finding #7's own recommendation that this coexistence be tracked deliberately, not left to drift. | — (clean check, no new defect; four corrections applied, all confirmed accurate) | None — this finding records that the batch was reviewed together and found internally consistent, per this stage's own Step-3 discipline (review, don't silently trust the edits made in Steps 1–2 of the same pass). |
 | 12 | 04-delta review (`BL-0045`) | NFR-6500, NFR-6510 | Reviewed the Met-status flip against its source: `content-review-IP-1031.md` genuinely exercises both NFRs' own Acceptance Criteria (NFR-6500: craft/clean-screen checklist against `IP-1031`'s 5 rendered screens; NFR-6510: palette-stepping judgment against the 4 grammar-legal pairs a real generated world exposed) — not a status flip made without evidence. NFR-6510's Low/informational note (Stone↔Brick pairing) is carried into the requirement's own Status field verbatim rather than smoothed over, consistent with this NFR's "Should" priority (a note, not a failure). Cross-checked against finding #7/#8's own pattern: this is the first of the procgen-world delta's target NFRs to reach real, evidenced Test/Inspection coverage — the remaining NFR-1300/2200/4200/5300 and FR-1170–9200 are implemented/verified (per `IP-1020`/`1030`/`1040`/`1050`/`1031`) but their own RQ-02/RQ-01 status lines were already updated in earlier passes (run #55–58's `07`/`09` touches), not newly discovered stale here. | — (clean check, no new defect) | None — recorded to confirm this delta's evidence was checked against the actual review document, not merely trusted from its own summary. |
+| 13 | Architecture conflict, correctly not resolved unilaterally | FR-9140, FR-9150, FR-2330, CR-05, ADR-0012, BL-0065, BL-0066 | Reviewed `ADR-0012`'s maze-adjacency FR/NFR delta as a set. **FR-9140/FR-9150/FR-2330** are internally consistent with `ADR-0012` and with each other (cross-checked: FR-9140's Postconditions cite FR-9120/FR-4310 correctly as unaffected; FR-9150's mechanism matches ADR-0012 point 4 verbatim; FR-2330's 3-state signal matches ADR-0012 point 2's "both cases are `0xFF` at the data level" fact exactly, correctly deriving that the render-time distinction needs independent grid arithmetic, not a new `REGION_GRAPH` field). **One genuine architecture conflict found, correctly routed rather than patched:** `BL-0066` (biome-blob clustering)'s own first-suggested approach — seeding blob centers from the maze's dead-ends — requires maze-generation to run *before* biome assignment, directly contradicting `ADR-0012` point 1's fixed pass order (biome first, maze second, independent). This is not a wording ambiguity fixable by rephrasing an FR; it is a real conflict between what `BL-0066` asks for and what `ADR-0012` already decided. **Correctly handled per this skill's own SHALL-NOT-redesign-architecture rule:** no FR was written that silently picks a compatible variant on the user's behalf; the conflict was written up as **CR-05** (Candidate Requirements, RQ-01) and left un-baselined, with both real options named (revisit `ADR-0012`'s ordering, or use the compatible flood-fill alternative instead) for `03-architecture-design-synthesis`/the user to decide. **`BL-0065`'s UI-exposure sub-question** (should the braid-fraction value become a new SEED/SCALE ENTRY field) was similarly not decided unilaterally — `FR-9150` baselines only the mechanism-plus-fixed-default half, deliberately not gating on the UI question, and this Review flags the sub-question as needing user input before any `06-feature-specification`/`07-implementation-planning` work on a UI change specifically (not before `FR-9140`/`FR-9150`'s own core implementation, which the fixed default already unblocks). | Medium (a real architecture conflict, correctly caught rather than silently resolved — not a defect in the baseline itself) | `CR-05` stays un-baselined until `03-architecture-design-synthesis` (or the user directly) picks between "revisit `ADR-0012`'s pass ordering" and "use flood-fill instead of dead-end-seeding." `BL-0065`'s UI-exposure question routes to the user whenever a future stage reaches the SEED/SCALE ENTRY UI specifically — not blocking now. Extends **finding #7's coexistence pattern** a third time: `FR-2320`/`FR-2330` join `FR-1120`/`FR-1170` and `FR-3210`/`FR-3220` as current-vs-target pairs this baseline deliberately carries side by side. |
 
 ## Duplicates / contradictions checked and found clean
 
@@ -44,6 +46,12 @@
   conflict with FR-6100 (zone screen composition) — FR-6100 remains accurate for the current
   hand-authored screens; FR-4300/4310 describe the generated-world target, cross-referenced not
   duplicated (see finding #7 for the coexistence pattern this introduces).
+- **2026-07-11 delta (`ADR-0012`):** `ADR-0012` cross-checked against every new/touched FR/NFR
+  that names it (finding #13) — clean except the one routed conflict (`CR-05`, not a baseline
+  defect). `FR-9140` and `FR-9120`/`FR-4310` (both lightly Notes-touched, not reworded) do not
+  conflict — confirmed the touches only clarified the *mechanism* behind an already-accurate
+  postcondition, never changed a Description/Postcondition/Acceptance-Criteria field. `FR-2330`
+  and `FR-2320` are complementary current/target pairs (finding #7's pattern), not duplicates.
 
 ## Candidate Requirements disposition
 
@@ -52,8 +60,10 @@ above: its facing/frame half is rejected, its per-zone ScoreItem half is approve
 FR-5220. CR-02 (carrot-invariant enforcement) in RQ-01, and CR-03 (bank-switching-ready
 extensibility) and CR-04 (real-hardware/second-emulator verification) in RQ-02, remain correctly
 excluded from the numbered baseline — none has a source document that states it as a present
-requirement. All three remain open, each with a named owner for its next step (see the table
-above and each Candidate's own Disposition field).
+requirement. **CR-05 (biome-blob clustering seeded from maze dead-ends, RQ-01, filed 2026-07-11)**
+joins them — see finding #13: a genuine `ADR-0012` conflict, not a wording gap, correctly routed
+rather than resolved here. All five remain open, each with a named owner for its next step (see
+the table above and each Candidate's own Disposition field).
 
 ## Summary
 
@@ -88,3 +98,12 @@ Verification Reports. The RTM's Feature Spec/Implementation Package columns for 
 increment's 17 target rows were also filled in this same pass (now that `06`/`07` have run for
 that increment), addressing finding #7's own recommendation that the target/current coexistence
 pattern be tracked deliberately as downstream stages advance, not left stale.
+
+**2026-07-11 `ADR-0012` delta review:** see finding #13 — `FR-9140`/`FR-9150`/`FR-2330` (three
+new FRs) plus light Notes-only touches to `FR-9100`/`FR-9120`/`FR-4310` and one NFR-4200 touch
+are internally consistent with `ADR-0012` and with each other. The delta's own honesty highlight:
+rather than silently baselining a compatible-but-unrequested clustering strategy for `BL-0066`,
+the genuine `ADR-0012` pass-ordering conflict its owner-preferred approach (dead-end seeding)
+creates was surfaced as **CR-05**, not patched around — exactly the discipline this stage's own
+SHALL-NOT-redesign-architecture rule requires. `FR-2320`/`FR-2330` extend finding #7's
+coexistence pattern a third time (after `FR-1120`/`FR-1170` and `FR-3210`/`FR-3220`).

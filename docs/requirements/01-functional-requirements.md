@@ -1,7 +1,8 @@
 # RQ-01 — Functional Requirements
 
 > **Status: ✅ Authored (bootstrap as-built, 2026-07-06; delta 2026-07-09 for the procgen-world
-> increment, FR-1170–9200 — see Changelog).** Owned by `04-requirements-engineering`.
+> increment, FR-1170–9200; delta 2026-07-11 for `ADR-0012`'s maze-shaped region adjacency,
+> FR-9140/9150/2330 — see Changelog).** Owned by `04-requirements-engineering`.
 > Derives from [GDS-05](../architecture/05-functional-requirements.md)'s six capability groupings
 > (C1–C6) — this document formalizes each into numbered, testable `FR-xxxx` requirements per
 > [GDS-10](../architecture/10-requirements-traceability-matrix.md) §3's stated contract: *cite
@@ -44,6 +45,23 @@
   shows `ScoreItem`s actually respawn on every zone re-entry within a session; only `Carrot`s are
   session-permanent. The corrected text matches the shipped code exactly (and matches what
   `FR-5220`/`IP-1010` already build on top of).
+- **2026-07-11 — Delta for `ADR-0012`'s maze-shaped region adjacency** (`BL-0064`–`BL-0067`,
+  project-owner design request; re-run Step 0 on the delta only, per this skill's own Gotchas —
+  not a wholesale regeneration). **Three new FRs added:** **FR-9140** (maze-generation pass —
+  spanning tree + braid, `BL-0064`), **FR-9150** (braid-fraction parameter mechanism + a fixed
+  initial default, `BL-0065` — its own UI-exposure question is *not* resolved here, see RQ-03
+  finding), **FR-2330** (3-state transition-edge signaling, generalizing `FR-2320` past its
+  still-2-state/3×3-worded text — `FR-2320` itself is left unmodified, describing the currently
+  shipped behavior, per this project's established `FR-1120`→`FR-1170`-`1190` coexistence
+  precedent, `RQ-03` finding #7). **`BL-0066` (biome-blob clustering) did not receive a
+  baseline FR** — dead-end-seeded clustering (the owner's own first suggestion) conflicts with
+  `ADR-0012`'s fixed biome-first generation ordering; flood-fill-seeded clustering does not.
+  Routed as **CR-05** (Candidate, not baselined) pending a `03-architecture-design-synthesis`
+  revisit if dead-end-seeding is specifically wanted — see RQ-03's finding for the full
+  conflict analysis. Light Notes-field touches only (no Description/Postcondition changes) on
+  **FR-9100** (cross-references `FR-9140`), **FR-9120** (reachability now a structural spanning-
+  tree guarantee, `ADR-0012`), and **FR-4310** (confirmed: still holds unchanged, since biome
+  generation is grid-wide and maze-connectivity-independent per `ADR-0012` point 1).
 
 ## FR-1000 — Game states & transitions
 
@@ -427,6 +445,52 @@
 - **Related ADRs:** None.
 - **Notes:** None.
 
+### FR-2330 — Three-state transition-edge signaling for a maze-shaped generated world (target — 2026-07-11)
+
+- **ID:** FR-2330
+- **Title:** The system shall distinguish, at each screen edge, between a grid boundary, a
+  maze-blocked-but-grid-adjacent edge, and an open (maze-connected) edge.
+- **Description:** Generalizes `FR-2320`'s on-screen arrow signal past its 2-state (arrow /
+  no-arrow) form: for every screen edge, the system shall render one of three distinct visual
+  states — an open-edge indicator (a valid, maze-connected neighbor exists, matching `FR-2320`'s
+  existing arrow), a blocked-edge indicator (a grid-adjacent region exists but the generated maze
+  does not connect to it), or no indicator at all (a true grid boundary — no grid-adjacent region
+  exists in that direction). The distinction between the latter two is **not derivable from
+  `REGION_GRAPH` alone** (both read as "no neighbor," `0xFF`, per `ADR-0012` point 2) — the
+  render-time logic must independently re-derive "does a grid-adjacent region exist in this
+  direction" from `(row, col, WORLD_SCALE)` arithmetic and compare that against whether
+  `REGION_GRAPH` shows a live neighbor there.
+- **Rationale:** `BL-0067` (owner design request, 2026-07-11): a maze-blocked edge must not look
+  identical to a true dead end, or the player cannot tell "there is a path here I haven't opened"
+  from "this is the edge of the world." Explicitly presentation-layer only — not mid-screen
+  walls/collision, which remains out of scope for any current requirement.
+- **Priority:** Must (target — not yet implemented)
+- **Inputs:** The current region's `REGION_GRAPH` neighbor bytes (`ADR-0012`); the current
+  region's `(row, col)` position and the world's `WORLD_SCALE`.
+- **Outputs:** One of three visual states rendered at each of the four screen edges.
+- **Preconditions:** State is PLAYING; a maze-shaped world has been generated (`FR-9140`).
+- **Postconditions:** Each screen edge's rendered indicator state matches exactly one of the
+  three cases above, with no edge left ambiguous between "blocked" and "boundary."
+- **Acceptance Criteria:** For any generated world in a test corpus, at every region and every
+  direction: (a) if `REGION_GRAPH` shows a live neighbor, the open-edge indicator renders; (b) if
+  no `REGION_GRAPH` neighbor exists but grid arithmetic confirms a grid-adjacent region exists in
+  that direction, the blocked-edge indicator renders; (c) if grid arithmetic confirms no
+  grid-adjacent region exists in that direction, no indicator renders.
+- **Dependencies:** FR-9140, FR-2320 (the open-edge case reuses its existing arrow rendering
+  verbatim).
+- **Verification Method:** Test (per-edge state audit across a `(seed, scale)` corpus, extending
+  `FR-2320`'s existing tilemap-inspection pattern to the new 3-way case) / Inspection (visual —
+  the blocked-edge indicator's own tile art has not been designed; see Notes).
+- **Source Documents:** `BL-0067`; `ADR-0012` point 2.
+- **Related ADRs:** ADR-0009, ADR-0012.
+- **Notes:** Not yet implemented. **`FR-2320` is left unmodified** — it accurately describes the
+  currently shipped 2-state behavior; this FR supersedes it only once `FR-9140` actually ships,
+  following this project's established `FR-1120`→`FR-1170`-`1190` coexistence precedent (`RQ-03`
+  finding #7). **A `GDS-08` (presentation architecture) delta is needed** for the new
+  blocked-edge indicator's actual tile art/palette assignment — flagged here as a dependency,
+  not decided by this requirements pass (out of this stage's scope; routed to
+  `03-architecture-design-synthesis`).
+
 ## FR-3000 — Collectibles, score & victory
 
 *(formalizes [GDS-05](../architecture/05-functional-requirements.md) C3, C4)*
@@ -658,7 +722,11 @@ FR-6000 for the presentation half)*
 - **Source Documents:** R212; ADR-0009; GDS-04 delta.
 - **Related ADRs:** ADR-0009.
 - **Notes:** Not yet implemented. This is a generator-*guaranteed* property (enforced during
-  generation), not a post-generation check that could fail.
+  generation), not a post-generation check that could fail. **2026-07-11 delta:** confirmed
+  still accurate, unchanged, once `FR-9140` (`ADR-0012`) ships — biome assignment remains a
+  grid-wide pass, entirely independent of the maze's own connectivity (`ADR-0012` point 1), so
+  every grid-adjacent pair's grammar-legality holds regardless of whether the maze ends up
+  connecting or blocking that specific edge.
 
 ## FR-5000 — Save / load (SRAM)
 
@@ -907,7 +975,9 @@ FR-6000 for the presentation half)*
 - **Notes:** No text-dialogue system is required to satisfy C9's narrative delivery — the
   generated world's own structure (this FR, FR-4300/4310) carries the narrative, per MSTR-001
   D1/§4's explicit non-goal (not ruled out, not required at this vision's date). Not yet
-  implemented.
+  implemented. **2026-07-11 delta:** this FR's own "adjacency edges" output was never specified
+  as necessarily complete — `FR-9140` (`ADR-0012`) narrows how that output is constructed (a
+  maze, not a full lattice); no change to this FR's own text was needed.
 
 ### FR-9110 — Seed/scale immutable per save, entered only at new-game creation
 
@@ -955,7 +1025,10 @@ FR-6000 for the presentation half)*
 - **Source Documents:** ADR-0009; GDS-04 delta.
 - **Related ADRs:** ADR-0009.
 - **Notes:** Not yet implemented. This is a generator-*guaranteed* property, not a
-  post-generation check that could fail and be silently accepted.
+  post-generation check that could fail and be silently accepted. **2026-07-11 delta:** once
+  `FR-9140` (`ADR-0012`) ships, this guarantee's *mechanism* changes from "incidental to full
+  lattice connectivity" to "structural — a spanning tree connects every node by definition" —
+  strictly stronger, not weaker; this FR's own text needed no change.
 
 ### FR-9130 — Exactly one KeyItem per generated region
 
@@ -981,6 +1054,85 @@ FR-6000 for the presentation half)*
 - **Notes:** Unlike BL-0017's shipped-baseline finding (the one-carrot-per-zone rule holds only
   by convention, not code-level enforcement), this requirement is **generator-guaranteed by
   construction** (ADR-0009) — a stronger guarantee than the shipped model's. Not yet implemented.
+
+### FR-9140 — Maze-shaped region adjacency (target — 2026-07-11)
+
+- **ID:** FR-9140
+- **Title:** The system shall generate region adjacency edges as a maze — a spanning tree plus a
+  braided subset of the remaining candidate edges — rather than connecting every grid-adjacent
+  region pair.
+- **Description:** After biome assignment (`FR-9100`) completes for a generated world, the
+  system shall generate the world's adjacency structure in a second, independent pass: build a
+  spanning tree over the full candidate edge set (every grid-adjacent region pair), guaranteeing
+  every region is reachable (`FR-9120`); then, for every candidate edge not selected by the
+  spanning tree, reopen it according to `FR-9150`'s braid-fraction parameter. The resulting
+  adjacency graph — not the full grid graph — is what the region graph's neighbor data exposes to
+  navigation (`check_zone_transition`) and rendering (`dsr_p`/`draw_region_arrows`).
+- **Rationale:** `BL-0064` (owner design request, 2026-07-11): a Zelda/Pokémon-style overworld —
+  distinct regions connected by paths, not a uniformly open grid. `ADR-0012` (refines `ADR-0009`
+  Decision point 1, which never itself mandated full connectivity).
+- **Priority:** Must (target — not yet implemented)
+- **Inputs:** The full candidate edge set (every grid-adjacent region pair, a pure function of
+  `WORLD_SCALE`); `SEED`-derived PRNG state; `FR-9150`'s braid-fraction value.
+- **Outputs:** The generated region graph's adjacency edges — a subgraph of the full grid graph.
+- **Preconditions:** Biome assignment (`FR-9100`) has completed for this world.
+- **Postconditions:** The resulting adjacency graph is a (not-necessarily-strict) subgraph of the
+  full grid graph; every region remains reachable from the starting region (`FR-9120`); every
+  edge that does exist remains grammar-legal (`FR-4310`, unaffected — see that FR's Notes).
+- **Acceptance Criteria:** For any `(seed, scale, braid-fraction)` combination in a test corpus:
+  (a) every edge in the generated graph also exists in the full grid graph (no adjacency is
+  invented that isn't grid-adjacent); (b) every region is reachable from the starting region; (c)
+  regenerating from identical inputs produces byte-identical adjacency output, matching
+  `FR-9100`'s existing determinism guarantee extended to this pass.
+- **Dependencies:** FR-9100, FR-9120, FR-9150.
+- **Verification Method:** Test (property test across a `(seed, scale, braid-fraction)` corpus,
+  extending `R305`'s existing pattern; a specific subgraph-of-full-lattice check, since this is a
+  genuinely new property the prior full-lattice model never needed).
+- **Source Documents:** `BL-0064`; `ADR-0012`.
+- **Related ADRs:** ADR-0009, ADR-0012.
+- **Notes:** Not yet implemented. Does not change `FR-9100`'s own text — that FR's "adjacency
+  edges" output was never specified as necessarily complete; this FR narrows how that output is
+  actually constructed. `REGION_GRAPH`'s WRAM/ROM data format (`GDS-07`) is unaffected — only the
+  generation algorithm populating it changes (`ADR-0012` point 2); `dsr_p`/`draw_region_arrows`
+  (`IP-1030`, `FR-2320`) and `check_zone_transition` (`IP-9050`, `FR-2300`) require no code
+  changes, since both already consume the graph's neighbor bytes generically.
+
+### FR-9150 — Braid-fraction parameter (target — 2026-07-11)
+
+- **ID:** FR-9150
+- **Title:** The system shall control what fraction of `FR-9140`'s pruned edges the braid pass
+  reopens via a single configurable parameter.
+- **Description:** The braid pass (`FR-9140`) shall, for each candidate edge not selected by the
+  spanning tree, draw one PRNG value and reopen that edge if the drawn value is at or below a
+  fixed braid-fraction threshold. This requirement establishes the parameter's existence, valid
+  range, and a fixed initial default; **whether the value becomes player-adjustable (a new
+  SEED/SCALE ENTRY field, a value derived from another player input, or remains a fixed
+  non-exposed constant) is explicitly not decided by this requirement** — see this document's
+  companion Requirements Review finding.
+- **Rationale:** `BL-0065` (owner design request, 2026-07-11): a maze-difficulty scaling
+  variable. `ADR-0012` fixed the mechanism (a single-byte PRNG-vs-threshold draw per pruned
+  edge) but explicitly left the default value and UI exposure to this stage.
+- **Priority:** Must (target — not yet implemented)
+- **Inputs:** None from the player, at this requirement's own scope (a fixed default — see
+  Notes); PRNG state, per pruned edge.
+- **Outputs:** A single byte-valued threshold consumed by `FR-9140`'s braid pass.
+- **Preconditions:** `FR-9140`'s spanning-tree pass has completed (pruned edges are known).
+- **Postconditions:** The fraction of pruned edges actually reopened approximates the configured
+  threshold (a probabilistic, not exact, guarantee — each edge's reopening is an independent draw).
+- **Acceptance Criteria:** For a large `(seed, scale)` corpus at a fixed threshold value, the
+  observed fraction of reopened edges falls within a statistically reasonable band of the
+  threshold's implied probability (not exact-equality, since this is a per-edge independent
+  random process).
+- **Dependencies:** FR-9140.
+- **Verification Method:** Test (statistical corpus check, extending `R305`'s existing
+  property-test pattern to a probabilistic property — a new kind of check this baseline hasn't
+  needed before).
+- **Source Documents:** `BL-0065`; `ADR-0012`.
+- **Related ADRs:** ADR-0012.
+- **Notes:** Not yet implemented. **Initial default (non-binding on the UI-exposure question):**
+  a moderate braid fraction reopening roughly a quarter of pruned edges, per `ADR-0012`'s own
+  suggestion — a fixed code-level constant is sufficient to unblock `FR-9140`'s own
+  implementation; the UI-exposure question is deliberately not gating this FR.
 
 ### FR-9200 — Save-format extension: seed, scale, and per-region flags
 
@@ -1043,3 +1195,33 @@ excluded from the numbered baseline above; marked `CANDIDATE — NOT BASELINED` 
   tracking finding.
 - **Disposition:** SCHEDULED per BL-0017 — recommended as a Verification Checklist item on any
   future package touching `ZONE_COLLECTS`, not a standalone requirement today.
+
+### CR-05 — Biome-blob clustering seeded from the maze's own dead-ends (`BL-0066`)
+
+- **Description:** Cluster biome assignment into cohesive multi-region blobs (so a "Forest area"
+  spans several regions before drifting, per `BL-0066`'s own ask), with blob centers seeded from
+  `FR-9140`'s spanning-tree maze's own dead-end regions (leaf nodes) — the owner's own first
+  suggestion.
+- **Why excluded:** **Direct architecture conflict, not a gap.** `ADR-0012` point 1 fixes the
+  generation pass order as biome-assignment-first, then maze-generation second, entirely
+  independent of each other — biome assignment reads only each region's grid-fixed top/left
+  neighbor, never the maze's connectivity. Dead-end-seeded clustering requires the *opposite*
+  order (maze must exist first, to identify its own dead-ends, before biome-seeded-from-dead-ends
+  assignment can run) — this is not a requirements-level ambiguity to resolve by rewording, it is
+  a genuine conflict with a binding architecture decision. Per this skill's own rule ("a
+  wrong/ambiguous/self-contradictory architecture statement is a Review finding, never patched by
+  writing around it"), this is routed to the Review (`RQ-03` finding), not silently reworded into
+  something compatible.
+- **A compatible alternative exists and is baselined instead:** flood-fill-seeded clustering (N
+  independently-drawn seed points, no maze dependency) does not conflict with `ADR-0012`'s pass
+  ordering — but this requirements pass does not baseline that either, since `BL-0066`'s own
+  filed disposition explicitly named evaluating dead-end-seeding "against simpler alternatives...
+  as part of the same [design] pass, not assumed as the only option," and picking definitively
+  between them here would be originating a design decision this stage's own rules forbid
+  ("redesign the architecture... never patched by writing around it" — the *choice* between two
+  compatible-vs-incompatible clustering strategies is itself an architecture-level call once the
+  conflict is known, not a requirements-authoring one).
+- **Disposition:** `BL-0066` remains open, unresolved by this delta. Routed back to
+  `03-architecture-design-synthesis` (or directly to the user, if the owner has a preference
+  between "revisit `ADR-0012`'s pass ordering to allow dead-end-seeding" vs. "keep the ordering,
+  use flood-fill instead") — see `RQ-03`'s finding for the full conflict write-up.
