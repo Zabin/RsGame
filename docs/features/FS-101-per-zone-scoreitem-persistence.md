@@ -1,12 +1,12 @@
 # FS-101 — Per-Zone ScoreItem Persistence
 
-> **Status: ✅ Specified (2026-07-07).** Owned by `06-feature-specification`. Elaborates
+> **Status: ✅ Implemented (2026-07-07), pending `09-package-verification`.** Owned by
+> `06-feature-specification`. Elaborates
 > [FEAT-5100](../feature-planning/03-feature-catalog.md#feat-5100--per-zone-scoreitem-persistence-new--not-yet-implemented)
-> (Epic [EP-3000](../feature-planning/02-epic-catalog.md#ep-3000--persistence)). **No shipped
-> implementation exists yet** — this spec is the input to `07-implementation-planning`, not a
-> description of current behavior. **Planned 2026-07-07:** implemented by
-> [IP-1010](../implementation/packages/IP-1010-per-zone-scoreitem-persistence.md), which also
-> resolves this spec's deferred Open Question 3 (`SCOREITEM_FLAGS` assigned `0xC060`–`0xC068`).
+> (Epic [EP-3000](../feature-planning/02-epic-catalog.md#ep-3000--persistence)). Implemented by
+> [IP-1010](../implementation/packages/IP-1010-per-zone-scoreitem-persistence.md)
+> (`SCOREITEM_FLAGS` assigned `0xC060`–`0xC068`, resolving this spec's deferred Open Question 3;
+> all five Acceptance Criteria verified by `test_rom.py` T11.a–e, 125/125 pass).
 
 ## Feature ID
 

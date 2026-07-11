@@ -2,11 +2,15 @@
 
 - **Document ID:** R305 · **Version:** 1.0 · **Status:** ✅
 - **Dependencies:** R301 (the PyBoy API these tests are built on), R304 (the header-check class
-  that stays stable across game-logic rewrites)
-- **Referenced By:** none yet — **this topic directly grounds the BL-0006/BL-0008 remediation**
-- **Produces:** grounds the rewrite `test_rom.py` needs against the current WRAM map
+  that stays stable across game-logic rewrites), R212/R213/R111 (the grammar/algorithm/PRNG this
+  topic's C10 determinism-testing extension grounds test design against)
+- **Referenced By:** R213 (assumes this topic's reference-generator oracle pattern), R111
+  (same) — **this topic directly grounds the BL-0006/BL-0008 remediation and, as of 2026-07-09,
+  MSTR-001 C10's determinism-testing strategy**
+- **Produces:** grounds the rewrite `test_rom.py` needs against the current WRAM map; grounds the
+  future generated-world test suite's design
 - **Feature Mapping:** *(none yet)*
-- **Related Topics:** R301, R304
+- **Related Topics:** R301, R304, R212, R213, R111, R302
 
 ## Purpose
 
@@ -98,12 +102,94 @@ spelled out):
   — this research topic supplies the *what to assert*; the package itself (BL-0008's umbrella)
   should cite this topic directly in its `Tests to Add`/`Implementation Tasks` fields.
 
+## Testing a deterministic procedurally generated world (2026-07-09, grounds MSTR-001 C10/A9)
+
+**The core testing problem C10 introduces is new in kind, not just in scope: how do you assert
+"correct" for content that doesn't exist until generated?** Every existing suite (T1–T11) checks
+against **fixed, hand-authored** expected values — a specific WRAM address always holds a specific
+value for a specific input sequence. A generated world has no such fixed answer: the expected
+tilemap/WRAM state for zone 3 depends on *which seed and scale produced it*. This section grounds
+the testing pattern the adopted increment plan's Phase 2 names explicitly
+([PLAN-requirements-aesthetics-story-map.md](../../pipeline/PLAN-requirements-aesthetics-story-map.md)
+§2), extending this topic's existing memory-assertion/save-reload-harness patterns rather than
+replacing them.
+
+**The Python reference-generator oracle pattern.** This project's build/test relationship already
+has the right shape to extend: `build_rom.py` (Python, build-side) and `test_rom.py` (Python,
+also build-side, driving the ROM via PyBoy) are two independent Python programs that must agree
+about what the ROM does — `test_rom.py` today encodes its expectations as literal constants
+(`CARROT_FLAGS`, `CARROTS_COUNT==9`, exact zone-boundary math) because the current game has no
+per-run variability to predict. **A generated world needs one more piece: a Python function that,
+given `(seed, scale)`, computes the *same* result the SM83 generation routine (R213/R111) would
+produce on real hardware** — not by running the SM83 code, but by re-implementing its exact
+algorithm (xorshift step sequence, graph-construction rule, biome assignment) in Python. This
+oracle function becomes the source of "expected" values `test_rom.py`'s assertions compare
+against, for any seed/scale pair — turning generated-content testing back into the same
+memory-assertion pattern this topic already recommends (an exact value comparison, not a fuzzy
+plausibility check), just with a *computed* rather than *literal* expected value.
+
+**This is not a novel pattern for this project — it is R302's existing discipline, extended.**
+R302 already documents that `build_rom.py` and `asm_game.py`'s SM83 code must produce *exactly*
+consistent results for anything cross-referenced between them (patch-point addresses, label
+resolution); a Python reference-generator oracle is the same discipline applied to *generated
+content* rather than *static addresses* — the oracle and the SM83 routine are two independent
+implementations of one algorithm that must be kept in lockstep by direct correspondence (same
+PRNG step order, same grammar-check logic), the same way `build_rom.py`'s screen layout and
+`asm_game.py`'s zone-lookup table must already agree today without any shared code enforcing it.
+
+**Multi-seed/multi-scale property testing.** Because no single seed's output can stand in for
+"the generator is correct" (unlike a fixed hand-authored world, where one test run proves
+everything), determinism and correctness testing for C10 needs a **corpus of seeds** (and, per
+D6, scales) rather than one canonical test case — following the same generous-fixed-iteration
+style this topic's existing frame-count-wait convention already models (a fixed, adequate set
+rather than an unbounded search). Concretely, per seed/scale pair in the corpus:
+- **Determinism**: boot twice with the same `(seed, scale)` (a fresh `PyBoy` instance each time,
+  following this topic's existing save/reload two-instance pattern), assert the resulting
+  WRAM/tilemap state is byte-identical both times.
+- **Reachability**: every generated region is reachable from the start region via legal
+  transitions — a graph-traversal check over the oracle's own computed graph, cross-checked
+  against the actual in-ROM screen-adjacency table the generator wrote.
+- **Exactly-one-key-item-per-region**: the direct generalization of `BL-0017`'s existing
+  "exactly one carrot per zone" invariant (already a tested property, T1.11) — same check, applied
+  across the corpus instead of the single fixed 3×3 layout.
+- **Grammar-valid adjacency (R212)**: for every generated region-pair adjacency, assert it appears
+  in R212's adjacency table — a new check class this project's suite has no precedent for yet,
+  but structurally the same shape as any other memory-assertion check (read the generated
+  adjacency data, compare against a known-valid table).
+
+**Screenshot-assertion strategy for seam/transition cleanliness (grounds MSTR-001 C8/D4).** This
+topic's existing memory-vs-pixel distinction directly resolves the "every screen clean" quality
+bar: **the grammar/reachability/one-item invariants above are memory assertions** (exact, fast,
+what R305 already recommends for logic correctness) — but "does the screen actually *look*
+clean, no visual garbage at a seam" is irreducibly a **pixel-level** question, exactly the case
+this topic already carves out for `screen.image`-based screenshots (R301). Recommend: for a
+sampled subset of the seed corpus (not every seed — screenshot capture is comparatively
+expensive), capture `.image.save(...)` screenshots at every generated screen boundary/transition
+and either (a) assert programmatically-checkable properties directly from pixel data where
+possible (no undefined/blank tile patterns at the seam), or (b) route screenshots to
+`09-content-review`'s existing human-judgment process (its stated scope already covers "screen
+composition... does this screen read well") for the properties that genuinely need a human eye,
+rather than inventing a new automated aesthetic-judgment mechanism this project's tooling has no
+precedent for.
+
+### Sources
+No new external citation — this section grounds testing *methodology* directly in this project's
+own existing, verified code (`build_rom.py`/`test_rom.py`/`asm_game.py`) and its own prior
+research (R212's adjacency grammar, R213's generator recommendation, R111's PRNG/WRAM grounding,
+`BL-0017`'s precedent invariant), per this skill's own guidance that the project's working code
+and tests are Tier-A evidence.
+
 ## Feature Mapping
 
 *(No `FS-xxx` authored yet — this topic's primary consumer is expected to be a `07-implementation-
-planning` package for BL-0006/BL-0008, not a Feature Specification.)*
+planning` package for BL-0006/BL-0008, not a Feature Specification. The C10 extension above
+grounds a future package for the world-generation Feature instead.)*
 
 ## Related Topics
 
-R301 (the PyBoy API these tests are built on) · R304 (the one suite class — header validation —
-that needs no rewrite).
+R301 (the PyBoy API these tests are built on, incl. `screen.image` for the screenshot-assertion
+strategy) · R304 (the one suite class — header validation — that needs no rewrite) · R212 (the
+adjacency grammar the new grammar-validity check tests against) · R213 (the generation algorithm
+the reference-generator oracle mirrors) · R111 (the PRNG/WRAM implementation the oracle's Python
+reimplementation must match step-for-step) · R302 (the build-side codegen discipline this topic's
+oracle pattern extends).

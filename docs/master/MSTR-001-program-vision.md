@@ -1,13 +1,21 @@
 # MSTR-001 — Program Vision: Bunny Quest
 
-- **Document ID:** MSTR-001 · **Version:** 2.0 · **Status:** ✅ Authored (corrected + expanded)
-- **Date:** 2026-07-06 (v1.0 authored earlier same day; superseded same day — see §8) ·
-  **Owned by:** `01-vision` skill
+- **Document ID:** MSTR-001 · **Version:** 3.0 · **Status:** ✅ Authored (deliberate change —
+  aesthetics / visual-story-narrative / procedurally-generated-world increment)
+- **Date:** 2026-07-06 (v1.0); 2026-07-06 (v2.0, same day — see §8); **2026-07-09 (v3.0 — see
+  §8)** · **Owned by:** `01-vision` skill
 - **Derived from (v2.0):** direct inspection of the current shipped source
   (`tilemaps.py`, `asm_game.py`, `build_rom.py`, `music.py`, `tiles.py`) and a rebuilt ROM
   compared byte-for-byte against the checked-in `BunnyQuest.gbc` — **not** from `Claude.md`/
   `memory.md`, which v1.0 trusted and which are now known-stale (see §8). Plus the project
   owner's explicit scope-expansion instruction, 2026-07-06.
+- **Derived from (v3.0):** the project owner's explicit direction, 2026-07-08/09, recorded
+  verbatim-in-substance as decisions **D1–D10** in
+  [`docs/pipeline/PLAN-requirements-aesthetics-story-map.md`](../pipeline/PLAN-requirements-aesthetics-story-map.md)
+  §0 (the adopted increment plan), and the seed backlog entries it produced —
+  [`BL-0029`](../pipeline/backlog.md) (aesthetic quality), [`BL-0030`](../pipeline/backlog.md)
+  (visual story narrative), [`BL-0031`](../pipeline/backlog.md) (procedurally generated world) —
+  filed by `00-intake`.
 - **Design-facing restatement:** [`docs/architecture/00-vision.md`](../architecture/00-vision.md)
   (GDS-00)
 
@@ -21,7 +29,22 @@ to a running score; each zone also hides one **carrot**, and collecting all nine
 (tracked in a 9-byte per-zone flag array) is the win condition. The game has a title/intro flow,
 an in-game save menu, a 3×3 world-map screen showing which zones' carrots are collected, a
 victory screen, an original melody, and a battery-backed save that persists across power-off and
-auto-loads on boot.
+**currently** auto-loads on boot. *(This paragraph describes the game as shipped at v2.0. As of
+v3.0, C2's auto-load clause and this section's fixed 3×3/nine-zone/carrot description are the
+**named subject of a deliberate, in-progress supersession** — see C8–C10 below and §8's blast
+radius. They remain accurate today; they are not the permanent target.)*
+
+**Where this is headed (v3.0, new — C8/C9/C10):** the project owner has directed three concrete
+next steps, elaborated in the adopted increment plan
+([`PLAN-requirements-aesthetics-story-map.md`](../pipeline/PLAN-requirements-aesthetics-story-map.md)):
+the game's presentation becomes a first-class, reviewed quality commitment (**C8**); its story is
+told **visually**, through a logical narrative flow between biome regions rather than text
+(**C9**); and its world becomes **procedurally generated**, deterministic from a seed and a
+user-adjustable world-scale parameter the player sets once at new-game creation (**C10** — the
+first concrete shape of **C7**'s long-term scale direction). These are purpose-level commitments
+only — the research grounding, the generation algorithm, the biome-adjacency grammar, and the
+exact requirements are explicitly delegated downstream (research → architecture → requirements),
+not decided here.
 
 Equally load-bearing: the game is **built entirely by a modular Python assembler pipeline** — no
 RGBDS or external toolchain. Python modules define the tiles, screens, music, and SM83 game
@@ -38,40 +61,57 @@ see §8 for what "legacy" now includes.)
    fail states, non-violent, family-friendly content throughout (assumption A5).
 2. **Developers and coding agents:** the repository is a worked example of a fully-tested,
    documentation-driven GBC project — every behavior traceable from vision to a named emulator
-   test. *(This claim is currently only aspirational for the test layer — see §8's flagged gap.)*
+   test. **As of v3.0 this is true in practice** (`test_rom.py` rewritten and independently
+   verified, `IP-9010`/`VR-9010`, 125/125) — kept honest as a live claim, not aspirational.
 
 ## §3 Scope commitments (what must always be true)
 
-| # | Commitment | Evidence at v2.0 |
+| # | Commitment | Evidence |
 |---|---|---|
 | C1 | The ROM is **CGB-color, single-bank at present** (rsize 0x00), with a **valid header** (checksum, GBC flag 0x80). *Single-bank is the current shape, not a permanent ceiling* — see C7 and assumption A1. | rebuilt-and-diffed against `BunnyQuest.gbc`, header `set_header("BUNNYQUEST", cart=0x03, rsize=0x00, ramsize=0x02)` in `build_rom.py:163` |
-| C2 | Cart type is **MBC1+RAM+BATTERY (0x03)**; progress **persists across power-off** and a valid save **auto-loads on boot** | `build_rom.py:163`; save-format bytes in `asm_game.py` (0xA004–0xA00E range) |
+| **C2** *(amended v3.0)* | Cart type is **MBC1+RAM+BATTERY (0x03)**; progress **persists across power-off** (unchanged). **Amended:** loading a save is **player-initiated**, not automatic — boot goes to a **main menu** (continue / new game), never silently into `PLAYING`. New-game creation is also where **C10**'s seed and world-scale parameters are entered, fixed for the life of that save. *(Owner decisions D7–D10, 2026-07-09; states the built target, same forward-looking pattern as C7/C10 — not yet implemented, see §8.)* | `build_rom.py:163`; save-format bytes in `asm_game.py` (0xA004–0xA00E range); auto-load clause superseded per owner direction, 2026-07-09 |
 | C3 | The build is the **modular Python assembler chain** (`build_rom.py` + `gbc_lib`/`tiles`/`tilemaps`/`music`/`asm_game`) — reproducible from source with no external assembler | BL-0004 decision; a clean rebuild from source reproduces `BunnyQuest.gbc` byte-for-byte |
-| C4 | Every release is **emulator-verified**: the ROM builds and a full, *currently-accurate* test suite passes | rule G5 — **not currently satisfiable as written; `test_rom.py` tests the pre-rewrite game (see §8)** |
-| C5 | The **currently shipped Bunny Quest behavior** (9 zones, 9-carrot win condition, star/flower scoring, save/map/victory flows, auto-load) is the protected baseline going forward — changes to it are deliberate, pipeline-traced decisions, never side effects | direct code read of `tilemaps.py`/`asm_game.py`, 2026-07-06 |
+| C4 | Every release is **emulator-verified**: the ROM builds and a full, *currently-accurate* test suite passes | rule G5 — satisfiable in practice as of v3.0 (`test_rom.py` rewritten and independently verified, `IP-9010`/`VR-9010`, 125/125). **New at v3.0:** determinism itself becomes G5-testable once C10 lands (same-(seed,scale) ⇒ identical world, per a Python reference-generator oracle) |
+| C5 | The **currently shipped Bunny Quest behavior** (9 zones, 9-carrot win condition, star/flower scoring, save/map/victory flows, auto-load) is the protected baseline going forward — changes to it are deliberate, pipeline-traced decisions, never side effects. **v3.0 exercises this clause twice, deliberately** (§8): the handcrafted 3×3 world is superseded by C10's procedurally generated world (archived, not deleted, under `legacy/` per the `BL-0004`/`IP-9040` precedent); auto-load-on-boot is superseded by C2's amended player-initiated load. Both are named, dated, traceable amendments — exactly what C5 exists to require of a baseline change, not an exception to it. | direct code read of `tilemaps.py`/`asm_game.py`, 2026-07-06; amendment record, 2026-07-09 |
 | C6 | Content stays **family-friendly** and playable by a casual audience | §2 |
-| **C7** *(new)* | **Long-term world-scale target: comparable to a Zelda- or Pokémon-class overworld** — substantially more than nine zones/biomes, explored at a larger scale, "pressing the limits beyond that" as far as the platform and this pipeline's tooling can be stretched. This is a direction, not a single fixed target size. | project owner's explicit instruction, 2026-07-06 |
+| C7 | **Long-term world-scale target: comparable to a Zelda- or Pokémon-class overworld** — substantially more than nine zones/biomes, explored at a larger scale, "pressing the limits beyond that" as far as the platform and this pipeline's tooling can be stretched. This is a direction, not a single fixed target size. **v3.0 gives it its first concrete shape — see C10.** | project owner's explicit instruction, 2026-07-06 |
+| **C8** *(new, v3.0)* | **Presentation is a first-class, reviewed quality commitment**: every screen/room/view is clean (no visual garbage, no incoherent tile seams) and the experience is smooth. A normative aesthetic standard (downstream: GDS-08) must exist and be checked against, not left as an unstated craft preference. | Owner decision D4, 2026-07-09; grounded in existing research R209–R211 (`BL-0013`) |
+| **C9** *(new, v3.0)* | **The story is told visually**, through the world's own structure — a **logical adjacency grammar** between whole screens/regions (one biome per screen; adjacent regions follow a coherent flow, e.g. water → beach → grassland → hills → mountains → sky; never a disjointed pairing like water directly against sky). The collect-goal is **item-agnostic and child-friendly**, themed to each region and following this narrative (carrots are today's instance, not a fixed requirement). **No text-dialogue requirement at this vision's date** — not ruled out (§4), just not required; the agent constructs the adjacency grammar and item theming from research, not by owner fiat. | Owner decisions D1/D2, 2026-07-09 |
+| **C10** *(new, v3.0)* | **The world is procedurally generated** — deterministic, from a **seed** and a **world-scale** parameter, both **user-modifiable but entered only at new-game creation** and immutable for the life of that save (C2, amended above). This is **C7's long-term scale direction taking its first concrete shape**: the fixed 3×3/nine-zone handcrafted layout (C5) is superseded and archived, not the world-scale ambition itself. The specific generation algorithm is explicitly **not** dictated here — delegated to research (procgen algorithms; GBC homebrew precedent) and the downstream architecture decision it grounds. | Owner decisions D3/D5/D6/D7, 2026-07-09; concretizes C7 |
 
 ## §4 Non-goals (at this vision's date)
 
 Not commitments against forever — just explicitly *not* promised **yet**: real-hardware
 certification (emulator verification is the gate — assumption A2) · localization beyond English
 (A7) · a second, distinct game in this repository (A4 — Bunny Quest's own world growing much
-larger is C7, not a second game) · multiplayer/link-cable features.
+larger is C7, not a second game) · multiplayer/link-cable features · **text-based dialogue or
+an NPC conversation system** (new at v3.0, C9/D1 — deliberately phrased as *not yet*, not
+*never*: the owner explicitly declined to rule it out, only declined to require it now; a future
+request to add it re-opens at `01-vision`, since it would reverse a recorded non-goal, not extend
+one).
 
 **Reversed by this revision:** "bank-switched ROM growth beyond one bank" is **no longer a
 non-goal** — C7 explicitly anticipates it becoming necessary as the world grows past what a
 single 32KB bank holds (currently ~9.6KB of headroom remains: 23148/32768 bytes used at v2.0).
 MBC bank-switching strategy is now an expected future architecture question for
-`03-architecture-design-synthesis`, not a boundary to protect.
+`03-architecture-design-synthesis`, not a boundary to protect. **(v3.0 sharpens this further:**
+C10's generator code and C9's biome tile sets are named, concrete consumers of that headroom —
+bank switching is no longer merely anticipated, it is now an expected dependency of C9/C10's own
+architecture pass, per the adopted plan's bank-switching ADR.**)**
 
 ## §5 Quality bar
 
 "Done" for any change means: the ROM builds with a valid header; a full test suite that actually
 matches the current shipped behavior is green; the behavior is traceable through the pipeline's
 artifacts (requirement → feature spec → package → verification report); and the working
-quick-references (`Claude.md`, `memory.md`) match the shipped bytes. **This bar is not currently
-met for the test-suite and quick-reference clauses — see §8.**
+quick-references (`Claude.md`, `memory.md`) match the shipped bytes. **As of v3.0 this bar is
+met** — the test suite was rewritten and independently verified (`IP-9010`/`VR-9010`, 125/125),
+and the quick-references were refreshed (`IP-9030`, 2026-07-09, awaiting `09-package-verification`
+in a fresh session per the independence rule).
+
+**New at v3.0 (C8):** "done" for any presentation-affecting change additionally means it is
+**smooth** and **every screen/room/view is clean** — checked against the normative standard C8
+requires GDS-08 to state, not left to informal judgment.
 
 ## §6 Authority & document precedence
 
@@ -79,13 +119,14 @@ met for the test-suite and quick-reference clauses — see §8.**
    (`docs/architecture/`) is authoritative for design as each level's merge gate closes.
 2. Until `docs/master/MSTR-006` is authored, the governance rules **G1–G5** in
    [`.claude/skills/README.md`](../../.claude/skills/README.md) are binding.
-3. `Claude.md` and `memory.md` are *intended* to remain the live developer quick-references, but
-   are currently known to describe the pre-rewrite game (§8) — treat their current-state claims
-   as unreliable until a remediation pass corrects them; their process notes (how the pipeline
-   works, how to run things) are unaffected.
+3. `Claude.md` and `memory.md` are the live developer quick-references. **As of v3.0 both are
+   current** (refreshed by `IP-9030`, 2026-07-09, awaiting independent verification) — their
+   current-state claims may be trusted again; watch for the same drift risk each time this
+   vision changes without an immediate matching doc-refresh package.
 4. Conflicts between documents are findings for the owning skill — never resolved by silently
-   editing the downstream copy. **`test_rom.py` currently conflicts with the shipped game** —
-   flagged in §8, not silently patched here (out of this skill's write scope).
+   editing the downstream copy. `test_rom.py` no longer conflicts with the shipped game as of
+   `IP-9010` (`VR-9010`, independently verified) — this clause stays as a standing rule, not
+   because a conflict is currently open.
 
 ## §7 Change control
 
@@ -100,8 +141,9 @@ being quietly edited.
 | Date | Version | What changed | Why | Downstream blast radius |
 |---|---|---|---|---|
 | 2026-07-06 | 1.0 → 2.0 | **Corrected §1/§3/§4 wholesale**: the game is *Bunny Quest* (9 zones, 3×3 grid, 9-carrot win condition), not the 3-zone "Bunny Garden Adventure" v1.0 described. Added **C7** (Zelda/Pokémon-scale world target) and reversed the bank-switching non-goal. | v1.0 was authored (correctly, per its own bootstrap-mode rules) from `Claude.md`/`memory.md` — but those files describe the game **as it existed before commit `679b5cf` ("Rewrite as Bunny Quest")**, which had already landed on `main` before the pipeline scaffold's own PR merged. v1.0 never read the actual code. This revision does, and layers on the project owner's explicit forward-looking scale ambition given the same message. | See the full enumeration below — this is not a small fix. |
+| 2026-07-09 | 2.0 → 3.0 | **Deliberate scope expansion, three streams, one dated pass:** added **C8** (presentation is a first-class quality commitment — smooth, every screen clean), **C9** (the story is told visually, via a logical biome-adjacency grammar between screens, not text; item-agnostic child-friendly collect-goal), and **C10** (the world becomes deterministically procedurally generated from a user-set seed + world-scale, both fixed at new-game creation — C7's first concrete shape). **Amended C2**: a valid save's *load* becomes player-initiated via a new main menu, not automatic on boot (persistence across power-off is unchanged). Added a non-goal (text dialogue — not ruled out, just not required, C9/D1). Updated §5's quality bar (now met; added C8's smooth/clean clause) and §6 (Claude.md/memory.md/test_rom.py all now current, per `IP-9010`/`IP-9030`). | Direct owner direction across a short exchange, 2026-07-08/09, recorded verbatim-in-substance as decisions **D1–D10** in the adopted increment plan (`PLAN-requirements-aesthetics-story-map.md` §0) — see that document for the full decision-by-decision record. Two of the ten decisions (D5, D9) are **deliberate protected-baseline changes under C5**: the handcrafted 3×3 world is superseded by procedural generation, and auto-load-on-boot is superseded by player-initiated loading. Both are named here, not absorbed silently, per C5's and §7's own rules. | See the full enumeration below. |
 
-### Full downstream blast radius of this revision
+### Full downstream blast radius of the 1.0 → 2.0 revision
 
 Everything below was authored, or is otherwise exposed, on the basis of the now-superseded v1.0
 description (3 zones, "gifts," "BunnyGarden" naming) or is independently found stale by the same
@@ -118,7 +160,39 @@ investigation:
 | `Claude.md`, `memory.md`, `README.md` (repo-root working docs) | Describe the old game throughout (WRAM map, tile index map, zone names, "v2.1," known-good-behavior list) | not owned by any pipeline skill directly — the GDS ladder absorbs sections over time per each level's merge decision | **File as a new backlog entry** (doc-defect, high — these are the primary onboarding docs and are actively misleading right now). Likely fastest fix: a dedicated `07`/`08` documentation-refresh package once GDS-01/04/05 re-baseline against the real code. |
 | `docs/pipeline/pipeline-journal.md` run #1's Position block | Recorded "Stage 01 ✅ complete" against the now-superseded v1.0 content | `00-pipeline-manager` | Journal this correction as its own run; do not silently overwrite run #1's history — append, as always. |
 
-**Everything downstream of vision that hasn't been authored yet** (research tiers, the GDS-01…10
-ladder, requirements, features, packages) is **unaffected in the sense that nothing needs
-unwinding** — none of it existed yet. The correction lands before any of that work was done, which
-is the cheapest possible time for a vision correction to land.
+**Everything downstream of vision that hadn't been authored yet** at v2.0 (research tiers, the
+GDS-01…10 ladder, requirements, features, packages) was **unaffected in the sense that nothing
+needed unwinding** — none of it existed yet. The 1.0→2.0 correction landed before any of that
+work was done, the cheapest possible time for a vision correction to land.
+
+### Full downstream blast radius of the 2.0 → 3.0 revision
+
+Unlike the 1.0→2.0 correction, **this revision lands on a fully-authored downstream tree** —
+the GDS-00…10 ladder, all four research tiers, the requirements baseline, feature planning, and
+five implemented packages all exist and describe the *pre-v3.0* game. Every artifact below cites
+a statement this revision changed or is a named consumer of the new commitments; none of it is
+edited by this run (out of `01-vision`'s scope) — each row names its owning skill and the next
+action, per the adopted increment plan's own phased path.
+
+| Artifact | Exposure | Owning skill | Recommended action |
+|---|---|---|---|
+| `docs/architecture/00-vision.md` (GDS-00) | Restates C1/C2/C5/C7 at their pre-v3.0 shape (auto-load, fixed 3×3 baseline, C7 as an unshaped direction) | `01-vision` | **Fixed in this same run** — see below. |
+| `docs/architecture/strategic-assumptions-register.md` | A1's framing, A5/A7's scope, A6's "intended design" statement, and the absence of a determinism assumption all predate C8–C10 | `01-vision` | **Fixed in this same run** — see below. |
+| `docs/architecture/01-concept-of-play.md` (GDS-01) | §2 "auto-loads directly into PLAYING," §3's carrot-specific core loop, §4's state machine (no main menu state), 3×3-only zone list | `03-architecture-design-synthesis` | Phase 3 of the adopted plan: game-flow delta (D7–D10), biome-flow-structured core loop (C9), item-agnostic goal language. |
+| `docs/architecture/03-architecture.md` (GDS-03) + `docs/architecture/adr/` | No ADR yet covers world generation, seed/scale, or the bank-switching strategy C9/C10 now require | `03-architecture-design-synthesis` | Phase 3: world-generation ADR, seed & scale ADR, bank-switching ADR (per the adopted plan §2 Phase 3). |
+| `docs/architecture/04-domain-model.md` (GDS-04) | Zone/Carrot entities are fixed-count and carrot-specific; no Seed/WorldScale/Region/KeyItem entities, no adjacency-grammar rule | `03-architecture-design-synthesis` | Phase 3: new/changed entities per the adopted plan §2. |
+| `docs/architecture/07-data-model.md` (GDS-07) | WRAM/SRAM tables assume fixed 9-zone `CARROT_FLAGS`/`SCOREITEM_FLAGS`; no seed/scale persistence | `03-architecture-design-synthesis` | Phase 3: data-model delta, save-format version bump (FS-101 precedent). |
+| `docs/architecture/08-presentation-architecture.md` (GDS-08) | Palette strategy is correct but was never evaluated against a mandatory smooth/clean standard (C8) or a biome-adjacency palette-stepping requirement (C9) | `03-architecture-design-synthesis` | Phase 3: normative aesthetic standard + biome-transition presentation delta. |
+| `docs/requirements/` (RQ-01…04) | `FR`s state the fixed 9-carrot goal and auto-load as requirements; no FRs exist for C8/C9/C10 | `04-requirements-engineering` | Phase 4: the increment's own requirements delta — the plan's terminal deliverable. |
+| `docs/feature-planning/01-release-plan.md` (FP-01) | Release 2+ buckets are empty; this increment populates them | `05-feature-decomposition` | After Phase 4 closes, per the adopted plan's own stated boundary (out of this plan's scope). |
+| `docs/pipeline/backlog.md` — **BL-0015** | Recorded "wider vs deeper" as an open, deferred design fork | `00-pipeline-manager` | **Already closed** (run #30, 2026-07-09) — C10's user-adjustable scale dissolves the fork; not re-opened by this vision run. |
+| `docs/pipeline/backlog.md` — **BL-0029/BL-0030/BL-0031** | The three seed entries this revision's commitments (C8/C9/C10) formalize | `00-intake` (filed) → `01-vision` (this run) | **This run's direct subject** — flip to `IN PIPELINE`/`DONE` per the pipeline manager's next harvest; downstream work (research/architecture/requirements) is Phase 2–4, not this run. |
+| `test_rom.py` | Asserts `CARROT_FLAGS`/`CARROTS_COUNT==9` and the current auto-load-on-boot behavior as permanent facts — both are the **named subject** of C10/C2's amendment | `08-code-implementation`/`08-content-authoring` | Not touched by v3.0 architecture/requirements work — updates land only when the corresponding implementation packages ship (`07`→`08`), per the pipeline's normal gates; the *current* suite stays the accurate G5 gate for the *current* shipped code until then. |
+| `Claude.md`, `memory.md`, `README.md` | Just refreshed (`IP-9030`, this same day) to describe the pre-v3.0 shipped game accurately — **that description remains correct** (v3.0's commitments are forward-looking targets, not yet built) | not owned by any pipeline skill directly | No action now — these stay accurate for the shipped code; a future doc-refresh package updates them once C8–C10 actually ship, exactly as `IP-9030` did for the Bunny Quest rewrite. |
+
+**Contrast with the 1.0→2.0 revision:** that correction fixed a vision that had *misdescribed
+already-shipped code*. This revision **adds forward-looking commitments** (C8/C9/C10, C2
+amended) that *nothing downstream implements yet* — the shipped game, its tests, and its docs
+all remain accurate descriptions of the pre-v3.0 baseline. Nothing here is "wrong" the way
+v1.0 was; the blast radius above is downstream artifacts that will need their own dated passes
+to actually build toward the new commitments, not artifacts to urgently correct.

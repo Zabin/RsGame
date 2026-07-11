@@ -1,12 +1,45 @@
 # RQ-02 — Non-Functional Requirements
 
-> **Status: ✅ Authored (bootstrap as-built, 2026-07-06).** Owned by `04-requirements-engineering`.
-> Derives from [GDS-06](../architecture/06-non-functional-requirements.md)'s five NFRs (N1–N5) —
-> formalized into numbered `NFR-xxxx` requirements per
+> **Status: ✅ Authored (bootstrap as-built, 2026-07-06; delta 2026-07-09 for the procgen-world
+> increment, NFR-1300/2200/4200/5300/6500/6510; delta 2026-07-11 — NFR-6500/6510 flipped to Met
+> — see Changelog).** Owned by
+> `04-requirements-engineering`. Derives from
+> [GDS-06](../architecture/06-non-functional-requirements.md)'s five NFRs (N1–N5) — formalized
+> into numbered `NFR-xxxx` requirements per
 > [GDS-10](../architecture/10-requirements-traceability-matrix.md) §3's citation contract. **This
 > document preserves GDS-06's honest compliance status per requirement** — an NFR marked
 > "Status: not met" below is a real, tracked gap (with its backlog ID), never silently presented
 > as satisfied. Priority scale: Must / Should / Could, same as RQ-01.
+
+## Changelog
+
+- **2026-07-09 — Delta for the adopted aesthetics/visual-story-narrative/procgen-world-map
+  increment** ([PLAN-requirements-aesthetics-story-map.md](../pipeline/PLAN-requirements-aesthetics-story-map.md),
+  Phase 4; grounds `MSTR-001` v3.0's C8/C9/C10). **Six new NFRs added, all target requirements —
+  none met yet** (no `Status: MET` claim is made for any of them; they describe the bar the
+  increment's future packages must clear, not current compliance): **NFR-1300** (Performance —
+  screen-transition smoothness for generated content), **NFR-2200** (Reliability — deterministic
+  world generation, extending NFR-2100's determinism theme), **NFR-4200** (ROM/RAM budget —
+  generated-world WRAM/SRAM headroom, extending `BL-0019`'s headroom-watching convention),
+  **NFR-5300** (Data Integrity — save-format version bump for seed/scale/region-flags),
+  **NFR-6500/6510** (Usability, previously empty — the C8 aesthetic-craft/clean-screen standard
+  and the C9 biome-transition palette-stepping standard, both citing GDS-08's delta checklist).
+- **2026-07-10 — 04-delta batch (`BL-0026`/`BL-0028`).** Two stale "pending independent
+  verification" clauses corrected to reflect verifications that now exist: **NFR-1200**'s status
+  line (VR-9020 exists) and its stale "111/111" suite-count snapshot (now 125/125, with the delta
+  attributed to `IP-1010`'s later T11 suite); **NFR-5200**'s status line (VR-1010 exists) and its
+  Notes field (no longer "re-verify once implemented" — it *is* implemented and verified).
+  **NFR-6100**'s RTM Test cell filled (was `UNASSIGNED` despite direct evidence — the full T1–T10
+  suite already exercises PyBoy headless on every run, surfaced by `09-package-verification`'s
+  VR-9010, finding #1, run #23, `BL-0026`); `IP-9010`'s own citation of a nonexistent `NFR-7000`
+  (should read `NFR-6100`) is a package-document correction routed to a future
+  `07-implementation-planning` touch, not fixed here (out of this stage's write scope).
+- **2026-07-11 — 04-delta (`BL-0045`).** **NFR-6500/6510** flipped from "not yet implemented" to
+  **Met** — `09-content-review` exercised both against `IP-1031`'s content
+  ([content-review-IP-1031.md](../reviews/content-review-IP-1031.md)), the first biome-family
+  palette assignment either NFR had to judge. NFR-6500: clean, no findings. NFR-6510: Met with
+  one Low/informational note (the Stone↔Brick pairing sits outside GDS-08 §8's worked example —
+  does not fail the requirement, per its own "Should" priority). RTM rows for both updated.
 
 ## Performance
 
@@ -37,18 +70,58 @@
   confirmed-VBlank window, consistent with every other VRAM write in the system.
 - **Rationale:** GDS-06 N2, citing `Claude.md`'s original bug note.
 - **Priority:** Must
-- **Status: NOT MET.** The score-bar VRAM write is suspected to occur outside the VBlank
-  discipline NFR-1100 requires — currently invisible on PyBoy (no observable corruption under
-  headless emulation) but a real correctness gap against actual hardware timing.
+- **Status: MET (2026-07-07, via `IP-9020`; independently confirmed by `09-package-verification`,
+  [VR-9020](../implementation/verification/VR-9020-score-bar-vblank-fix.md)).** The
+  `CALL('update_status_disp')` was relocated from `st_playing`
+  (an unbounded distance into the frame) to the main loop's frame top, immediately after
+  `VBLANK_FLAG` is cleared and before the `NEED_REDRAW`/`do_screen_redraw` dispatch —
+  guaranteeing the write lands within the VBlank window (R102). The routine's existing internal
+  `GAMESTATE`/`SCORE_DIRTY` guards make the unconditional call-site safe in every state. Accepted
+  side effect: `SCORE_DIRTY` set during frame N is now drawn at the top of frame N+1 (previously
+  same-frame) — no requirement states same-frame HUD latency. Evidence:
+  [IP-9020](../implementation/packages/IP-9020-score-bar-vblank-fix.md); `test_rom.py` T8.10a/
+  T8.10b force-dirty the HUD fields and confirm the digit tiles reflect the new values within 2
+  frames; full suite **111/111 pass at IP-9020's own commit** (`test_results.txt`, regenerated
+  2026-07-07) — **125/125 today**, the +14 delta entirely `IP-1010`'s later, independently
+  verified T11 suite (2026-07-10 correction, `BL-0028`).
+  *Historical note (pre-2026-07-07):* the write was called from `st_playing`, at an unbounded
+  distance from the VBlank wake-up — a real correctness gap against actual hardware timing, even
+  though it produced no observable corruption under headless PyBoy emulation.
 - **Acceptance Criteria:** The score-bar write occurs only inside a confirmed-VBlank/LCD-off
   window, verified by static inspection of the write site.
-- **Verification Method:** Inspection.
+- **Verification Method:** Test (`test_rom.py` T8.10a/T8.10b) / Inspection (call-site relocation
+  confirmed directly against `asm_game.py`).
 - **Source Documents:** GDS-06 N2; `Claude.md`'s "Remaining Known Issues" note (credited as this
   finding's origin, per GDS-06's merge decision).
 - **Related ADRs:** None.
-- **Notes:** Tracked as **BL-0003**, folded into the umbrella remediation entry **BL-0008**. This
-  NFR is stated as a standard the system must meet, not evidence that it currently does — do not
-  close this NFR's non-compliance without a remediation package that fixes the write site itself.
+- **Notes:** Remediated by **IP-9020** (closes **BL-0003**, part of the umbrella remediation
+  entry **BL-0008**).
+
+### NFR-1300 — Screen-transition smoothness for generated content (Met — 2026-07-10, `IP-1030`)
+
+- **ID:** NFR-1300
+- **Title:** A generated-region screen transition shall complete within the same LCD-off redraw
+  budget existing transitions already use.
+- **Description:** Entering a generated region (via FR-2300-equivalent traversal) shall render
+  using the existing `do_screen_redraw`/`copy_screen` LCD-off mechanism (NFR-1100's sibling
+  requirement), with no new, slower transition path introduced for generated content.
+- **Rationale:** MSTR-001 C8/D4 ("smooth"); GDS-08 delta §7; GDS-07 delta; R102's extension.
+- **Priority:** Must (Met)
+- **Status: MET.** `dsr_p`'s biome-id dispatch (`IP-1030`) branches to one of 5 named patch pairs
+  purely to select the source address, then calls the exact same, unmodified `copy_screen` routine
+  inside the same LCD-off bracket every existing transition already used — confirmed by direct code
+  read (T13.b) and the T13.a tile-family audit. The new `draw_region_arrows` runtime routine
+  (retiring `_zone_arrows`' build-time math) also runs inside this same bracket, before LCD
+  re-enable — no new safe-window convention introduced.
+- **Acceptance Criteria:** A generated-region transition's tilemap/attribute write uses the same
+  `copy_screen` routine and LCD-off bracket as every existing zone transition, with no additional
+  per-frame cost beyond that routine's existing, already-budgeted 1152-byte copy.
+- **Verification Method:** Inspection (call-site audit) / Test.
+- **Source Documents:** GDS-08 delta §7; R102's extension.
+- **Related ADRs:** ADR-0009.
+- **Notes:** World *generation* itself (FR-9100) happens once, at new-game creation — not
+  per-transition — so it is explicitly out of scope for this NFR's in-session smoothness bar
+  (GDS-08 §7's own framing).
 
 ## Reliability
 
@@ -71,6 +144,33 @@
 - **Notes:** This is a derived requirement, not a direct GDS-06 citation — flagged honestly per
   the writing rule that "implied by the architecture" is not itself a citation; the citation here
   is to the FR baseline's own testability need, which is a legitimate source.
+
+### NFR-2200 — Deterministic world generation (Met — 2026-07-10, `IP-1020`)
+
+- **ID:** NFR-2200
+- **Title:** World generation shall be deterministic in (seed, scale) alone — no dependence on
+  `DIV`, uninitialized RAM, or any other timing-dependent input.
+- **Description:** Extends NFR-2100's determinism theme specifically to the world-generation
+  routine (FR-9100): the routine's output shall be a pure function of (seed, scale), with no
+  read of the `DIV` register, uninitialized WRAM, or any other non-reproducible value anywhere
+  in the generation algorithm.
+- **Rationale:** MSTR-001 C10; strategic assumption A9; R111.
+- **Priority:** Must
+- **Status: MET.** `generate_world`/`gw_prng_step` (`asm_game.py`) read only `SEED`/
+  `WORLD_SCALE`/`TMP1`/`TMP2`/`GW_*` scratch/`REGION_GRAPH` — no `LDH` (hardware register,
+  including `DIV`) anywhere in either routine, confirmed by `test_rom.py`'s **T12.h** source
+  scan. Determinism confirmed two ways: **T12.a** (byte-identical `REGION_GRAPH` across two
+  independent fresh-boot invocations of the same `(seed, scale)`) and **T12.b** (byte-identical
+  match against the `worldgen.py` reference oracle across a 15-entry seed/scale corpus).
+- **Acceptance Criteria:** Static inspection of the generation routine finds no read of `DIV` or
+  any WRAM address not explicitly initialized from (seed, scale) or the routine's own prior
+  output; a determinism property test (FR-9100) confirms identical output across repeated runs.
+- **Verification Method:** Inspection (static code audit) / Test (determinism property test).
+- **Source Documents:** Strategic-assumptions-register A9; R111.
+- **Related ADRs:** ADR-0009.
+- **Notes:** This is what makes the Python reference-generator oracle (R305's extension) valid —
+  an oracle can only predict SM83 output for a nondeterministic routine by accident, not by
+  design. Not yet implemented.
 
 ## Maintainability
 
@@ -134,6 +234,33 @@
   and vice versa — the two must be checked independently for any future zone/content addition, per
   GDS-06 N1's explicit caution.
 
+### NFR-4200 — Generated-world WRAM/SRAM headroom (WRAM half Met — 2026-07-10, `IP-1020`)
+
+- **ID:** NFR-4200
+- **Title:** The generated world's WRAM working set and SRAM save-field additions shall stay
+  within confirmed available headroom at every supported world scale.
+- **Description:** At the maximum supported world scale (9, 81 regions), the region-graph WRAM
+  working set plus KeyItemFlags shall not exceed bank-0's confirmed unbanked headroom, and the
+  SRAM save-field additions shall remain a small fraction of the 8 KiB SRAM budget.
+- **Rationale:** GDS-07 delta §6/§7; R111; extends `BL-0019`'s ROM-headroom-watching convention
+  to WRAM/SRAM specifically.
+- **Priority:** Must
+- **Status: WRAM half MET (`IP-1020`); SRAM half still NOT YET IMPLEMENTED (`FEAT-5300`/
+  `IP-1050`'s scope).** Measured against shipped code, not estimated: `SEED`–`GW_SCALE_SQ`
+  (`0xC069`–`0xC27C`, confirmed [GDS-07](../architecture/07-data-model.md) §6) stays entirely
+  inside bank-0 and the existing boot-time WRAM clear (`0xC000`–`0xC2FF`); `test_rom.py`'s
+  **T12.i** confirms this directly against the built ROM at `scale=9`. The SRAM half's proposed
+  figures (~84 bytes against 8 KiB) remain architecture-level estimates pending `IP-1050`.
+- **Acceptance Criteria:** At world scale 9, the built ROM's WRAM working set for the region
+  graph plus KeyItemFlags fits within bank-0 (`0xC000`–`0xCFFF`) without requiring `SVBK`
+  banking; the SRAM save-field additions plus existing save data remain under 8 KiB.
+- **Verification Method:** Inspection (WRAM/SRAM layout audit at implementation) / Test.
+- **Source Documents:** GDS-07 delta §6/§7; R111.
+- **Related ADRs:** ADR-0010.
+- **Notes:** Re-affirm this NFR's status the same way `BL-0019`'s convention already requires for
+  ROM-growing packages — any package materially growing the WRAM/SRAM footprint should include a
+  checklist item re-checking headroom against this NFR's figures. Not yet implemented.
+
 ## Data Integrity
 
 ### NFR-5100 — MBC1 SRAM enable/disable bracketing
@@ -159,25 +286,56 @@
 - **Title:** Whatever field set the system declares persisted shall round-trip correctly through
   a save/load cycle.
 - **Description:** For the currently-declared save-field set — {CurrentZone, PlayerPosition,
-  CarrotCount, Score, CarrotFlags[9], per-zone ScoreItem collected-state} as of the 2026-07-07
-  widening (FR-5220) — a save followed by a load shall restore each field to exactly the value it
-  held at save time.
-- **Rationale:** GDS-06 N3; FR-5220 (widened field set).
+  KeyItemCount, Score, KeyItemFlags[≤81], per-zone ScoreItem collected-state, Seed, WorldScale}
+  as of the 2026-07-10 widening (FR-9200, `IP-1050`, second widening after FR-5220's) — a save
+  followed by a load shall restore each field to exactly the value it held at save time.
+- **Rationale:** GDS-06 N3; FR-5220, FR-9200 (widened field set).
 - **Priority:** Must
-- **Status: MET** for the pre-widening field set (confirmed directly); **not yet independently
-  verified** for the newly-added per-zone ScoreItem field (FR-5220 has no implementation yet — see
-  RQ-04). This NFR remains scoped to *whatever fields are declared persisted*, which as of
-  2026-07-07 explicitly includes per-zone ScoreItem state per the user's decision resolving
-  BL-0018 (now `DONE`) — facing direction and animation frame remain explicitly excluded
-  (FR-5210), not an open question.
-- **Acceptance Criteria:** For each field in {CurrentZone, PlayerPosition, CarrotCount, Score,
-  CarrotFlags[9], per-zone ScoreItem collected-state}, saving then loading yields an identical
-  value.
+- **Status: MET (2026-07-07 for the FR-5220 field set via `IP-1010`; widened 2026-07-10 for
+  Seed/WorldScale/KeyItemFlags via `IP-1050`)** for the full widened field set. `test_rom.py`
+  T11.b5/T11.c/T11.e1 (+ the existing T10 suite) round-trip `CurrentZone`/`PlayerPosition`/
+  `Score`/`KEYITEM_FLAGS`(-formerly-`CARROT_FLAGS`)/`SCOREITEM_FLAGS`; T15.a3–a6/c1–c6 round-trip
+  `SEED`/`WORLD_SCALE`/`KEYITEM_FLAGS`/`KEYITEM_COUNT` together with the legacy fields under the
+  new version-2 format in a single save/reload cycle; T11.d/T15.b confirm the version-guard
+  default (a version-mismatched save loads no partial data at all, per ADR-0010 — stricter than
+  the original FR-5220-era "safe empty state" default). Facing direction and animation frame
+  remain explicitly excluded (FR-5210), not an open question.
+- **Acceptance Criteria:** For each field in {CurrentZone, PlayerPosition, KeyItemCount, Score,
+  KeyItemFlags[≤81], per-zone ScoreItem collected-state, Seed, WorldScale}, saving then loading
+  yields an identical value.
 - **Verification Method:** Test.
-- **Source Documents:** GDS-06 N3; FR-5220.
-- **Related ADRs:** ADR-0006.
-- **Notes:** Re-verify this NFR's "Met" status once FR-5220 is implemented (stage 08) — its
-  compliance claim currently covers only the pre-widening field set.
+- **Source Documents:** GDS-06 N3; FR-5220, FR-9200.
+- **Related ADRs:** ADR-0006, ADR-0010.
+- **Notes:** FR-5220 is implemented and independently verified (2026-07-10 correction,
+  `BL-0028`). FR-9200 implemented 2026-07-10 (`IP-1050`) — this NFR's "Met" status now covers
+  both widenings.
+
+### NFR-5300 — Save-format version bump for seed/scale/region-flags (Met — 2026-07-10, `IP-1050`)
+
+- **ID:** NFR-5300
+- **Title:** A pre-upgrade save (predating the seed/scale save-format extension) shall be
+  reliably detected and never misread as containing valid seed/scale/region data.
+- **Description:** The save-format version guard (extending the FS-101/`IP-1010` precedent at
+  `0xA012`) shall be bumped to a new value when FR-9200's fields are added; a save whose version
+  byte does not match is treated as pre-upgrade and is not offered on the MAIN MENU's "continue"
+  path (per FR-1170/FR-9200), never partially loaded with garbage seed/scale/region-flags bytes.
+- **Rationale:** ADR-0010; GDS-07 delta §7; R106's extension; the FS-101/`IP-1010` version-byte
+  precedent this NFR extends.
+- **Priority:** Must (Met)
+- **Status: MET.** `SAVE_VERSION_VAL` bumped `0x01`→`0x02`; `check_save_valid` (`IP-1040`) and
+  `try_load_save`'s own version check (both consuming the same symbolic constant) now reject a
+  version-1 save from "continue" entirely — confirmed by `T15.b1`/`b2` (a synthetic IP-1010-vintage
+  fixture, following T11.d's exact pattern) and `T11.d1b` (the pre-upgrade case IP-1040 already
+  covers). No partial load of garbage seed/scale/region-flags bytes occurs in either case.
+- **Acceptance Criteria:** Given a save written under the prior version value, after boot that
+  save is not offered as a "continue" option — verified by a synthetic pre-upgrade SRAM fixture,
+  following the same test pattern `IP-1010`'s T11.d established for `SCOREITEM_FLAGS`.
+- **Verification Method:** Test (synthetic pre-upgrade fixture, `IP-1010`'s T11.d precedent).
+- **Source Documents:** GDS-07 delta §7; ADR-0010.
+- **Related ADRs:** ADR-0010, ADR-0006.
+- **Notes:** Implemented 2026-07-10 (`IP-1050`). The version-value sequence (`0x01`→`0x02`) is now
+  strictly monotonic by convention — a future save-format extension must bump to `0x03`, never
+  reuse either prior value.
 
 ## Portability
 
@@ -201,9 +359,66 @@
 
 ## Usability
 
-*(none derivable from inputs — see Candidate Requirements. No source document states a
-player-facing usability standard beyond what FR-6xxx's presentation requirements already cover as
-functional behavior.)*
+### NFR-6500 — Aesthetic craft and clean-screen standard compliance (target — 2026-07-09)
+
+- **ID:** NFR-6500
+- **Title:** All tile/sprite art and every rendered screen shall comply with GDS-08 delta §7's
+  normative aesthetic standard.
+- **Description:** Every tile/sprite (new or existing) shall satisfy R209's craft rules
+  (silhouette-first design, per-part color budgeting, outlines on characters never terrain, no
+  anti-aliased edges); every rendered screen (generated or hand-authored) shall satisfy the
+  clean-screen rules (no undefined tile indices, no illegal tile-adjacency pairs, correct
+  transition-edge neighbors).
+- **Rationale:** MSTR-001 C8/D4 ("every screen/room/view clean"); GDS-08 delta §7; R209.
+- **Priority:** Must
+- **Status: Met (2026-07-11).** First exercised against `IP-1031`'s content by
+  `09-content-review` — [content-review-IP-1031.md](../reviews/content-review-IP-1031.md): no
+  undefined tile indices, no illegal tile-adjacency pairs, all four walked transition edges
+  rendered a consistent, correctly-rendered neighbor. The craft checklist itself had no new
+  tile/sprite art to check (IP-1031 reuses existing art verbatim) but was spot-checked
+  opportunistically against the reused art with no defects found.
+- **Acceptance Criteria:** Every checklist item in GDS-08 delta §7 passes for every screen a
+  content package produces, confirmed by `09-content-review` per its existing review process
+  (extended to apply this checklist, not a new review mechanism).
+- **Verification Method:** Inspection (`09-content-review`'s existing visual-judgment process,
+  applied against this checklist) / Test (the mechanically-checkable subset — undefined tiles,
+  illegal seam pairs).
+- **Source Documents:** GDS-08 delta §7; R209.
+- **Related ADRs:** None.
+- **Notes:** Not yet implemented as a formal gate. `09-content-review`'s scope already covers
+  "does this screen read well" — this NFR gives that judgment a written standard to check
+  against instead of an informal one.
+
+### NFR-6510 — Biome-transition palette-stepping compliance (target — 2026-07-09)
+
+- **ID:** NFR-6510
+- **Title:** Adjacent grammar-legal biome families' palettes shall step coherently, not be
+  assigned arbitrarily.
+- **Description:** For any two biome families permitted to be adjacent by the grammar (FR-4310),
+  their assigned BG palettes shall share a plausible color-family relationship (e.g. water-blues
+  stepping toward beach-sands), per GDS-08 delta §8's strategy.
+- **Rationale:** MSTR-001 C9; GDS-08 delta §8; R212.
+- **Priority:** Should (a design-quality standard, not a hard functional gate — GDS-08 delta §8
+  itself frames this as a content-authoring guideline within the existing 8-palette budget, not
+  a new hardware constraint)
+- **Status: Met, with one Low/informational note (2026-07-11).** First exercised against
+  `IP-1031`'s 5 biome-family assignments by `09-content-review` —
+  [content-review-IP-1031.md](../reviews/content-review-IP-1031.md): 3 of the 4 grammar-legal
+  adjacent pairs walked (Water↔Sand, Sand↔Grass, Grass↔Stone) match GDS-08 delta §8's own worked
+  example exactly; the fourth (Stone↔Brick) is the one pairing outside that example and reads as
+  a larger hue jump — not arbitrary (a plausible mountain-to-castle reading), but flagged for a
+  future GDS-08 §8 touch to consider extending the worked example. Consistent with this NFR's own
+  "Should" priority — the finding does not fail the requirement.
+- **Acceptance Criteria:** For every grammar-legal adjacent biome-family pair, a reviewer
+  (`09-content-review`) confirms their assigned palettes read as color-family-related rather than
+  arbitrary, per GDS-08 delta §8's worked example ordering.
+- **Verification Method:** Inspection (`09-content-review`, a design-quality judgment call, not
+  mechanically checkable).
+- **Source Documents:** GDS-08 delta §8; R212.
+- **Related ADRs:** ADR-0009.
+- **Notes:** Confirms explicitly (per GDS-08 delta §8): the 8-BG-palette ceiling binds
+  biome-family *count*, not blending, since FR-4300 rules out intra-screen mixing. Not yet
+  implemented.
 
 ## Testability
 

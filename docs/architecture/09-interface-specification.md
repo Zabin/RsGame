@@ -1,8 +1,9 @@
 # GDS-09 — Interface Specification
 
-> **Status: ✅ Authored (bootstrap as-built, 2026-07-06).** Owned by
-> `03-architecture-design-synthesis`. Builds on [GDS-08](08-presentation-architecture.md); the
-> next level, [GDS-10 RTM level](10-requirements-traceability-matrix.md), builds on this one.
+> **Status: ✅ Authored (bootstrap as-built, 2026-07-06; delta 2026-07-09 for the procgen-world
+> increment — see "Interface delta" below).** Owned by `03-architecture-design-synthesis`.
+> Builds on [GDS-08](08-presentation-architecture.md); the next level,
+> [GDS-10 RTM level](10-requirements-traceability-matrix.md), builds on this one.
 
 ## Purpose
 
@@ -66,6 +67,80 @@ marker for the playback routine to detect end-of-song and restart. **Contract: a
 multi-track or per-zone music extension must preserve this terminal marker convention** — the
 playback code in `asm_game.py` reads until it sees `0xFF`, not a fixed length.
 
+## Interface delta (2026-07-09 — target state, not yet shipped)
+
+Per **ADR-0009**/**ADR-0010** and [GDS-07](07-data-model.md)'s/
+[R302](../research/encyclopedia/R302-python-assembler-codegen-patterns.md)'s deltas: one new
+module contract and two extensions to existing contracts.
+
+### `worldgen.py` (shipped 2026-07-10, `IP-1020` — build-side reference-generator oracle)
+
+Per [R302](../research/encyclopedia/R302-python-assembler-codegen-patterns.md)'s extension: a
+new sibling module to `tiles.py`/`tilemaps.py`/`music.py`, reimplementing the SM83 world-
+generation algorithm ([ADR-0009](adr/ADR-0009-screen-graph-world-generation.md)) in Python.
+**Confirmed contract**: `generate(seed: int, scale: int) -> list[dict]`, matching the proposed
+shape exactly — each element is `{'biome_id': int, 'neighbors': [up, down, left, right]}`
+(`None` where the proposed contract's `0xFF` sentinel appears), row-major order matching
+[GDS-07](07-data-model.md) §6's confirmed `REGION_GRAPH` layout field-for-field (no separate
+`key_item_region_index` field was needed — every region unconditionally holds exactly one
+`KeyItem`, per FR-9130, so nothing distinguishes one region's item slot from another's).
+**Contract confirmed as shipped: `worldgen.py`'s algorithm and `asm_game.py`'s
+`generate_world`/`gw_prng_step` routines produce byte-identical results for the same `(seed,
+scale)`** — proven, not just asserted, by `test_rom.py`'s **T12.b** (a 15-entry seed/scale
+corpus, zero mismatches) — this is the load-bearing correctness property
+[R305](../research/encyclopedia/R305-emulator-based-test-design.md)'s reference-generator-oracle
+testing strategy depends on; the two implementations are kept in lockstep by direct
+correspondence (same PRNG step order — 16-bit xorshift, `x^=x<<1; x^=x>>1; x^=byteswap(x)` — same
+row-major visitation, same top/left-constraint-intersection clamp), not shared code, the same
+discipline this level's existing contracts already assume between `build_rom.py` and
+`asm_game.py`. **Consumer**: `test_rom.py` imports `worldgen.py` to compute expected values for
+any `(seed, scale)` in its T12 property-test corpus, and to drive `generate_world` directly via a
+PC/SP hijack (`invoke_generate_world`, since no call site exists yet — `FEAT-1100`'s scope);
+`build_rom.py`/`asm_game.py` do **not** import it — the SM83 routine is the actual runtime
+generator, `worldgen.py` is a test-only oracle, not a shared implementation.
+
+### `build_game_asm(rom: ROM) -> dict` — new patch-point keys (extends the existing contract)
+
+**Confirmed (2026-07-10, `IP-1020`): `generate_world` itself needs no new `patches` dict key.**
+FS-102 Open Question 3 resolved during `07-implementation-planning`: the grammar check is inline
+arithmetic (adjacency legal iff axis indices differ by ≤1, a single comparison), not ROM-resident
+table data, so no generator-data pointer exists to patch. The seed/scale-entry *screen's*
+tile/attribute addresses (parallel to today's `title_t`/`title_a` pattern) remain
+`FEAT-1100`/`IP-1040`'s scope — still expected to use this same, unmodified `patches` dict
+mechanism, following the established naming convention. **No new resolution mechanism** — this is
+the existing contract, exercised with new keys where `IP-1040` needs them, exactly as
+[R302](../research/encyclopedia/R302-python-assembler-codegen-patterns.md)'s own guidance already
+anticipated for future growth ("many more zones means many more patch-point entries... still the
+same mechanism, no redesign needed").
+
+### `ALL_SCREENS` — biome-family screen generators (extends the existing contract)
+
+Where `ALL_SCREENS` today lists one `(name, fn)` pair per fixed zone (`beach_screen()` …
+`castle_screen()`), a generated world's per-region rendering needs **one `fn()` per biome
+*family*** (not per region — regions of the same biome family share a rendering function,
+parameterized by the region's specific generated content), consistent with
+[GDS-08](08-presentation-architecture.md)'s delta (biome families, not per-region unique art).
+**Contract unchanged**: each `fn() -> (tiles, attrs)` still returns the same two-buffer shape;
+only the caller's iteration source changes (from a fixed 9-entry list to a variable-length,
+`WorldScale`-driven set of generated region-render calls) — a `build_rom.py`-side change, not an
+`ALL_SCREENS`-shape change.
+
+**This delta does not touch `class ROM`, `build_tile_data()`'s buffer contract, `ZONE_COLLECTS`'s
+per-zone-list shape (generalizes to per-region, same shape), or `music_data()`** — none of those
+contracts are affected by C9/C10.
+
+**Confirmed (2026-07-10, `IP-1030`): the shipped mechanism is 5 named `patches` dict key pairs
+(`water_t`/`water_a` … `brick_t`/`brick_a`), parallel to `title_t`/`title_a`, not a build-time
+variable-length table.** `ALL_SCREENS` itself stays a fixed 10-entry list (5 biome-family
+representatives + 5 UI screens) — the "variable-length, `WorldScale`-driven set" language above
+described the *player-visible region count*, not `ALL_SCREENS`'s own shape, which this package
+confirms is fixed at build time (family count is a build-time constant; only the *runtime dispatch*
+— which of the 5 pre-built family screens a given region's generated biome-id selects — varies).
+At runtime, `asm_game.py`'s `dsr_p` reads the current region's biome-id out of `REGION_GRAPH`
+(`IP-1020`) and branches to the matching named patch pair before the unmodified `copy_screen` call
+— `_zone_arrows`' build-time rectangle math (`tilemaps.py`) is retired in favor of a new runtime
+`draw_region_arrows` routine reading `REGION_GRAPH`'s per-region neighbor bytes directly.
+
 ## Merge gate
 
 - [x] Stub body replaced with real content addressing the stated Purpose.
@@ -81,3 +156,8 @@ playback code in `asm_game.py` reads until it sees `0xFF`, not a fixed length.
 to state these interface contracts explicitly (they describe *what the code does*, not *what
 contract callers must honor*). No merge conflict to resolve; this level is wholly new content
 relative to the pre-existing docs.
+
+**Delta record (2026-07-09):** "Interface delta" section added above, per the adopted increment
+plan's Phase 3. Delta, not re-authoring — the six as-built contracts above remain accurate; the
+new/extended contracts describe the target `worldgen.py`/patch-point/`ALL_SCREENS` shape, not
+yet built. No merge-gate box above is reopened.

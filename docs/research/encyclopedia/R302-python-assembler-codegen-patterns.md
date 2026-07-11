@@ -2,7 +2,8 @@
 
 - **Document ID:** R302 · **Version:** 1.0 · **Status:** ✅
 - **Dependencies:** R101 (the opcode emitters this pattern assembles)
-- **Referenced By:** none yet
+- **Referenced By:** R305 (this topic's module-boundary convention grounds R305's
+  reference-generator oracle placement)
 - **Produces:** grounds `gbc_lib.py`'s `resolve()`/label mechanism and `build_rom.py`'s
   patch-point dict pattern
 - **Feature Mapping:** *(none yet)*
@@ -90,10 +91,30 @@ can see the final patched bytes) would produce a corrupt or unbootable ROM.
   bank-relative addressing, since a simple flat 16-bit patch stops being sufficient once code/data
   can live in different banks.
 
+## Where a reference-generator oracle module would live (2026-07-09, grounds MSTR-001 C10/R305)
+
+R305's C10 extension recommends a **Python reference-generator oracle** — a build-side
+reimplementation of the SM83 world-generation algorithm (R213/R111), used by `test_rom.py` to
+compute expected values for any `(seed, scale)`. This project's existing module boundaries
+(`Claude.md`'s "one job per file," `ADR-0003`) suggest the oracle is **its own module**, not
+folded into `build_rom.py` or `test_rom.py` directly: `build_rom.py` lays out ROM sections and
+has no reason to import test-only code; `test_rom.py` is the natural *consumer* of the oracle,
+not its owner. A new module (e.g. a `worldgen.py` sibling to `tiles.py`/`tilemaps.py`/`music.py`)
+matching this project's existing one-file-one-job pattern, imported by `test_rom.py` for its
+expected-value computation, keeps the boundary clean — this is a naming/placement observation for
+whichever `07-implementation-planning` package eventually specs the generator, not a decision
+this research topic makes.
+
+### Sources
+No new external citation — grounded in this project's own existing module-boundary convention
+(`ADR-0003`) and R305's oracle-pattern recommendation.
+
 ## Feature Mapping
 
 *(No `FS-xxx` authored yet.)*
 
 ## Related Topics
 
-R101 (the opcode emitters this codegen pattern assembles into a byte buffer).
+R101 (the opcode emitters this codegen pattern assembles into a byte buffer) · R305 (the
+reference-generator oracle pattern this topic's module-placement note supports) · R213 (the
+generation algorithm the oracle mirrors).

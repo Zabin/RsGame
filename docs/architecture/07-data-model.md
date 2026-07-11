@@ -1,10 +1,18 @@
 # GDS-07 — Data Model
 
-> **Status: ✅ Authored (bootstrap as-built, 2026-07-06).** Owned by
-> `03-architecture-design-synthesis`. Builds on [GDS-06](06-non-functional-requirements.md); the
-> next level, [GDS-08 Presentation Architecture](08-presentation-architecture.md), builds on this
-> one. **This is the first level authorized to state exact byte addresses** — GDS-04's Domain
+> **Status: ✅ Authored (bootstrap as-built, 2026-07-06; delta 2026-07-09 for the procgen-world
+> increment — see "Data Model delta" below).** Owned by `03-architecture-design-synthesis`.
+> Builds on [GDS-06](06-non-functional-requirements.md); the next level,
+> [GDS-08 Presentation Architecture](08-presentation-architecture.md), builds on this one.
+> **This is the first level authorized to state exact byte addresses** — GDS-04's Domain
 > Model deliberately stayed at entity altitude and deferred all of this here.
+>
+> **Reading this document:** §§1–5 below describe the ROM/WRAM/SRAM/tile/palette layout **as
+> currently shipped** and remain accurate. The delta section describes the **target** layout
+> [ADR-0009](adr/ADR-0009-screen-graph-world-generation.md)/
+> [ADR-0010](adr/ADR-0010-seed-scale-model.md) commit to — proposed addresses, not yet built;
+> final confirmation happens at implementation, the same precedent `FS-101`/`IP-1010` set for
+> `SCOREITEM_FLAGS`' address.
 
 ## Purpose
 
@@ -59,6 +67,7 @@ Confirmed directly against `asm_game.py`'s constant declarations:
 | `C015`–`C01D` | `CARROT_FLAGS` | **9 bytes**, one per zone, 0/1 |
 | `C020` | `COLL_DATA` | working collectible struct |
 | `C050` | `COLL_COUNT` | collectible count for current zone |
+| `C060`–`C068` | `SCOREITEM_FLAGS` | **9 bytes** — one bitfield per zone, bit *N* = the *N*th `ZONE_COLLECTS` list entry ([FR-5220](../requirements/01-functional-requirements.md), [IP-1010](../implementation/packages/IP-1010-per-zone-scoreitem-persistence.md), 2026-07-07). Assigned here (deferred by [FS-101](../features/FS-101-per-zone-scoreitem-persistence.md) Open Question 3): sits inside the boot clear of `C000`–`C2FF`, 8-aligned, with headroom to `COLL_COUNT` on one side and `OAM_BUF` on the other. |
 | `C300` | `OAM_BUF` | 160 bytes, shadow OAM ([R105](../research/encyclopedia/R105-oam-sprites-dma.md)) |
 
 ### 3. SRAM save format (`0xA000`+)
@@ -73,11 +82,13 @@ Confirmed directly against `try_load_save`/the save routine:
 | `A007` | `CARROTS_COUNT` |
 | `A008` | `SCORE` |
 | `A009`–`A011` | `CARROT_FLAGS` (9 bytes) |
+| `A012` | Save-format version guard ([FR-5220](../requirements/01-functional-requirements.md); `SAVE_VERSION_VAL = 0x01`) — added 2026-07-07 by [IP-1010](../implementation/packages/IP-1010-per-zone-scoreitem-persistence.md), the first save-format change since ship (`ADR-0006`). A save lacking this byte or not matching it is treated as pre-upgrade: `SCOREITEM_FLAGS` loads as all-zero (all uncollected) rather than trusting whatever garbage occupies `A013`–`A01B`. |
+| `A013`–`A01B` | `SCOREITEM_FLAGS` mirror (9 bytes) — same addition. |
 
-**This is exactly the field set [`BL-0018`](../pipeline/backlog.md) already identified at entity
-altitude** ([GDS-04](04-domain-model.md)), now confirmed at the byte level: `PLAYER_DIR`/
-`PLAYER_FRAME` and any per-zone ScoreItem state are absent from this list, byte for byte. Still an
-open question for `04-requirements-engineering`, not resolved here.
+**This updates `BL-0018`'s prior field-set finding** ([GDS-04](04-domain-model.md)): per-zone
+ScoreItem state is no longer absent — `A012`–`A01B` now cover it (per the user's 2026-07-07
+decision recorded at [RQ-01](../requirements/01-functional-requirements.md) FR-5220). `PLAYER_DIR`/
+`PLAYER_FRAME` remain absent, per the same decision (explicitly rejected as "not important").
 
 ### 4. Tile index map (`0x00`–`0xFF`, 83 of 256 slots used)
 
@@ -129,6 +140,79 @@ by individual zone, was already made and already accommodates significant zone g
 8-palette ceiling becomes binding. (OBJ palettes: 4 of 8 in active use — bunny, star, flower,
 carrot; 4 unused/placeholder slots remain.)
 
+## Data Model delta (2026-07-09 — target state; §6 WRAM confirmed 2026-07-10 by `IP-1020`;
+§7 SRAM confirmed 2026-07-10 by `IP-1050`)
+
+Per **ADR-0009**/**ADR-0010**, additions to the WRAM/SRAM layout above. §6 (WRAM) and §7 (SRAM)
+are now both **confirmed as-shipped**, following the same confidence level `FS-101` used before
+`IP-1010` confirmed `SCOREITEM_FLAGS`' final placement.
+
+### 6. WRAM additions (confirmed 2026-07-10, `IP-1020`, within existing bank-0 headroom)
+
+The prior WRAM map ended its named allocations at `0xC068` (`SCOREITEM_FLAGS`) before jumping to
+`0xC300` (`OAM_BUF`) — a ~660-byte unused gap between them
+([R111](../research/encyclopedia/R111-wram-banking-sm83-prng.md) confirms ~3.1 KiB of headroom in
+bank 0 alone). Shipped placement:
+
+| Address | Name | Content |
+|---|---|---|
+| `C069`–`C06A` | `SEED` | 16-bit seed value (low/high byte), source for the PRNG's initial state ([R111](../research/encyclopedia/R111-wram-banking-sm83-prng.md)). Written by `FEAT-1100` (not yet shipped); read-only to `generate_world`. |
+| `C06B` | `WORLD_SCALE` | 1 byte, 2–9 ([ADR-0010](adr/ADR-0010-seed-scale-model.md)). Same write/read split as `SEED`. |
+| `C070`–`C070+5×(scale²)−1` | `REGION_GRAPH` | 5 bytes/region (1 biome-id byte + 4 neighbor-region-index bytes in up/down/left/right order, `0xFF`=no neighbor in that direction) × up to 81 regions at `scale=9` = **≤405 bytes worst case**, ending at `0xC204`. Written by `generate_world`. |
+| `C220`–`C220+80` | `KEYITEM_FLAGS` | up to 81 bytes, one collected-flag per region (generalizes `CARROT_FLAGS`'s 9-byte array — [GDS-04](04-domain-model.md)'s delta). **`CARROT_FLAGS` (`0xC015`–`0xC01D`) is now orphaned** — `check_collisions`/`setup_zone_collects`/`update_map_hearts`/the `st_intro`/`st_victory` reset paths all target `KEYITEM_FLAGS` instead; only `save_to_sram`/`try_load_save` still mirror the old array, pending `IP-1050`'s save-format migration. A `0xC205`–`0xC21F` gap separates the two (address chosen as the implementation's own confirmed placement, not tightly packed at `0xC205`, still safely inside the boot-clear range). Written by `check_collisions`/`setup_zone_collects` (collection); read by `update_map_hearts`; cleared by the boot-time WRAM clear and the `st_intro`/`st_victory` reset paths (9 bytes each, matching `CUR_ZONE`'s current 0–8 range — full `scale²`-extent clearing on new-game/replay is `FEAT-1100`'s scope once it wires up variable-scale play). |
+| `C271`–`C279` | `GW_TOP_ROW` | 9 bytes — `generate_world`'s own transient scratch (the biome of the region directly above each column, written before it's read; satisfies NFR-2200's "routine's own prior output" rule). Not part of the persisted data model; meaningless outside a `generate_world` call. |
+| `C27A` | `GW_REGION_IDX` | 1 byte — `generate_world`'s own loop counter (0..scale²-1). Transient, as above. |
+| `C27B` | `GW_B_SCRATCH` | 1 byte — `generate_world`'s own scratch (holds the candidate anchor value, then the final clamped biome result, across the PRNG-step `CALL` boundary). Transient, as above. |
+| `C27C` | `GW_SCALE_SQ` | 1 byte — `generate_world`'s own precomputed `WORLD_SCALE²` (no `MUL` opcode on SM83; computed once via repeated addition). Transient, as above. |
+| `C069`–`C06A` renamed alias | `KEYITEM_COUNT` | Same WRAM slot as `CARROTS_COUNT` (`0xC009`, unmoved) — a source-level rename only, not a new address; `check_complete`'s victory check and the HUD digit-writer still reference it under its original name (out of `IP-1020`'s scope; both work correctly either way since the address is identical). |
+
+Worst-case total new/repurposed WRAM: ~570 bytes (`2+1+405+81+9+1+1+1`, plus the `0xC205`–`0xC21F`
+padding gap) — comfortably inside the confirmed ~3.1 KiB bank-0 headroom (R111); `SVBK`/banked
+WRAM is **not** triggered, consistent with R111's conclusion. All of it falls inside the existing
+boot-time WRAM clear (`0xC000`–`0xC2FF`, unchanged).
+
+### 7. SRAM save-format additions (confirmed 2026-07-10, `IP-1050`, extends the `FS-101`/
+`IP-1010` version-byte pattern)
+
+Per [R106](../research/encyclopedia/R106-mbc1-sram-battery-saves.md)'s extension and
+**ADR-0010**: a new save-format version value (`SAVE_VERSION_VAL`, bumped `0x01`→`0x02` —
+superseding `IP-1010`'s own value at `0xA012`) signals this layout; fields appended after the
+existing `0xA013`–`0xA01B` `SCOREITEM_FLAGS` mirror, exactly at the addresses this section
+proposed:
+
+| Address | Content |
+|---|---|
+| `A012` | Save-format version guard — `0x02`, superseding `IP-1010`'s `0x01` |
+| `A01C`–`A01D` | `SEED` mirror (16-bit) |
+| `A01E` | `WORLD_SCALE` mirror |
+| `A01F`–`A06F` | `KEYITEM_FLAGS` mirror, 81 bytes worst-case (generalizes the `CARROT_FLAGS` mirror at `A009`–`A011`) |
+
+Written by `save_to_sram` (the `KEYITEM_FLAGS` copy reuses the existing `memcpy` subroutine, not
+an unrolled 81-iteration loop). Restored by `try_load_save`, version-guarded: `SEED`/`WORLD_SCALE`
+restore first, then `IP-1020`'s `generate_world` regenerates `REGION_GRAPH` from them (never
+itself persisted — ADR-0009's determinism guarantee), then `KEYITEM_FLAGS` restores onto the
+freshly-regenerated graph via the same `memcpy` subroutine, reversed. A version-1 (`IP-1010`-era)
+or absent save is excluded from `IP-1040`'s MAIN MENU "continue" option entirely — `try_load_save`
+never runs against one — a stricter response than `IP-1010`'s own "default to safe empty state"
+choice, since here the world *model* differs, not just one field (ADR-0010).
+
+Total addition: ~84 bytes — against 8 KiB SRAM, negligible (R106's extension). **The generated
+world's region graph/biome content is *not* persisted** — only `SEED`+`WORLD_SCALE`+
+`KEYITEM_FLAGS` are saved; `REGION_GRAPH` regenerates deterministically from `SEED`+`WORLD_SCALE`
+on load, per ADR-0009's determinism requirement. Per **ADR-0010**'s decision, a save whose version
+byte does not match this new value is not offered on the main menu's "continue" path (the world
+*model* differs, not just a field — the same reasoning ADR-0010 already recorded).
+
+### 8. Tile index map implication (cross-reference only — GDS-08 decides the actual strategy)
+
+**ADR-0009**'s biome-family `Region` identity (GDS-04's delta) needs tile budget per family,
+generalizing today's per-zone terrain blocks (§4 above: `0x70`–`0xB5`, 6–8 tiles/zone,
+8-tile-aligned). **This document does not decide how many biome families exist or how their tile
+budgets are assigned** — that is [GDS-08](08-presentation-architecture.md)'s delta (the
+normative aesthetic standard for C8, biome-transition presentation for C9), which this level's
+own existing Purpose statement already reserves ("presentation architecture... builds on this
+one"). Noted here only as a forward pointer, not resolved.
+
 ## Merge gate
 
 - [x] Stub body replaced with real content addressing the stated Purpose.
@@ -145,5 +229,9 @@ WRAM layout) and are **not** the source of the facts above, which are verified d
 the current `build_rom.py`/`asm_game.py`/`tiles.py`. **Decision: this level supersedes both
 documents' byte-level tables entirely** — the single most consequential merge decision in this
 ladder so far, since these are exactly the tables developers reach for first when touching game
-code. Both should become short pointers here once the `BL-0007`/`BL-0008` documentation-refresh
-pass lands; until then they remain flagged stale (per `MSTR-001` §6).
+code. **As of `IP-9030` (2026-07-09), both `Claude.md` and `memory.md` now carry short pointers
+here instead of duplicated tables** — the merge this decision anticipated has landed.
+
+**Delta record (2026-07-09):** §§6–8 ("Data Model delta") added above, per the adopted increment
+plan's Phase 3 and ADR-0009/0010. Delta, not re-authoring — §§1–5's tables remain the accurate
+as-shipped layout; no merge-gate box above is reopened.

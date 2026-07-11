@@ -1,10 +1,13 @@
-# RsGame — Bunny Garden Adventure
+# RsGame — Bunny Quest
 
-A complete Game Boy Color game (32KB ROM, battery save) built entirely by a Python assembler
-pipeline and verified headlessly with PyBoy (88/88 ROM tests).
+A complete Game Boy Color game (32KB ROM, battery save) — a bunny explores a 3×3 grid of nine
+visually distinct zones, collecting stars/flowers for score and one carrot per zone toward a
+9-carrot victory — built entirely by a Python assembler pipeline and verified headlessly with
+PyBoy (**125/125 ROM tests**, `test_rom.py`).
 
 - **Play/build/test:** see [`.claude/skills/run-bunnygarden/SKILL.md`](.claude/skills/run-bunnygarden/SKILL.md)
-  — `python3 build_rom.py <out.gbc>` then `python3 test_rom.py`.
+  — from the repo root: `python3 build_rom.py BunnyQuest.gbc` then `python3 test_rom.py` (both
+  repo-relative; no absolute paths needed).
 - **Developer quick-reference:** [`Claude.md`](Claude.md) (architecture, ROM/WRAM/SRAM maps,
   how-to-change-things) and [`memory.md`](memory.md) (tile/palette/collectible tables, debug log).
 - **Development pipeline:** [`.claude/skills/README.md`](.claude/skills/README.md) — a staged

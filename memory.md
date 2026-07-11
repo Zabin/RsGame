@@ -1,108 +1,67 @@
 # memory.md — Runtime Notes & Debug Log
 
-## Current Build Status: v2.1 (map heart fix pending)
+## Current Build Status
 
-### Last verified working (PyBoy 2.7.0 headless test):
-- Title screen renders (purple BG, yellow text, pink/yellow/purple flowers)
-- Intro dialog renders
-- Garden zone: natural grass with pink/yellow/purple flower accents, dirt path
-- Forest zone: trees, mushrooms, path
-- Bunny sprite visible on path (2 OAM entries, 8x8 tiles)
-- Collectibles (star, flower, gift) visible as OBJ sprites
-- D-pad movement works (1px per frame held)
-- Gift collection works (proximity check, gifts bitfield, score++)
-- Zone transition (right edge → next zone, left edge → prev)
-- START → SAVE menu works (A=save, B=cancel)
-- SELECT → MAP screen works (B=exit)
-- Victory screen fires when GIFTS = 0x07
-- SRAM battery save works (MBC1+RAM+BATTERY, magic BUNY)
-- Save auto-loads on reboot (skips title, restores position/gifts/score)
+Shipped game: **Bunny Quest**, 9 zones (3×3 grid), 9-carrot victory condition. ROM builds at
+exactly 32768 bytes; **125/125 `test_rom.py` checks pass** (headless PyBoy, repo-relative
+paths — `python3 build_rom.py <out.gbc>` then `python3 test_rom.py` from the repo root; no
+absolute paths required since `IP-9010`). This file is a live quick-reference maintained by the
+stage-08 skills — its byte-level tables below are quick lookups only; the authoritative source
+for all of them is [`docs/architecture/07-data-model.md`](docs/architecture/07-data-model.md)
+(GDS-07) and [`08-presentation-architecture.md`](docs/architecture/08-presentation-architecture.md)
+(GDS-08). Update GDS-07/08 first when a byte layout changes; this file's tables are copies for
+convenience and must be re-derived from there, not hand-edited independently — duplication
+without that discipline is exactly what went stale before (`BL-0007`/`BL-0008`).
 
----
+### Last verified working (PyBoy 2.7.0 headless test, 2026-07-09)
 
-## Active Bug: Map Screen Hearts at Wrong Addresses
-
-### Problem
-In `asm_game.py` `update_map_hearts`, addresses are wrong.
-
-Correct BG map addresses for row N, col C:
-```
-0x9800 + row * 32 + col
-```
-
-Map screen hearts are at col 12, rows 6, 8, 10:
-```python
-row 6,  col 12 → 0x9800 + 6*32 + 12  = 0x98CC
-row 8,  col 12 → 0x9800 + 8*32 + 12  = 0x990C
-row 10, col 12 → 0x9800 + 10*32 + 12 = 0x994C
-```
-
-Old (wrong) values: 0x988C, 0x98CC, 0x990C (off by one row each).
-
-### Fix: In `asm_game.py`, `emit_update_map_hearts()`:
-```python
-rom.LD_HL_nn(0x98CC); rom.LD_HL_A()  # row 6
-rom.LD_HL_nn(0x990C); rom.LD_HL_A()  # row 8
-rom.LD_HL_nn(0x994C); rom.LD_HL_A()  # row 10
-```
+- Title → Intro → gameplay flow renders correctly across all 9 zones
+- Bunny sprite: single 8×16 OBJ pair per walk frame (not two separate 8×8 entries)
+- D-pad movement, star/flower/carrot collection, `SCORE`/`CARROTS_COUNT` HUD all confirmed
+- Zone transition via screen-edge walk-off across the full 3×3 grid
+- START → SAVE menu (A=save, B=cancel); SELECT → MAP screen (B=exit), shows 9-carrot progress
+- Victory screen fires at `CARROTS_COUNT == 9`
+- SRAM battery save works (MBC1+RAM+BATTERY, magic `BUNY`, `SAVE_VERSION_VAL` guard); a valid
+  save auto-loads on boot
+- Per-zone `ScoreItem` (star/flower) collected-state persists across save/reload within a
+  session and does not re-award `SCORE` on zone re-entry (`FR-5220`, `IP-1010`)
 
 ---
 
-## Tile Index Map (quick ref)
+## Tile Index Map (quick ref — authoritative table: GDS-07 §4)
 
-| Index | Tile |
-|-------|------|
-| 0x00  | Bunny head frame 1 |
-| 0x01  | Bunny body frame 1 |
-| 0x02  | Bunny head frame 2 |
-| 0x03  | Bunny body frame 2 |
-| 0x04  | Gift (OBJ) |
-| 0x05  | Star (OBJ) |
-| 0x06  | Flower (OBJ) |
-| 0x07  | Cursor |
-| 0x10  | Grass plain |
-| 0x11  | Grass tuft |
-| 0x12  | Grass clover |
-| 0x13  | Dirt path center |
-| 0x14  | Dirt path top edge |
-| 0x15  | Dirt path bot edge |
-| 0x16  | Rock big |
-| 0x17  | Rock small |
-| 0x18  | Tree top |
-| 0x19  | Tree bottom (trunk) |
-| 0x1A  | Mushroom |
-| 0x1B  | BG flower |
-| 0x1C  | UI dark (blank bar) |
-| 0x1D  | Heart full |
-| 0x1E  | Heart empty |
-| 0x1F  | Gift icon (score bar) |
-| 0x20-0x29 | Digits 0-9 |
-| 0x2A  | Border horizontal |
-| 0x2B  | Arrow right |
-| 0x2D  | Star icon (score bar) |
-| 0x40-0x59 | Font A-Z |
-| 0x5A  | Space |
-| 0x5B-0x61 | Punctuation . ! ? , ' - : |
+| Range | Content |
+|---|---|
+| `0x00`–`0x03` | Bunny walk frames, 8×16 OBJ pairs (`00`/`01`, `02`/`03`) |
+| `0x04`–`0x09` | Carrot / star / flower OBJ sprites (each + blank pad tile) |
+| `0x10`–`0x19` | UI icons: BG blank, heart full/empty, carrot icon, star icon, border, 4 arrows |
+| `0x20`+ | Digits |
+| `0x40`–`0x61` | Font: A–Z + punctuation |
+| `0x70`–`0x76` | Beach terrain | `0x78`–`0x7D` | Forest terrain |
+| `0x80`–`0x85` | Mountain terrain | `0x88`–`0x8D` | Lake terrain |
+| `0x90`–`0x95` | Village terrain | `0x98`–`0x9D` | Cave terrain |
+| `0xA0`–`0xA5` | Desert terrain | `0xA8`–`0xAD` | Plains terrain |
+| `0xB0`–`0xB5` | Castle terrain | `0xB6`–`0xFF` | Free (74 slots unused; next 8-aligned block: `0xB8`) |
 
-## BG Palette Quick Ref
-| Pal | Use | Colors (0→3) |
+## BG Palette Quick Ref (authoritative table: GDS-07 §5 / GDS-08 §4)
+
+Palettes are assigned **by terrain family, not one-per-zone** — 5 of 8 in active zone use today.
+
+| Pal | Terrain family | Zones using it |
 |-----|-----|-------------|
-| 0   | Grass | sky, lite-green, mid-green, dark-green |
-| 1   | Dirt  | sky, lite-brown, mid-brown, dark-brown |
-| 2   | UI    | purple-dark, bg-white, yellow-lite, yellow-mid |
-| 3   | Trees | sky, lite-tree, mid-tree, dark-tree |
-| 4   | Rocks | sky, lite-gray, mid-gray, dark-gray |
-| 5   | Pink  | sky, lite-pink, mid-pink, dark-pink |
-| 6   | Yellow| sky, lite-yel, mid-yel, dark-yel |
-| 7   | Purple| bg-white, lite-pur, mid-pur, dark-pur |
+| 0 | Grass | Forest, Plains |
+| 1 | Sand/dirt | Beach, Desert |
+| 2 | UI/gold | *(UI screens only)* |
+| 3 | Water | Lake |
+| 4 | Stone | Mountain, Village, Cave |
+| 5 | Brick/red | Castle |
+| 6 | Tree/leaf | *(accent role)* |
+| 7 | Accent purple | *(accent role)* |
 
 ## OBJ Palette Quick Ref
-| Pal | Use | Colors (0=trans) |
-|-----|-----|------------------|
-| 0   | Bunny | trans, white, lite-pink, dark-pink |
-| 1   | Star  | trans, lite-yel, mid-yel, dark-yel |
-| 2   | Flower| trans, lite-pink, mid-pink, dark-pink |
-| 3   | Gift  | trans, lite-yel, mid-pur, dark-pur |
+
+4 of 8 in active use — bunny, star, flower, carrot; 4 reserved/unused. Exact color values live
+in `build_rom.py`'s `OBJ_PALETTES` table (GDS-07 §5).
 
 ## Joypad Bit Map (JOY_CUR — active HIGH)
 ```
@@ -113,30 +72,22 @@ bit 3 = START    bit 7 = DOWN
 ```
 
 ## Collectible Positions
-Format: (x, y, type)  type: 0=star, 1=flower, 2=GIFT
 
-**Garden (zone 0):** player spawns at (76, 72)
-- (24, 32, star), (80, 32, flower), (136, 32, star)
-- (40, 96, flower), (120, 96, star)
-- **(120, 64, gift)** ← walk right+up from spawn
-
-**Forest (zone 1):** spawns at (8, 72) from left, (150, 72) from right
-- (32, 40, flower), (64, 40, star), (96, 40, flower), (128, 40, star)
-- (48, 104, star), (104, 104, flower)
-- **(40, 64, gift)**
-
-**Meadow (zone 2):**
-- (24, 40, flower), (56, 32, star), (88, 40, flower), (120, 32, star), (152, 40, flower)
-- (40, 104, star), (88, 104, flower), (136, 104, star)
-- **(136, 64, gift)**
+Per-zone collectible layouts (stars/flowers/one carrot each) are authored in `tilemaps.py`'s
+`ZONE_COLLECTS` table, one entry per zone — that table is the single source of truth for
+positions; this file no longer duplicates the coordinates (a 9-zone hand-copy is exactly the
+kind of table that drifts). To find a zone's layout: open `tilemaps.py`, search
+`ZONE_COLLECTS`, and match the zone index (`0`=Beach … `8`=Castle, row = `÷3`, col = `%3`).
 
 ## Emulator Test Command
+
 ```python
 from pyboy import PyBoy
-pb = PyBoy('/mnt/user-data/outputs/BunnyGarden.gbc', window='null', sound_emulated=False)
+pb = PyBoy('BunnyQuest.gbc', window='null', sound_emulated=False)   # repo-relative
 pb.set_emulation_speed(0)
 ```
-Remove any .sav file before testing fresh boots:
-```bash
-rm -f /mnt/user-data/outputs/*.sav
-```
+
+`test_rom.py` derives `ROM_PATH`/`RAM_PATH` repo-relative from its own location — no absolute
+paths, no manual cleanup needed before a fresh run (the suite handles its own `.ram` state).
+The `run-bunnygarden` utility skill wraps this for driving the game with button input and
+screenshots.

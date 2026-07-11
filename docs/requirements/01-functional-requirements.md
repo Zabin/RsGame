@@ -1,6 +1,7 @@
 # RQ-01 — Functional Requirements
 
-> **Status: ✅ Authored (bootstrap as-built, 2026-07-06).** Owned by `04-requirements-engineering`.
+> **Status: ✅ Authored (bootstrap as-built, 2026-07-06; delta 2026-07-09 for the procgen-world
+> increment, FR-1170–9200 — see Changelog).** Owned by `04-requirements-engineering`.
 > Derives from [GDS-05](../architecture/05-functional-requirements.md)'s six capability groupings
 > (C1–C6) — this document formalizes each into numbered, testable `FR-xxxx` requirements per
 > [GDS-10](../architecture/10-requirements-traceability-matrix.md) §3's stated contract: *cite
@@ -19,6 +20,30 @@
   **APPROVED** and promoted to **FR-5220** (new). FR-5210 is reworded to reflect that only
   facing/frame remain outside the persisted save set. See `BL-0018` in
   `docs/pipeline/backlog.md` (now `DONE`).
+- **2026-07-09 — Delta for the adopted aesthetics/visual-story-narrative/procgen-world-map
+  increment** ([PLAN-requirements-aesthetics-story-map.md](../pipeline/PLAN-requirements-aesthetics-story-map.md),
+  Phase 4; grounds `MSTR-001` v3.0's C9/C10, `ADR-0009`/`0010`, and the GDS-01/04 deltas — see
+  `BL-0030`/`BL-0031`). **Ten new FRs added, all describing target behavior the increment's
+  future implementation packages build toward — none shipped yet** (the same forward-looking
+  framing `MSTR-001` §8 already applies to C7/C8/C9/C10 themselves): **FR-1170/1180/1190** (main
+  menu, seed/scale entry, exit-to-main-menu-with-autosave — supersede `FR-1120`'s auto-load
+  behavior and `FR-1160`'s VICTORY→TITLE transition once implemented, both left unmodified below
+  since they remain accurate for the *currently shipped* game); **FR-3220** (item-agnostic
+  KeyItem collection, generalizing `FR-3210`'s Carrot-specific wording); **FR-4300/4310**
+  (one-biome-per-screen structural rule, grammar-valid adjacency); **FR-9100–9200** (a new
+  World Generation group: deterministic generation, new-game-only immutable seed/scale entry,
+  full reachability, one-KeyItem-per-region as a generator-guaranteed property, save-format
+  extension). **No FR was added for text dialogue** — `MSTR-001` D1/§4 records it as a
+  deliberately non-required (not ruled out) non-goal at this vision's date; see FR-9100's Notes.
+- **2026-07-10 — 04-delta batch (`BL-0020`/`BL-0022`).** **FR-6400** added (new): player/
+  collectible sprite (OAM) rendering, shipped and tested (`test_rom.py` T6) but never formally
+  stated as a requirement — surfaced by `05-feature-decomposition`'s FP-05 review (finding #1,
+  run #19). **FR-3200**'s postcondition corrected: it previously claimed a collected `ScoreItem`
+  is "permanently inactive for the remainder of that play session" — direct code reading of
+  `setup_zone_collects` (surfaced by `06-feature-specification`'s FS-101 authoring, run #20)
+  shows `ScoreItem`s actually respawn on every zone re-entry within a session; only `Carrot`s are
+  session-permanent. The corrected text matches the shipped code exactly (and matches what
+  `FR-5220`/`IP-1010` already build on top of).
 
 ## FR-1000 — Game states & transitions
 
@@ -86,7 +111,17 @@
 - **Verification Method:** Test.
 - **Source Documents:** GDS-01 §4; GDS-05 C1.
 - **Related ADRs:** ADR-0006 (MBC1+RAM+BATTERY cart type).
-- **Notes:** None.
+- **Notes:** **Target-state pointer (2026-07-09):** `MSTR-001` C2 (amended v3.0) and
+  [GDS-01](../architecture/01-concept-of-play.md) §2a/§4a commit to superseding this auto-load
+  behavior with player-initiated loading via a new MAIN MENU state (see FR-1170/1180). This FR
+  remains accurate for the *currently shipped* game and is not modified here; it will be
+  superseded by a dated revision only once the corresponding implementation package ships (per
+  the ladder's delta-update discipline, same pattern `NFR-4000` already uses for its own C7
+  supersession trigger). **Forward-pointer note (2026-07-10, `IP-1040`):** the superseding
+  implementation has now shipped — `try_load_save`'s unconditional-at-boot call site no longer
+  exists (confirmed by direct code read and `T14.a1`/`a3a`'s regression checks); this FR's own
+  postcondition text is left unmodified here (a future `04-requirements-engineering` delta's
+  call, per this stage's SHALL-NOT rule against editing requirements from an implementation run).
 
 ### FR-1130 — TITLE → INTRO → PLAYING transition
 
@@ -171,7 +206,96 @@
 - **Verification Method:** Test.
 - **Source Documents:** GDS-01 §4; GDS-05 C4.
 - **Related ADRs:** None.
-- **Notes:** None.
+- **Notes:** **Target-state pointer (2026-07-09):** [GDS-01](../architecture/01-concept-of-play.md)
+  §4a commits VICTORY's A-press target to MAIN MENU instead of TITLE, following TITLE's own
+  supersession (see FR-1170's note). Unmodified here; accurate for the current shipped game.
+  **Forward-pointer note (2026-07-10, `IP-1040`):** the superseding implementation has shipped —
+  `st_victory`'s A-press target is now `GS_MAIN_MENU` (confirmed by direct code read and
+  `T4.9`'s regression check); this FR's own postcondition text is left unmodified here.
+
+### FR-1170 — MAIN MENU state (Implemented — 2026-07-10, `IP-1040`)
+
+- **ID:** FR-1170
+- **Title:** The system shall present a MAIN MENU state on every boot, offering continue and new
+  game.
+- **Description:** On power-on/reset, the system shall always enter a MAIN MENU state — never
+  bypassing it — offering a "continue" option (only if a version-matching save exists) and a
+  "new game" option.
+- **Rationale:** MSTR-001 C2 (amended v3.0); GDS-01 §2a/§4a; ADR-0010.
+- **Priority:** Must (Met)
+- **Inputs:** Power-on/reset event; SRAM save-validity and version check.
+- **Outputs:** State = MAIN MENU; "continue" option present iff a version-matching save exists.
+- **Preconditions:** None (unconditional on boot).
+- **Postconditions:** State is MAIN MENU; the menu's option set matches save presence/validity.
+- **Acceptance Criteria:** After boot, state always equals MAIN MENU regardless of save presence.
+  Given a version-matching save exists, "continue" is offered; given none exists (or its version
+  does not match), "continue" is not offered.
+- **Dependencies:** FR-1100 (extends the state set to seven states).
+- **Verification Method:** Test.
+- **Source Documents:** GDS-01 §2a/§4a; ADR-0010.
+- **Related ADRs:** ADR-0010.
+- **Notes:** Supersedes FR-1120's auto-load bypass (see FR-1120's own forward-pointer note).
+  **Implemented (2026-07-10, `IP-1040`):** `st_main_menu`/`check_save_valid` (`asm_game.py`);
+  `test_rom.py` T14.a1–a4 cover both option-set directions plus the version-mismatch case,
+  163/163 full suite pass.
+
+### FR-1180 — New-game seed/scale entry and world generation trigger (Implemented — 2026-07-10, `IP-1040`)
+
+- **ID:** FR-1180
+- **Title:** The system shall, on "new game," collect a seed and world-scale value via a
+  digit-cursor entry screen, then generate the world before entering INTRO.
+- **Description:** From MAIN MENU's "new game" option, the system shall present a digit-cursor
+  entry UI for a 16-bit seed and a world-scale value (2–9, default 3), then — on confirmation —
+  initialize the world generator from that (seed, scale) pair and transition to INTRO.
+- **Rationale:** MSTR-001 C10; GDS-01 §4a; ADR-0009; ADR-0010.
+- **Priority:** Must (Met)
+- **Inputs:** D-pad (digit/value selection, cursor movement); A (confirm).
+- **Outputs:** SEED and WORLD_SCALE set to the entered values; the generated world's region graph
+  populated; state = INTRO.
+- **Preconditions:** State is MAIN MENU with "new game" selected.
+- **Postconditions:** SEED/WORLD_SCALE hold the entered values; a complete, grammar-valid,
+  fully-reachable region graph exists (FR-9100/9120/9130); state = INTRO.
+- **Acceptance Criteria:** Entering seed S and scale N and confirming results in a generated
+  world of exactly N² regions, and state becomes INTRO. Re-entering the same (S, N) pair on a
+  separate new-game creation produces an identical region graph (see FR-9100).
+- **Dependencies:** FR-1170, FR-9100, FR-9110.
+- **Verification Method:** Test.
+- **Source Documents:** GDS-01 §4a; ADR-0009; ADR-0010.
+- **Related ADRs:** ADR-0009, ADR-0010.
+- **Notes:** A seed value of 0 is normalized to 1 internally (xorshift's nonzero-state
+  requirement, per R111/ADR-0010) — the player may still enter 0.
+  **Implemented (2026-07-10, `IP-1040`):** `st_seed_scale_entry`/`sse_compose_seed`
+  (`asm_game.py`) — 5 independent decimal digits, composed into the real 16-bit SEED via
+  saturating repeated-addition (no general multiply needed); `test_rom.py` T14.b1–b3 confirm a
+  known (seed,scale) pair reaches INTRO with the correct region count and reproduces identically
+  across two separate new-game creations; T14.c1 confirms B-cancel back to MAIN MENU writes
+  neither field.
+
+### FR-1190 — Exit-to-main-menu with auto-save (Implemented — 2026-07-10, `IP-1040`)
+
+- **ID:** FR-1190
+- **Title:** The system shall offer an exit-to-main-menu option from the SAVE state that
+  auto-saves before returning to MAIN MENU.
+- **Description:** In addition to FR-1140's existing A(save)/B(cancel) options, the SAVE state
+  shall offer a third option that first performs the same save-field write FR-5100 performs, then
+  transitions to MAIN MENU (not back to PLAYING).
+- **Rationale:** MSTR-001 C2 (amended v3.0), owner decisions D8/D10; GDS-01 §4a.
+- **Priority:** Must (Met)
+- **Inputs:** The exit-to-main-menu input (in SAVE).
+- **Outputs:** SRAM updated with the current save-field set (as FR-5100); state = MAIN MENU.
+- **Preconditions:** State is SAVE.
+- **Postconditions:** SRAM reflects the pre-exit game state exactly; state = MAIN MENU.
+- **Acceptance Criteria:** Selecting exit-to-main-menu from SAVE results in SRAM containing the
+  current save-field set (verifiable by a subsequent "continue") and state = MAIN MENU. No
+  progress present at the time of exit is ever lost.
+- **Dependencies:** FR-1140, FR-1170, FR-5100.
+- **Verification Method:** Test.
+- **Source Documents:** GDS-01 §4a.
+- **Related ADRs:** None.
+- **Notes:** **Implemented (2026-07-10, `IP-1040`):** `st_save`'s SELECT branch (`asm_game.py`)
+  calls the exact same `save_to_sram` A(save) already calls, then targets `GS_MAIN_MENU` instead
+  of `GS_PLAYING`; `test_rom.py` T14.d1/d2 confirm the auto-save and exact state restoration on
+  a subsequent "continue".
 
 ## FR-2000 — Player movement & zone traversal
 
@@ -337,15 +461,23 @@
 - **Inputs:** A collection event for a ScoreItem.
 - **Outputs:** Score incremented; the collected ScoreItem no longer rendered or collectible.
 - **Preconditions:** The ScoreItem is active.
-- **Postconditions:** Score reflects the increment; the ScoreItem is permanently inactive for the
-  remainder of that play session, and across save/load per FR-5220 (see BL-0018, resolved).
+- **Postconditions:** Score reflects the increment; the ScoreItem is inactive for the remainder
+  of the current zone visit, and its collected-state persists across save/load per FR-5220 (see
+  BL-0018, resolved) — but **respawns as active on every zone re-entry within the same session**,
+  per the shipped `setup_zone_collects` behavior (corrected 2026-07-10, `BL-0022`; the prior text
+  read "permanently inactive for the remainder of that play session," which direct code reading
+  during `FS-101`'s authoring (2026-07-07) found does not match the shipped code — only `Carrot`s
+  are session-permanent, per FR-3210).
 - **Acceptance Criteria:** Collecting a ScoreItem increases Score by its defined value and the
-  item is not collectible again in the same session.
+  item is not collectible again until the player re-enters the zone.
 - **Dependencies:** FR-3100.
 - **Verification Method:** Test.
-- **Source Documents:** GDS-05 C3.
+- **Source Documents:** GDS-05 C3; `asm_game.py`'s `setup_zone_collects` (direct code read,
+  `BL-0022`).
 - **Related ADRs:** None.
-- **Notes:** None.
+- **Notes:** This is the shipped, intentional behavior `IP-1010`/`FS-101` built on top of (not a
+  bug in this requirement's own scope) — the farming-abuse risk this respawn created was
+  `BL-0023`, fixed by `FR-5220`'s persistence, not by this requirement changing.
 
 ### FR-3210 — Carrot collection sets zone flag and increments CarrotCount
 
@@ -370,7 +502,9 @@
 - **Notes:** Per BL-0017 (open, see RQ-03): the "exactly one Carrot per zone" invariant is not
   code-enforced today — this requirement describes the collection behavior assuming that
   invariant holds, and does not itself assert the invariant's enforcement (see the Candidate
-  Requirements section).
+  Requirements section). **Target-state pointer (2026-07-09):** see FR-3220 for the
+  item-agnostic generalization (`MSTR-001` C9/D2) — this FR remains accurate for the currently
+  shipped Carrot-specific behavior and is not modified here.
 
 ### FR-3300 — Victory condition
 
@@ -393,6 +527,32 @@
 - **Source Documents:** GDS-05 C4.
 - **Related ADRs:** None.
 - **Notes:** None.
+
+### FR-3220 — Item-agnostic KeyItem collection (target — 2026-07-09, generalizes FR-3210)
+
+- **ID:** FR-3220
+- **Title:** The system shall set the collecting region's key-item flag, increment KeyItemCount,
+  and remove the item from play when a KeyItem is collected.
+- **Description:** On a collection event (FR-3100) for a KeyItem, the system shall set that
+  region's flag in KeyItemFlags, increment KeyItemCount by one, and remove the KeyItem from
+  further play. Behaviorally identical to FR-3210's Carrot-specific rule, generalized to an
+  item-agnostic identity — the specific item theme (carrot or otherwise) is a content/theming
+  concern (GDS-08 §8), not a functional one.
+- **Rationale:** MSTR-001 C9/D2; GDS-04 delta (KeyItem entity); GDS-09 delta.
+- **Priority:** Must (target — not yet implemented)
+- **Inputs:** A collection event for a KeyItem.
+- **Outputs:** That region's KeyItemFlags bit set; KeyItemCount incremented by one; the KeyItem no
+  longer rendered or collectible.
+- **Preconditions:** The KeyItem is active; that region's KeyItemFlags bit is not already set.
+- **Postconditions:** KeyItemFlags[region] = true; KeyItemCount reflects the increment.
+- **Acceptance Criteria:** Collecting a region's KeyItem sets that region's flag and increases
+  KeyItemCount by exactly one, once.
+- **Dependencies:** FR-3100, FR-9130 (one-KeyItem-per-region invariant).
+- **Verification Method:** Test.
+- **Source Documents:** GDS-04 delta; MSTR-001 C9.
+- **Related ADRs:** ADR-0009.
+- **Notes:** Generalizes FR-3210 (see that FR's own target-state pointer). Carrots are today's
+  shipped instance of KeyItem theming, not a fixed requirement (D2). Not yet implemented.
 
 ## FR-4000 — Zones & screens
 
@@ -443,6 +603,54 @@ FR-6000 for the presentation half)*
 - **Source Documents:** GDS-04; GDS-05 C6.
 - **Related ADRs:** None.
 - **Notes:** None.
+
+### FR-4300 — One biome per screen (target — 2026-07-09)
+
+- **ID:** FR-4300
+- **Title:** The system shall render exactly one biome per region screen — never a blend of two
+  biomes within a single screen.
+- **Description:** Every generated region's screen shall be composed entirely from one biome
+  family's tile set; no screen shall mix tiles from two different biome families.
+- **Rationale:** MSTR-001 C9, owner decision D2 (explicit clarification: "flow into each other"
+  does not mean two biomes rendered in a single frame); R212; GDS-08 §8.
+- **Priority:** Must (target — not yet implemented)
+- **Inputs:** A region's generated biome assignment (FR-9100).
+- **Outputs:** The region's rendered screen, composed from exactly one biome family's tiles.
+- **Preconditions:** None (structural).
+- **Postconditions:** Every rendered region screen's tile content is drawn from exactly one biome
+  family.
+- **Acceptance Criteria:** For every generated region, its screen's tile-family composition
+  contains no tile from any biome family other than its assigned one.
+- **Dependencies:** FR-9100.
+- **Verification Method:** Test (tile-family audit per screen) / Inspection.
+- **Source Documents:** GDS-08 §8; R212.
+- **Related ADRs:** ADR-0009.
+- **Notes:** Not yet implemented.
+
+### FR-4310 — Grammar-valid adjacency only (target — 2026-07-09)
+
+- **ID:** FR-4310
+- **Title:** The system shall only generate region adjacencies that appear in the biome-adjacency
+  grammar.
+- **Description:** For every pair of adjacent generated regions, their biome families' pairing
+  shall appear in R212's adjacency grammar table (e.g. water may border beach; water shall never
+  border sky directly).
+- **Rationale:** MSTR-001 C9; R212; ADR-0009 (enforced by construction, not post-hoc validation).
+- **Priority:** Must (target — not yet implemented)
+- **Inputs:** The candidate adjacency the generator is about to create.
+- **Outputs:** The adjacency is created only if grammar-legal; otherwise the generator selects a
+  different candidate.
+- **Preconditions:** Generation is in progress (FR-9100).
+- **Postconditions:** Every edge in the generated region graph is grammar-legal.
+- **Acceptance Criteria:** For any generated world, every adjacent region pair's biome-family
+  combination appears in the grammar table; no illegal pairing exists anywhere in the graph.
+- **Dependencies:** FR-9100.
+- **Verification Method:** Test (property test across a (seed, scale) corpus, per R305's
+  extension).
+- **Source Documents:** R212; ADR-0009; GDS-04 delta.
+- **Related ADRs:** ADR-0009.
+- **Notes:** Not yet implemented. This is a generator-*guaranteed* property (enforced during
+  generation), not a post-generation check that could fail.
 
 ## FR-5000 — Save / load (SRAM)
 
@@ -625,6 +833,180 @@ FR-6000 for the presentation half)*
 - **Source Documents:** GDS-05 C6; GDS-04.
 - **Related ADRs:** None.
 - **Notes:** None.
+
+### FR-6400 — Player and collectible sprite rendering (added 2026-07-10, `BL-0020`)
+
+- **ID:** FR-6400
+- **Title:** The system shall render the player and each active Collectible as on-screen sprites.
+- **Description:** During PLAYING, the system shall render the player as a single 8×16 OBJ pair
+  at its current position and facing, and each active Collectible in the current zone as its own
+  OBJ sprite, using the shadow-OAM-DMA mechanism every frame.
+- **Rationale:** GDS-08 §2 (sprite strategy); ADR-0005 (shadow-OAM DMA every frame); ADR-0007
+  (8×16 OBJ mode). Shipped and exercised by `test_rom.py`'s T6 suite since before this
+  requirement existed — this FR formalizes already-shipped, already-tested behavior that had no
+  numbered requirement statement (surfaced by `05-feature-decomposition`'s FP-05 review, finding
+  #1, run #19, `BL-0020`).
+- **Priority:** Must
+- **Inputs:** Player position/facing (FR-2100/FR-2200); each active Collectible's position/type
+  (FR-3100's zone data).
+- **Outputs:** One 8×16 OBJ pair for the player (X-flipped per facing, per T6.5/T6.6); one OBJ
+  entry per active Collectible.
+- **Preconditions:** State is PLAYING.
+- **Postconditions:** The player's OBJ position/tile/attribute match its current
+  position/frame/facing; each active Collectible has a corresponding on-screen OBJ; a collected/
+  inactive Collectible has no OBJ.
+- **Acceptance Criteria:** The player's OBJ Y/X equal `PLAYER_Y+16`/`PLAYER_X+8`; its tile index
+  is one of the two walk-frame values; its palette is 0; X-flip matches facing direction (T6.1–
+  T6.6). Every active Collectible has an on-screen OBJ (Y>15) with a tile matching its type
+  (T6.9/T6.10).
+- **Dependencies:** FR-2100, FR-2200, FR-3100.
+- **Verification Method:** Test — `test_rom.py` T6.1–T6.10 (already passing, pre-existing
+  evidence; this requirement adds no new test).
+- **Source Documents:** GDS-08 §2; ADR-0005; ADR-0007; `test_rom.py` T6.
+- **Related ADRs:** ADR-0005, ADR-0007.
+- **Notes:** A formal-requirement-only addition — no behavior change, no new test. Closes
+  `BL-0020`.
+
+## FR-9000 — World generation (target — 2026-07-09, new capability, not yet shipped)
+
+*(formalizes [MSTR-001](../master/MSTR-001-program-vision.md) C10, [ADR-0009](../architecture/adr/ADR-0009-screen-graph-world-generation.md)/[ADR-0010](../architecture/adr/ADR-0010-seed-scale-model.md), the [GDS-04](../architecture/04-domain-model.md) delta's new domain rules)*
+
+### FR-9100 — Deterministic world generation from (seed, scale)
+
+- **ID:** FR-9100
+- **Title:** The system shall generate an identical world for an identical (seed, scale) pair,
+  every time.
+- **Description:** Given the same seed and world-scale values, the system's world-generation
+  routine shall produce byte-identical region-graph output (biome assignments and adjacency
+  edges) every time it runs — across boots, across sessions, with no dependence on any input
+  other than (seed, scale).
+- **Rationale:** MSTR-001 C10; ADR-0009; strategic assumption A9 (seed is the sole determinism
+  input — no DIV-register or uninitialized-RAM dependence).
+- **Priority:** Must (target — not yet implemented)
+- **Inputs:** SEED (16-bit), WORLD_SCALE (2–9).
+- **Outputs:** A region graph: WORLD_SCALE² regions, each with a biome assignment and adjacency
+  edges to its neighbors.
+- **Preconditions:** SEED and WORLD_SCALE have been set (FR-1180).
+- **Postconditions:** The region graph is fully determined by (SEED, WORLD_SCALE) alone.
+- **Acceptance Criteria:** Generating a world twice from the same (seed, scale) pair — in
+  separate new-game creations, or via the Python reference-generator oracle vs. the SM83
+  routine — produces byte-identical region-graph output both times.
+- **Dependencies:** FR-1180.
+- **Verification Method:** Test (determinism property test, R305's extension; the
+  reference-generator-oracle comparison).
+- **Source Documents:** ADR-0009; strategic-assumptions-register A9.
+- **Related ADRs:** ADR-0009.
+- **Notes:** No text-dialogue system is required to satisfy C9's narrative delivery — the
+  generated world's own structure (this FR, FR-4300/4310) carries the narrative, per MSTR-001
+  D1/§4's explicit non-goal (not ruled out, not required at this vision's date). Not yet
+  implemented.
+
+### FR-9110 — Seed/scale immutable per save, entered only at new-game creation
+
+- **ID:** FR-9110
+- **Title:** The system shall accept seed and world-scale values only during new-game creation,
+  and never permit changing them for an existing save.
+- **Description:** SEED and WORLD_SCALE shall be set exactly once, during the FR-1180 new-game
+  flow, and shall remain fixed for the entire life of that save — no in-game menu, state, or
+  input sequence shall allow modifying either value once a game has begun.
+- **Rationale:** Owner decisions D6/D7, 2026-07-09; ADR-0010.
+- **Priority:** Must (target — not yet implemented)
+- **Inputs:** None beyond FR-1180's entry event (the only path that sets these values).
+- **Outputs:** None (a negative/structural requirement — the absence of any other write path).
+- **Preconditions:** A save exists (has been created via FR-1180).
+- **Postconditions:** SEED/WORLD_SCALE for that save are identical to their values at creation,
+  for the save's entire lifetime.
+- **Acceptance Criteria:** No reachable input sequence from PLAYING, SAVE, or MAP changes
+  SEED/WORLD_SCALE for an in-progress save. The only way to obtain a different (seed, scale) is
+  starting a new game (FR-1180).
+- **Dependencies:** FR-1180.
+- **Verification Method:** Test (negative test — attempt every in-game menu path, confirm none
+  writes SEED/WORLD_SCALE) / Inspection.
+- **Source Documents:** ADR-0010.
+- **Related ADRs:** ADR-0010.
+- **Notes:** Not yet implemented.
+
+### FR-9120 — Full reachability of every generated region
+
+- **ID:** FR-9120
+- **Title:** The system shall generate only worlds in which every region is reachable from the
+  starting region.
+- **Description:** For any generated world, every region shall be reachable from the player's
+  starting region via a sequence of legal (grammar-valid, FR-4310) region transitions.
+- **Rationale:** MSTR-001 C10; ADR-0009; GDS-04 delta (new domain rule — no shipped-baseline
+  precedent needed, since a fixed 3×3 grid is trivially fully connected).
+- **Priority:** Must (target — not yet implemented)
+- **Inputs:** The generated region graph (FR-9100).
+- **Outputs:** None (a structural guarantee of the graph itself).
+- **Preconditions:** Generation has completed (FR-9100).
+- **Postconditions:** Every region in the graph is reachable from the starting region.
+- **Acceptance Criteria:** For any (seed, scale) in a test corpus, a graph-traversal from the
+  starting region visits every generated region.
+- **Dependencies:** FR-9100.
+- **Verification Method:** Test (property test across a (seed, scale) corpus, R305's extension).
+- **Source Documents:** ADR-0009; GDS-04 delta.
+- **Related ADRs:** ADR-0009.
+- **Notes:** Not yet implemented. This is a generator-*guaranteed* property, not a
+  post-generation check that could fail and be silently accepted.
+
+### FR-9130 — Exactly one KeyItem per generated region
+
+- **ID:** FR-9130
+- **Title:** The system shall generate exactly one KeyItem per region, for every region in a
+  generated world.
+- **Description:** Generalizes the "exactly one Carrot per Zone" convention (BL-0017, T1.11) to
+  the generated-world case: every region, regardless of world scale, shall contain exactly one
+  KeyItem.
+- **Rationale:** MSTR-001 C9/C10; GDS-04 delta; BL-0017 (the convention this generalizes).
+- **Priority:** Must (target — not yet implemented)
+- **Inputs:** The generated region graph (FR-9100).
+- **Outputs:** Exactly one KeyItem instance placed per region.
+- **Preconditions:** Generation has completed.
+- **Postconditions:** Every region has exactly one KeyItem.
+- **Acceptance Criteria:** For any (seed, scale) in a test corpus, counting KeyItems per region
+  yields exactly 1 for every region, with no region holding 0 or ≥2.
+- **Dependencies:** FR-9100, FR-3220.
+- **Verification Method:** Test (property test across a (seed, scale) corpus, generalizing
+  T1.11's existing pattern).
+- **Source Documents:** GDS-04 delta; BL-0017.
+- **Related ADRs:** ADR-0009.
+- **Notes:** Unlike BL-0017's shipped-baseline finding (the one-carrot-per-zone rule holds only
+  by convention, not code-level enforcement), this requirement is **generator-guaranteed by
+  construction** (ADR-0009) — a stronger guarantee than the shipped model's. Not yet implemented.
+
+### FR-9200 — Save-format extension: seed, scale, and per-region flags
+
+- **ID:** FR-9200
+- **Title:** The system shall persist SEED, WORLD_SCALE, and per-region KeyItemFlags to SRAM,
+  and regenerate the region graph from SEED/WORLD_SCALE on load rather than persisting the graph
+  itself.
+- **Description:** Extends FR-5100/FR-5200's save-field set: on save, the system shall write
+  SEED, WORLD_SCALE, and KeyItemFlags[region] to SRAM under a new save-format version value. On
+  load, the system shall restore SEED/WORLD_SCALE, regenerate the region graph via FR-9100 (not
+  read a persisted graph), then restore KeyItemFlags onto the regenerated graph.
+- **Rationale:** ADR-0010; GDS-07 delta §7; R106's extension (extends the FS-101/IP-1010
+  version-byte precedent).
+- **Priority:** Must (target — not yet implemented)
+- **Inputs:** SEED, WORLD_SCALE, KeyItemFlags at save time; SRAM contents at load time.
+- **Outputs:** SRAM updated with the new fields under the new version value (save); in-memory
+  SEED/WORLD_SCALE/regenerated-graph/KeyItemFlags matching the saved values (load).
+- **Preconditions:** A save-confirm or exit-to-main-menu action (save); a version-matching save
+  exists (load, per FR-1170).
+- **Postconditions:** SRAM's SEED/WORLD_SCALE/KeyItemFlags match in-memory values at save time
+  (save); the regenerated graph plus restored KeyItemFlags exactly reproduce the pre-save world
+  state (load).
+- **Acceptance Criteria:** Saving then loading a game yields an identical region graph
+  (regenerated from the same SEED/WORLD_SCALE, per FR-9100's determinism) and identical
+  KeyItemFlags to those present at save time.
+- **Dependencies:** FR-9100, FR-9110, FR-5100, FR-5200.
+- **Verification Method:** Test (save/reload two-instance harness, R305's existing pattern,
+  extended to SEED/WORLD_SCALE/KeyItemFlags).
+- **Source Documents:** GDS-07 delta §7; ADR-0010.
+- **Related ADRs:** ADR-0010, ADR-0006.
+- **Notes:** A save whose version byte does not match this new value is not offered on the
+  MAIN MENU's "continue" path (FR-1170) — the world *model* differs, not just a field, per
+  ADR-0010's explicit reasoning (following the FS-101 precedent for resolving this class of
+  question directly rather than escalating). Not yet implemented.
 
 ## Candidate Requirements
 

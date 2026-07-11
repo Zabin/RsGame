@@ -3,7 +3,8 @@
 - **Document ID:** R211 · **Version:** 1.0 · **Status:** ✅
 - **Dependencies:** R208 (palette design), R209 (pixel-art technique), R201/R202 (structural/feel
   conventions these case studies also exemplify)
-- **Referenced By:** none yet
+- **Referenced By:** R212 (sibling case-study methodology applied to environmental
+  storytelling), R214 (sibling case-study methodology applied to procedural generation)
 - **Produces:** comparative reference for future zone/sprite/screen design decisions
 - **Feature Mapping:** *(none yet)*
 - **Related Topics:** R208, R209, R201, R202

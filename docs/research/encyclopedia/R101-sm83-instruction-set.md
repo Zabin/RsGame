@@ -65,8 +65,14 @@ work around inline.
   transitively through a computed/parameterized emission path.
 - **Cycle budgeting a new VBlank-window routine** (relevant to R102's access-timing budget):
   sum each opcode's M-cycle cost from Pan Docs' instruction table before assuming a routine fits
-  in the ~1140 T-state VBlank period (see R102) — `gbc_lib.py` does not track or assert cycle
-  counts itself, so this is a manual check the implementer must do.
+  in the VBlank period — **1140 M-cycles (4560 T-states)**, per R102's directly-confirmed figure
+  (10 scanlines × 456 T-states/line, [Pan Docs](https://github.com/gbdev/pandocs/blob/master/src/Rendering.md),
+  accessed 2026-07-10) — `gbc_lib.py` does not track or assert cycle counts itself, so this is a
+  manual check the implementer must do. **Correction (2026-07-10, `BL-0032`):** this line
+  previously read "~1140 T-state," a units error — 1140 is the *M-cycle* count; the equivalent
+  T-state count is 4560, matching R102's own figure exactly (this document's own §Concepts states
+  the 1 M-cycle = 4 T-states conversion above). Both topics now cite the identical, directly-
+  confirmed figure.
 - **Do not add a generic raw-byte-emission escape hatch** (`emit_opcode(int)`) without an explicit
   guard rejecting the eleven illegal opcodes — the existing per-instruction methods are safe by
   construction (they never encode an illegal byte); a generic path would remove that safety.

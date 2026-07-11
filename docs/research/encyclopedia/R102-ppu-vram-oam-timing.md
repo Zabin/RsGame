@@ -3,11 +3,13 @@
 - **Document ID:** R102 · **Version:** 1.0 · **Status:** ✅
 - **Dependencies:** R101 (cycle-cost units)
 - **Referenced By:** R103 (LCDC/STAT drive PPU mode), R104 (palette write timing), R105 (OAM DMA
-  timing), R110 (VBlank ISR is this topic's central safe window)
+  timing), R110 (VBlank ISR is this topic's central safe window), R111 (generated-world redraw
+  cost builds on this topic's LCD-off-vs-VBlank analysis), R213 (generator output feeds this
+  topic's existing redraw path)
 - **Produces:** grounds `asm_game.py`'s VBlank ISR (`0x0040`) and every VRAM/tilemap/OAM write
   routine
 - **Feature Mapping:** *(none yet)*
-- **Related Topics:** R103, R104, R105, R110
+- **Related Topics:** R103, R104, R105, R110, R111, R213
 
 ## Purpose
 
@@ -28,7 +30,7 @@ The PPU cycles through four modes per scanline (and one long mode across all 10 
 | Mode | Name | VRAM (CPU) | OAM (CPU) | Notes |
 |---|---|---|---|---|
 | 0 | HBlank | accessible | accessible (direct or DMA) | shortest mode, ends each visible line |
-| 1 | VBlank | accessible | accessible (direct or DMA) | lines 144–153, ~4560 T-states total |
+| 1 | VBlank | accessible | accessible (direct or DMA) | lines 144–153, exactly 4560 T-states total (10 lines × 456 T-states/line, directly confirmed against Pan Docs 2026-07-10, `BL-0032`) |
 | 2 | OAM Scan | accessible | **not accessible** to CPU | PPU reads OAM 1 entry/M-cycle |
 | 3 | Pixel Transfer | **not accessible** | **not accessible** | PPU actively rendering |
 
@@ -79,6 +81,45 @@ silicon.
 - **CGB palette writes (BCPS/BCPD, OCPS/OCPD) are also blocked during mode 3**[^2] — see R104 for
   the palette-specific register sequence; the timing rule here (VBlank-or-LCD-off) is identical.
 
+## Full-screen redraw cost, extended for a generated world (2026-07-09, grounds MSTR-001 C10/C8)
+
+**This project already answers "how do you redraw a whole screen" — and the answer is LCD-off,
+not VBlank-windowed**, which is the load-bearing fact for whether a procedurally generated
+world's screen transitions can stay smooth (C8/D4). Direct code read of `asm_game.py`'s
+`do_screen_redraw`/`copy_screen`: the routine first spin-waits for `LY >= 144` (confirmed VBlank
+has started), **then sets `LCDC = 0` (display off)** before doing any tilemap work, and only
+re-enables the display (`LCDC = 0x97`) once the copy is fully done.[^4] `copy_screen` itself
+writes **576 tile-index bytes plus 576 attribute bytes (1152 bytes total)** to `0x9800`+ via a
+byte-at-a-time loop (`LD A,(DE)` / `LD (HL+),A` / `INC DE` / `DEC BC` / loop-test), toggling
+`VBK` between the two writes to reach both CGB tilemap layers.[^5]
+
+This is the **correct** choice, not an oversight: per R101's own discipline ("sum each opcode's
+M-cycle cost... before assuming a routine fits" rather than assuming[^6]), a 1152-byte
+byte-at-a-time copy loop costs many times more CPU time than VBlank's single-window duration
+provides — nowhere close to fitting in one VBlank period regardless of the exact T-state total
+(this topic and R101 currently cite two different VBlank-duration figures, ~4560 vs. ~1140
+T-states — **flagged as a standing cross-document inconsistency to reconcile**, not resolved by
+this pass; either figure is far short of what 1152 bytes at several T-states/byte requires).
+LCD-off has no such window limit — the copy simply runs until done, at the cost of a black
+screen for its duration. The project's existing choice is therefore the right one for full-screen
+transitions, and remains right at any world scale.
+
+**Implication for C10's generated world:** a procedurally generated world does not change this
+calculus — the same `do_screen_redraw`/`copy_screen` LCD-off pattern is expected to serve
+generated screens exactly as it serves the current nine hand-authored ones, since the cost is
+driven by tilemap *size* (fixed at 576+576 bytes regardless of content origin), not by whether
+the tile data was hand-placed or procedurally assigned. **What generation adds is upstream, not
+downstream, of this routine**: computing *which* tiles go into the 576-byte buffer (R213's
+generator) is separate work from *writing* that buffer to VRAM (this topic's existing, unchanged
+mechanism) — R213's recommended screen/room-graph approach (assign a biome + look up/compute its
+tile content once per screen, not per-frame) keeps this cheap-and-already-proven write path
+untouched.
+
+### Sources
+[^4]: Direct code read, `asm_game.py` `do_screen_redraw` (LY-wait + `LCDC=0` before dispatch, `LCDC=0x97` at `dsr_done`), confirmed 2026-07-09.
+[^5]: Direct code read, `asm_game.py` `copy_screen` (`LD_BC_nn(576)` × 2, `VBK` toggled between tile/attribute passes), confirmed 2026-07-09.
+[^6]: [R101](R101-sm83-instruction-set.md) §"Implementation Guidance" (the "sum, don't assume" discipline this topic's reasoning follows) — see that topic's own note on the ~1140 vs. this topic's ~4560 T-state VBlank-duration figures, an open cross-document inconsistency neither topic resolves here.
+
 ## Feature Mapping
 
 *(No `FS-xxx` authored yet.)*
@@ -88,4 +129,5 @@ silicon.
 R103 (LCDC controls the mode-0 bit / display-on bit this topic's rules key off) · R104 (palette
 writes share this exact access-window constraint) · R105 (OAM DMA is *the* practical way to update
 40 sprites within one VBlank) · R110 (the VBlank interrupt is the mechanism that makes "confirmed
-VBlank" observable to the CPU at all).
+VBlank" observable to the CPU at all) · R111 (WRAM budget & SM83 PRNG determinism for a generated
+world) · R213 (the generation algorithm whose output this topic's redraw path renders).

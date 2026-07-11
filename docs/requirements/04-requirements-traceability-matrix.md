@@ -1,6 +1,11 @@
 # RQ-04 — Requirements Traceability Matrix
 
-> **Status: ✅ Authored (bootstrap as-built, 2026-07-06).** Owned by `04-requirements-engineering`.
+> **Status: ✅ Authored (bootstrap as-built, 2026-07-06; delta 2026-07-09 for the procgen-world
+> increment — 17 new rows, target requirements; delta 2026-07-10 — FR-6400 added (BL-0020),
+> Feature Spec/Implementation Package columns filled for the 17 target rows now that
+> `06`/`07` have run, NFR-6100/NFR-1200/NFR-7100/NFR-5200 Test cells refreshed; delta 2026-07-11
+> — NFR-6500/6510 Test cells filled with real evidence, `BL-0045`).** Owned by
+> `04-requirements-engineering`.
 > One row per [RQ-01](01-functional-requirements.md)/[RQ-02](02-non-functional-requirements.md)
 > requirement (Candidates marked). Populates the row-level matrix
 > [GDS-10](../architecture/10-requirements-traceability-matrix.md) §3 deferred to this stage, using
@@ -28,7 +33,7 @@
 | FR-2310 | No transition at grid boundary | — | GDS-05 C2 | — | `asm_game.py` | UNASSIGNED | UNASSIGNED | T7.9/T7.10, T9.5/T9.11/T9.14 |
 | FR-2320 | On-screen transition-edge signaling | R203 | GDS-05 C2 | — | `tilemaps.py` | UNASSIGNED | UNASSIGNED | UNASSIGNED |
 | FR-3100 | Collection-proximity detection | R202 | GDS-05 C3 | — | `asm_game.py` | UNASSIGNED | UNASSIGNED | T8.4 |
-| FR-3200 | ScoreItem collection increments Score | — | GDS-05 C3; GDS-04 | — | `asm_game.py` | UNASSIGNED | UNASSIGNED | T8.4/T8.5/T8.6/T8.10 (postcondition inaccuracy tracked as BL-0022) |
+| FR-3200 | ScoreItem collection increments Score | — | GDS-05 C3; GDS-04 | — | `asm_game.py` | UNASSIGNED | UNASSIGNED | T8.4/T8.5/T8.6/T8.10 — trustworthy; postcondition corrected 2026-07-10 (`BL-0022`) to match shipped respawn-on-re-entry behavior |
 | FR-3210 | Carrot collection sets zone flag, increments CarrotCount | — | GDS-05 C3; GDS-04 | — | `asm_game.py` | UNASSIGNED | UNASSIGNED | T8.7/T8.8/T8.9 |
 | FR-3300 | Victory condition (CarrotCount==9) | — | GDS-05 C4 | — | `asm_game.py` | UNASSIGNED | UNASSIGNED | T4.8, T8.14 |
 | FR-4100 | Fixed 3×3 zone grid | — | GDS-04; GDS-01 §3 | — | `tilemaps.py` | UNASSIGNED | UNASSIGNED | T1.10, T9 (grid edges) |
@@ -36,30 +41,48 @@
 | FR-5100 | Explicit player-initiated save | R106; R205 | GDS-05 C5; GDS-06 N3 | ADR-0006 | `asm_game.py` | UNASSIGNED | UNASSIGNED | T10.3–T10.5, T10.13/T10.14 |
 | FR-5200 | Restore save-field set on valid-save boot | R106 | GDS-05 C5; GDS-06 N3 | ADR-0006 | `asm_game.py` | UNASSIGNED | UNASSIGNED | T10.6–T10.12 |
 | FR-5210 | Fields explicitly outside the persisted save set (facing/frame only, as of 2026-07-07) | — | GDS-05 C5; BL-0018 (resolved) | — | `asm_game.py` | UNASSIGNED | UNASSIGNED | UNASSIGNED |
-| FR-5220 | Persist per-zone ScoreItem collected-state (new, 2026-07-07) | — | user decision 2026-07-07; BL-0018 (resolved) | ADR-0006 | `asm_game.py` | UNASSIGNED | UNASSIGNED | UNASSIGNED |
+| FR-5220 | Persist per-zone ScoreItem collected-state (new, 2026-07-07) | — | user decision 2026-07-07; BL-0018 (resolved) | ADR-0006 | `asm_game.py` | FS-101 | IP-1010 | **T11.a–e** — trustworthy, 125/125 pass |
 | FR-6100 | Zone screen composition | R203 | GDS-05 C6; GDS-08 §1 | — | `tilemaps.py` | UNASSIGNED | UNASSIGNED | T5.9 |
 | FR-6200 | Persistent row-0 HUD | R204 | GDS-05 C6; GDS-08 §3 | — | `asm_game.py`/`tilemaps.py` | UNASSIGNED | UNASSIGNED | T5.4–T5.8 |
 | FR-6300 | Five non-zone UI screens | — | GDS-05 C6; GDS-04 | — | `tilemaps.py` | UNASSIGNED | UNASSIGNED | T5.1–T5.3, T4.4/T4.6/T4.8 (screens reached) |
+| FR-6400 | Player and collectible sprite rendering (added 2026-07-10, BL-0020) | — | GDS-08 §2 | ADR-0005, ADR-0007 | `asm_game.py` | UNASSIGNED | UNASSIGNED | T6.1–T6.10 — trustworthy, pre-existing evidence, formal requirement only |
 | CR-01 | Full save-field persistence — **RESOLVED/SPLIT 2026-07-07**: facing/frame half REJECTED (no row — see FR-5210); ScoreItem half APPROVED → see **FR-5220** row above | — | GDS-05 C5; BL-0018 (resolved) | — | `asm_game.py` | `RESOLVED — SEE FR-5220` | `RESOLVED — SEE FR-5220` | `RESOLVED — SEE FR-5220` |
 | CR-02 | Carrot-invariant enforcement | — | GDS-04; BL-0017 | — | `tilemaps.py` | `CANDIDATE — NOT BASELINED` | `CANDIDATE — NOT BASELINED` | `CANDIDATE — NOT BASELINED` |
+| FR-1170 | MAIN MENU state (Met, 2026-07-10) | — | GDS-01 §2a/§4a | ADR-0010 | `asm_game.py` | FS-104 | IP-1040 | T14.a1–a4 — 180/180 pass (T14 sub-total 20/20) |
+| FR-1180 | New-game seed/scale entry + generation trigger (Met) | R111 | GDS-01 §4a | ADR-0009, ADR-0010 | `asm_game.py` | FS-104 | IP-1040 | T14.b1–b3, T14.c1 — 180/180 pass (T14 sub-total 20/20) |
+| FR-1190 | Exit-to-main-menu with auto-save (Met) | — | GDS-01 §4a | — | `asm_game.py` | FS-104 | IP-1040 | T14.d1–d2 — 180/180 pass (T14 sub-total 20/20) |
+| FR-3220 | Item-agnostic KeyItem collection (generalizes FR-3210) | — | GDS-04 delta | ADR-0009 | `asm_game.py` | FS-102 | IP-1020 | T8.7, T8.8 (retargeted KEYITEM_FLAGS/KEYITEM_COUNT checks), T12.g (cross-reference) — 133/133 pass |
+| FR-4300 | One biome per screen (Met — code half `IP-1030`, content half `IP-1031`, both 2026-07-10/11) | R212 | GDS-08 delta §8 | ADR-0009 | `asm_game.py`, `tilemaps.py` | FS-103 | IP-1030 (code), IP-1031 (content) | T13.a (tile-family audit, exercises both halves) — 180/180 pass |
+| FR-4310 | Grammar-valid adjacency only | R212 | GDS-04 delta | ADR-0009 | `asm_game.py`, `worldgen.py` | FS-102 | IP-1020 | T12.d (15-entry seed/scale corpus, 0 illegal edges) |
+| FR-9100 | Deterministic world generation from (seed, scale) | R111, R213 | GDS-04 delta; ADR-0009 | ADR-0009 | `asm_game.py`, `worldgen.py` | FS-102 | IP-1020 | T12.a (two-boot determinism), T12.b (oracle parity), T12.e (region count) |
+| FR-9110 | Seed/scale immutable per save, new-game-only (Met, 2026-07-10) | — | ADR-0010 | ADR-0010 | `asm_game.py` (only `sse_compose_seed`, reachable only via `st_seed_scale_entry`'s A-confirm, writes `SEED`/`WORLD_SCALE`) | FS-102, FS-104 | IP-1020, IP-1040 | T14.e1 (static write-site audit), T14.e2 (runtime sweep, PLAYING/SAVE/MAP) — 180/180 pass (T14 sub-total 20/20) |
+| FR-9120 | Full reachability of every generated region | — | GDS-04 delta; ADR-0009 | ADR-0009 | `worldgen.py` | FS-102 | IP-1020 | T12.c (BFS from region 0, 15-entry corpus, 0 unreachable) |
+| FR-9130 | Exactly one KeyItem per generated region (generalizes BL-0017) | — | GDS-04 delta; BL-0017 | ADR-0009 | `worldgen.py` | FS-102 | IP-1020 | T12.e (region count == scale², 15-entry corpus) |
+| FR-9200 | Save-format extension: seed/scale/region-flags (Met, 2026-07-10) | R106 (ext.) | GDS-07 delta §7 | ADR-0010, ADR-0006 | `asm_game.py` | FS-105 | IP-1050 | T15.a1–a6, T15.c1–c6, T15.d — 180/180 pass |
 
 ## Non-Functional Requirements
 
 | Req ID | Title | Research Source | Architecture Section | ADR | Module | Feature Spec | Implementation Package | Test |
 |---|---|---|---|---|---|---|---|---|
 | NFR-1100 | VBlank-gated PPU access | R102 | GDS-06 N2 | ADR-0005 | `asm_game.py` | UNASSIGNED | UNASSIGNED | UNASSIGNED (inspection-based, no automated check exists) |
-| NFR-1200 | Score-bar write timing (BL-0003/BL-0008) | — | GDS-06 N2 | — | `asm_game.py` | UNASSIGNED | UNASSIGNED | UNASSIGNED — not currently met |
+| NFR-1200 | Score-bar write timing (BL-0003/BL-0008) | — | GDS-06 N2 | — | `asm_game.py` | UNASSIGNED | IP-9020 | **T8.10a, T8.10b** — trustworthy, VR-9020-confirmed, 125/125 pass today (111/111 at IP-9020's own commit) |
 | NFR-2100 | Deterministic state-machine behavior | — | GDS-01 §4 (derived) | — | `asm_game.py` | UNASSIGNED | UNASSIGNED | UNASSIGNED |
 | NFR-3100 | One-job-per-file module boundary | — | GDS-03 | ADR-0003 | all six modules | UNASSIGNED | UNASSIGNED | UNASSIGNED (inspection-based) |
 | NFR-4000 | 32768-byte single-bank ROM budget | — | GDS-06 N1; GDS-02 | ADR-0001 | `build_rom.py` | UNASSIGNED | UNASSIGNED | **T1.1** ("ROM size = 32768") — trustworthy, T1 suite |
 | NFR-4100 | CGB palette budget | R104 | GDS-06 N1; GDS-07; GDS-08 §4 | — | `build_rom.py`/`tiles.py` | UNASSIGNED | UNASSIGNED | UNASSIGNED (inspection-based) |
 | NFR-5100 | MBC1 SRAM enable/disable bracketing | R106 | GDS-06 N3 | ADR-0006 | `asm_game.py` | UNASSIGNED | UNASSIGNED | UNASSIGNED (inspection-based) |
-| NFR-5200 | Save-field round-trip integrity | — | GDS-06 N3 | ADR-0006 | `asm_game.py` | UNASSIGNED | UNASSIGNED | T10.7–T10.12 (current field set; FR-5220's new field pending IP-1010/T11) |
-| NFR-6100 | PyBoy headless as verification target | R301 | GDS-02; A2 | ADR-0008 | `run-bunnygarden` harness | UNASSIGNED | UNASSIGNED | UNASSIGNED (inspection-based) |
-| NFR-7100 | Full, currently-accurate test suite as completion gate | — | GDS-06 N5 | — | `test_rom.py` | UNASSIGNED | UNASSIGNED | **T1–T10, 109/109 pass** (IP-9010, 2026-07-07 — this NFR's own remediation; was BL-0006) |
+| NFR-5200 | Save-field round-trip integrity (widened again 2026-07-10, `IP-1050`) | — | GDS-06 N3 | ADR-0006, ADR-0010 | `asm_game.py` | FS-101, FS-105 | IP-1010, IP-1050 | **T10.7–T10.12, T11.b5/T11.c/T11.e1/T11.d, T15.a3–a6/c1–c6** — trustworthy, full field set incl. SEED/WORLD_SCALE/KEYITEM_FLAGS, 180/180 pass |
+| NFR-6100 | PyBoy headless as verification target | R301 | GDS-02; A2 | ADR-0008 | `run-bunnygarden` harness | UNASSIGNED | UNASSIGNED | **T1–T10 (full suite)** — every check runs headless via PyBoy, direct repeatable evidence (filled 2026-07-10, `BL-0026`; previously `UNASSIGNED` despite this evidence already existing) |
+| NFR-7100 | Full, currently-accurate test suite as completion gate | — | GDS-06 N5 | — | `test_rom.py` | UNASSIGNED | UNASSIGNED | **T1–T10, 109/109 pass at IP-9010's own commit — 125/125 today** (IP-9010, 2026-07-07 — this NFR's own remediation, was BL-0006; count refreshed 2026-07-10 alongside NFR-1200's identical staleness, BL-0028) |
 | NFR-8100 | Byte-identical deterministic rebuild | — | GDS-06 N4 | ADR-0002 | `build_rom.py` | UNASSIGNED | UNASSIGNED | Confirmed by direct rebuild-and-diff during MSTR-001 §8's correction — not a `test_rom.py` check; UNASSIGNED as an automated Test cell |
-| CR-03 | Bank-switching-ready extensibility standard | — | ADR-0001; MSTR-001 C7 | ADR-0001 | `build_rom.py`/`gbc_lib.py` | `CANDIDATE — NOT BASELINED` | `CANDIDATE — NOT BASELINED` | `CANDIDATE — NOT BASELINED` |
+| CR-03 | Bank-switching-ready extensibility standard — **PARTIALLY SUPERSEDED 2026-07-09**: ADR-0011 now records the bank-switching *strategy* (MBC1 default wiring); this Candidate's remaining scope is the build-pipeline extensibility standard itself, not yet baselined | — | ADR-0001; ADR-0011; MSTR-001 C7 | ADR-0001, ADR-0011 | `build_rom.py`/`gbc_lib.py` | `CANDIDATE — NOT BASELINED` | `CANDIDATE — NOT BASELINED` | `CANDIDATE — NOT BASELINED` |
 | CR-04 | Real-hardware/second-emulator verification standard | — | A2 | ADR-0008 | `run-bunnygarden` harness | `CANDIDATE — NOT BASELINED` | `CANDIDATE — NOT BASELINED` | `CANDIDATE — NOT BASELINED` |
+| NFR-1300 | Screen-transition smoothness for generated content (Met, 2026-07-10) | R102 (ext.) | GDS-08 delta §7; GDS-07 delta | ADR-0009 | `asm_game.py` | FS-103 | IP-1030 | T13.b (call-site audit, direct code read) — 136/136 pass |
+| NFR-2200 | Deterministic world generation | R111 | ADR-0009; A9 | ADR-0009 | `worldgen.py`, `asm_game.py` | FS-102 | IP-1020 | T12.f (seed=0 normalization, direct WRAM inspection), T12.h (static no-DIV/no-external-read source scan) |
+| NFR-4200 | Generated-world WRAM/SRAM headroom (WRAM half Met, `IP-1020`; SRAM half awaits `IP-1050`) | R111 | GDS-07 delta §6/§7 | ADR-0010 | `asm_game.py` | FS-102 | IP-1020 (WRAM), IP-1050 (SRAM) | T12.i (WRAM extent inside bank-0 + boot-clear range, confirmed at scale=9) |
+| NFR-5300 | Save-format version bump for seed/scale/region-flags (Met, 2026-07-10) | R106 (ext.) | GDS-07 delta §7 | ADR-0010, ADR-0006 | `asm_game.py` | FS-105 | IP-1050 | T15.b1/b2/b3 — 180/180 pass |
+| NFR-6500 | Aesthetic craft and clean-screen standard compliance (Met, 2026-07-11) | R209 | GDS-08 delta §7 | — | `tiles.py`/`tilemaps.py` | FS-106 | *(no package — see FS-106 §8/§10)* | `content-review-IP-1031.md` — clean, no findings |
+| NFR-6510 | Biome-transition palette-stepping compliance (Met, 2026-07-11) | R212 | GDS-08 delta §8 | ADR-0009 | `build_rom.py`/`tiles.py` | FS-106 | *(no package — see FS-106 §8/§10)* | `content-review-IP-1031.md` — Met, 1 Low/informational note (Stone↔Brick pairing) |
 
 ## Notes on this matrix's honesty discipline
 
@@ -75,3 +98,10 @@
 - Every `BL-xxxx` reference in this matrix (BL-0003, BL-0006, BL-0008, BL-0009, BL-0017, BL-0018)
   is cited as GDS-10 §4 anticipated — a backlog ID functioning as a citable cross-cutting anchor,
   not a prose aside.
+- **2026-07-09 delta:** the 16 new rows (FR-1170–FR-9200, NFR-1300–NFR-6510) all carry
+  `UNASSIGNED` Feature Spec/Implementation Package/Test cells with an explicit "not yet
+  implemented" annotation — these are target requirements for the adopted increment
+  ([PLAN-requirements-aesthetics-story-map.md](../pipeline/PLAN-requirements-aesthetics-story-map.md)),
+  none of which has reached stage 05 yet. Module cells are marked `(proposed)` where GDS-09's
+  delta names a new module (`worldgen.py`) or an extension to an existing one, distinguishing
+  "this is where it will live" from the existing rows' "this is where it does live."
