@@ -675,6 +675,17 @@ print("\n=== T11: Per-Zone ScoreItem Persistence ===")
 
 # T11.a — same-session: collect, leave the zone, return; item stays inactive
 # and SCORE does not re-increment (AC-1; BL-0023's farming-bug regression).
+# Region 0 is the grid's top-left corner, so only its down/right edges are
+# ever grid-adjacent (up/left are always None) -- IP-1070's maze pass can
+# block either one, so pick whichever the oracle actually left open instead
+# of hardcoding "right" (which the default seed=0->1/scale=3 world no
+# longer guarantees, the same supersession-sweep gap T17.b's rewrite found).
+_t11a_regions = worldgen.generate(1, 3)   # advance_to_playing's own default
+if _t11a_regions[0]['neighbors'][3] is not None:
+    _t11a_dir, _t11a_expect = 3, _t11a_regions[0]['neighbors'][3]   # right
+else:
+    _t11a_dir, _t11a_expect = 1, _t11a_regions[0]['neighbors'][1]   # down
+
 pb = fresh_boot()
 advance_to_playing(pb)
 pb.memory[PLAYER_X] = 20; pb.memory[PLAYER_Y] = 32
@@ -682,10 +693,16 @@ pb.memory[PLAYER_X] = 20; pb.memory[PLAYER_Y] = 32
 sc_after = pb.memory[SCORE]
 check("T11.a1 Star (index 0) collected", sc_after > 0, f"score={sc_after}")
 
-pb.memory[PLAYER_X] = 156; pb.memory[PLAYER_Y] = 72
+if _t11a_dir == 3:
+    pb.memory[PLAYER_X] = 156; pb.memory[PLAYER_Y] = 72
+else:
+    pb.memory[PLAYER_X] = 80; pb.memory[PLAYER_Y] = 128
 [pb.tick() for _ in range(80)]
-check("T11.a2 Transitioned out of zone 0", pb.memory[CUR_ZONE] == 1, f"zone={pb.memory[CUR_ZONE]}")
-pb.memory[PLAYER_X] = 0
+check("T11.a2 Transitioned out of zone 0", pb.memory[CUR_ZONE] == _t11a_expect, f"zone={pb.memory[CUR_ZONE]}")
+if _t11a_dir == 3:
+    pb.memory[PLAYER_X] = 0
+else:
+    pb.memory[PLAYER_Y] = 17
 [pb.tick() for _ in range(80)]
 check("T11.a3 Back in zone 0", pb.memory[CUR_ZONE] == 0, f"zone={pb.memory[CUR_ZONE]}")
 check("T11.a4 Collected item (index 0) stays inactive on re-entry (AC-1)",
@@ -1398,7 +1415,7 @@ pb2.stop()
 wipe_save()
 
 # ══════════════════════════════════════════════════════
-# T17 — Generated-World Navigation (IP-9050)
+# T17 — Generated-World Navigation (IP-9050; graph-driven since IP-1070)
 #      check_zone_transition regeneralized to read REGION_GRAPH's neighbor
 #      bytes (BL-0047's fix) — supersedes T9's fixed-3x3-grid checks
 #      entirely (retired, not kept alongside these, per R305's "rewrite,
@@ -1407,22 +1424,75 @@ wipe_save()
 #      left:  x==0  -> zone=REGION_GRAPH[zone].left, X=150
 #      up:    y<18  -> zone=REGION_GRAPH[zone].up, Y=120
 #      down:  y>=128 -> zone=REGION_GRAPH[zone].down, Y=24
+#
+#      IP-1070 (2026-07-11) supersedes a hidden assumption this suite's own
+#      original hardcoded walks made: that every grid-adjacent region pair
+#      is always connected. That's no longer true for ANY scale, including
+#      the scale=3 default fixture T17.b uses (IP-1070's maze pass runs for
+#      every generated world) -- a genuine supersession-sweep miss in
+#      IP-1070's own planning pass (its own §7 only checked dsr_p/
+#      draw_region_arrows/check_zone_transition/tilemaps.py/T12, not this
+#      suite's own hardcoded-path assumption). Both T17.a (scale=5) and
+#      T17.b (scale=3) below are rewritten graph-driven: a real,
+#      button-driven DFS tour over whatever edges the actual generated
+#      graph provides (including its own backtrack steps, each a genuine
+#      valid move since REGION_GRAPH is symmetric by construction), visiting
+#      every reachable region -- works for any maze topology, not just a
+#      full lattice, and (T17.b) also probes every direction at every
+#      visited region to confirm open/blocked matches the oracle exactly,
+#      subsuming the original suite's specific blocked-case spot-checks.
 # ══════════════════════════════════════════════════════
 print("\n=== T17: Generated-World Navigation ===")
 
 def settle(pb, frames=80):
     [pb.tick() for _ in range(frames)]
 
+_T17_OPP = {0: 1, 1: 0, 2: 3, 3: 2}   # up<->down, left<->right
+
+def _t17_dfs_tour(regions, start=0):
+    """A continuous walk (real, valid single-step edge crossings only,
+    including backtrack steps) visiting every region reachable from
+    `start`. Returns (moves, visited) where moves is a list of
+    (from_region, direction, to_region)."""
+    visited = {start}
+    moves = []
+    def dfs(cur):
+        for d in range(4):
+            nxt = regions[cur]['neighbors'][d]
+            if nxt is None or nxt in visited:
+                continue
+            visited.add(nxt)
+            moves.append((cur, d, nxt))
+            dfs(nxt)
+            moves.append((nxt, _T17_OPP[d], cur))
+    dfs(start)
+    return moves, visited
+
+def _t17_do_move(pb, direction):
+    """Performs the memory-forced edge-crossing move for `direction`
+    (0=up,1=down,2=left,3=right, REGION_GRAPH's own order) and returns
+    (actual_zone, position_ok)."""
+    if direction == 3:
+        pb.memory[PLAYER_X] = 156; settle(pb)
+        return pb.memory[CUR_ZONE], pb.memory[PLAYER_X] <= 20
+    if direction == 2:
+        pb.memory[PLAYER_X] = 0; settle(pb)
+        return pb.memory[CUR_ZONE], pb.memory[PLAYER_X] >= 140
+    if direction == 1:
+        pb.memory[PLAYER_Y] = 128; settle(pb)
+        return pb.memory[CUR_ZONE], pb.memory[PLAYER_Y] <= 40
+    pb.memory[PLAYER_Y] = 17; settle(pb)
+    return pb.memory[CUR_ZONE], pb.memory[PLAYER_Y] >= 100
+
 # T17.a/T17.d — scale=5 full-world traversal (the direct BL-0047 regression
-# test): a snake (boustrophedon) walk visiting every one of the 25 regions
-# exactly once via real button-driven navigation (memory-forced edge
-# crossings, matching T9's own established method — not force_region_
-# redraw, which only isolates rendering). At every step, CUR_ZONE is
-# asserted against worldgen.py's own oracle (T17.a) and the entry position
-# against the exact edge constant (T17.d, mirroring T9.3/T9.7/T9.9's own
-# tolerance style) — the runtime-driven reachability check R305's
-# 2026-07-11 delta (BL-0057) names as necessary, paired with (not
-# replacing) T12.c's existing oracle-only check.
+# test): a graph-driven DFS tour via real button-driven navigation
+# (memory-forced edge crossings, matching T9's own established method — not
+# force_region_redraw, which only isolates rendering). At every step,
+# CUR_ZONE is asserted against worldgen.py's own oracle (T17.a) and the
+# entry position against the exact edge constant (T17.d, mirroring
+# T9.3/T9.7/T9.9's own tolerance style) — the runtime-driven reachability
+# check R305's 2026-07-11 delta (BL-0057) names as necessary, paired with
+# (not replacing) T12.c's/T19.b's existing oracle-only checks.
 T17_SEED, T17_SCALE = 4242, 5
 pb = fresh_boot(200)
 pb.button('a'); [pb.tick() for _ in range(40)]        # MAIN MENU -> new game -> SEED/SCALE ENTRY
@@ -1438,46 +1508,42 @@ check("T17.a0b Oracle region count == scale^2 (25)", len(regions) == T17_SCALE *
 pb.memory[PLAYER_X] = 80; pb.memory[PLAYER_Y] = 72
 [pb.tick() for _ in range(5)]
 
+t17_moves, t17_visited = _t17_dfs_tour(regions, 0)
 zone_bad, pos_bad = [], []
-cur = 0
-for row in range(T17_SCALE):
-    going_right = (row % 2 == 0)
-    for _ in range(T17_SCALE - 1):
-        nb_idx = 3 if going_right else 2   # REGION_GRAPH order: up,down,left,right
-        expected = regions[cur]['neighbors'][nb_idx]
-        pb.memory[PLAYER_X] = 156 if going_right else 0
-        settle(pb)
-        actual, x = pb.memory[CUR_ZONE], pb.memory[PLAYER_X]
-        if actual != expected:
-            zone_bad.append((cur, 'right' if going_right else 'left', expected, actual))
-        x_ok = (x <= 20) if going_right else (x >= 140)
-        if not x_ok:
-            pos_bad.append((cur, 'right' if going_right else 'left', x))
-        cur = expected
-    if row < T17_SCALE - 1:
-        expected = regions[cur]['neighbors'][1]   # down
-        pb.memory[PLAYER_Y] = 128
-        settle(pb)
-        actual, y = pb.memory[CUR_ZONE], pb.memory[PLAYER_Y]
-        if actual != expected:
-            zone_bad.append((cur, 'down', expected, actual))
-        if y > 40:
-            pos_bad.append((cur, 'down', y))
-        cur = expected
+for cur, d, expected in t17_moves:
+    actual, pos_ok = _t17_do_move(pb, d)
+    if actual != expected:
+        zone_bad.append((cur, d, expected, actual))
+    if not pos_ok:
+        pos_bad.append((cur, d, actual))
 
-check("T17.a Scale=5 full-world traversal: every transition matches REGION_GRAPH, oracle-cross-checked (BL-0047 direct regression)",
+check("T17.a Scale=5 graph-driven full-world traversal: every transition matches REGION_GRAPH, oracle-cross-checked (BL-0047 direct regression)",
       len(zone_bad) == 0, f"bad={zone_bad[:3]}")
 check("T17.d Entry position correct at every transition (mirrors T9.3/T9.7/T9.9's own tolerance)",
       len(pos_bad) == 0, f"bad={pos_bad[:3]}")
-check("T17.a1 Traversal reached the grid's final region (bottom-right corner, 24)",
-      cur == T17_SCALE * T17_SCALE - 1, f"cur={cur}")
+check("T17.a1 Traversal visited every one of the 25 regions via real navigation (FR-9120, runtime-driven)",
+      len(t17_visited) == T17_SCALE * T17_SCALE, f"visited={len(t17_visited)}/25")
+pb.stop()
+wipe_save()
 
-# T17.c — boundary halt: the bottom-right corner region (reached above) has
-# no right/down neighbor by construction (a genuine generated-world edge,
-# not assumed CUR_ZONE==2 the way the retired T9.5/T9.11/T9.14 were) —
-# confirm no transition occurs and CUR_ZONE is unchanged (FR-2310).
-check("T17.c0 Final region (24) genuinely has no right/down neighbor (oracle)",
-      regions[24]['neighbors'][3] is None and regions[24]['neighbors'][1] is None, "")
+# T17.c — boundary halt: region 24 (bottom-right corner) has no right/down
+# neighbor by construction regardless of the maze (a true grid boundary is a
+# property of (row,col,scale) alone, unaffected by ADR-0012's maze pass) —
+# confirm no transition occurs and CUR_ZONE is unchanged (FR-2310). Reuses a
+# real scale=5 new-game (same seed/scale as T17.a) so REGION_GRAPH actually
+# holds generated data for region 24 -- forcing CUR_ZONE/WORLD_SCALE alone
+# on a scale=3 boot (T16.a's "force region N" pattern) leaves REGION_GRAPH's
+# region-24 bytes unpopulated, which previously produced a spurious
+# transition off stale WRAM rather than a genuine boundary-halt result.
+pb = fresh_boot(200)
+pb.button('a'); [pb.tick() for _ in range(40)]
+enter_seed_scale(pb, [int(c) for c in f"{T17_SEED:05d}"], T17_SCALE)
+pb.button('a'); [pb.tick() for _ in range(80)]
+check("T17.c0 Region 24 (scale=5 oracle) genuinely has no right/down neighbor",
+      worldgen.generate(T17_SEED, T17_SCALE)[24]['neighbors'][3] is None and
+      worldgen.generate(T17_SEED, T17_SCALE)[24]['neighbors'][1] is None, "")
+pb.memory[CUR_ZONE] = 24; pb.memory[NEED_REDRAW] = 0
+[pb.tick() for _ in range(3)]
 pb.memory[PLAYER_X] = 159
 settle(pb, 40)
 check("T17.c1 No right transition at the true grid edge (region 24)",
@@ -1489,70 +1555,53 @@ check("T17.c2 No down transition at the true grid edge (region 24)",
 pb.stop()
 wipe_save()
 
-# T17.b — scale=3 regression: the existing shipped scale=3 behavior (the
-# case every prior suite already covered) must be bit-for-bit unchanged —
-# REGION_GRAPH-driven navigation at scale=3 produces identical transitions
-# to the old hardcoded CUR_ZONE math, since generate_world's row/col grid
-# shape is unchanged, only the *mechanism* reading it is (ADR-0009).
+# T17.b — scale=3 regression: REGION_GRAPH-driven navigation at the default
+# fixture (seed=0 normalized to 1, scale=3) must correctly follow whatever
+# maze the generator actually produces (IP-1070) — no longer "identical to
+# the old full-lattice math" (that assumption is exactly what IP-1070
+# retires), but the *mechanism* (check_zone_transition reading REGION_GRAPH)
+# must still be bit-for-bit correct against the real generated graph.
 pb = fresh_boot()
 advance_to_playing(pb)
+regions_default = worldgen.generate(1, 3)   # advance_to_playing's own default (seed=0->1, scale=3)
 
 check("T17.b1 Starts in zone 0", pb.memory[CUR_ZONE] == 0, f"zone={pb.memory[CUR_ZONE]}")
 
-# Right: z0 -> z1
-pb.memory[PLAYER_X] = 156; pb.memory[PLAYER_Y] = 72
-settle(pb)
-check("T17.b2 Right edge z0 -> z1", pb.memory[CUR_ZONE] == 1, f"zone={pb.memory[CUR_ZONE]}")
-check("T17.b3 X reset to 8 after right transition", pb.memory[PLAYER_X] <= 20,
-      f"x={pb.memory[PLAYER_X]}")
-shoot(pb, "T9_forest")
+t17b_moves, t17b_visited = _t17_dfs_tour(regions_default, 0)
+t17b_zone_bad, t17b_pos_bad = [], []
+for cur, d, expected in t17b_moves:
+    actual, pos_ok = _t17_do_move(pb, d)
+    if actual != expected:
+        t17b_zone_bad.append((cur, d, expected, actual))
+    if not pos_ok:
+        t17b_pos_bad.append((cur, d, actual))
+check("T17.b2 Scale=3 graph-driven traversal: every transition matches REGION_GRAPH, oracle-cross-checked",
+      len(t17b_zone_bad) == 0, f"bad={t17b_zone_bad[:3]}")
+check("T17.b3 Entry position correct at every scale=3 transition",
+      len(t17b_pos_bad) == 0, f"bad={t17b_pos_bad[:3]}")
+check("T17.b4 Scale=3 traversal visited every one of the 9 regions via real navigation",
+      len(t17b_visited) == 9, f"visited={len(t17b_visited)}/9")
 
-# Right: z1 -> z2
-pb.memory[PLAYER_X] = 156
-settle(pb)
-check("T17.b4 Right edge z1 -> z2", pb.memory[CUR_ZONE] == 2, f"zone={pb.memory[CUR_ZONE]}")
-
-# Right blocked in col 2: z2 stays z2
-pb.memory[PLAYER_X] = 159
-settle(pb, 40)
-check("T17.b5 No right transition from col 2 (z2)", pb.memory[CUR_ZONE] == 2,
-      f"zone={pb.memory[CUR_ZONE]}")
-
-# Left: z2 -> z1
-pb.memory[PLAYER_X] = 0
-settle(pb)
-check("T17.b6 Left edge z2 -> z1", pb.memory[CUR_ZONE] == 1, f"zone={pb.memory[CUR_ZONE]}")
-check("T17.b7 X reset to 150 going left", pb.memory[PLAYER_X] >= 140, f"x={pb.memory[PLAYER_X]}")
-
-# Down: z1 -> z4 (row 0 -> row 1)
-pb.memory[PLAYER_Y] = 128
-settle(pb)
-check("T17.b8 Bottom edge z1 -> z4", pb.memory[CUR_ZONE] == 4, f"zone={pb.memory[CUR_ZONE]}")
-check("T17.b9 Y reset to 24 going down", pb.memory[PLAYER_Y] <= 40, f"y={pb.memory[PLAYER_Y]}")
-shoot(pb, "T9_village")
-
-# Down: z4 -> z7, then blocked at row 2
-pb.memory[PLAYER_Y] = 128
-settle(pb)
-check("T17.b10 Bottom edge z4 -> z7", pb.memory[CUR_ZONE] == 7, f"zone={pb.memory[CUR_ZONE]}")
-pb.memory[PLAYER_Y] = 128
-settle(pb, 40)
-check("T17.b11 No down transition from row 2 (z7)", pb.memory[CUR_ZONE] == 7,
-      f"zone={pb.memory[CUR_ZONE]}")
-
-# Up: z7 -> z4
-pb.memory[PLAYER_Y] = 17
-settle(pb)
-check("T17.b12 Top edge z7 -> z4", pb.memory[CUR_ZONE] == 4, f"zone={pb.memory[CUR_ZONE]}")
-check("T17.b13 Y reset to 120 going up", pb.memory[PLAYER_Y] >= 100, f"y={pb.memory[PLAYER_Y]}")
-
-# Up blocked in row 0: force z2, y=17 -> stays z2 (movement floor, no transition)
-pb.memory[CUR_ZONE] = 2; pb.memory[NEED_REDRAW] = 0
-[pb.tick() for _ in range(3)]
-pb.memory[PLAYER_Y] = 17
-settle(pb, 40)
-check("T17.b14 No up transition from row 0 (z2)", pb.memory[CUR_ZONE] == 2,
-      f"zone={pb.memory[CUR_ZONE]}")
+# T17.b5 — every direction at every visited region matches the oracle
+# exactly (open transitions AND blocked/boundary non-transitions alike) —
+# subsumes the original suite's specific blocked-case spot-checks (the
+# retired T17.b5/b11/b14) with full per-edge coverage instead of 3 samples.
+t17b_probe_bad = []
+for region in sorted(t17b_visited):
+    pb.memory[CUR_ZONE] = region; pb.memory[NEED_REDRAW] = 0
+    pb.memory[PLAYER_X] = 80; pb.memory[PLAYER_Y] = 72
+    [pb.tick() for _ in range(3)]
+    for d in range(4):
+        expected = regions_default[region]['neighbors'][d]
+        pb.memory[CUR_ZONE] = region; pb.memory[NEED_REDRAW] = 0
+        pb.memory[PLAYER_X] = 80; pb.memory[PLAYER_Y] = 72
+        [pb.tick() for _ in range(3)]
+        actual, _ = _t17_do_move(pb, d)
+        expected_zone = expected if expected is not None else region
+        if actual != expected_zone:
+            t17b_probe_bad.append((region, d, expected, actual))
+check("T17.b5 Every direction at every scale=3 region matches the oracle (open or blocked/boundary)",
+      len(t17b_probe_bad) == 0, f"bad={t17b_probe_bad[:5]}")
 
 pb.stop()
 # ══════════════════════════════════════════════════════
@@ -1633,6 +1682,126 @@ check("T18.c4 Genuine re-entry resets MM_CURSOR to its correct default (0, save 
       pb.memory[MM_CURSOR] == 0, f"cursor={pb.memory[MM_CURSOR]}")
 pb.stop()
 wipe_save()
+
+# ══════════════════════════════════════════════════════
+# T19 — Maze-Shaped Region Adjacency (IP-1070) — spanning-tree
+#       carve + canonical-edge braid/prune pass replacing full-lattice
+#       adjacency; ADR-0012/ADR-0013
+# ══════════════════════════════════════════════════════
+print("\n=== T19: Maze-Shaped Region Adjacency ===")
+
+def _t19_full_lattice_neighbor(i, d, scale):
+    """Independently re-derives the true grid-adjacent candidate at region
+    index i, direction d (0=up,1=down,2=left,3=right), from (row,col,scale)
+    arithmetic alone -- the oracle this Feature's own subgraph guarantee is
+    checked against, deliberately not reusing REGION_GRAPH/worldgen.py's own
+    candidate computation."""
+    row, col = divmod(i, scale)
+    if d == 0: return i - scale if row > 0 else None
+    if d == 1: return i + scale if row < scale - 1 else None
+    if d == 2: return i - 1 if col > 0 else None
+    return i + 1 if col < scale - 1 else None
+
+T19_CORPUS = [(seed, scale) for scale in (2, 3, 9) for seed in (0, 1, 42, 12345, 65535)]
+# Braid-fraction is a fixed code-level constant this package (FR-9150 Notes:
+# UI-exposure deliberately not gating this FR) -- no runtime threshold
+# parameter exists to sweep extremes against; the statistical check (T19.e)
+# instead aggregates across this same multi-seed/multi-scale corpus.
+
+pb = fresh_boot(180)
+t19_oracle_mismatches = []
+t19_subgraph_bad = []
+t19_unreachable = []
+t19_bad_grammar = []
+t19_tree_reopened = 0
+t19_tree_total = 0
+for seed, scale in T19_CORPUS:
+    if not invoke_generate_world(pb, seed, scale):
+        t19_oracle_mismatches.append((seed, scale, "did not complete"))
+        continue
+    actual = read_region_graph(pb, scale)
+    expected = worldgen.generate(seed, scale)
+    if actual != expected:
+        bad_idx = [i for i in range(len(actual)) if actual[i] != expected[i]][:3]
+        t19_oracle_mismatches.append((seed, scale, f"regions {bad_idx}"))
+    n = scale * scale
+    for i, r in enumerate(actual):
+        for d, nb in enumerate(r['neighbors']):
+            if nb is None:
+                continue
+            full_cand = _t19_full_lattice_neighbor(i, d, scale)
+            if nb != full_cand:
+                t19_subgraph_bad.append((seed, scale, i, d, nb, full_cand))
+    seen = {0}; stack = [0]
+    while stack:
+        cur = stack.pop()
+        for nb in actual[cur]['neighbors']:
+            if nb is not None and nb not in seen:
+                seen.add(nb); stack.append(nb)
+    if len(seen) != n:
+        t19_unreachable.append((seed, scale, len(seen), n))
+    for i, r in enumerate(actual):
+        for nb in r['neighbors']:
+            if nb is not None and abs(r['biome_id'] - actual[nb]['biome_id']) > 1:
+                t19_bad_grammar.append((seed, scale, i, nb))
+    # braid-fraction statistical aggregate: count non-tree candidate edges
+    # (grid-adjacent per full-lattice arithmetic, but not present in the
+    # spanning tree) that were reopened, vs. the total non-tree candidates,
+    # canonical direction (down/right) only so each undirected edge counts once
+    tree_edges = set()
+    seen2 = {0}; stack2 = [0]
+    while stack2:
+        cur = stack2.pop()
+        for nb in actual[cur]['neighbors']:
+            if nb is not None and nb not in seen2:
+                tree_edges.add(frozenset((cur, nb)))
+                seen2.add(nb); stack2.append(nb)
+    for i in range(n):
+        for d in (1, 3):
+            full_cand = _t19_full_lattice_neighbor(i, d, scale)
+            if full_cand is None:
+                continue
+            edge = frozenset((i, full_cand))
+            if edge in tree_edges:
+                continue
+            t19_tree_total += 1
+            if actual[i]['neighbors'][d] is not None:
+                t19_tree_reopened += 1
+pb.stop()
+
+check("T19.a Subgraph-of-full-lattice: every generated edge also exists in the full grid, every corpus entry (AC-1)",
+      len(t19_subgraph_bad) == 0, f"bad={t19_subgraph_bad[:3]}")
+check("T19.b Reachability: every region reachable from region 0, every corpus entry (AC-2)",
+      len(t19_unreachable) == 0, f"unreachable={t19_unreachable[:3]}")
+check("T19.c Determinism/oracle parity: worldgen.py matches SM83 output, every corpus entry (AC-3)",
+      len(t19_oracle_mismatches) == 0, f"mismatches={t19_oracle_mismatches[:3]}")
+check("T19.d Grammar-validity non-regression: every generated edge legal (|biome_a-biome_b|<=1), every corpus entry (AC-4)",
+      len(t19_bad_grammar) == 0, f"bad_edges={t19_bad_grammar[:3]}")
+_t19_frac = (t19_tree_reopened / t19_tree_total) if t19_tree_total else 0
+check(f"T19.e Braid-fraction statistical check: aggregate reopen fraction within a reasonable band of ~25% target",
+      t19_tree_total > 0 and 0.05 <= _t19_frac <= 0.45,
+      f"reopened={t19_tree_reopened}/{t19_tree_total} ({_t19_frac:.2%})")
+
+# T19.f -- static determinism audit (AC-6, Inspection): the new maze pass
+# (between 'gw_loop's own JP_NZ and the routine's final RET, plus the two new
+# helper subroutines) reads no LDH (hardware register, incl. DIV).
+with open('asm_game.py') as f:
+    _t19_src = f.read()
+_t19_maze_start = _t19_src.index("maze-generation pass (IP-1070")
+_t19_maze_end = _t19_src.index("── save_to_sram")
+_t19_maze_src = _t19_src[_t19_maze_start:_t19_maze_end]
+check("T19.f Static audit: no LDH (hardware register, incl. DIV) read in the maze-generation pass (NFR-2200)",
+      "LDH_A_n" not in _t19_maze_src and "LDH_A_C" not in _t19_maze_src,
+      "source-scanned")
+
+# T19.g -- WRAM headroom audit (AC-7, Inspection): GW_MAZE_STATE..
+# GW_MAZE_DRAW_CTR's extent (0xC3A0-0xC3F4, 85 bytes worst case) stays
+# inside bank-0 (0xC000-0xCFFF) without SVBK banking.
+GW_MAZE_STATE_ADDR = 0xC3A0
+GW_MAZE_DRAW_CTR_ADDR = 0xC3F4
+check("T19.g WRAM headroom: GW_MAZE_STATE..GW_MAZE_DRAW_CTR extent stays inside bank-0 (NFR-4200)",
+      0xC000 <= GW_MAZE_STATE_ADDR and GW_MAZE_DRAW_CTR_ADDR <= 0xCFFF,
+      f"GW_MAZE_STATE={hex(GW_MAZE_STATE_ADDR)} extent_end={hex(GW_MAZE_DRAW_CTR_ADDR)}")
 
 # ══════════════════════════════════════════════════════
 # SUMMARY

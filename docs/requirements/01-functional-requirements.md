@@ -1055,7 +1055,7 @@ FR-6000 for the presentation half)*
   by convention, not code-level enforcement), this requirement is **generator-guaranteed by
   construction** (ADR-0009) — a stronger guarantee than the shipped model's. Not yet implemented.
 
-### FR-9140 — Maze-shaped region adjacency (target — 2026-07-11)
+### FR-9140 — Maze-shaped region adjacency (implemented — 2026-07-11)
 
 - **ID:** FR-9140
 - **Title:** The system shall generate region adjacency edges as a maze — a spanning tree plus a
@@ -1071,7 +1071,7 @@ FR-6000 for the presentation half)*
 - **Rationale:** `BL-0064` (owner design request, 2026-07-11): a Zelda/Pokémon-style overworld —
   distinct regions connected by paths, not a uniformly open grid. `ADR-0012` (refines `ADR-0009`
   Decision point 1, which never itself mandated full connectivity).
-- **Priority:** Must (target — not yet implemented)
+- **Priority:** Must (implemented — `IP-1070`, T19)
 - **Inputs:** The full candidate edge set (every grid-adjacent region pair, a pure function of
   `WORLD_SCALE`); `SEED`-derived PRNG state; `FR-9150`'s braid-fraction value.
 - **Outputs:** The generated region graph's adjacency edges — a subgraph of the full grid graph.
@@ -1089,15 +1089,23 @@ FR-6000 for the presentation half)*
   extending `R305`'s existing pattern; a specific subgraph-of-full-lattice check, since this is a
   genuinely new property the prior full-lattice model never needed).
 - **Source Documents:** `BL-0064`; `ADR-0012`.
-- **Related ADRs:** ADR-0009, ADR-0012.
-- **Notes:** Not yet implemented. Does not change `FR-9100`'s own text — that FR's "adjacency
-  edges" output was never specified as necessarily complete; this FR narrows how that output is
-  actually constructed. `REGION_GRAPH`'s WRAM/ROM data format (`GDS-07`) is unaffected — only the
-  generation algorithm populating it changes (`ADR-0012` point 2); `dsr_p`/`draw_region_arrows`
-  (`IP-1030`, `FR-2320`) and `check_zone_transition` (`IP-9050`, `FR-2300`) require no code
-  changes, since both already consume the graph's neighbor bytes generically.
+- **Related ADRs:** ADR-0009, ADR-0012, ADR-0013.
+- **Notes:** Implemented `IP-1070` (2026-07-11): `asm_game.py`'s `generate_world` runs an iterative
+  randomized DFS/recursive-backtracker spanning-tree carve, then a canonical-edge (down/right only)
+  braid/prune pass, immediately after biome assignment. `worldgen.py`'s `_carve_maze` mirrors it
+  step-for-step (validated byte-identical across a 36-`(seed,scale)` corpus). Does not change
+  `FR-9100`'s own text — that FR's "adjacency edges" output was never specified as necessarily
+  complete; this FR narrows how that output is actually constructed. `REGION_GRAPH`'s WRAM/ROM
+  data format (`GDS-07`) is unaffected — only the generation algorithm populating it changes
+  (`ADR-0012` point 2); `dsr_p`/`draw_region_arrows` (`IP-1030`, `FR-2320`) and
+  `check_zone_transition` (`IP-9050`, `FR-2300`) required no code changes, since both already
+  consume the graph's neighbor bytes generically (confirmed by T19/T17's non-regression). Every
+  `gw_prng_step` draw this pass makes is decorrelated via `ADR-0013`'s loop-local counter-XOR
+  perturbation, since the shipped PRNG degenerates under this pass's repeated back-to-back draws
+  ([R113](../research/encyclopedia/R113-sm83-prng-degeneracy-mitigation.md)) — `gw_prng_step`
+  itself and `FR-9100`'s own biome-assignment draw are untouched.
 
-### FR-9150 — Braid-fraction parameter (target — 2026-07-11)
+### FR-9150 — Braid-fraction parameter (implemented — 2026-07-11)
 
 - **ID:** FR-9150
 - **Title:** The system shall control what fraction of `FR-9140`'s pruned edges the braid pass
@@ -1129,10 +1137,11 @@ FR-6000 for the presentation half)*
   needed before).
 - **Source Documents:** `BL-0065`; `ADR-0012`.
 - **Related ADRs:** ADR-0012.
-- **Notes:** Not yet implemented. **Initial default (non-binding on the UI-exposure question):**
-  a moderate braid fraction reopening roughly a quarter of pruned edges, per `ADR-0012`'s own
-  suggestion — a fixed code-level constant is sufficient to unblock `FR-9140`'s own
-  implementation; the UI-exposure question is deliberately not gating this FR.
+- **Notes:** Implemented `IP-1070` (2026-07-11) as `GW_BRAID_THRESHOLD = 63` (a fixed code-level
+  constant, `~63/255`), reopening ~25% of pruned edges — measured 25.80% across a 345-edge, 15-
+  `(seed,scale)`-combination corpus (T19.e). The UI-exposure question (a new SEED/SCALE ENTRY
+  field, a derived value, or the fixed non-exposed default this FR shipped with) remains
+  undecided, as this FR's own text always allowed.
 
 ### FR-9200 — Save-format extension: seed, scale, and per-region flags
 

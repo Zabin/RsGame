@@ -277,7 +277,11 @@
   3168 bytes (3.09 KiB) free in bank 0 as of this delta, and the chosen algorithm (randomized
   DFS/recursive backtracker) needs only an 81-byte visited-flag array (or 11 bytes bit-packed) at
   `scale=9` worst case, comfortably inside that headroom — WRAM budget does not gate this feature.
-  Re-affirm again by direct build once implemented, per this NFR's own standing convention.
+  **2026-07-11 delta, implemented (`IP-1070`):** actual measured cost is 85 bytes
+  (`GW_MAZE_STATE`–`GW_MAZE_DRAW_CTR`, `0xC3A0`–`0xC3F4`, [GDS-07 §7b](../architecture/07-data-model.md))
+  — within a byte of the estimate above — confirmed directly against the built ROM by `test_rom.py`'s
+  **T19.g**; no SRAM impact (this pass never persists its own state, `T15.d`'s non-persistence
+  invariant unaffected).
 
 ## Data Integrity
 

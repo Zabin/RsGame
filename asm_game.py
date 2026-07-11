@@ -83,7 +83,40 @@ MM_JUST_ENTERED = 0xC2D7  # 1 byte — set by every GAMESTATE -> GS_MAIN_MENU tr
                           # player's own toggle causes (leave MM_CURSOR alone) — IP-9060,
                           # BL-0048's fix. Sits in the confirmed-unused byte immediately
                           # after SCOREITEM_FLAGS's own 81-byte extent.
-OAM_BUF        = 0xC300
+OAM_BUF        = 0xC300  # 160 bytes, C300-C39F, shadow OAM
+
+GW_MAZE_STATE  = 0xC3A0  # up to 81 bytes, one per region: bit 7 = visited, bits 1:0 =
+                          # parent-direction (0=up,1=down,2=left,3=right, matching
+                          # REGION_GRAPH's own neighbor-byte order), recorded at carve time.
+                          # The maze-generation pass's own backtracking state -- reuses
+                          # REGION_GRAPH's own already-written full-lattice candidate bytes
+                          # as the "does a grid-adjacent region exist here" test rather than
+                          # re-deriving grid adjacency (IP-1070, ADR-0012 point 3). First
+                          # unclaimed byte past OAM_BUF's own 160-byte extent (C300-C39F).
+                          # Transient, meaningless outside a generate_world call, like
+                          # GW_TOP_ROW.
+GW_CUR_REGION  = 0xC3F1  # 1 byte -- the maze pass's own current-region pointer during the
+                          # spanning-tree carve (IP-1070)
+GW_MAZE_DIR    = 0xC3F2  # 1 byte -- during carving: the starting-direction draw / direction
+                          # currently being tried (0-3). Repurposed, once carving completes,
+                          # as the canonical prune pass's own "current direction" (1=down,
+                          # 3=right) -- the two uses never overlap in time, the same
+                          # non-overlapping one-shot-scratch reuse pattern TMP1/TMP2 already
+                          # establish elsewhere in this routine (IP-1070).
+GW_BRAID_IDX   = 0xC3F3  # 1 byte -- during carving: the current region's own try-count
+                          # (0-3, how many of its 4 directions have been tried).
+                          # Repurposed, once carving completes, as the canonical prune
+                          # pass's own region-loop counter (0..scale²-1) -- same
+                          # non-overlapping reuse pattern as GW_MAZE_DIR above (IP-1070).
+GW_MAZE_DRAW_CTR = 0xC3F4  # 1 byte -- a monotonic, never-persisted per-draw counter, XORed
+                          # into every gw_prng_step draw the maze pass performs (both the
+                          # carve phase's direction draw and the braid phase's keep/prune
+                          # draw) before the drawn byte is used for a decision, per
+                          # ADR-0013 -- decorrelates this pass's own repeated draws without
+                          # touching gw_prng_step's own algorithm or any other call site
+                          # (R113: the shipped PRNG collapses to a degenerate fixed point/
+                          # short cycle under many back-to-back draws with no such
+                          # perturbation). Never fed back into TMP1/TMP2.
 
 SAVE_VERSION_ADDR = 0xA012   # save-format version guard (FR-5220 / Design Decision 2)
 SAVE_VERSION_VAL  = 0x03     # bumped 0x02->0x03 (IP-9070, third bump since ship — the
@@ -1325,6 +1358,203 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_nn(GW_REGION_IDX); rom.LD_E_A()
     rom.LD_A_nn(GW_SCALE_SQ); _cp_e()
     rom.JP_NZ('gw_loop')   # JR range (-128..127) is too short for this loop body
+    # (biome-assignment pass ends here, entirely unchanged -- ADR-0012 point 1)
+
+    # ── maze-generation pass (IP-1070, ADR-0012, ADR-0013) ────
+    # A second, independent pass over the same grid: a randomized DFS/recursive-
+    # backtracker spanning tree (reusing REGION_GRAPH's own already-written
+    # full-lattice candidate bytes above as the "does a grid-adjacent region
+    # exist here" test, per ADR-0012 point 3), then a canonical-edge (down/right
+    # only, so each undirected edge is decided exactly once) braid/prune pass.
+    # Every gw_prng_step draw in this pass is XORed against GW_MAZE_DRAW_CTR
+    # (incremented per draw, never fed back into TMP1/TMP2) before use, per
+    # ADR-0013 -- gw_prng_step's own algorithm and every other call site
+    # (the biome loop above) are completely unaffected.
+    # NOTE: gw_neighbor_hl/gw_maze_state_hl (called throughout below) are
+    # defined AFTER this pass's own final RET (before save_to_sram) -- placing
+    # a subroutine's body where normal fall-through execution would enter it
+    # before any CALL is a real bug (its own RET would then pop whatever the
+    # stack's top actually holds, not a legitimate return address); every
+    # subroutine in this file is reached only via CALL, defined past a RET.
+    GW_BRAID_THRESHOLD = 63   # ~63/255 -> reopen ~25% of pruned edges (FR-9150 default)
+
+    def _xor_c(): rom.emit(0xA9)          # XOR C  (not wrapped in gbc_lib.py)
+
+    def _perturb_draw():
+        # On entry: A = raw gw_prng_step output. On exit: A = perturbed byte
+        # (A XOR GW_MAZE_DRAW_CTR, pre-step), GW_MAZE_DRAW_CTR advanced.
+        # Clobbers C, E. Never touches D (the braid pass's own call site relies
+        # on D surviving across this, per its own PUSH_DE/POP_DE bracket below).
+        # The counter steps by 97 (odd, so it cycles through all 256 byte
+        # values before repeating) rather than 1: a handful of draws already
+        # scatters across the full 0-255 range, so XORing it against even a
+        # PRNG output stuck at a constant (R113's degenerate-cycle finding)
+        # still produces a well-spread perturbed byte relative to the
+        # braid-fraction threshold comparison below -- a plain +1 counter
+        # stays under any reasonable threshold for the first ~60 draws of a
+        # single generation event, which is not enough spread by itself.
+        rom.LD_E_A()
+        rom.LD_A_nn(GW_MAZE_DRAW_CTR)
+        rom.LD_C_A()
+        rom.ADD_A_n(97); rom.LD_nn_A(GW_MAZE_DRAW_CTR)
+        rom.LD_A_E()
+        _xor_c()
+
+    # ── maze_init: zero GW_MAZE_STATE (fixed 81-byte clear, mirroring the
+    # established KEYITEM_FLAGS/SCOREITEM_FLAGS convention exactly -- clearing
+    # past scale² is harmless, those indices are never read); zero the draw
+    # counter; mark region 0 (the tree's root) visited with no parent (root-
+    # ness is disambiguated by region index 0 at the backtrack-termination
+    # check, not a distinct bit).
+    rom.LD_HL_nn(GW_MAZE_STATE); rom.LD_B_n(81); rom.XOR_A()
+    rom.label('gwm_zero'); rom.LD_HLI_A(); rom.DEC_B(); rom.JR_NZ('gwm_zero')
+    rom.XOR_A(); rom.LD_nn_A(GW_MAZE_DRAW_CTR)
+    rom.LD_A_n(0x80); rom.LD_nn_A(GW_MAZE_STATE)   # region 0 == GW_MAZE_STATE base
+    rom.XOR_A(); rom.LD_nn_A(GW_CUR_REGION)
+
+    # ── maze_carve_top: fresh mod-4 starting-direction draw at GW_CUR_REGION
+    # (ADR-0012 point 3 -- a single AND 3 mask, no modulo-by-variable-count
+    # operation anywhere in this pass), perturbed per ADR-0013.
+    rom.label('maze_carve_top')
+    rom.CALL('gw_prng_step')
+    _perturb_draw()
+    rom.AND_n(3); rom.LD_nn_A(GW_MAZE_DIR)
+    rom.XOR_A(); rom.LD_nn_A(GW_BRAID_IDX)   # try-count, reset
+
+    rom.label('maze_try_loop')
+    rom.LD_A_nn(GW_MAZE_DIR); rom.LD_C_A()
+    rom.LD_A_nn(GW_CUR_REGION)
+    rom.CALL('gw_neighbor_hl')               # HL -> REGION_GRAPH[R].neighbor[dir]
+    rom.LD_A_HL()
+    rom.CP_n(0xFF); rom.JR_Z('maze_try_next')   # off-grid in this direction
+
+    rom.LD_D_A()                              # D = V (candidate region)
+    rom.LD_A_D()
+    rom.CALL('gw_maze_state_hl')              # HL -> GW_MAZE_STATE[V]
+    rom.LD_A_HL()
+    rom.BIT_b_A(7); rom.JR_NZ('maze_try_next')   # already visited
+
+    # carve: V.visited=1, V.parent_dir = opposite(dir); HL still -> GW_MAZE_STATE[V]
+    rom.LD_A_nn(GW_MAZE_DIR)
+    rom.XOR_n(1); rom.OR_n(0x80)
+    rom.LD_HL_A()
+    rom.LD_A_D(); rom.LD_nn_A(GW_CUR_REGION)  # advance: current region := V
+    rom.JP('maze_carve_top')
+
+    rom.label('maze_try_next')
+    rom.LD_A_nn(GW_MAZE_DIR); rom.INC_A(); rom.AND_n(3); rom.LD_nn_A(GW_MAZE_DIR)
+    rom.LD_A_nn(GW_BRAID_IDX); rom.INC_A(); rom.LD_nn_A(GW_BRAID_IDX)
+    rom.CP_n(4); rom.JP_NZ('maze_try_loop')
+
+    # all 4 directions exhausted at GW_CUR_REGION: backtrack, or done if root
+    rom.LD_A_nn(GW_CUR_REGION); rom.OR_A(); rom.JR_NZ('maze_backtrack')
+    rom.JP('maze_carve_done')
+
+    rom.label('maze_backtrack')
+    rom.LD_A_nn(GW_CUR_REGION)
+    rom.CALL('gw_maze_state_hl')              # HL -> GW_MAZE_STATE[GW_CUR_REGION]
+    rom.LD_A_HL(); rom.AND_n(3); rom.LD_C_A()  # C = this region's own parent-dir
+    rom.LD_A_nn(GW_CUR_REGION)
+    rom.CALL('gw_neighbor_hl')                # HL -> the parent's region index
+    rom.LD_A_HL(); rom.LD_nn_A(GW_CUR_REGION) # move to parent
+    rom.JP('maze_carve_top')
+
+    # ── maze_carve_done: spanning tree complete. Canonical-edge (down/right
+    # only, so each undirected edge is decided exactly once) braid/prune pass.
+    rom.label('maze_carve_done')
+    rom.XOR_A(); rom.LD_nn_A(GW_BRAID_IDX)    # repurposed: region-loop counter
+
+    rom.label('maze_prune_region')
+    rom.LD_A_n(1); rom.LD_nn_A(GW_MAZE_DIR)   # repurposed: current direction (down first)
+
+    rom.label('maze_prune_dir')
+    rom.LD_A_nn(GW_MAZE_DIR); rom.LD_C_A()
+    rom.LD_A_nn(GW_BRAID_IDX)                 # A = R
+    rom.CALL('gw_neighbor_hl')                # HL -> REGION_GRAPH[R].neighbor[dir]
+    rom.LD_A_HL()
+    rom.CP_n(0xFF); rom.JR_Z('maze_prune_next_dir')   # true boundary
+
+    rom.LD_D_A()                              # D = V
+
+    # Check 1: V is R's child? (V.parent_dir == opposite(dir))
+    rom.LD_A_D()
+    rom.CALL('gw_maze_state_hl')              # HL -> GW_MAZE_STATE[V]
+    rom.LD_A_HL(); rom.AND_n(3); rom.LD_E_A() # E = V.parent_dir
+    rom.LD_A_nn(GW_MAZE_DIR); rom.XOR_n(1)    # A = opposite(dir)
+    _cp_e(); rom.JR_Z('maze_prune_next_dir')  # tree edge -- leave both slots as-is
+
+    # Check 2: R is V's child? (R.parent_dir == dir)
+    rom.LD_A_nn(GW_BRAID_IDX)                 # A = R
+    rom.CALL('gw_maze_state_hl')              # HL -> GW_MAZE_STATE[R]
+    rom.LD_A_HL(); rom.AND_n(3); rom.LD_E_A() # E = R.parent_dir
+    rom.LD_A_nn(GW_MAZE_DIR)                  # A = dir
+    _cp_e(); rom.JR_Z('maze_prune_next_dir')  # tree edge -- leave both slots as-is
+
+    # Not a tree edge: braid decision. D (=V) must survive the PRNG call.
+    rom.PUSH_DE()
+    rom.CALL('gw_prng_step')
+    rom.POP_DE()                              # restore V into D; A (raw byte) untouched
+    _perturb_draw()
+    rom.CP_n(GW_BRAID_THRESHOLD + 1)
+    rom.JR_C('maze_prune_next_dir')           # perturbed byte <= threshold: reopen, leave as-is
+
+    # prune both directed slots of this undirected edge. Stash V into B BEFORE
+    # any gw_neighbor_hl call here -- that routine clobbers D (it computes its
+    # own 16-bit offset via LD_D_n(0)), so D can no longer be trusted to hold
+    # V once the first of these two calls has happened; B survives both.
+    rom.LD_A_D(); rom.LD_B_A()                # B = V (durable stash)
+    rom.LD_A_nn(GW_MAZE_DIR); rom.LD_C_A()
+    rom.LD_A_nn(GW_BRAID_IDX)
+    rom.CALL('gw_neighbor_hl')                # HL -> REGION_GRAPH[R].neighbor[dir]
+    rom.LD_A_n(0xFF); rom.LD_HL_A()
+    rom.LD_A_nn(GW_MAZE_DIR); rom.XOR_n(1); rom.LD_C_A()   # C = opposite(dir)
+    rom.LD_A_B()                              # A = V (from the durable stash)
+    rom.CALL('gw_neighbor_hl')                # HL -> REGION_GRAPH[V].neighbor[opposite(dir)]
+    rom.LD_A_n(0xFF); rom.LD_HL_A()
+
+    rom.label('maze_prune_next_dir')
+    rom.LD_A_nn(GW_MAZE_DIR); rom.CP_n(1); rom.JR_NZ('maze_prune_next_region')
+    rom.LD_A_n(3); rom.LD_nn_A(GW_MAZE_DIR)
+    rom.JP('maze_prune_dir')
+
+    rom.label('maze_prune_next_region')
+    rom.LD_A_nn(GW_BRAID_IDX); rom.INC_A(); rom.LD_nn_A(GW_BRAID_IDX)
+    rom.LD_E_A()
+    rom.LD_A_nn(GW_SCALE_SQ); _cp_e()
+    rom.JP_NZ('maze_prune_region')
+    rom.RET()
+
+    # gw_neighbor_hl: on entry A=region index (0-80), C=direction (0=up,1=down,
+    # 2=left,3=right). Returns HL -> REGION_GRAPH[region]'s neighbor byte for
+    # that direction. Clobbers A, D, E; preserves C. Generalizes czt_region_hl's
+    # addressing to an arbitrary region+direction rather than CUR_ZONE alone.
+    # Reached only via CALL (from the maze pass above) -- never fallen into.
+    rom.label('gw_neighbor_hl')
+    rom.LD_E_A(); rom.LD_D_n(0)
+    rom.LD_HL_nn(REGION_GRAPH)
+    rom.ADD_HL_DE(); rom.ADD_HL_DE(); rom.ADD_HL_DE()
+    rom.ADD_HL_DE(); rom.ADD_HL_DE()   # HL = REGION_GRAPH + region*5 (biome byte)
+    rom.INC_HL()                        # HL -> +1 (up slot, direction 0 base)
+    rom.LD_A_C()
+    rom.OR_A(); rom.JR_Z('gnh_done')            # dir 0 (up): already there
+    rom.CP_n(1); rom.JR_NZ('gnh_try2')
+    rom.INC_HL(); rom.JR('gnh_done')            # dir 1 (down)
+    rom.label('gnh_try2')
+    rom.CP_n(2); rom.JR_NZ('gnh_try3')
+    rom.INC_HL(); rom.INC_HL(); rom.JR('gnh_done')   # dir 2 (left)
+    rom.label('gnh_try3')
+    rom.INC_HL(); rom.INC_HL(); rom.INC_HL()    # dir 3 (right, only case left)
+    rom.label('gnh_done')
+    rom.RET()
+
+    # gw_maze_state_hl: on entry A=region index (0-80). Returns HL ->
+    # GW_MAZE_STATE[region]. Clobbers A only. No page-cross: base low byte
+    # 0xA0 + max index 80 (0x50) = 0xF0, stays within one page. Reached only
+    # via CALL -- never fallen into.
+    rom.label('gw_maze_state_hl')
+    rom.ADD_A_n(GW_MAZE_STATE & 0xFF)
+    rom.LD_L_A()
+    rom.LD_H_n(GW_MAZE_STATE >> 8)
     rom.RET()
 
     # ── save_to_sram ─────────────────────────────────────

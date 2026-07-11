@@ -8,9 +8,9 @@
 [↑ Features index](INDEX.md) · [Feature Catalog](../feature-planning/03-feature-catalog.md) ·
 [Epic Catalog](../feature-planning/02-epic-catalog.md) · [ADR-0012](../architecture/adr/ADR-0012-maze-shaped-region-adjacency.md)
 
-> **Forward reference (metadata only):** planned by
-> [IP-1070](../implementation/packages/IP-1070-maze-shaped-region-adjacency.md) (2026-07-11),
-> which resolves this document's Open Questions 1–3.
+> **Forward reference (metadata only):** implemented by
+> [IP-1070](../implementation/packages/IP-1070-maze-shaped-region-adjacency.md) (2026-07-11,
+> `COMPLETE`), which resolves this document's Open Questions 1–3 (see §19).
 
 ## 1. Feature ID
 
@@ -299,23 +299,29 @@ generator is actually wrong, exactly as FS-102 §18 already warns for biome assi
 
 ## 19. Open Questions
 
-1. **Visited-flag storage: flat (81 bytes) or bit-packed (11 bytes)?** `R112` grounds both options
-   and their respective WRAM cost; `ADR-0012` does not decide between them, and NFR-4200's
-   headroom is comfortable either way (§13) — this is a genuine implementation-detail choice with
-   no functional consequence, mirroring FS-102 Open Question 2's identical deferral pattern for
-   PRNG step-sequence detail. Resolves at: `07-implementation-planning`.
-2. **The exact transient-scratch WRAM addresses** for the visited flags, the current-region
-   pointer, and the braid-pass loop counter are proposed in shape (§10) but not assigned specific
-   addresses — following FS-101/FS-102's own established confidence precedent (addresses proposed,
-   confirmed once the routine is actually built and its exact scratch footprint is known).
-   Resolves at: `07-implementation-planning`/`08-code-implementation`, per GDS-07's own delta
-   convention.
-3. **The starting region's own first backtracking step** (§7 edge case — no prior edge exists to
-   read a "reverse direction" from) needs a concrete initialization rule (e.g. the current-region
-   pointer starts at the starting region with an explicit "no parent" sentinel). `ADR-0012` names
-   the general loop shape but not this specific boundary condition. Resolves at:
-   `07-implementation-planning`/`08-code-implementation` — inventing the exact rule here would be
-   algorithm-detail beyond what `ADR-0012` itself commits to.
+1. **RESOLVED (`IP-1070`, 2026-07-11).** Visited-flag storage: flat (81 bytes) or bit-packed (11
+   bytes)? Resolved flat — `GW_MAZE_STATE` (81 bytes, `0xC3A0`–`0xC3F0`, [GDS-07 §7b](../architecture/07-data-model.md)),
+   combined with the 2-bit parent-direction field in the same byte (bit 7 = visited, bits 1:0 =
+   parent-direction), which the bit-packed alternative could not have absorbed as cheaply. WRAM
+   headroom remained comfortable at this size (T19.g).
+2. **RESOLVED (`IP-1070`, 2026-07-11).** The exact transient-scratch WRAM addresses: `GW_MAZE_STATE`
+   (`0xC3A0`), `GW_CUR_REGION` (`0xC3F1`), `GW_MAZE_DIR` (`0xC3F2`, doubles as the braid pass's
+   direction after carving completes), `GW_BRAID_IDX` (`0xC3F3`, doubles as the braid pass's region
+   counter), plus one address `ADR-0012` did not anticipate — `GW_MAZE_DRAW_CTR` (`0xC3F4`,
+   `ADR-0013`'s PRNG-decorrelation counter, added mid-implementation after a Blocking Report). See
+   [GDS-07 §7b](../architecture/07-data-model.md).
+3. **RESOLVED (`IP-1070`, 2026-07-11).** The starting region's own first backtracking step: region
+   0 is marked visited at `maze_init` with no parent-direction write; its `GW_MAZE_STATE` byte's
+   bits 1:0 are simply never read until the carve loop backtracks into it (which requires it to
+   still be "current" with all 4 directions exhausted) — at that point the carve loop's own
+   termination check (`cur == 0` with nothing left to carve) fires before any parent-direction read
+   would occur, so no explicit sentinel value was needed in practice.
+
+**New finding during implementation (not a pre-existing Open Question):** `08-code-implementation`
+found the shipped `gw_prng_step` degenerates under this pass's repeated back-to-back draws — see
+[R113](../research/encyclopedia/R113-sm83-prng-degeneracy-mitigation.md) and
+[ADR-0013](../architecture/adr/ADR-0013-maze-pass-prng-decorrelation.md) for the root cause and
+fix (a loop-local counter-XOR perturbation, applied only within this pass's own draws).
 
 ## 20. Related ADRs
 

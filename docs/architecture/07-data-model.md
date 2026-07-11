@@ -231,6 +231,34 @@ expands.
 - Net SRAM growth: +72 bytes (9→81 at `SRAM_SCOREITEM`), trivial against the ~10 KiB headroom
   margin already confirmed by `IP-1050`.
 
+### 7b. Maze-generation pass WRAM additions — `IP-1070` (confirmed 2026-07-11)
+
+`ADR-0012`'s maze-shaped region adjacency (`FS-107`, `FR-9140`/`FR-9150`) adds a second,
+orthogonal generation pass after `generate_world`'s existing biome-assignment loop, carving a
+randomized spanning tree over `REGION_GRAPH`'s already-written neighbor bytes (pruning full-lattice
+edges to `0xFF`) and then braiding a fraction of the pruned edges back open. `REGION_GRAPH`'s own
+5-bytes/region format (§6) is **unchanged** — this pass only rewrites some of its existing neighbor
+bytes, never its shape. All-new transient scratch, same framing as `GW_TOP_ROW`/`GW_B_SCRATCH`
+above — meaningless outside a `generate_world` call, falls inside the existing boot-time WRAM
+clear:
+
+| Address | Name | Content |
+|---|---|---|
+| `C3A0`–`C3F0` | `GW_MAZE_STATE` | up to 81 bytes, one per region — bit 7: visited (carve phase); bits 1:0: parent-direction (0=up/1=down/2=left/3=right), the edge this region was first carved from, used both to backtrack during carving and as one half of the braid pass's tree-edge test. |
+| `C3F1` | `GW_CUR_REGION` | 1 byte — the carve phase's current-region pointer (the iterative recursive-backtracker's only "stack," per `ADR-0012`'s decision not to allocate a separate stack array). |
+| `C3F2` | `GW_MAZE_DIR` | 1 byte — carve phase: the current region's rotated try-direction. Repurposed after carving completes as the braid phase's canonical-edge direction (down/right only, so each undirected edge is decided exactly once). |
+| `C3F3` | `GW_BRAID_IDX` | 1 byte — carve phase: try-count within the current region's 4-direction rotation. Repurposed after carving completes as the braid phase's region-loop counter. |
+| `C3F4` | `GW_MAZE_DRAW_CTR` | 1 byte — `ADR-0013`'s loop-local, never-persisted PRNG-decorrelation counter (XORed into each `gw_prng_step` draw this pass makes, stepped by +97 per draw, zeroed at maze-pass start). Exists solely to decorrelate this pass's own repeated back-to-back draws from `gw_prng_step`'s shipped mixing-step defect ([R113](../research/encyclopedia/R113-sm83-prng-degeneracy-mitigation.md)); never written back into `gw_prng_step`'s own carried `TMP1`/`TMP2` state, so every other caller (the biome-assignment loop) is completely unaffected. |
+
+Net new WRAM: 85 bytes (`81+1+1+1+1`), entirely inside the `0xC3A0`–`0xC3F4` range — comfortably
+inside the confirmed bank-0 headroom (R111) and the existing `0xC000`–`0xC2FF`... boot-clear
+range's neighbor (this pass's own scratch is re-derived fresh every `generate_world` call, so it
+does not need to be zeroed by the boot-time clear the way persisted fields do — `maze_init`
+explicitly zeroes `GW_MAZE_STATE`/`GW_MAZE_DRAW_CTR` and marks region 0 visited itself, at the
+start of every call). Two new subroutines, `gw_neighbor_hl` (region+direction → `REGION_GRAPH`
+neighbor-byte address) and `gw_maze_state_hl` (region → `GW_MAZE_STATE` byte address), reached
+only via `CALL`, placed immediately before `save_to_sram`'s label.
+
 ### 8. Tile index map implication (cross-reference only — GDS-08 decides the actual strategy)
 
 **ADR-0009**'s biome-family `Region` identity (GDS-04's delta) needs tile budget per family,
