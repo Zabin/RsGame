@@ -565,6 +565,30 @@ check("T8.9 Carrot deactivated in COLL_DATA", pb.memory[COLL_DATA + 6*4 + 3] == 
       f"active={pb.memory[COLL_DATA + 6*4 + 3]}")
 check("T8.10 Carrot does not touch SCORE", pb.memory[SCORE] == sc1, f"{pb.memory[SCORE]}")
 
+# IP-9100 (BL-0053): pickup hitbox fix -- a synthetic ScoreItem is written
+# into COLL_DATA slot 2 (Forest index 2, (120,40), already active/untouched
+# by the checks above) at controlled offsets from a fixed player position,
+# to directly verify the corrected point-in-box overlap test (0<=dx<=7,
+# 0<=dy<=15) rather than the old buggy symmetric +/-9px window.
+def _t8_synthetic_pickup(item_x, item_y, px=80, py=80):
+    pb.memory[PLAYER_X] = px; pb.memory[PLAYER_Y] = py
+    [pb.tick() for _ in range(3)]
+    pb.memory[COLL_DATA + 2*4 + 0] = item_x
+    pb.memory[COLL_DATA + 2*4 + 1] = item_y
+    pb.memory[COLL_DATA + 2*4 + 2] = 1   # ScoreItem
+    pb.memory[COLL_DATA + 2*4 + 3] = 1   # active
+    [pb.tick() for _ in range(3)]
+    return pb.memory[COLL_DATA + 2*4 + 3] == 0   # True if collected
+
+check("T8.x Item 5px above the sprite's true top edge is NOT collected (BL-0053 repro)",
+      not _t8_synthetic_pickup(80, 75), "item_y=75, PLAYER_Y=80")
+check("T8.y Item overlapping the sprite's bottom edge IS collected (BL-0053 repro)",
+      _t8_synthetic_pickup(80, 94), "item_y=94, PLAYER_Y=80")
+_dx7 = _t8_synthetic_pickup(87, 80); _dx8 = _t8_synthetic_pickup(88, 80)
+check("T8.z1 dx=7 collects, dx=8 does not", _dx7 and not _dx8, f"dx7={_dx7} dx8={_dx8}")
+_dy15 = _t8_synthetic_pickup(80, 95); _dy16 = _t8_synthetic_pickup(80, 96)
+check("T8.z2 dy=15 collects, dy=16 does not", _dy15 and not _dy16, f"dy15={_dy15} dy16={_dy16}")
+
 # IP-9020 regression: update_status_disp now runs at frame-top (VBlank-gated,
 # moved out of st_playing) — a dirtied SCORE/CARROTS_COUNT must still reflect
 # in the HUD tiles within 2 frames.
@@ -705,7 +729,10 @@ else:
 
 pb = fresh_boot()
 advance_to_playing(pb)
-pb.memory[PLAYER_X] = 20; pb.memory[PLAYER_Y] = 32
+# Forest index 0 (star) is at (28,40) -- placed exactly on it (IP-9100's
+# corrected pickup test requires genuine sprite overlap, not the old
+# generous +/-9px proximity window this position used to rely on).
+pb.memory[PLAYER_X] = 28; pb.memory[PLAYER_Y] = 40
 [pb.tick() for _ in range(5)]
 sc_after = pb.memory[SCORE]
 check("T11.a1 Star (index 0) collected", sc_after > 0, f"score={sc_after}")

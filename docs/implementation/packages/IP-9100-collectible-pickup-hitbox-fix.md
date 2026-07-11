@@ -10,8 +10,8 @@ filed via `00-intake`, this session).
 
 ## 2. Objective
 
-Replace `check_collisions`' symmetric ±9px/±9px proximity window with a true axis-aligned
-bounding-box overlap test against the player sprite's and item's real 8×16 extents, so the game
+Replace `check_collisions`' symmetric ±9px/±9px proximity window with a true point-in-box test —
+does the item's own anchor point fall inside the player sprite's real 8×16 extent — so the game
 collects an item exactly when — and only when — the player's sprite visually overlaps it, per the
 user's own explicit report ("The bunny collects items above the topmost edge of the sprite but
 does not collect items which overlap with the bottommost edge of the sprite. The bunny should
@@ -48,31 +48,53 @@ address, `COLL_DATA` layout, or GDS-09 contract.
 
 ## 6. Files to Create/Modify
 
+> **Correction (2026-07-11, discovered during `08-code-implementation`):** this section's original
+> text (below, struck through in spirit) proposed a *symmetric* `|diff|<threshold` fix — keeping
+> the existing abs-value `SUB`/`CPL`/`INC_A`/`CP_n` structure, just changing the two threshold
+> constants to `8`/`16`. **That formula does not actually reproduce the bug's own reported
+> symptoms.** Direct PyBoy verification against `BL-0053`'s own two concrete reproduction points
+> (item at `item_y=75`, 5px above the sprite's top edge, must NOT collect; item at `item_y=94`,
+> overlapping the sprite's bottom edge, must collect) shows the symmetric-16 formula *still*
+> incorrectly collects `item_y=75` (`|80-75|=5 < 16`) — because it treats the *item* as if it also
+> had a full 16px-tall box, when `BL-0053`'s own diagnosis (and the empirical fact that
+> `item_y=75 < PLAYER_Y=80` alone was enough to call it "outside the true bounding box," with no
+> item-height consideration) makes clear the intended model is: **the item is a collision point,
+> not a second box** — pickup fires iff that point falls inside the player's own real
+> `X∈[PLAYER_X,PLAYER_X+7]`, `Y∈[PLAYER_Y,PLAYER_Y+15]` box. That is an **asymmetric, one-directional
+> range test** (`0 <= item_x-PLAYER_X <= 7`, `0 <= item_y-PLAYER_Y <= 15`), not a symmetric
+> `|diff|<threshold` test — it needed a genuinely different (if similarly small) code shape, not
+> just two different constants. The corrected version actually implemented and verified is below.
+
 - **Modify: `asm_game.py`**:
-  - **X-axis overlap test** (`asm_game.py:570-573`): the sprite is 8px wide (`X∈[PLAYER_X,
-    PLAYER_X+7]`), and every Collectible sprite is the same width. Two same-width-8 boxes overlap
-    on the X-axis iff `|PLAYER_X - item_x| < 8` (the general two-box-overlap rule, `pos1 <
-    pos2+w2 AND pos2 < pos1+w1`, collapses to this symmetric form exactly because both widths are
-    equal) — this is a **true zero-margin exact-overlap test**, matching the user's own explicit
-    request ("collect and only collect items with which the sprite overlaps," not a forgiving
-    margin). Change the X-axis comparison's threshold from `CP_n(10)` to `CP_n(8)`.
-  - **Y-axis overlap test** (`asm_game.py:576-578`): the sprite is 16px tall (8×16 OBJ mode,
-    `Y∈[PLAYER_Y, PLAYER_Y+15]`), and every Collectible sprite is the same height. By the identical
-    reasoning, two same-height-16 boxes overlap on the Y-axis iff `|PLAYER_Y - item_y| < 16`.
-    Change the Y-axis comparison's threshold from `CP_n(10)` to `CP_n(16)`.
-  - **No change to the overlap-test's own structure** (the existing `SUB`/absolute-value/`CP_n`
-    shape already computes `|a-b|` correctly — only the two threshold constants are wrong).
-    Confirmed by this pass's own supersession sweep (TWBS): no other routine reuses these two
-    constants, and no existing `T8` check depends on the old symmetric window's specific asymmetry
-    (every existing pickup test places the player at the item's own exact coordinates, `dx=dy=0`).
+  - **X-axis overlap test** (`asm_game.py:570-581` as implemented): replaced the symmetric
+    abs-value/`CP_n(10)` test with a single unsigned-range check: `A = item_x - PLAYER_X` (computed
+    fresh, via `H` as scratch for `PLAYER_X`, not the old `CPL`/`INC_A` absolute-value dance), then
+    `CP_n(8)` + `JR_NC` skip. Because the subtraction is unsigned 8-bit, `item_x < PLAYER_X` wraps
+    to a large value (≥`249`), which the same `CP_n(8)`/`JR_NC` check correctly rejects as "out of
+    range" alongside the `item_x > PLAYER_X+7` case — one comparison covers both exclusion
+    directions.
+  - **Y-axis overlap test**: identical shape, `A = item_y - PLAYER_Y` (via `H` for `PLAYER_Y`),
+    `CP_n(16)` + `JR_NC` skip.
+  - **Register choice:** `H` (not `B`/`C`) is used as scratch — `B` is the live loop counter
+    (re-read directly, not via a pop, at this same function's `COLL_COUNT-B` arithmetic further
+    down) and `C` is the item's own `type` byte (read directly, not via a pop, at the `HIT` branch
+    immediately below) — both must survive this block untouched. `H` is free: the loop's real `HL`
+    (the `COLL_DATA` entry's own address) is already saved by this iteration's own `PUSH_HL` before
+    this block runs, and not needed again until the `HIT` branch's `POP_HL`.
+  - Verified directly via PyBoy against `BL-0053`'s own two reproduction points (both now correct)
+    plus all four exact boundary values (`dx∈{-1,0,7,8}`, `dy∈{-1,0,15,16}`) before this package was
+    called done.
 
 ## 7. Implementation Tasks
 
-Ordered: (1) confirm the current exact line numbers of the X/Y overlap comparisons (drift check,
-per this skill's own Step 2 discipline); (2) change the X-axis threshold `10`→`8`; (3) change the
-Y-axis threshold `10`→`16`; (4) author the new boundary-exactness checks (§8); (5) rebuild ROM; (6)
-full suite run, confirming existing `T8` checks are unaffected and new checks pass; (7)
-documentation/traceability updates (§9).
+Ordered (as actually executed): (1) confirmed the current exact line numbers of the X/Y overlap
+comparisons (drift check — clean, no shift); (2) implemented the originally-planned symmetric
+`8`/`16` threshold change; (3) **direct PyBoy verification against `BL-0053`'s own two
+reproduction points found the symmetric formula still wrong** — reverted the symmetric approach;
+(4) re-derived and implemented the correct asymmetric point-in-box test (§6); (5) re-verified via
+PyBoy against both reproduction points and all four exact boundary values, confirmed correct; (6)
+authored the boundary-exactness checks (§8); (7) rebuilt ROM; (8) full suite run, confirming
+existing `T8` checks unaffected and new checks pass; (9) documentation/traceability updates (§9).
 
 ## 8. Tests to Add
 
@@ -86,10 +108,18 @@ number, since this is a correction within an already-exercised routine, not a ne
 - **T8.y — item genuinely overlapping the sprite's bottom edge IS collected** (the other direct
   reproduction case): synthetic item placed at `item_y = PLAYER_Y + 14` (inside the true box, just
   short of its bottom edge, outside the old buggy ±9 window) — confirm a collection event fires.
-- **T8.z — exact-boundary X/Y checks**: items placed at `dx = 7`/`dx = 8` (must collect / must not
-  collect) and `dy = 15`/`dy = 16` (must collect / must not collect) — the precise off-by-one
-  boundary the corrected formula's own `<` (strict) comparison implies, verifying the fix is exact,
-  not merely "closer."
+- **T8.z1/T8.z2 — exact-boundary X/Y checks**: items placed at `dx = 7`/`dx = 8` (must collect /
+  must not collect) and `dy = 15`/`dy = 16` (must collect / must not collect) — the precise
+  off-by-one boundary the corrected formula's own inclusive-range test implies, verifying the fix
+  is exact, not merely "closer."
+
+**Supersession fix, in scope per Step 7 (a failure this package's own changes caused):**
+`T11.a1` forced the player to `(20, 32)` to collect region 0's index-0 star at `(28, 40)` — an
+`(dx, dy) = (8, 8)` offset that the old buggy `±9` window tolerated but the corrected exact-overlap
+test (`dx` must be `<=7`) does not. Every other existing pickup test in the suite already places
+the player at the item's exact coordinates (`dx=dy=0`); `T11.a1` was the sole exception, an
+artifact of the old tolerance, not a deliberate proximity test. Corrected to `(28, 40)` (exact),
+matching the suite's own established convention — not a weakening of this package's own fix.
 
 ## 9. Documentation Updates
 
@@ -105,15 +135,23 @@ number, since this is a correction within an already-exercised routine, not a ne
 
 ## 10. Definition of Done
 
-- `check_collisions`' X-axis threshold is exactly `8`; Y-axis threshold is exactly `16`.
+- `check_collisions` collects an item iff `0 <= item_x-PLAYER_X <= 7` AND `0 <= item_y-PLAYER_Y <=
+  15` (the item's collision point falls inside the player's real 8×16 box) — not the symmetric
+  `|diff|<8`/`|diff|<16` formula originally proposed in §6 (corrected, see this section's own
+  correction note above).
 - `T8.x`/`T8.y`/`T8.z` demonstrably pass; every existing `T8` check still passes unchanged.
 - ROM builds at 32768 bytes; full suite passes.
 
 ## 11. Verification Checklist
 
-- [ ] G5: ROM builds at exactly 32768 bytes with valid header.
-- [ ] G5: full `test_rom.py` suite passes.
-- [ ] Direct code read: X-axis comparison reads `CP_n(8)`; Y-axis comparison reads `CP_n(16)`.
+- [x] G5: ROM builds at exactly 32768 bytes with valid header.
+- [x] G5: full `test_rom.py` suite passes.
+- [x] Direct code read: X-axis comparison reads `CP_n(8)` after an `item_x - PLAYER_X` subtraction
+      (not the old abs-value shape); Y-axis comparison reads `CP_n(16)` after an
+      `item_y - PLAYER_Y` subtraction.
+- [x] Direct PyBoy verification (not just static read): both of `BL-0053`'s own reproduction
+      points (`item_y=75` not collected, `item_y=94` collected) and all four exact boundary values
+      (`dx∈{-1,0,7,8}`, `dy∈{-1,0,15,16}`) confirmed correct before this package was called done.
 - [ ] `T8.x`/`T8.y`/`T8.z` present and passing, each using a synthetic item placed via WRAM at the
       exact boundary coordinates named in §8, not an approximate position.
 - [ ] `FR-3100` Notes/RTM deltas applied exactly as §9 names; `FR-3100`'s own baselined text left

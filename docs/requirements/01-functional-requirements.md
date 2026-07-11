@@ -528,6 +528,19 @@
 - **Notes:** The exact threshold value (10px) is a Data Model (GDS-07)/behavior fact cited by
   GDS-05, not restated as a hardcoded number requirement here beyond what's needed for testability
   — Acceptance Criteria may cite it directly since GDS-05 already confirms it against source.
+  **2026-07-11 delta (`IP-9100`, `BL-0053`):** the shipped `10px`/`10px` symmetric-proximity model
+  above is corrected — collection now fires iff the Collectible's own anchor point falls inside
+  the player sprite's real `8×16` pixel extent (`0 <= item_x-PLAYER_X <= 7`,
+  `0 <= item_y-PLAYER_Y <= 15`), an exact-overlap test with no forgiveness margin, per the project
+  owner's own explicit request ("collect and only collect items with which the sprite overlaps").
+  This corrects a real defect the old symmetric `10px` window had: it collected items up to 9px
+  *above* the sprite's own top edge (outside any real overlap) while missing items genuinely
+  overlapping the sprite's bottom edge (only reaching 9px down against the sprite's real 15px
+  extent below its own anchor). **This FR's own Title/Description/Rationale/Acceptance Criteria
+  text above still describes the old, now-superseded `10px`-symmetric model** — left unmodified
+  here, out of `07-implementation-planning`'s/`08-code-implementation`'s own scope; a future
+  `04-requirements-engineering` pass should correct it to describe the point-in-box model
+  directly, not merely note the divergence.
 
 ### FR-3200 — ScoreItem collection increments Score
 

@@ -1,4 +1,4 @@
-BunnyQuest ROM Tests  PASS=213/213  FAIL=0
+BunnyQuest ROM Tests  PASS=217/217  FAIL=0
 ==================================================
 [PASS] T1.1 ROM size = 32768  (32768)
 [PASS] T1.2 Entry = NOP; JP
@@ -81,6 +81,10 @@ BunnyQuest ROM Tests  PASS=213/213  FAIL=0
 [PASS] T8.8 Carrot increments KEYITEM_COUNT (IP-1020)  (1)
 [PASS] T8.9 Carrot deactivated in COLL_DATA  (active=0)
 [PASS] T8.10 Carrot does not touch SCORE  (1)
+[PASS] T8.x Item 5px above the sprite's true top edge is NOT collected (BL-0053 repro)  (item_y=75, PLAYER_Y=80)
+[PASS] T8.y Item overlapping the sprite's bottom edge IS collected (BL-0053 repro)  (item_y=94, PLAYER_Y=80)
+[PASS] T8.z1 dx=7 collects, dx=8 does not  (dx7=True dx8=False)
+[PASS] T8.z2 dy=15 collects, dy=16 does not  (dy15=True dy16=False)
 [PASS] T8.10a HUD score digits reflect forced SCORE=42 within 2 frames (IP-9020)  (digits=(0,4,2))
 [PASS] T8.10b HUD carrot-count digit reflects forced CARROTS_COUNT=5 within 2 frames (IP-9020)  (digit=5)
 [PASS] T8.11 SELECT -> MAP
@@ -99,10 +103,10 @@ BunnyQuest ROM Tests  PASS=213/213  FAIL=0
 [PASS] T10.8 PLAYER_X preserved  (60->60)
 [PASS] T10.9 PLAYER_Y preserved  (40->40)
 [PASS] T10.10 CARROTS_COUNT preserved  (2->2)
-[PASS] T10.11 SCORE preserved  (8->8)
+[PASS] T10.11 SCORE preserved  (7->7)
 [PASS] T10.12 CARROT_FLAGS preserved (z0, z4 set; z1 clear)  (flags=[1, 0, 0, 0, 1, 0, 0, 0, 0])
 [PASS] T10.13 B cancels -> PLAYING
-[PASS] T10.14 B cancel: reload still has saved data  (x=60 score=8)
+[PASS] T10.14 B cancel: reload still has saved data  (x=60 score=7)
 [PASS] T11.a1 Star (index 0) collected  (score=1)
 [PASS] T11.a2 Transitioned out of zone 0  (zone=3)
 [PASS] T11.a3 Back in zone 0  (zone=0)
@@ -164,7 +168,7 @@ BunnyQuest ROM Tests  PASS=213/213  FAIL=0
 [PASS] T15.c1 CUR_ZONE preserved (version-2 format)  (0->0)
 [PASS] T15.c2 PLAYER_X/Y preserved  ((20,32)->(20,32))
 [PASS] T15.c3 KEYITEM_COUNT preserved  (0->0)
-[PASS] T15.c4 SCORE preserved  (2->2)
+[PASS] T15.c4 SCORE preserved  (0->0)
 [PASS] T15.c5 KEYITEM_FLAGS preserved
 [PASS] T15.c6 SCOREITEM_FLAGS preserved
 [PASS] T15.d REGION_GRAPH never written to SRAM by save_to_sram

@@ -567,15 +567,23 @@ def build_game_asm(rom: ROM) -> dict:
     rom.PUSH_BC(); rom.PUSH_HL()
     rom.OR_A(); rom.JR_Z('cc_skip')
 
-    # |player_x - E| < 10
-    rom.LD_A_nn(PLAYER_X); rom.SUB_E()
-    rom.JR_NC('cc_dx_p'); rom.CPL(); rom.INC_A()
-    rom.label('cc_dx_p'); rom.CP_n(10); rom.JR_NC('cc_skip')
+    # Item point (E=item_x) falls within the player's real 8x16 box:
+    # 0 <= (item_x - PLAYER_X) <= 7, computed as one unsigned subtract +
+    # compare (item_x < PLAYER_X wraps to a large unsigned value, correctly
+    # failing the CP_n(8)/JR_NC check the same as "too far right"). Uses H
+    # as scratch (not B/C — B is the live loop counter re-read at cc_loop's
+    # own COLL_COUNT-B arithmetic below, C is the item's own type, read
+    # again at the HIT branch below — both must survive this block; H is
+    # free here, HL's real value already stashed by this iteration's own
+    # PUSH_HL, not touched again until cc_skip/the HIT branch's POP_HL).
+    rom.LD_A_nn(PLAYER_X); rom.LD_H_A()
+    rom.LD_A_E(); rom.emit(0x94)          # SUB H
+    rom.CP_n(8); rom.JR_NC('cc_skip')
 
-    # |player_y - D| < 10
-    rom.LD_A_nn(PLAYER_Y); rom.SUB_D()
-    rom.JR_NC('cc_dy_p'); rom.CPL(); rom.INC_A()
-    rom.label('cc_dy_p'); rom.CP_n(10); rom.JR_NC('cc_skip')
+    # Same test on Y: 0 <= (item_y - PLAYER_Y) <= 15 (D=item_y)
+    rom.LD_A_nn(PLAYER_Y); rom.LD_H_A()
+    rom.LD_A_D(); rom.emit(0x94)          # SUB H
+    rom.CP_n(16); rom.JR_NC('cc_skip')
 
     # HIT — deactivate
     rom.POP_HL(); rom.XOR_A(); rom.LD_HL_A(); rom.INC_HL()
