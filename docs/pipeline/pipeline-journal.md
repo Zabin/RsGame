@@ -14,50 +14,43 @@
 
 ## Position
 
-- **Updated:** 2026-07-11 (run #78)
+- **Updated:** 2026-07-11 (run #79)
 - **Increment:** Bootstrap baseline remains fully closed (01–11 ✅, GO recorded). Release-2
   procgen-world tranche unchanged since run #62: `IP-1031` `COMPLETE`, four of five `VERIFIED`,
   blocked on a fresh session. Post-ship remediation tranche: all three packages `COMPLETE` since
   run #68 (`IP-9070`/`IP-9060`/`IP-9050`), still blocked on `09-package-verification` by the
-  same-session independence rule. **Procgen-map-shape thread: the PRNG defect is now fully
-  resolved architecturally — a light `07-implementation-planning` package touch is all that
-  remains before `IP-1070` can resume.** `R112` (run #69) → `ADR-0012` (run #70) →
-  `FR-9140`/`FR-9150`/`FR-2330` baselined (run #71) → `FEAT-9100`/`FEAT-2100` decomposed (run #72)
-  → `FS-107`/`FS-108` specified (run #73) → `IP-1070`/`IP-1080` planned (run #74), `IP-1070`
-  authorized (run #75) → `08-code-implementation` attempt hit a Blocking Report (run #76) → `R113`
-  (run #77) formally root-caused the PRNG defect → **`ADR-0013` (run #78): decides a loop-local
-  counter-XOR perturbation scoped to `IP-1070`'s own carve *and* braid draws — `gw_prng_step`
-  itself left untouched. Explicitly declined repairing `gw_prng_step` directly, since
-  `REGION_GRAPH` regenerates from `(seed, scale)` on every save load — that fix would silently
-  redefine any existing save's world, deferred as a future option needing explicit user
-  authorization, not decided here.** `IP-1070` remains `BLOCKED` in the Master Build Plan pending
-  a light package-document touch (not a redesign); authorization `BL-0069` stands. `IP-1080`
-  `BLOCKED` transitively. `FS-108`'s rendering half remains blocked on `BL-0068`'s `GDS-08` delta,
+  same-session independence rule. **Procgen-map-shape thread: the PRNG defect is fully resolved,
+  `IP-1070` re-planned and back to `READY` — a fresh `08-code-implementation` attempt is all that
+  remains.** `R112` (run #69) → `ADR-0012` (run #70) → `FR-9140`/`FR-9150`/`FR-2330` baselined
+  (run #71) → `FEAT-9100`/`FEAT-2100` decomposed (run #72) → `FS-107`/`FS-108` specified (run #73)
+  → `IP-1070`/`IP-1080` planned (run #74), `IP-1070` authorized (run #75) → `08-code-
+  implementation` attempt hit a Blocking Report (run #76) → `R113` (run #77) root-caused the PRNG
+  defect → `ADR-0013` (run #78) decided the fix → **`IP-1070` re-planned with a light touch
+  (run #79): §4/§6/§7/§13 updated with `ADR-0013`'s counter-XOR perturbation detail; sanity check
+  confirmed no leftover code from the earlier attempt; not a redesign.** `IP-1070` back to
+  `READY`, authorization `BL-0069` unaffected throughout. `IP-1080` remains `BLOCKED` on `IP-1070`
+  reaching `VERIFIED`. `FS-108`'s rendering half remains blocked on `BL-0068`'s `GDS-08` delta,
   independent of this. **`BL-0066`** (biome-blob clustering) remains `NEEDS-USER` (the `ADR-0012`
   pass-ordering conflict, routed as `CR-05`/RQ-03 finding #13).
 - **Pipeline state:** Bootstrap: stages 01–11 ✅ — complete, GO recorded. Release-2 + remediation
   tranche: four packages `COMPLETE`, zero `VERIFIED` — all blocked on a fresh session's
-  `09-package-verification` (same-session independence rule). Procgen-map-shape thread: `02`
-  through `03` (this delta) all done; `07-implementation-planning` is next, a light touch to
-  `IP-1070`'s own package document adding `ADR-0013`'s perturbation detail, no gate; then
-  `08-code-implementation` resumes. `BL-0068` (`GDS-08` delta) rides a separate future `03` pass,
-  independent.
-- **Backlog:** 70 entries, 24 open. Run #78: **`BL-0070`** updated (architecture decision made via
-  `ADR-0013`, remains `SCHEDULED`, riding `07-implementation-planning` next). No new entries.
-  `BL-0064`/`0065`/`0067` remain `SCHEDULED`, riding the same package touch. `BL-0068`/`BL-0066`/
-  `BL-0050` (all standing) remain open, unrelated.
-- **Next step:** `07-implementation-planning` — a light touch to **`IP-1070`'s own package
-  document** (§6/§7, adding `ADR-0013`'s counter-XOR perturbation at the carve and braid draw
-  sites; the carve/braid algorithm itself is unchanged, not a redesign), flipping it back to
-  `READY`. Then `08-code-implementation` to resume `IP-1070`. Independently: `BL-0068` rides a
+  `09-package-verification` (same-session independence rule). Procgen-map-shape thread: all
+  design/planning/re-planning done; `08-code-implementation` is next, on `IP-1070`, `READY` and
+  authorized, no gate. `BL-0068` (`GDS-08` delta) rides a separate future `03` pass, independent.
+- **Backlog:** 70 entries, 24 open. Run #79: **`BL-0070`** updated (package touch done, remains
+  `SCHEDULED`, riding `08-code-implementation` next). No new entries. `BL-0064`/`0065`/`0067`
+  remain `SCHEDULED`, riding the same step. `BL-0068`/`BL-0066`/`BL-0050` (all standing) remain
+  open, unrelated.
+- **Next step:** `08-code-implementation` on **`IP-1070`** — now `READY` and authorized, resuming
+  where the earlier attempt was blocked (the carve phase's own design was already directly
+  confirmed correct; only the perturbation addition is new). Independently: `BL-0068` rides a
   future `03` pass (unrelated, the `GDS-08` tile-art delta); `BL-0066` and `BL-0050` (both
   `NEEDS-USER`) await the user whenever convenient; `09-package-verification` on the four
   `COMPLETE` packages remains blocked on a fresh session — none of the three actionable from here.
 - **Open gates:** None blocking this run's own thread. Two independent `NEEDS-USER` entries open:
   `BL-0050` (MAP/status-screen redesign, standing) and `BL-0066` (biome-blob clustering,
-  standing). Neither blocks `07-implementation-planning`'s own work on `IP-1070`. `IP-1070`'s G3
-  authorization (`BL-0069`) stands and does not need to be re-asked — `ADR-0013`'s fix is a small
-  addendum to the same already-authorized package, not a new scope.
+  standing). Neither blocks `08-code-implementation`'s own work on `IP-1070`. `IP-1070`'s G3
+  authorization (`BL-0069`) stands and does not need to be re-asked.
 
 ## Run log
 
@@ -144,3 +137,4 @@
 | 78 | 2026-07-11 | advance | `03-architecture-design-synthesis` | BL-0070 (PRNG fix decision) | ✅ **No drift; no new/re-triggered backlog entries at triage.** **Step 3/5:** invoked `03-architecture-design-synthesis` on `BL-0070`. Authored **`ADR-0013`** — decides a loop-local counter-XOR perturbation, scoped to `IP-1070`'s own carve *and* braid draws (extended beyond just the braid pass R113 focused on, once a real gap was spotted: under the unrepaired PRNG, the carve phase's own direction draw would also be stuck constant, making every collapsed seed carve an *identical* maze shape — directly undermining `BL-0064`'s own seed-variety goal). `gw_prng_step` itself and its only other call site (biome assignment) are completely untouched — no `R111`/`ADR-0009`/`GDS-07` amendment. **Explicitly declined the alternative** (repairing `gw_prng_step`'s own mixing step) on a real consequence neither `BL-0070` nor `R113` had fully weighed: `REGION_GRAPH` regenerates from `(seed, scale)` alone on every save load (`ADR-0009` point 3, `IP-1050`'s own `T15.a5`) — repairing the PRNG would silently redefine the world any *existing save* regenerates on its next load, a real player-facing save-compatibility break, not a documentation nicety. **Correctly recognized this crosses a line `ADR-0012`'s own delegated-authority precedent didn't** (choosing an algorithm for a brand-new feature vs. retroactively redefining already-shipped, already-played behavior) — declined rather than decided silently, deferred as a future option explicitly gated on the user's own authorization (likely bundled with a save-format version bump). Added a forward-pointer note to `ADR-0012` (append-only, not a rewrite). Updated `adr/INDEX.md`/`ROADMAP.md`. Harvested: `BL-0070` updated (architecture decision made, remains `SCHEDULED`, riding a light `07-implementation-planning` package touch next, then `08-code-implementation`). No new backlog entries. No open gates. | `07-implementation-planning` — a light touch to **`IP-1070`'s own package document** (`docs/implementation/packages/IP-1070-maze-shaped-region-adjacency.md` §6/§7), adding `ADR-0013`'s counter-XOR perturbation detail at the carve and braid draw sites; not a redesign, the carve/braid algorithm itself is unchanged. Then `08-code-implementation` to resume `IP-1070`. Separately: `BL-0068` (`GDS-08` delta) rides a future `03` pass, independent; `BL-0066`/`BL-0050` (both `NEEDS-USER`) remain open; `09-package-verification` on the four `COMPLETE` remediation packages remains blocked on a fresh session. |
 
 
+| 79 | 2026-07-11 | advance | `07-implementation-planning` | IP-1070 (light touch) | ✅ **No drift; no new/re-triggered backlog entries at triage.** **Step 3/5:** invoked `07-implementation-planning` for a light touch to `IP-1070`'s own package document, per `ADR-0013`. Added the counter-XOR perturbation detail to §4 (cites `ADR-0013`/`R113`), §6 (both the carve phase's direction-draw site and the braid phase's keep/prune-draw site, plus a note `worldgen.py`'s oracle mirror must replicate the perturbation step-for-step — the same lockstep discipline the carve/braid algorithm itself already required), §7 (task ordering), and §13 (records `ADR-0013`'s own explicit deferral of `gw_prng_step`'s underlying repair as a known, accepted limitation, not silently assumed away). **Sanity check confirmed clean:** direct grep of `asm_game.py` found zero leftover maze-pass symbols from the earlier blocked attempt — the revert was complete. Not a redesign — the carve/braid algorithm itself (§6 tasks 3–4) is unchanged. Flipped `IP-1070` back to `READY` across the Master Build Plan, `packages/INDEX.md`, `ROADMAP.md`; authorization `BL-0069` stood throughout, unaffected. Harvested: `BL-0070` updated (package touch done, remains `SCHEDULED`, riding `08-code-implementation` next). No new backlog entries. No open gates. | `08-code-implementation` on **`IP-1070`** — now `READY` and authorized, resuming where the earlier attempt was blocked. Separately: `BL-0068` (`GDS-08` delta) rides a future `03` pass, independent; `BL-0066`/`BL-0050` (both `NEEDS-USER`) remain open; `09-package-verification` on the four `COMPLETE` remediation packages remains blocked on a fresh session. |
