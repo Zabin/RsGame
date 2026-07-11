@@ -14,36 +14,29 @@
 
 ## Position
 
-- **Updated:** 2026-07-11 (run #89, gate resolved same run)
+- **Updated:** 2026-07-11 (run #90)
 - **Increment:** Bootstrap baseline remains fully closed (01–11 ✅, GO recorded). Movement/pickup/
   UI bug-remediation tranche fully implemented end-to-end. Eight packages `COMPLETE` overall, zero
-  `VERIFIED`. `IP-1080` `BLOCKED`/unauthorized. **`BL-0074` (default-seed biome flooding) — the
-  architecture decision is made AND authorized.** Direct investigation (run #88,
-  `03-architecture-design-synthesis`) found the shipped `gw_prng_step` degenerates to a fixed
-  point/short cycle within 20 draws for **100% of 2000 tested seeds**, not just `seed=0` — at
-  `scale=9`, 55% of seeds already produce a majority-Water world today, 32% almost-entirely-Water.
-  This has been true since `IP-1020` shipped, never visually obvious until a large-scale biome map
-  was actually inspected. **[ADR-0014](../architecture/adr/ADR-0014-gw-prng-step-repair-needs-user-authorization.md)**
-  confirmed the `7,9,8` shift-triplet repair as the correct fix (verified directly: 0/2000 seeds
-  degenerate under it) but explicitly declined to authorize shipping it, since `REGION_GRAPH`
-  regenerates from `(seed,scale)` on every save load — every existing save's world changes on next
-  load. **User explicitly authorized shipping it this run** ("Yes, ship the fix (Recommended)").
-  `BL-0074` re-dispositioned `SCHEDULED`, riding `07-implementation-planning` next. `BL-0066`/
-  `BL-0050` remain the two standing `NEEDS-USER` entries, unrelated, still open.
+  `VERIFIED`. `IP-1080` `BLOCKED`/unauthorized. **`BL-0074` (default-seed/effectively-all-seeds
+  biome flooding) — fully packaged as [IP-9110](../implementation/packages/IP-9110-gw-prng-step-mixing-step-repair.md),
+  `READY`, authorized.** `ADR-0014` confirmed the `7,9,8` shift-triplet repair as the correct fix
+  (0/2000 seeds degenerate under it, vs. 2000/2000 under the shipped version) and the user
+  explicitly authorized shipping it (run #89, "Yes, ship the fix (Recommended)") — `IP-9110`'s own
+  package records this as sufficient G3 authorization for its `08-code-implementation` run,
+  reasoning stated explicitly in the package rather than assumed. `BL-0066`/`BL-0050` remain the
+  two standing `NEEDS-USER` entries, unrelated, still open.
 - **Pipeline state:** Bootstrap: stages 01–11 ✅ — complete, GO recorded. Eight `COMPLETE`
   packages await a fresh-session `09-package-verification`. `IP-1080` `BLOCKED`/unauthorized.
-  **`BL-0074` unblocked and ready for `07-implementation-planning`** — package the `gw_prng_step`
-  mixing-step repair.
-- **Backlog:** 74 entries, 24 open. Run #89: `BL-0074` re-dispositioned `NEEDS-USER`→`SCHEDULED`
-  (user authorized shipping the fix). `BL-0049` implicitly resolved by `IP-9080` reaching
-  `COMPLETE` (stays `SCHEDULED` pending verification). `BL-0066`/`BL-0050` (both standing
+  **`IP-9110` `READY` and authorized** — next `08-code-implementation` target.
+- **Backlog:** 74 entries, 24 open. Run #90: `BL-0074` updated in place (packaged as `IP-9110`,
+  still `SCHEDULED`, now riding `08-code-implementation`). `BL-0066`/`BL-0050` (both standing
   `NEEDS-USER`) remain open. `BL-0071`/`BL-0073` remain `SCHEDULED`, low urgency, no active `07`
-  pass to ride yet — worth folding into the same `07` pass as `BL-0074` if convenient, since all
-  three are process/correctness additions to a `07-implementation-planning` invocation anyway.
-- **Next step:** `07-implementation-planning` on **`BL-0074`** — package the `gw_prng_step`
-  mixing-step repair per `ADR-0014`'s own recommended shape (`7,9,8` shift triplet,
-  `SAVE_VERSION_VAL` bump, `worldgen.py` oracle updated in lockstep, re-measure whether
-  `ADR-0013`'s own maze-pass perturbation is still needed once the root PRNG is fixed).
+  pass to ride yet.
+- **Next step:** `08-code-implementation` on **`IP-9110`** — implement the `gw_prng_step`
+  mixing-step repair (`7,9,8` shift triplet), bump `SAVE_VERSION_VAL` `0x03`→`0x04`, update
+  `worldgen.py`'s oracle in lockstep, add `T12.j`/`T12.k`, rebuild, run the full suite, and
+  re-verify `BL-0074`'s own original reproduction case (seed=0 at scale=9) no longer floods to
+  Water.
   Independently: `09-package-verification` on the eight `COMPLETE` packages remains blocked on a
   fresh session; `BL-0066`/`BL-0050` (both `NEEDS-USER`) await the user whenever convenient.
 - **Open gates:** None. Two standing, independent: `BL-0050` (MAP/status-screen redesign) and
@@ -145,3 +138,4 @@
 | 87 | 2026-07-11 | advance | `00-intake` (harvest) → triage | BL-0074 (default-seed biome-flooding bug) | ✅ **Step 1 reconciliation:** the user reported degenerate procgen output at the literal default seed (`SEED=0`) at both scale=3 and scale=9. Investigated directly before filing (per this run's own judgment — cheap, high-value confirmation): traced `gw_prng_step`'s state from `x=1` (seed=0 normalized per `ADR-0010`) and confirmed it collapses to the absorbing fixed point `0x0000` after 2 draws; confirmed on the real built ROM via PyBoy that `REGION_GRAPH`'s biome grid is correspondingly degenerate (scale=9: >90% Water). Filed **`BL-0074`** (High) via `00-intake`. **Step 2 triage:** re-dispositioned from intake's suggested entry stage `07` to **`03`** — this fix carries a real compatibility tension `07` packaging can't resolve on its own: biome-assignment is the already-shipped, `VERIFIED` (`IP-1020`) foundational generation step every `(seed,scale)` combination depends on (unlike the maze pass, which is brand-new this session with no existing saves at stake), so any fix — repairing `gw_prng_step` directly or adding a scoped perturbation like `ADR-0013` gave the maze pass — changes every existing seed's biome output, not just degenerate ones. R113 already grounds the underlying PRNG theory; no new `02` pass needed unless `03` finds a gap. No drift found elsewhere. | `03-architecture-design-synthesis` on **`BL-0074`** — decide the fix (repair `gw_prng_step` vs. a scoped biome-assignment perturbation vs. another option), explicitly weighing the compatibility question. Independently: `09-package-verification` on the eight `COMPLETE` packages remains blocked on a fresh session; `BL-0066`/`BL-0050` (both `NEEDS-USER`) await the user whenever convenient. |
 | 88 | 2026-07-11 | advance | `03-architecture-design-synthesis` | BL-0074 (default-seed biome-flooding, gw_prng_step repair decision) | ✅ **No drift.** **Step 3/5:** invoked `03-architecture-design-synthesis` on `BL-0074`. Investigated directly before deciding (per this run's own judgment, mirroring `ADR-0012`/`ADR-0013`'s own precedent of grounding decisions in direct verification, not just citing prior research): traced `gw_prng_step`'s degeneracy across 2000 seeds, found **100% degenerate** (fixed point or short cycle within 20 draws) — not a "seed=0 is unlucky" bug, the shipped PRNG is essentially always degenerate. Measured real downstream impact: at `scale=9`, 55% of 200 tested seeds already produce a majority-Water world, 32% almost-entirely-Water — a defect that has existed since `IP-1020` shipped, never visually obvious until a large-scale biome map was actually inspected. Verified the R113-cited `7,9,8` shift-triplet fix directly: 0/2000 seeds degenerate under it, full 65535-state period from seed=1. Authored **[ADR-0014](../architecture/adr/ADR-0014-gw-prng-step-repair-needs-user-authorization.md)**: confirms the shift-triplet repair as the technically correct fix (not a close call), but explicitly declines to authorize shipping it — `REGION_GRAPH` regenerates from `(seed,scale)` on every save load, so this changes every existing save's world on next load, materially larger blast radius than `ADR-0013` anticipated when it declined the same fix for the (then brand-new) maze pass. Routed to the user, following `ADR-0013`'s own established precedent for this exact class of consequence. Updated `docs/architecture/adr/INDEX.md`, R113's Referenced By, `ROADMAP.md`'s ADR row. Committed (`a8583a4`) and pushed. Harvested: `BL-0074` re-dispositioned `SCHEDULED`→`NEEDS-USER`. No new backlog entries — the finding is recorded inside `BL-0074`'s own updated disposition and `ADR-0014` itself. **Gate hit:** ship the `gw_prng_step` repair? Asking this run. | **GATE: `BL-0074`/`ADR-0014`** — authorize shipping the `gw_prng_step` repair (every existing save regenerates a different world on next load) or decline (biome-assignment stays broken for ~55% of `scale=9` worlds, including the default seed, indefinitely). **Resolved same session (run #89) — user authorized shipping the fix.** |
 | 89 | 2026-07-11 | advance | — (gate resolution) | BL-0074 (ship gw_prng_step repair?) | ✅ Asked the user directly via `AskUserQuestion` whether to authorize shipping `ADR-0014`'s recommended `gw_prng_step` repair, given the confirmed save-compatibility consequence (every existing save regenerates a different world on next load). **User answered: "Yes, ship the fix (Recommended)."** Recorded the authorization in `BL-0074`'s own disposition (re-dispositioned `NEEDS-USER`→`SCHEDULED`, riding `07-implementation-planning` next). No code/architecture change this run — a pure gate-resolution step, per the manager's own `Step 4` convention (a gate stop/resolution is a complete run in its own right). | `07-implementation-planning` on **`BL-0074`** — package the `gw_prng_step` mixing-step repair per `ADR-0014`'s own recommended shape. Independently: `09-package-verification` on the eight `COMPLETE` packages remains blocked on a fresh session; `BL-0066`/`BL-0050` (both `NEEDS-USER`) await the user whenever convenient. |
+| 90 | 2026-07-11 | advance | `07-implementation-planning` | `BL-0074` | ✅ Packaged the `gw_prng_step` mixing-step repair as `IP-9110` (`7,9,8` shift-triplet, `SAVE_VERSION_VAL` bump, `worldgen.py` oracle lockstep, `T12.j`/`T12.k`), status `READY`. Authorization explicitly derived from `BL-0074`'s own "Yes, ship the fix" answer, reasoning stated in the package. Master Build Plan/index/ROADMAP updated. | `08-code-implementation` on `IP-9110`. |
