@@ -51,7 +51,7 @@ section, 3–8 page band) is embedded in each `02-research-*` skill.
 | R302 | [Python-assembler codegen patterns](encyclopedia/R302-python-assembler-codegen-patterns.md) | label resolution, patch-point dicts, section layout | ✅ |
 | R303 | [2bpp tile encoding & palette data formats](encyclopedia/R303-2bpp-tile-encoding.md) | bitplanes, attribute maps, byte costs, the 256-tile budget | ✅ |
 | R304 | [ROM validation](encyclopedia/R304-rom-validation.md) | header checksum, size, cart-type fields; why T1 survives the BL-0006 rewrite | ✅ |
-| R305 | [Emulator-based test design](encyclopedia/R305-emulator-based-test-design.md) | memory vs. pixel assertions, frame determinism, save harnesses; **the concrete BL-0006 rewrite target**; extended 2026-07-09 for MSTR-001 C10's determinism-testing strategy (reference-generator oracle, multi-seed property tests) | ✅ |
+| R305 | [Emulator-based test design](encyclopedia/R305-emulator-based-test-design.md) | memory vs. pixel assertions, frame determinism, save harnesses; **the concrete BL-0006 rewrite target**; extended 2026-07-09 for MSTR-001 C10's determinism-testing strategy (reference-generator oracle, multi-seed property tests); extended 2026-07-11 with four testing-convention gaps a live bug batch exposed (fixture defaults masking untested parameter values, boundary-vs-directional assertions, menu state×action cross-product coverage, oracle-vs-runtime-path reachability) | ✅ |
 | R306 | [Toolchain portability](encyclopedia/R306-toolchain-portability.md) | path conventions; **the concrete BL-0005 rewrite target** | ✅ |
 
 The planned-topic lists are suggestions recorded at scaffold time — the owning skill adjusts them
