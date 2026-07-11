@@ -14,37 +14,32 @@
 
 ## Position
 
-- **Updated:** 2026-07-11 (run #59)
+- **Updated:** 2026-07-11 (run #60)
 - **Increment:** Bootstrap baseline remains fully closed (01–11 ✅, GO recorded). **Aesthetics /
-  visual-story-narrative / procgen-world-map:** `IP-1031` (critical path's final node) reached
-  `COMPLETE` at run #56; four of five Release-2 packages `VERIFIED` (`IP-1020`/`1030`/`1040`/
-  `1050`) as of run #58. **This run: `09-content-review` on `IP-1031`'s rendered content** —
-  FEAT-6100's first-ever exercise (no biome-family palette assignment existed to judge before
-  now). Drove the built ROM across two passes (isolated per-family screenshots + an in-context
-  world-walk, seed 42/scale 3, crossing all four grammar-legal transitions that layout offers:
-  grass→stone, stone→brick, grass→sand, sand→water). **[content-review-IP-1031.md](../reviews/content-review-IP-1031.md)
-  written — clean.** No undefined tiles, no illegal adjacency, transitions render correctly with
-  arrows; 3 of 4 palette-stepping pairs match GDS-08 §8's own worked example exactly. One Low
-  finding (Stone↔Brick is the one pairing outside that example, the largest hue jump observed —
-  informational per NFR-6510's explicit "Should," not a defect) and one doc-defect (NFR-6500/6510
-  status text now stale, out of this skill's write scope). `ROADMAP.md`'s `RV-CONTENT` row and
-  `docs/reviews/INDEX.md` updated.
+  visual-story-narrative / procgen-world-map:** `IP-1031` `COMPLETE` with a clean content review
+  (run #59); four of five Release-2 packages `VERIFIED`. **This run: `07-implementation-planning`
+  on `BL-0041`** — `ROADMAP.md`'s Implementation-theme table (`IM-00`/`IP-xxxx`/`VR-xxxx` rows),
+  re-confirmed stale at run #59 (still said Release 2 "not authorized," `VR-xxxx` missing four
+  entries), refreshed to state the real, current picture: Release 2 authorized, 4/5 packages
+  `VERIFIED`, `IP-1031` `COMPLETE` with a clean review; `VR-xxxx` now lists all nine existing
+  reports. **Incidental finding while fixing it:** `ROADMAP.md`'s adjacent `FS-101+` row
+  (Features theme table, `06`-owned — out of this fix's own named scope) carries the identical
+  stale pattern ("none yet implemented," Open Questions "routed to `07`" as if still open) —
+  filed as **BL-0046**, not fixed here.
 - **Pipeline state:** Bootstrap: stages 01–11 ✅ — complete, GO recorded. New increment: stages
   01–07 ✅, G3 cleared; `IP-1020`/`IP-1030`/`IP-1040`/`IP-1050` `VERIFIED`; `IP-1031` `COMPLETE`
-  with a clean content review, blocked on a fresh session for its own mechanical verification.
-  The only remaining gap before `10-integration-review` can run on the full 5-package tranche.
-- **Backlog:** 46 entries, 6 open. Run #59 harvest: new **BL-0044** (Low, finding, `SCHEDULED` —
-  Stone↔Brick palette-step, rides a future GDS-08 §8 touch, informational per NFR-6510) and
-  **BL-0045** (Low, doc-defect, `SCHEDULED` — NFR-6500/6510 status text stale, rides a future
-  `04` delta). Standing entries unchanged: **`BL-0014`** (`DEFERRED`, not ripe) and
-  **`BL-0017`/`BL-0019`/`BL-0041`/`BL-0043`** (`SCHEDULED`) — `IP-1031`'s content review
-  confirmed **not** the ripening trigger for any.
-- **Next step:** `IP-1031`'s own two remaining threads (`09-package-verification`, blocked on a
-  fresh session; `10-integration-review`, blocked on that verification) are both closed to this
-  session. **`BL-0041`** (`ROADMAP.md`'s `IM-00`/`IP-xxxx`/`VR-xxxx` summary rows — confirmed
-  freshly re-checked this run: still stale, now missing four more VRs than when filed) is ripe
-  for a standalone `07-implementation-planning` hygiene pass — genuinely unblocked, no gate, no
-  session restriction. Recommend `07-implementation-planning` on that ROADMAP table next.
+  with a clean content review, blocked on a fresh session for its own mechanical verification —
+  the only remaining gap before `10-integration-review` can run on the full 5-package tranche.
+- **Backlog:** 47 entries, 7 open. Run #60 harvest: new **BL-0046** (Low, doc-defect,
+  `SCHEDULED` — `ROADMAP.md`'s `FS-101+` row stale, rides a future `06` touch); **BL-0041 →
+  `DONE`** (this run's own fix). Standing entries unchanged: **`BL-0014`** (`DEFERRED`, not ripe)
+  and **`BL-0017`/`BL-0019`/`BL-0043`/`BL-0044`/`BL-0045`** (`SCHEDULED`) — none ripened.
+- **Next step:** `IP-1031`'s own verification/integration-review threads remain closed to this
+  session. Two small, genuinely-ready, independently-workable backlog items remain: **`BL-0045`**
+  (`04-requirements-engineering`: flip `NFR-6500`/`NFR-6510` to Met, citing the clean content
+  review) and **`BL-0046`** (`06-feature-specification`: refresh the `FS-101+` ROADMAP row).
+  Recommend `04-requirements-engineering` on `BL-0045` next, then `06-feature-specification` on
+  `BL-0046`.
 - **Open gates:** None.
 
 ## Run log
@@ -111,3 +106,4 @@
 | 57 | 2026-07-11 | advance (redirected: `IP-1031` blocked by same-session independence) | `09-package-verification` | IP-1040 (Main Menu & New-Game Flow) | ✅ **No drift.** Triage: no new/re-triggered entries. **Recommended next step (`09-package-verification` on `IP-1031`) was ineligible this run** — `IP-1031` was implemented in this same session (run #56), and the skill's own SHALL-NOT rule bars same-session verification without the user's explicit acceptance of degraded independence, not sought here per this iteration's instruction to route around new-session-requirement blocks rather than force through them. Redirected to `IP-1040` (also `COMPLETE`, off critical path, independently implemented in an earlier separate session, `73cea72`) instead. **VERIFIED**: ROM rebuilt byte-identical (sha256 match), full suite independently re-run **180/180 pass** (T14 sub-total 20/20). All 4 DoD + 7 Verification Checklist items confirmed by direct code read (exactly one `try_load_save` call site — MAIN MENU's "continue" only; SEED/SCALE ENTRY's B-cancel branch writes nothing; SAVE's exit-to-main-menu option calls the identical `save_to_sram` the A-branch already calls; FR-9110's static+runtime sweep both clean). **[VR-1040](../implementation/verification/VR-1040-main-menu-new-game-flow.md)** written. Ledger: `IP-1040` → **VERIFIED**. Two Low findings fixed inline (not filed as separate backlog entries — cosmetic, fully resolved same run): RTM/FS-104's stale "163/163" snapshot corrected to 180/180 (T15 had grown the suite after IP-1040 landed); the implementing commit's "15 checks" undercount noted (actual 20, no ledger repeated the wrong number). Confirmed `BL-0017`/`BL-0019`/`BL-0043` do **not** ripen from this verification-only pass. No open gates. | `09-package-verification` on **`IP-1050`** (Generated-World Save Persistence) — the last package this session can independently verify; `IP-1031` remains blocked on a **fresh session** for its own verification |
 | 58 | 2026-07-11 | advance | `09-package-verification` | IP-1050 (Generated-World Save Persistence) | ✅ **No drift.** Triage: no new/re-triggered entries. Implemented in an earlier separate session (`5f58ab5`), independence clean. **VERIFIED**: ROM rebuilt byte-identical (sha256 match), full suite independently re-run **180/180 pass** (T15: 17/17, matching the implementing commit's own claimed count exactly). All 4 DoD + 8 Verification Checklist items confirmed by direct code read (single MBC1 enable/disable bracket unchanged, version-guard (`0x01`→`0x02`) gates only the new SEED/WORLD_SCALE/KEYITEM_FLAGS fields without altering legacy-field unconditional load, `REGION_GRAPH` confirmed never written to SRAM via direct field-list diff, ~84-byte SRAM headroom re-affirmed). **[VR-1050](../implementation/verification/VR-1050-generated-world-save-persistence.md)** written. Ledger: `IP-1050` → **VERIFIED**. No findings — RTM/FS-105 citations were already accurate (this package landed last of the tranche's three parallel packages). **Four of five Release-2 packages now VERIFIED; only `IP-1031` remains.** Confirmed `BL-0017`/`BL-0019`/`BL-0043` do **not** ripen. No open gates. | `09-content-review` on **`IP-1031`**'s rendered content — genuinely unblocked (no same-session bar on this skill, only requires `COMPLETE`) and progresses the tranche while `09-package-verification` on `IP-1031` itself stays blocked pending a fresh session |
 | 59 | 2026-07-11 | advance | `09-content-review` | IP-1031 (Generated-Region Screen Composition — content) — FEAT-6100's first exercise | ✅ **No drift.** Triage: no new/re-triggered entries. Rebuilt ROM, drove it via two passes: isolated per-family screenshots (mirroring `T13.a`'s method) and an in-context world-walk (seed 42/scale 3, chosen via `worldgen.py`'s oracle to place all 5 biome families among 9 regions) crossing all 4 grammar-legal transitions that layout offers. **Clean**: no undefined tiles, no illegal adjacency within any screen, all 4 walked transitions rendered correctly with arrows and the intended neighbor. Craft checklist (GDS-08 §7) spot-checked opportunistically since IP-1031 adds no new art to formally check — no defects. Palette-stepping (GDS-08 §8, NFR-6510): Water↔Sand, Sand↔Grass, Grass↔Stone all match the cited worked example exactly; Stone↔Brick is the one pair outside that example and the largest hue jump observed. **[content-review-IP-1031.md](../reviews/content-review-IP-1031.md)** written; `ROADMAP.md`'s `RV-CONTENT` row + `docs/reviews/INDEX.md` updated; FS-106 forward-reference metadata updated (first-exercise note). Harvested: new **BL-0044** (Low, Stone↔Brick pairing, informational per NFR-6510's "Should") and **BL-0045** (Low, NFR-6500/6510 status text stale, out of this skill's write scope). Confirmed `BL-0017`/`BL-0019`/`BL-0043` do **not** ripen. No open gates. | `07-implementation-planning` on **`BL-0041`** (`ROADMAP.md`'s `IM-00`/`IP-xxxx`/`VR-xxxx` summary rows) — re-confirmed still stale this run (now missing 4 more VRs than when filed), genuinely unblocked, no gate; `IP-1031`'s own `09-package-verification`/`10-integration-review` threads remain closed to this session pending a fresh session |
+| 60 | 2026-07-11 | advance | `07-implementation-planning` | BL-0041 (`ROADMAP.md`'s stale `IM-00`/`IP-xxxx`/`VR-xxxx` rows) | ✅ **No drift beyond BL-0041 itself** (re-confirmed still stale exactly as run #59 flagged). Refreshed all three rows: `IM-00` states Release 2 authorized + 4/5 packages `VERIFIED` + `IP-1031` `COMPLETE` with a clean content review; `IP-xxxx` states all ten packages implemented, one verification outstanding; `VR-xxxx` now lists all nine existing reports (was missing `VR-1020`/`1030`/`1040`/`1050` entirely). **Incidental finding:** the adjacent `FS-101+` row (Features theme, `06`-owned) carries the identical staleness — out of this fix's named scope, filed as **BL-0046** rather than fixed here. Harvested: **BL-0041 → DONE**; new **BL-0046** (Low, doc-defect, `SCHEDULED`). No open gates. | `04-requirements-engineering` on **`BL-0045`** (flip `NFR-6500`/`NFR-6510` to Met, citing the clean content review) — genuinely ready, no gate; `06-feature-specification` on `BL-0046` next after that |
