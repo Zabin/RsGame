@@ -14,39 +14,37 @@
 
 ## Position
 
-- **Updated:** 2026-07-11 (run #58)
+- **Updated:** 2026-07-11 (run #59)
 - **Increment:** Bootstrap baseline remains fully closed (01–11 ✅, GO recorded). **Aesthetics /
   visual-story-narrative / procgen-world-map:** `IP-1031` (critical path's final node) reached
-  `COMPLETE` at run #56 via `08-content-authoring`; still blocked on `09-package-verification`'s
-  same-session independence rule until a fresh session picks it up. **This run: `IP-1050`
-  VERIFIED** ([VR-1050](../implementation/verification/VR-1050-generated-world-save-persistence.md))
-  — implemented in an earlier, separate session (`5f58ab5`), independence clean. 180/180 pass
-  (T15: 17/17, matching the implementing commit's own count exactly — no undercount this time),
-  ROM byte-identical, both FS-105 ACs confirmed by direct code read (single MBC1 bracket
-  preserved across the save/load extension, version-guard gates only the new fields,
-  `REGION_GRAPH` confirmed never written to SRAM, legacy fields still round-trip, pre-upgrade
-  `0x01` saves cleanly rejected). No findings — RTM/FS-105 citations were already accurate
-  (IP-1050 landed last of the tranche's three parallel packages, so no later package's test
-  additions left its own counts stale). **Four of the five Release-2 packages are now
-  `VERIFIED`; only `IP-1031` remains**, blocked purely on same-session independence, not on any
-  defect.
+  `COMPLETE` at run #56; four of five Release-2 packages `VERIFIED` (`IP-1020`/`1030`/`1040`/
+  `1050`) as of run #58. **This run: `09-content-review` on `IP-1031`'s rendered content** —
+  FEAT-6100's first-ever exercise (no biome-family palette assignment existed to judge before
+  now). Drove the built ROM across two passes (isolated per-family screenshots + an in-context
+  world-walk, seed 42/scale 3, crossing all four grammar-legal transitions that layout offers:
+  grass→stone, stone→brick, grass→sand, sand→water). **[content-review-IP-1031.md](../reviews/content-review-IP-1031.md)
+  written — clean.** No undefined tiles, no illegal adjacency, transitions render correctly with
+  arrows; 3 of 4 palette-stepping pairs match GDS-08 §8's own worked example exactly. One Low
+  finding (Stone↔Brick is the one pairing outside that example, the largest hue jump observed —
+  informational per NFR-6510's explicit "Should," not a defect) and one doc-defect (NFR-6500/6510
+  status text now stale, out of this skill's write scope). `ROADMAP.md`'s `RV-CONTENT` row and
+  `docs/reviews/INDEX.md` updated.
 - **Pipeline state:** Bootstrap: stages 01–11 ✅ — complete, GO recorded. New increment: stages
-  01–07 ✅, G3 cleared; `IP-1020`/`IP-1030`/`IP-1040`/`IP-1050` `VERIFIED`; `IP-1031` `COMPLETE`,
-  blocked on a fresh session for its own verification. Critical path fully implemented, its final
-  verification pass is the only remaining gap before `10-integration-review` can run on the full
-  5-package tranche.
-- **Backlog:** 44 entries, 4 open. No new findings this run. Standing entries unchanged:
-  **`BL-0014`** (`DEFERRED`, not ripe) and **`BL-0017`/`BL-0019`/`BL-0041`/`BL-0043`**
-  (`SCHEDULED`) — `IP-1050` confirmed **not** the ripening trigger for any (no `ZONE_COLLECTS`
-  touch, negligible ROM growth, `ROADMAP.md`'s `IM-00` table untouched by this verification-only
-  pass).
-- **Next step:** Two paths remain open in this session, neither blocked: **`09-content-review`**
-  on `IP-1031`'s rendered content (no same-session bar — the skill only asks the content be
-  `COMPLETE`, which it is; first exercise of `FEAT-6100`'s aesthetic standard, screenshots
-  already captured at run #56 and available to reference/re-verify) is the higher-leverage
-  choice, since it's genuinely unblocked and progresses the tranche; `09-package-verification` on
-  `IP-1031` itself remains blocked until a **fresh session** (no memory of run #56's
-  `08-content-authoring` work) picks it up.
+  01–07 ✅, G3 cleared; `IP-1020`/`IP-1030`/`IP-1040`/`IP-1050` `VERIFIED`; `IP-1031` `COMPLETE`
+  with a clean content review, blocked on a fresh session for its own mechanical verification.
+  The only remaining gap before `10-integration-review` can run on the full 5-package tranche.
+- **Backlog:** 46 entries, 6 open. Run #59 harvest: new **BL-0044** (Low, finding, `SCHEDULED` —
+  Stone↔Brick palette-step, rides a future GDS-08 §8 touch, informational per NFR-6510) and
+  **BL-0045** (Low, doc-defect, `SCHEDULED` — NFR-6500/6510 status text stale, rides a future
+  `04` delta). Standing entries unchanged: **`BL-0014`** (`DEFERRED`, not ripe) and
+  **`BL-0017`/`BL-0019`/`BL-0041`/`BL-0043`** (`SCHEDULED`) — `IP-1031`'s content review
+  confirmed **not** the ripening trigger for any.
+- **Next step:** `IP-1031`'s own two remaining threads (`09-package-verification`, blocked on a
+  fresh session; `10-integration-review`, blocked on that verification) are both closed to this
+  session. **`BL-0041`** (`ROADMAP.md`'s `IM-00`/`IP-xxxx`/`VR-xxxx` summary rows — confirmed
+  freshly re-checked this run: still stale, now missing four more VRs than when filed) is ripe
+  for a standalone `07-implementation-planning` hygiene pass — genuinely unblocked, no gate, no
+  session restriction. Recommend `07-implementation-planning` on that ROADMAP table next.
 - **Open gates:** None.
 
 ## Run log
@@ -112,3 +110,4 @@
 | 56 | 2026-07-11 | advance | `08-content-authoring` | IP-1031 (Generated-Region Screen Composition — content) | ✅ **No drift** (ledgers matched the journal exactly). Triage: `BL-0014` stays `DEFERRED`, `BL-0017`/`BL-0019`/`BL-0041` stay `SCHEDULED`, none ripened. **COMPLETE** — a confirmation-and-documentation pass, not new authorship: `IP-1030`'s own generalization of `ALL_SCREENS` had already wired all 5 `(family_name, fn)` pairs this package specifies as its default representative choice, so `tilemaps.py` needed zero further edits. Independently confirmed the DoD: `tiles.py` unchanged, `build_rom.py`'s `BG_PALETTES`/`OBJ_PALETTES` unchanged (diff-clean, zero new art/palette entries), each family's tile-index usage within its own 8-tile-aligned block (`IP-1030`'s own T13.a passes, no cross-family leakage), ROM rebuilds byte-identical (22344/32768 bytes), full suite **180/180 pass**. Installed PyBoy 2.7.0 + Pillow fresh in-session; rendered and screenshotted all 5 family screens via `force_region_redraw` (mirroring T13.a's own method) — all read cleanly with correct family tiles/labels (water=LAKE, sand=BEACH, grass=FOREST, stone=MOUNTAIN, brick=CASTLE). Docs updated: GDS-08 §8 confirming note, FS-103 metadata (both Open Questions now resolved), Master Build Plan/`packages/INDEX.md` rows → `COMPLETE`, RTM `FR-4300` → Met (both halves). **The tranche's critical path (`IP-1020`→`IP-1030`→`IP-1031`) is now fully implemented end-to-end.** Harvested: new **BL-0043** (Low, recommendation, `SCHEDULED` — the code/content package-split coupling risk this run surfaced: a code package generalizing a shared data structure can pre-empt its paired content package's reason to exist by needing default values to stay buildable). No open gates. | `09-package-verification` on **`IP-1031`** — closes the critical path end-to-end once verified; `09-content-review` on `IP-1031`'s rendered content and `09-package-verification` on the parallel-eligible `IP-1040`/`IP-1050` remain before `10-integration-review` can run on the full 5-package tranche |
 | 57 | 2026-07-11 | advance (redirected: `IP-1031` blocked by same-session independence) | `09-package-verification` | IP-1040 (Main Menu & New-Game Flow) | ✅ **No drift.** Triage: no new/re-triggered entries. **Recommended next step (`09-package-verification` on `IP-1031`) was ineligible this run** — `IP-1031` was implemented in this same session (run #56), and the skill's own SHALL-NOT rule bars same-session verification without the user's explicit acceptance of degraded independence, not sought here per this iteration's instruction to route around new-session-requirement blocks rather than force through them. Redirected to `IP-1040` (also `COMPLETE`, off critical path, independently implemented in an earlier separate session, `73cea72`) instead. **VERIFIED**: ROM rebuilt byte-identical (sha256 match), full suite independently re-run **180/180 pass** (T14 sub-total 20/20). All 4 DoD + 7 Verification Checklist items confirmed by direct code read (exactly one `try_load_save` call site — MAIN MENU's "continue" only; SEED/SCALE ENTRY's B-cancel branch writes nothing; SAVE's exit-to-main-menu option calls the identical `save_to_sram` the A-branch already calls; FR-9110's static+runtime sweep both clean). **[VR-1040](../implementation/verification/VR-1040-main-menu-new-game-flow.md)** written. Ledger: `IP-1040` → **VERIFIED**. Two Low findings fixed inline (not filed as separate backlog entries — cosmetic, fully resolved same run): RTM/FS-104's stale "163/163" snapshot corrected to 180/180 (T15 had grown the suite after IP-1040 landed); the implementing commit's "15 checks" undercount noted (actual 20, no ledger repeated the wrong number). Confirmed `BL-0017`/`BL-0019`/`BL-0043` do **not** ripen from this verification-only pass. No open gates. | `09-package-verification` on **`IP-1050`** (Generated-World Save Persistence) — the last package this session can independently verify; `IP-1031` remains blocked on a **fresh session** for its own verification |
 | 58 | 2026-07-11 | advance | `09-package-verification` | IP-1050 (Generated-World Save Persistence) | ✅ **No drift.** Triage: no new/re-triggered entries. Implemented in an earlier separate session (`5f58ab5`), independence clean. **VERIFIED**: ROM rebuilt byte-identical (sha256 match), full suite independently re-run **180/180 pass** (T15: 17/17, matching the implementing commit's own claimed count exactly). All 4 DoD + 8 Verification Checklist items confirmed by direct code read (single MBC1 enable/disable bracket unchanged, version-guard (`0x01`→`0x02`) gates only the new SEED/WORLD_SCALE/KEYITEM_FLAGS fields without altering legacy-field unconditional load, `REGION_GRAPH` confirmed never written to SRAM via direct field-list diff, ~84-byte SRAM headroom re-affirmed). **[VR-1050](../implementation/verification/VR-1050-generated-world-save-persistence.md)** written. Ledger: `IP-1050` → **VERIFIED**. No findings — RTM/FS-105 citations were already accurate (this package landed last of the tranche's three parallel packages). **Four of five Release-2 packages now VERIFIED; only `IP-1031` remains.** Confirmed `BL-0017`/`BL-0019`/`BL-0043` do **not** ripen. No open gates. | `09-content-review` on **`IP-1031`**'s rendered content — genuinely unblocked (no same-session bar on this skill, only requires `COMPLETE`) and progresses the tranche while `09-package-verification` on `IP-1031` itself stays blocked pending a fresh session |
+| 59 | 2026-07-11 | advance | `09-content-review` | IP-1031 (Generated-Region Screen Composition — content) — FEAT-6100's first exercise | ✅ **No drift.** Triage: no new/re-triggered entries. Rebuilt ROM, drove it via two passes: isolated per-family screenshots (mirroring `T13.a`'s method) and an in-context world-walk (seed 42/scale 3, chosen via `worldgen.py`'s oracle to place all 5 biome families among 9 regions) crossing all 4 grammar-legal transitions that layout offers. **Clean**: no undefined tiles, no illegal adjacency within any screen, all 4 walked transitions rendered correctly with arrows and the intended neighbor. Craft checklist (GDS-08 §7) spot-checked opportunistically since IP-1031 adds no new art to formally check — no defects. Palette-stepping (GDS-08 §8, NFR-6510): Water↔Sand, Sand↔Grass, Grass↔Stone all match the cited worked example exactly; Stone↔Brick is the one pair outside that example and the largest hue jump observed. **[content-review-IP-1031.md](../reviews/content-review-IP-1031.md)** written; `ROADMAP.md`'s `RV-CONTENT` row + `docs/reviews/INDEX.md` updated; FS-106 forward-reference metadata updated (first-exercise note). Harvested: new **BL-0044** (Low, Stone↔Brick pairing, informational per NFR-6510's "Should") and **BL-0045** (Low, NFR-6500/6510 status text stale, out of this skill's write scope). Confirmed `BL-0017`/`BL-0019`/`BL-0043` do **not** ripen. No open gates. | `07-implementation-planning` on **`BL-0041`** (`ROADMAP.md`'s `IM-00`/`IP-xxxx`/`VR-xxxx` summary rows) — re-confirmed still stale this run (now missing 4 more VRs than when filed), genuinely unblocked, no gate; `IP-1031`'s own `09-package-verification`/`10-integration-review` threads remain closed to this session pending a fresh session |
