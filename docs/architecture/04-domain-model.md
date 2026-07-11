@@ -186,6 +186,16 @@ capping real gameplay at 9 reachable regions regardless of `WorldScale`. Regener
 already correctly consumed for rendering — completing `ADR-0009`'s Decision point 1 for the last
 consumer that hadn't yet moved off the retired fixed-grid model.
 
+**Decided, not yet implemented (`ADR-0012`, 2026-07-11):** a `Region`'s "generated adjacency
+edges" will become **selective**, not full — a generated maze (spanning tree + braid pass), not
+every grid-adjacent pair always connected. `ADR-0012` (`BL-0064`) records the algorithm choice
+(randomized DFS/recursive backtracker); `REGION_GRAPH`'s own data shape is unaffected (still
+5 bytes/region, `0xFF` = no neighbor — a maze-blocked edge and a true grid boundary are
+indistinguishable at this data-model level, per `ADR-0012` point 2). This section's `Region`
+description above ("generated adjacency edges... not derivable from its index alone") already
+accommodates this — no entity-model change is needed, only the generator that populates the
+edges. Awaits a future `07`/`08` implementation package.
+
 ### Updated relationship overview (target state)
 
 ```

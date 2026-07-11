@@ -54,7 +54,7 @@ build order.
 | ID | Document | Path | Depends on | Status |
 |---|---|---|---|---|
 | RS-INDEX | Research index (tier tables) | `docs/research/INDEX.md` | — | ♻️ |
-| R101–R112 | Tier R100 — GBC hardware & SM83 (R111, CGB banked WRAM + SM83 PRNG determinism, added 2026-07-09 via `BL-0031`; R102/R106 extended same day; R101/R102 VBlank-duration citation mismatch resolved 2026-07-10 via `BL-0032`, both confirmed against Pan Docs at 4560 T-states; R112, maze-generation algorithm hardware feasibility — spanning tree + braid pass, added 2026-07-11 via `BL-0064`, grounding `03-architecture-design-synthesis`'s pending `ADR-0009`-amendment decision) | `docs/research/encyclopedia/` | MSTR-001 | ✅ (2026-07-06; R111 + extensions 2026-07-09; correction 2026-07-10; R112 added 2026-07-11) |
+| R101–R112 | Tier R100 — GBC hardware & SM83 (R111, CGB banked WRAM + SM83 PRNG determinism, added 2026-07-09 via `BL-0031`; R102/R106 extended same day; R101/R102 VBlank-duration citation mismatch resolved 2026-07-10 via `BL-0032`, both confirmed against Pan Docs at 4560 T-states; R112, maze-generation algorithm hardware feasibility — spanning tree + braid pass, added 2026-07-11 via `BL-0064`, grounded `ADR-0012`'s algorithm choice) | `docs/research/encyclopedia/` | MSTR-001 | ✅ (2026-07-06; R111 + extensions 2026-07-09; correction 2026-07-10; R112 added 2026-07-11) |
 | R201–R214 | Tier R200 — Game design (incl. R209–R211, pixel art / AI-generation workflow / GBC case studies, filed via `BL-0013`; R212–R214, wordless narrative / procgen algorithms / GBC procgen case studies, filed via `BL-0030`/`BL-0031`) | `docs/research/encyclopedia/` | MSTR-001 | ✅ (2026-07-06; R212–R214 added 2026-07-09) |
 | R301–R306 | Tier R300 — Tooling & verification (R302/R305 extended 2026-07-09 for MSTR-001 C10's reference-generator-oracle testing strategy, via `BL-0031`; R305 extended 2026-07-11 with four testing-convention gaps confirmed by a live bug batch, via `BL-0057`) | `docs/research/encyclopedia/` | MSTR-001 | ✅ (2026-07-06; extensions 2026-07-09, 2026-07-11) |
 
@@ -74,7 +74,7 @@ build order.
 | GDS-09 | Interface Specification | `docs/architecture/09-interface-specification.md` | GDS-08 | ✅ (2026-07-06; delta 2026-07-09 — worldgen.py contract, new patch points) |
 | GDS-10 | RTM level | `docs/architecture/10-requirements-traceability-matrix.md` | GDS-09 | ✅ (2026-07-06; ID-scheme refreshed 2026-07-09 — confirms no new prefix needed for procgen-world increment; delta 2026-07-10, BL-0034) |
 | AR-ASSUME | Strategic assumptions register | `docs/architecture/strategic-assumptions-register.md` | MSTR-001 | ♻️ (A1–A10, revised 2026-07-09) |
-| ADR-xxxx | Architecture Decision Records | `docs/architecture/adr/` | GDS-03 | ✅ (as-built set ADR-0001…0008, 2026-07-06; ADR-0009…0011 added 2026-07-09 for the procgen-world increment, ADR-0009 supersedes ADR-0001) |
+| ADR-xxxx | Architecture Decision Records | `docs/architecture/adr/` | GDS-03 | ✅ (as-built set ADR-0001…0008, 2026-07-06; ADR-0009…0011 added 2026-07-09 for the procgen-world increment, ADR-0009 supersedes ADR-0001; ADR-0012 added 2026-07-11, refines ADR-0009 point 1 — maze-shaped region adjacency, `BL-0064`) |
 | ADS-xxx | Per-cluster design syntheses | `docs/architecture/` | research tiers | ⛔ (zero-or-more, on demand) |
 
 ## Theme: Requirements (`docs/requirements/`) — owner `04-requirements-engineering`

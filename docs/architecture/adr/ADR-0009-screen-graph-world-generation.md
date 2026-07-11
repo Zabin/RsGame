@@ -2,6 +2,13 @@
 
 **Status:** Accepted (2026-07-09)
 
+> **Decision point 1 refined by [ADR-0012](ADR-0012-maze-shaped-region-adjacency.md)
+> (2026-07-11):** this ADR's own text below never mandated that every grid-adjacent region pair
+> be connected — the shipped implementation chose that as the simplest interpretation. ADR-0012
+> makes the edge-selectivity question concrete (a generated maze — spanning tree + braid — not a
+> full lattice), without contradicting anything below. Points 2–7 are unaffected. Left in place,
+> not edited, per this project's append-only ADR convention.
+
 ## Context
 
 [MSTR-001](../../master/MSTR-001-program-vision.md) **C10** (v3.0) commits the world to
