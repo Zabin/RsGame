@@ -239,3 +239,86 @@ and with IP-1030/IP-1031.
   menu input mapping.
 - **`BL-0019`** (ROM-headroom watch): IP-1020 (WRAM growth) and IP-1050 (SRAM growth) both carry
   NFR-4000/NFR-4200 headroom re-affirmation checklist items.
+
+## Post-ship remediation tranche (playtesting bugs `BL-0047`/`BL-0048`, planned 2026-07-11)
+
+Two bugs from the project owner's own playtesting of the shipped procgen-world tranche, both
+already carrying reproduced root causes and recommended remediation shapes at intake (`00-intake`,
+this session). Per this skill's own Step 1 discipline, both cuts additionally required the
+mandatory **verb inventory** and **supersession sweep** checks before being called complete.
+
+### Verb inventory — the procgen-world capability, re-audited
+
+The Release-2 tranche (above) covered *generate* (`IP-1020`), *render* (`IP-1030`/`IP-1031`),
+*trigger/menu* (`IP-1040`), and *persist* (`IP-1050`) — but never *navigate*. Re-auditing this now
+against `BL-0047`'s own finding: `check_zone_transition` is the sole navigation call site, and it
+was never touched by any Release-2 package. No deferral was ever recorded for it — it was simply
+missed. This tranche closes that gap.
+
+### Supersession sweep — run against `BL-0047`'s own framing ("`check_zone_transition` was never
+generalized past the fixed-3×3 model")
+
+A sweep for the retired model's literal signature (`CUR_ZONE` compared against small integer
+literals tied to a 3×3 shape; fixed 9-entry tables indexed by `CUR_ZONE`) across
+`asm_game.py`/`tilemaps.py`/`build_rom.py` found **two more instances, not just the one
+`BL-0047` itself named**:
+
+- **`SCOREITEM_FLAGS`** (`asm_game.py:44`) — still a fixed 9-byte array indexed by `CUR_ZONE`,
+  unlike its sibling `KEYITEM_FLAGS` (already widened to 81 bytes by `IP-1020`). Filed as
+  **`BL-0058`** (Critical) — fixing `BL-0047` alone, without this, converts a dormant bug into
+  live WRAM corruption of `REGION_GRAPH` itself, since `CUR_ZONE` values above 8 become reachable
+  the moment navigation is fixed.
+- **`ZONE_COLLECTS`/`zc_table`** (`tilemaps.py:407`) — still the original 9 hand-authored,
+  zone-named spawn-position lists (the module's own docstring says so verbatim), read via a
+  9-entry ROM table indexed by `CUR_ZONE`. Filed as **`BL-0059`** (Critical) — the same
+  dormant-until-navigation-is-fixed pattern, reading past the ROM table's own bounds.
+
+Both are **causally coupled to `BL-0047`'s own fix, not independent findings** — `BL-0047`'s
+remediation is what makes `CUR_ZONE > 8` reachable at all; `BL-0058`/`BL-0059` are what make that
+reachability safe. Sweep result recorded here per this skill's own mandatory-recording rule:
+**not clean — two additional Critical defects found and packaged alongside the reported bug,
+not silently absorbed into it and not deferred.**
+
+### Work units and package cut
+
+| Work unit | Package | Owner |
+|---|---|---|
+| Widen `SCOREITEM_FLAGS`/`SRAM_SCOREITEM` to the full generated-region range (81 bytes); relocate both to avoid WRAM/SRAM collisions; regeneralize `ZONE_COLLECTS`/`zc_table` to 5 biome-family-representative lists keyed by biome-id (`BL-0058`/`BL-0059`) | [IP-9070](packages/IP-9070-cur-zone-indexed-structures-generalization.md) | `08-code-implementation` |
+| Regeneralize `check_zone_transition` to read `REGION_GRAPH`'s neighbor bytes instead of hardcoded `CUR_ZONE` arithmetic (`BL-0047`) | [IP-9050](packages/IP-9050-generated-world-navigation-fix.md) | `08-code-implementation` |
+| Fix `check_save_valid`'s `MM_CURSOR`-reset side effect clobbering the player's own MAIN MENU toggle (`BL-0048`) | [IP-9060](packages/IP-9060-main-menu-cursor-fix.md) | `08-code-implementation` |
+
+**Split rationale:**
+
+- **`IP-9070` split out from `IP-9050`, but sequenced as a hard prerequisite, not an independent
+  parallel package.** Both are instances of "make a `CUR_ZONE`-indexed structure honor the
+  generated world's real size," but they touch entirely different concerns (WRAM/SRAM layout +
+  save-format version vs. navigation control flow) and have independently testable Definitions of
+  Done. They are **not** parallel-eligible the way `IP-1040`/`IP-1050` were, though: `IP-9050`
+  activating `CUR_ZONE > 8` before `IP-9070` widens the structures that index it would ship the
+  exact corruption this sweep exists to prevent. `IP-9050`'s own Dependencies field names `IP-9070`
+  explicitly for this reason — this is a correctness-ordering dependency, not a convenience one.
+- **`SCOREITEM_FLAGS` and `ZONE_COLLECTS` fused into one package (`IP-9070`)**, not split further,
+  because they are the same class of defect (a `CUR_ZONE`-indexed structure sized/shaped for the
+  old 9-zone model) found by the same sweep, and a single Definition of Done — "every
+  `CUR_ZONE`-indexed WRAM/ROM structure is safe across the full `scale²` region range" — covers
+  both without the awkwardness of an intermediate half-fixed state.
+- **`IP-9060` split out from `IP-9050`/`IP-9070`** because it is a wholly unrelated defect (MAIN
+  MENU cursor logic) in the same file (`asm_game.py`) purely by coincidence of module boundaries —
+  no shared root cause, no dependency in either direction, genuinely parallel-eligible with the
+  other two.
+
+### Sequencing summary
+
+**`IP-9070` is this tranche's prerequisite** — `IP-9050` depends on it (correctness, not merely
+convenience: see split rationale above). `IP-9060` is independent of both and parallel-eligible.
+Critical path: **`IP-9070` → `IP-9050`** (2 packages). No package in this tranche is `08-content-
+authoring` scope (WRAM/SRAM layout and control-flow only, no tile/palette/screen changes).
+
+### Backlog riders honored in this pass
+
+- **`BL-0047`** (Critical, navigation ignores `REGION_GRAPH`): packaged as `IP-9050`.
+- **`BL-0048`** (High, MAIN MENU cursor unreachable): packaged as `IP-9060`.
+- **`BL-0058`**/**`BL-0059`** (Critical, discovered by this pass's own mandatory supersession
+  sweep): packaged as `IP-9070`, sequenced as `IP-9050`'s hard prerequisite.
+- **`BL-0019`** (ROM/SRAM-headroom watch): `IP-9070` grows SRAM usage (9→81 bytes, ×1, net +72
+  bytes) — carries an `NFR-4200` headroom re-affirmation checklist item.

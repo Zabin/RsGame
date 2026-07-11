@@ -11,7 +11,9 @@
 > independence rule — needs a fresh session); `IP-1040`/`IP-1050` both VERIFIED 2026-07-11
 > ([VR-1040](verification/VR-1040-main-menu-new-game-flow.md),
 > [VR-1050](verification/VR-1050-generated-world-save-persistence.md)). Four of five Release-2
-> packages VERIFIED; only `IP-1031` remains.** Owned by `07-implementation-planning`
+> packages VERIFIED; only `IP-1031` remains.** **Post-ship remediation tranche planned
+> 2026-07-11** (`IP-9050`/`IP-9060`/`IP-9070`, five bugs from playtesting — see below) — **not
+> authorized, G3 pending.** Owned by `07-implementation-planning`
 > (rows/graph/authorization state) with status transitions written by the stage-08 peers
 > (`IN PROGRESS`/`COMPLETE`/`BLOCKED`) and `09-package-verification` (`VERIFIED`, exclusively).
 > Status vocabulary, verbatim: `NOT STARTED / READY / IN PROGRESS / BLOCKED / COMPLETE /
@@ -36,11 +38,26 @@
 | [IP-1031](packages/IP-1031-generated-region-screen-composition-content.md) | Generated-region screen composition — content (FS-103 / FEAT-4100) | `08-content-authoring` | **COMPLETE — 180/180 checks pass** | IP-1020 (VERIFIED), IP-1030 (VERIFIED) | **YES — explicit user G3, 2026-07-10 (BL-0040)** | **Confirmation package, not new authorship:** `IP-1030`'s own commit (`3479dba`) already wired all 5 `(family_name, fn)` pairs this package specifies (Water→`lake_screen`, Sand→`beach_screen`, Grass→`forest_screen`, Stone→`mountain_screen`, Brick→`castle_screen`) directly into `ALL_SCREENS` as its default representative choice — `tilemaps.py` required zero further edits. This run independently confirmed the DoD: `tiles.py`/`build_rom.py` palette tables diff-clean (zero new art/palette entries), each family's tile-index usage falls within its own 8-tile-aligned block (IP-1030's own T13.a passes, no cross-family leakage), ROM rebuilds byte-identical (22344/32768 bytes), full suite 180/180. Rendered and screenshotted all 5 family screens in PyBoy (via `force_region_redraw`, mirroring T13.a's own method) — all read cleanly, correct family tiles/labels. Docs updated: GDS-08 §8 confirming note, FS-103 metadata. **Outstanding Issue:** the 07→08 package split assumed content work remained; in practice IP-1030's code-half package delivered the content mapping as an inherent side effect of generalizing `ALL_SCREENS`, since a working default had to be chosen to keep the code buildable/testable. Future packages splitting "code" from "content" across a data structure's *default values* should flag this coupling risk at planning time. First package `FEAT-6100`'s standard applies to (via a future `09-content-review` pass). |
 | [IP-1040](packages/IP-1040-main-menu-new-game-flow.md) | Main menu & new-game flow (FS-104 / FEAT-1100) | `08-code-implementation` | **VERIFIED** | IP-1020 (VERIFIED) | **YES — explicit user G3, 2026-07-10 (BL-0040)** | **Verified 2026-07-11 ([VR-1040](verification/VR-1040-main-menu-new-game-flow.md)):** 180/180 pass (T14 sub-total 20/20), ROM byte-identical, all 6 FS-104 ACs confirmed, auto-load bypass confirmed genuinely retired (sole `try_load_save` call site), B-cancel writes nothing, exit-to-main-menu reuses the exact save-write routine, FR-9110 immutability holds under a systematic sweep. Two Low findings: stale "163/163" snapshot counts (corrected), commit message undercounted T14's own check count (cosmetic). Two new states (`GS_MAIN_MENU`, `GS_SEED_SCALE_ENTRY`) added; boot's unconditional `try_load_save` call replaced with an unconditional transition to `GS_MAIN_MENU` — retiring FR-1120's auto-load bypass (confirmed by direct code read: exactly one `try_load_save` call site remains, MAIN MENU's "continue" action). New `check_save_valid` probes magic+version (stricter than `try_load_save`'s own magic-only gate — ADR-0010: a version-mismatched save is absent for "continue" purposes). Digit-cursor SEED/SCALE ENTRY: 5 independent decimal digits + scale, composed into the real 16-bit `SEED` via saturating repeated-addition (`sse_compose_seed`, no general multiply needed) on A-confirm; B cancels to MAIN MENU without writing `SEED`/`WORLD_SCALE` (resolves FS-104 OQ1). D-pad up/down toggles MAIN MENU's highlighted option (resolves OQ2). `st_save` gains a third SELECT option (exit-to-main-menu, reuses `save_to_sram` verbatim); `st_victory`'s A-target changes to MAIN MENU. Two new screens (`main_menu_screen`/`seed_scale_entry_screen`, `tilemaps.py`) + 2 new `patches` pairs. **Cascading regression fixes** (the new boot flow ripples through every test that reaches PLAYING): `advance_to_playing` rewritten for the 3-step MAIN MENU→SEED/SCALE ENTRY→INTRO flow; T4/T5/T10/T11 updated for MAIN MENU replacing TITLE, the retired auto-load bypass (T10.6/T11.b3 now explicitly select "continue"), and ADR-0010's stricter pre-upgrade-save handling (T11.d1–d3 rewritten — a version-mismatched save no longer auto-loads at all, confirmed by `T11.d1b`). New suite **T14** (a–e, 20 checks — VR-1040 corrected the implementing commit's own "15 checks" undercount) added — package template named it "T13"; renumbered since IP-1030 claimed T13 earlier this tranche. ROM: 22344/32768 bytes (+3072 from IP-1030's 19272, ~10.2KB headroom remains). Parallel-eligible with IP-1030/1031/1050 — implemented independently of IP-1030's own COMPLETE state. |
 | [IP-1050](packages/IP-1050-generated-world-save-persistence.md) | Generated-world save persistence (FS-105 / FEAT-5300) | `08-code-implementation` | **VERIFIED** | IP-1020 (VERIFIED) | **YES — explicit user G3, 2026-07-10 (BL-0040)** | **Verified 2026-07-11 ([VR-1050](verification/VR-1050-generated-world-save-persistence.md)):** 180/180 pass (T15: 17/17, matching the implementing commit's own count exactly), ROM byte-identical, both FS-105 ACs confirmed, single MBC1 bracket preserved, `REGION_GRAPH` confirmed never persisted, legacy fields round-trip, pre-upgrade saves cleanly rejected. No findings. Second save-format version bump since ship (`0x01`→`0x02`), extending IP-1010's exact pattern (a strictly monotonic sequence — a future extension must bump to `0x03`). `save_to_sram`/`try_load_save` extended with `SEED`/`WORLD_SCALE`/`KEYITEM_FLAGS` (81 bytes, via the existing `memcpy` subroutine rather than an unrolled loop) inside the existing single MBC1 bracket. `try_load_save`'s version-2 branch restores `SEED`/`WORLD_SCALE`, calls `IP-1020`'s `generate_world` to regenerate `REGION_GRAPH` (never itself persisted — confirmed by direct diff, T15.d), then restores `KEYITEM_FLAGS` onto the freshly-regenerated graph. `IP-1040`'s `check_save_valid`/`try_load_save` automatically consume the bumped version value via the shared `SAVE_VERSION_VAL` symbolic constant — zero code changes needed there; a version-1 save is now excluded from "continue" entirely. New suite **T15** (a–d, 17 checks) added — package template named it "T14"; renumbered since IP-1040 claimed T14 earlier this tranche. `T14.e1`'s static write-site audit (IP-1040) widened to also exclude `try_load_save`'s legitimate restore block. ROM: 22344/32768 bytes (unchanged after 0x100-boundary code padding; ~10.4KB headroom remains). Parallel-eligible with IP-1030/1031/1040 — implemented independently of both. |
+| [IP-9070](packages/IP-9070-cur-zone-indexed-structures-generalization.md) | `CUR_ZONE`-indexed structure generalization (BL-0058 + BL-0059) | `08-code-implementation` | **READY** | IP-1020 (VERIFIED), IP-1030 (VERIFIED), IP-1040 (VERIFIED), IP-1050 (VERIFIED) | **NOT YET AUTHORIZED — G3 pending** | Widens `SCOREITEM_FLAGS`/`SRAM_SCOREITEM` (9→81 bytes, relocated to avoid colliding with `REGION_GRAPH`), bumps `SAVE_VERSION_VAL` to `0x03`, and reduces `ZONE_COLLECTS` from 9 zone-authored lists to 5 biome-family-representative lists (mirroring `IP-1031`'s screen-reuse choice). Discovered by `BL-0047`'s own mandatory supersession sweep — a hard prerequisite for `IP-9050`'s own safety (see that row's Depends-on). |
+| [IP-9050](packages/IP-9050-generated-world-navigation-fix.md) | Generated-world navigation fix (BL-0047) | `08-code-implementation` | **BLOCKED** | IP-9070 (READY — hard prerequisite), IP-1020 (VERIFIED), IP-1030 (VERIFIED) | **NOT YET AUTHORIZED — G3 pending** | Regeneralizes `check_zone_transition` to read `REGION_GRAPH`'s neighbor bytes instead of the hardcoded fixed-3×3 `CUR_ZONE` arithmetic still shipped today — the missing *navigate* verb `IP-1020`/`IP-1030` never packaged. **Critical** — root cause of "the map remains a 3×3 grid regardless of scale/seed." Blocked on `IP-9070` reaching `VERIFIED`/`COMPLETE` first (correctness-ordering dependency, not scheduling convenience — this fix makes `CUR_ZONE > 8` reachable, `IP-9070` is what makes that safe). |
+| [IP-9060](packages/IP-9060-main-menu-cursor-fix.md) | Main menu cursor fix (BL-0048) | `08-code-implementation` | **READY** | IP-1040 (VERIFIED) | **NOT YET AUTHORIZED — G3 pending** | Fixes `check_save_valid`'s `MM_CURSOR`-reset side effect, which clobbers the player's own MAIN MENU UP/DOWN toggle on every redraw — "new game" is currently unreachable whenever a save exists. **High.** Independent of `IP-9050`/`IP-9070` — parallel-eligible. |
 
 **FEAT-6100 (Aesthetic & Biome-Transition Compliance) needs no package** — per FS-106 §8/§10, it
 has no runtime behavior or module of its own; its standard (GDS-08 delta §7/§8) is already
 authored and is first exercised via a future `09-content-review` pass on `IP-1031`'s content, not
 via an Implementation Package.
+
+## Post-ship remediation tranche (playtesting bugs, planned 2026-07-11)
+
+Three packages remediating bugs the project owner found playtesting the shipped Release-2
+tranche (`BL-0047`/`BL-0048`, filed via `00-intake`) — plus two more Critical defects
+(`BL-0058`/`BL-0059`) `BL-0047`'s own mandatory supersession sweep discovered along the way (see
+the
+[TWBS](01-technical-work-breakdown.md#post-ship-remediation-tranche-playtesting-bugs-bl-0047bl-0048-planned-2026-07-11)
+for the full sweep record). **None of these five bugs — nor the three packages remediating
+them — fall under the `BL-0001`…`BL-0005` G3 bootstrap carve-out; explicit user authorization is
+required before `08-code-implementation` can start any of them.** Critical path: **IP-9070 →
+IP-9050** (2 packages); `IP-9060` is independent and parallel-eligible with both.
 
 ## Dependency graph
 
@@ -58,9 +75,9 @@ graph TD
 
     IP1020["IP-1020 world generation<br/>(Release 2, VERIFIED)"]
     IP1030["IP-1030 region screens: code<br/>(Release 2, VERIFIED)"]
-    IP1031["IP-1031 region screens: content<br/>(Release 2, READY)"]
-    IP1040["IP-1040 main menu & new-game<br/>(Release 2, COMPLETE)"]
-    IP1050["IP-1050 generated-world save<br/>(Release 2, COMPLETE)"]
+    IP1031["IP-1031 region screens: content<br/>(Release 2, COMPLETE)"]
+    IP1040["IP-1040 main menu & new-game<br/>(Release 2, VERIFIED)"]
+    IP1050["IP-1050 generated-world save<br/>(Release 2, VERIFIED)"]
     IP9010 -.all bootstrap packages VERIFIED.-> IP1020
     IP1020 --> IP1030
     IP1030 --> IP1031
@@ -68,6 +85,19 @@ graph TD
     IP1020 --> IP1050
 
     style IP1020 fill:#f9d,stroke:#333,stroke-width:2px
+
+    IP9070["IP-9070 CUR_ZONE-indexed<br/>structure generalization<br/>(remediation, READY)"]
+    IP9050["IP-9050 generated-world<br/>navigation fix<br/>(remediation, BLOCKED)"]
+    IP9060["IP-9060 main menu<br/>cursor fix<br/>(remediation, READY)"]
+    IP1020 --> IP9070
+    IP1030 --> IP9070
+    IP1040 --> IP9070
+    IP1050 --> IP9070
+    IP9070 -->|hard prerequisite| IP9050
+    IP1040 --> IP9060
+
+    style IP9070 fill:#f96,stroke:#333,stroke-width:2px
+    style IP9050 fill:#f96,stroke:#333,stroke-width:2px
 ```
 
 *(The dotted edge into `IP1020` represents the Master Build Plan's own package-status
@@ -120,3 +150,18 @@ first-in-critical-path package.)*
   (as-built baselining, or remediation of `BL-0001`…`BL-0005`). **Explicit user G3 authorization
   is required before `08-code-implementation`/`08-content-authoring` can start any of these five
   packages.**
+- **Current status update (2026-07-11):** `IP-1040`/`IP-1050` both `VERIFIED`; `IP-1031`
+  `COMPLETE` with a clean content review, own verification blocked on a fresh session's
+  independence. Four of five Release-2 packages `VERIFIED`.
+
+### Post-ship remediation tranche (playtesting bugs, planned 2026-07-11)
+
+- **Critical path: IP-9070 → IP-9050** (2 packages) — `IP-9070` widens/relocates every
+  `CUR_ZONE`-indexed structure (`SCOREITEM_FLAGS`, `ZONE_COLLECTS`) that `IP-9050`'s own
+  navigation fix would otherwise make unsafe; this is a correctness-ordering dependency, not a
+  scheduling convenience (see `IP-9050`'s own Dependencies field).
+- **IP-9060 is independent** of both — a wholly unrelated MAIN MENU cursor defect in the same
+  file, parallel-eligible from the start.
+- **Authorization state: none of the three packages are authorized.** None of `BL-0047`/`0048`/
+  `0058`/`0059` fall under the `BL-0001`…`BL-0005` G3 bootstrap carve-out — explicit user
+  authorization is required before `08-code-implementation` can start any of them.
