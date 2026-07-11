@@ -89,6 +89,11 @@
 
 ## FEAT-2100 — Maze-Aware Transition-Edge Signaling (new — not yet implemented)
 
+> **Forward reference (metadata only):** specified by
+> [FS-108](../features/FS-108-maze-aware-transition-edge-signaling.md) (2026-07-11) — **logic half
+> only**; the rendering half remains blocked on an unauthored `GDS-08` delta (FS-108 Open Question
+> 1, routed to `03-architecture-design-synthesis`).
+
 - **Feature ID:** FEAT-2100
 - **Title:** Maze-Aware Transition-Edge Signaling
 - **Purpose:** Distinguish, at each screen edge, a maze-blocked-but-grid-adjacent edge from a true
@@ -415,6 +420,11 @@
   ADR-0009 fixes the *approach*, not the routine's line-by-line design.
 
 ## FEAT-9100 — Maze-Shaped Region Adjacency (new — not yet implemented)
+
+> **Forward reference (metadata only):** specified by
+> [FS-107](../features/FS-107-maze-shaped-region-adjacency.md) (2026-07-11). 3 Open Questions
+> recorded there (visited-flag packing, transient-scratch addresses, starting-region backtrack
+> initialization), all routed to `07-implementation-planning`.
 
 - **Feature ID:** FEAT-9100
 - **Title:** Maze-Shaped Region Adjacency
