@@ -2,12 +2,15 @@
 
 > **Status: ✅ Authored (bootstrap as-built, 2026-07-07); delta 2026-07-10 (procgen-world
 > increment, 5 new Features + FEAT-5100 shipped-status correction; FEAT-6000/FEAT-7000 Risk
-> fields corrected, `BL-0037`).** Owned by
+> fields corrected, `BL-0037`); delta 2026-07-11 (2 new Features — `FEAT-9100` maze-shaped region
+> adjacency, `FEAT-2100` maze-aware transition-edge signaling — for `ADR-0012`'s post-ship
+> remediation, `BL-0064`/`0065`/`0067`).** Owned by
 > `05-feature-decomposition`. Derives from the closed
 > [RQ-01](../requirements/01-functional-requirements.md)/
 > [RQ-02](../requirements/02-non-functional-requirements.md) baseline, now 36 bootstrap `FR-xxxx`/
-> `NFR-xxxx` leaves + 17 target leaves from the 2026-07-09 RQ-01…04 delta (53 total, all owned by
-> exactly one Feature below). **Bootstrap framing: six of the original seven Features describe
+> `NFR-xxxx` leaves + 17 target leaves from the 2026-07-09 RQ-01…04 delta + 3 target leaves from
+> the 2026-07-11 `ADR-0012` delta (`FR-9140`/`FR-9150`/`FR-2330`; 56 total, all owned by exactly
+> one Feature below). **Bootstrap framing: six of the original seven Features describe
 > capability the shipped `BunnyQuest.gbc` already implements** — their catalog entries are
 > as-built summaries, not proposals. **FEAT-5100 shipped and was independently verified
 > 2026-07-07** ([IP-1010](../implementation/packages/IP-1010-per-zone-scoreitem-persistence.md)/
@@ -15,7 +18,9 @@
 > entry's earlier "not yet implemented" framing is corrected below (`BL-0036`). **Five new
 > Features (FEAT-1100, FEAT-4100, FEAT-5300, FEAT-6100, FEAT-9000) formalize the
 > aesthetics/visual-story-narrative/procgen-world-map increment's 17 target requirements** — none
-> yet implemented, per that increment's RQ-01…04 delta (2026-07-09).
+> yet implemented, per that increment's RQ-01…04 delta (2026-07-09). **Two more new Features
+> (FEAT-9100, FEAT-2100) formalize `ADR-0012`'s maze-shaped-region-adjacency post-ship
+> remediation** — neither yet implemented, per the 2026-07-11 delta.
 
 ## FEAT-1000 — Game State Machine & Menu Flow
 
@@ -81,6 +86,60 @@
 - **Suggested Verification Strategy:** Test — currently compromised project-wide by `BL-0006`
   (the T7 suite's specific assertions are stale, per RQ-04's matrix).
 - **Open Questions:** None.
+
+## FEAT-2100 — Maze-Aware Transition-Edge Signaling (new — not yet implemented)
+
+- **Feature ID:** FEAT-2100
+- **Title:** Maze-Aware Transition-Edge Signaling
+- **Purpose:** Distinguish, at each screen edge, a maze-blocked-but-grid-adjacent edge from a true
+  grid boundary — both currently signal identically (no arrow) once `FEAT-9100`'s maze ships.
+- **Description:** Extends `FEAT-2000`'s existing on-screen arrow signal (`FR-2320`) from its
+  2-state form (arrow / no-arrow) to 3 states: open (a live, maze-connected neighbor — reuses the
+  existing arrow verbatim), blocked (a grid-adjacent region exists but the maze doesn't connect to
+  it — a new indicator), or absent (a true grid boundary — no indicator, as today). The
+  open-vs-something-else distinction is already correct today; this Feature adds the
+  blocked-vs-boundary distinction the maze makes meaningful for the first time.
+- **Scope:** The render-time logic distinguishing "grid-adjacent but maze-blocked" from "not
+  grid-adjacent at all" (re-deriving grid adjacency from `(row, col, WORLD_SCALE)` arithmetic,
+  since the region graph's own data doesn't carry this distinction — both cases are `0xFF`), and
+  whatever new tile art the blocked-edge indicator needs. Explicitly **excludes** the maze
+  generation this Feature signals the output of (`FEAT-9100`), and any mid-screen collision/wall
+  enforcement (out of scope for any current Feature — explicitly not part of this request).
+- **Included Requirements:** FR-2330.
+- **Excluded Requirements:** FR-2300, FR-2310, FR-2320 (`FEAT-2000`'s own shipped requirements —
+  this Feature's open-edge case reuses `FR-2320`'s existing rendering verbatim, not a
+  reimplementation); FR-9140/FR-9150 (the maze this Feature signals — `FEAT-9100`).
+- **Dependencies:** FEAT-2000 (extends its arrow-signaling logic; the open-edge case is this
+  Feature's own dependency on that logic continuing to work unchanged); FEAT-9100 (there is no
+  "blocked but grid-adjacent" case to signal before the maze exists — this Feature cannot ship
+  before FEAT-9100 does).
+- **Dependent Features:** None yet.
+- **Affected Modules:** `asm_game.py` (`draw_region_arrows`'s own extension — the new 3-way
+  branch); `tiles.py`/`tilemaps.py` (new tile art for the blocked-edge indicator — **not yet
+  designed**; a `GDS-08` presentation-architecture delta is needed before this Feature's tile
+  budget/palette assignment can be specified, flagged here as an open blocker, not assumed
+  resolved).
+- **Related ADRs:** ADR-0009, ADR-0012 (point 2 — confirms the region graph's own data format
+  needs no change; this Feature's distinction is computed at render time, not stored).
+- **User Value:** Medium-High — without this, a maze-blocked edge is indistinguishable from a
+  dead end, undermining the legibility of `FEAT-9100`'s own core value (a maze the player can
+  read as "there's a path here I haven't opened" vs. "this is the edge of the world").
+- **Technical Value:** Low — a presentation-layer extension of already-shipped rendering logic, no
+  new subsystem.
+- **Complexity:** Low — the render-time logic itself is simple arithmetic (re-derive grid
+  adjacency, compare against the region graph); the only real unknown is the new tile art, which
+  is a content/architecture question, not a logic one.
+- **Risk:** Low, contingent on one real blocker: **cannot be specified past the logic layer until
+  the `GDS-08` tile-art delta this Feature needs is authored** (see Open Questions) — a
+  dependency this catalog entry names explicitly rather than silently assuming away.
+- **Suggested Verification Strategy:** Test — per-edge 3-way state audit across a `(seed, scale)`
+  corpus, extending `FR-2320`'s existing tilemap-inspection pattern (per `FR-2330`'s own
+  Acceptance Criteria).
+- **Open Questions:** The blocked-edge indicator's actual tile art/palette assignment is
+  undecided — routed to `03-architecture-design-synthesis` for a `GDS-08` delta before
+  `06-feature-specification` can fully specify this Feature's rendering half. The logic half
+  (grid-arithmetic re-derivation) has no open question and could be specified independently if
+  `06` prefers to unblock that part first.
 
 ## FEAT-3000 — Collectibles, Scoring & Victory
 
@@ -354,6 +413,70 @@
   screen/room-graph generation and a xorshift-family PRNG but leaves the concrete step-by-step
   construction to `06-feature-specification`/`07-implementation-planning`) is not decided here —
   ADR-0009 fixes the *approach*, not the routine's line-by-line design.
+
+## FEAT-9100 — Maze-Shaped Region Adjacency (new — not yet implemented)
+
+- **Feature ID:** FEAT-9100
+- **Title:** Maze-Shaped Region Adjacency
+- **Purpose:** Replace `FEAT-9000`'s current full-lattice region adjacency (every grid-adjacent
+  region pair always connected) with a generated maze — a spanning tree guaranteeing reachability
+  plus a braid pass reopening a configurable fraction of pruned edges — so the traversable world
+  reads as distinct regions connected by paths, not a uniformly open grid.
+- **Description:** Extends `FEAT-9000`'s generation routine with a second, independent pass over
+  the same region grid: after biome assignment completes (unchanged), build a spanning tree via
+  randomized DFS/recursive backtracker (iterative form, reusing the region graph's own neighbor
+  data as backtracking state — no separate stack), then reopen a fraction of the pruned edges
+  (the braid pass) according to a configurable threshold. The resulting adjacency graph — not the
+  full grid — is what navigation and rendering consume.
+- **Scope:** The maze-generation algorithm itself (spanning tree + braid) and the braid-fraction
+  parameter's mechanism/default. Explicitly **excludes** biome assignment (`FEAT-9000`'s own
+  unchanged pass), navigation/rendering consumption of the resulting graph (both already
+  generalize to any subgraph with no further changes — see Dependent Features), the braid-fraction
+  value's player-facing UI exposure (open question, not this Feature's scope), and the
+  maze-blocked-vs-boundary visual distinction (`FEAT-2100`).
+- **Included Requirements:** FR-9140, FR-9150.
+- **Excluded Requirements:** FR-9100 (biome assignment/base determinism — `FEAT-9000`, unchanged);
+  FR-9120 (reachability — `FEAT-9000`'s own requirement, now structurally guaranteed by this
+  Feature's spanning tree rather than incidentally by full connectivity, but the requirement
+  itself stays owned by `FEAT-9000`); FR-4310 (grammar-valid adjacency — `FEAT-9000`, confirmed
+  unaffected since biome assignment doesn't consume maze connectivity); FR-2330 (the maze-blocked
+  visual indicator — `FEAT-2100`).
+- **Dependencies:** FEAT-9000 (this Feature's maze pass runs after and reads the region grid
+  FEAT-9000's biome-assignment pass produces; also depends on FEAT-9000's own determinism/
+  reachability guarantees holding as preconditions).
+- **Dependent Features:** FEAT-2100 (needs this Feature's maze output to have a "blocked but
+  grid-adjacent" case to signal at all). **No changes needed to any already-shipped Feature**:
+  `FEAT-2000`'s navigation (`check_zone_transition`, `IP-9050`) and `FEAT-4100`'s rendering
+  (`dsr_p`/`draw_region_arrows`, `IP-1030`) already consume the region graph's neighbor data
+  generically (any 0–80 value or `0xFF`) — neither assumed full connectivity, so both already
+  work correctly against this Feature's sparser output with zero code changes (`ADR-0012` point 2,
+  directly confirmed by reading both shipped call sites).
+- **Affected Modules:** `worldgen.py` (Python oracle mirror, new maze-generation pass);
+  `asm_game.py` (`generate_world`, same new pass on the SM83 side).
+- **Related ADRs:** ADR-0009 (screen/room-graph generation — the family this Feature stays
+  within), ADR-0012 (the specific decision this Feature implements — algorithm choice, braid
+  mechanism, pass ordering).
+- **User Value:** High — directly answers the project owner's own stated goal (Zelda/Pokémon-
+  style distinct regions and paths, not a uniformly open grid), the reason `BL-0064` was filed.
+- **Technical Value:** Medium — extends an already-proven generation pipeline (same PRNG,
+  same LCD-off generation window, same Python-oracle-parity testing pattern) rather than
+  introducing new infrastructure.
+- **Complexity:** Medium — a new algorithm family (spanning-tree construction) the codebase
+  hasn't implemented before, but `R112` already grounds the specific SM83-cheap approach
+  (mod-4 direction draw, `REGION_GRAPH`-as-backtracking-state) in detail, leaving comparatively
+  little open design space for `06-feature-specification` to resolve.
+- **Risk:** Low-Medium — the highest-risk design question (which algorithm fits this hardware) is
+  already resolved and evidenced (`R112`/`ADR-0012`); remaining risk is ordinary
+  implementation risk (getting the iterative backtracker's edge cases right — e.g. the starting
+  region's own dead-end/backtrack-to-nothing case), not an open architectural unknown.
+- **Suggested Verification Strategy:** Test — property tests across a `(seed, scale,
+  braid-fraction)` corpus (subgraph-of-full-lattice, reachability, determinism), extending
+  `R305`'s existing pattern; a new statistical check for the braid-fraction's probabilistic
+  guarantee (per `FR-9150`'s own Acceptance Criteria — not an exact-equality check).
+- **Open Questions:** None left for this stage — `FR-9150`'s own Notes field already resolves the
+  "does the UI-exposure question block this Feature" question (no, a fixed default unblocks
+  implementation) and the CR-05/`BL-0066` conflict this Feature's own output would otherwise
+  enable is explicitly out of this Feature's scope, not silently assumed resolved.
 
 ## FEAT-4100 — Generated-Region Screen Composition (new — not yet implemented)
 
