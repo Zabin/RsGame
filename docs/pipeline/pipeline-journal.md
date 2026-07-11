@@ -14,39 +14,41 @@
 
 ## Position
 
-- **Updated:** 2026-07-11 (run #56)
+- **Updated:** 2026-07-11 (run #57)
 - **Increment:** Bootstrap baseline remains fully closed (01–11 ✅, GO recorded). **Aesthetics /
   visual-story-narrative / procgen-world-map:** `IP-1031` (critical path's final node) reached
-  **COMPLETE** this run via `08-content-authoring` — a confirmation-and-documentation pass, not
-  new authorship: `IP-1030`'s own generalization of `ALL_SCREENS` had already wired all 5
-  biome-family→screen-function pairs `IP-1031` specifies (water→lake_screen, sand→beach_screen,
-  grass→forest_screen, stone→mountain_screen, brick→castle_screen) as its default representative
-  choice, so `tilemaps.py` needed zero further edits. This run independently confirmed the DoD
-  (`tiles.py`/`build_rom.py` palette tables diff-clean, no cross-family tile-index leakage, ROM
-  byte-identical at 22344/32768 bytes, full suite 180/180) and rendered/screenshotted all 5
-  family screens in PyBoy — all read cleanly with correct family tiles/labels. Docs updated:
-  GDS-08 §8 confirming note, FS-103 metadata (both Open Questions now resolved), Master Build
-  Plan/`packages/INDEX.md` rows → `COMPLETE`, RTM `FR-4300` → Met (both halves). **The tranche's
-  critical path (`IP-1020`→`IP-1030`→`IP-1031`) is now fully implemented end-to-end**, pending
-  `IP-1031`'s own independent verification.
+  `COMPLETE` at run #56 via `08-content-authoring`. **This run (`09-package-verification`) could
+  not verify `IP-1031`** — it was implemented in this same session (run #56), and the skill's
+  own SHALL-NOT rule bars same-session verification without explicit user acceptance of degraded
+  independence (not sought — a same-session block is exactly the "new session requirement" this
+  iteration is instructed to route around, not force through). Redirected to the tranche's other
+  two eligible packages instead: **`IP-1040` VERIFIED this run**
+  ([VR-1040](../implementation/verification/VR-1040-main-menu-new-game-flow.md)) — implemented in
+  an earlier, separate session (`73cea72`), independence clean. 180/180 pass (T14 sub-total
+  20/20), ROM byte-identical, all 6 FS-104 ACs confirmed by direct code read (sole
+  `try_load_save` call site, B-cancel writes nothing, exit-to-main-menu reuses the exact
+  save-write routine, FR-9110 immutability holds under a systematic sweep). Two Low findings,
+  both fixed inline: RTM/FS-104's "163/163" snapshot counts were stale (`IP-1050` added T15
+  after IP-1040 landed) — corrected to 180/180; the implementing commit undercounted T14's own
+  check count (15 claimed vs. 20 actual, cosmetic, no ledger repeated it).
 - **Pipeline state:** Bootstrap: stages 01–11 ✅ — complete, GO recorded. New increment: stages
-  01–07 ✅, G3 cleared; `IP-1020`/`IP-1030` `VERIFIED`; `IP-1031`/`IP-1040`/`IP-1050` all
-  `COMPLETE` (all three awaiting independent verification). Critical path fully implemented,
-  awaiting its final verification pass.
-- **Backlog:** 44 entries, 4 open. Run #56 harvest: new **BL-0043** (Low, recommendation,
-  `SCHEDULED` — the 07→08 code/content package split assumed content work remained separable,
-  but `IP-1030`'s code-half generalization delivered `IP-1031`'s entire content payload as a
-  side effect of needing default values to stay buildable; rides a future `07` pass as a
-  planning-time watch-item, not blocking anything). Standing entries unchanged: **`BL-0014`**
-  (`DEFERRED`, not ripe) and **`BL-0017`/`BL-0019`/`BL-0041`** (`SCHEDULED`) — `IP-1031`
-  confirmed **not** the ripening trigger for any (no `ZONE_COLLECTS` touch, no new ROM content,
-  `ROADMAP.md`'s `IM-00` table untouched by this content-only pass).
-- **Next step:** `09-package-verification` on **`IP-1031`** (Generated-Region Screen Composition
-  — content, FS-103/FEAT-4100) — closes the critical path end-to-end once verified; a future
-  `09-content-review` pass on `IP-1031`'s rendered content (first exercising `FEAT-6100`'s
-  aesthetic standard) and `09-package-verification` passes on the parallel-eligible, off-critical-
-  path `IP-1040`/`IP-1050` remain before `10-integration-review` can run on the full 5-package
-  tranche.
+  01–07 ✅, G3 cleared; `IP-1020`/`IP-1030`/`IP-1040` `VERIFIED`; `IP-1031`/`IP-1050` `COMPLETE`
+  (`IP-1031` blocked on same-session independence until a fresh session verifies it; `IP-1050`
+  eligible now). Critical path fully implemented, awaiting its final verification pass (blocked
+  this session, not blocked in general).
+- **Backlog:** 44 entries, 4 open. No new findings this run (both Low findings folded directly
+  into VR-1040/ledger corrections, not filed as separate backlog entries — cosmetic, fully
+  resolved same run). Standing entries unchanged: **`BL-0014`** (`DEFERRED`, not ripe) and
+  **`BL-0017`/`BL-0019`/`BL-0041`/`BL-0043`** (`SCHEDULED`) — `IP-1040` confirmed **not** the
+  ripening trigger for any (no `ZONE_COLLECTS` touch, no new ROM content beyond what was already
+  built, `ROADMAP.md`'s `IM-00` table untouched by this verification-only pass).
+- **Next step:** `09-package-verification` on **`IP-1050`** (Generated-World Save Persistence,
+  FS-105/FEAT-5300) — the last package this session can independently verify (implemented in an
+  earlier separate session, `5f58ab5`); `IP-1031` remains `COMPLETE`, blocked on
+  `09-package-verification` until a **fresh session** (no memory of this session's
+  `08-content-authoring` run) picks it up — that block, plus a future `09-content-review` pass on
+  `IP-1031`'s rendered content, are what remain before `10-integration-review` can run on the
+  full 5-package tranche.
 - **Open gates:** None.
 
 ## Run log
@@ -110,3 +112,4 @@
 | 54 | 2026-07-10 | advance | `09-package-verification` | IP-1020 (Procedural World Generation & Item-Agnostic Collection) | ✅ **Drift found and corrected at Step 1:** `IP-1020` had already been implemented in an un-journaled out-of-band session (commit `6430001`, following run #53's "Then move onto IP" instruction) and stood at `COMPLETE — 133/133 checks pass` in the Master Build Plan by the time this run started — the journal's own run #53 Position block still named `08-code-implementation` on `IP-1020` as pending. This fresh session had no memory of that implementation, satisfying the independence requirement, so it served as `IP-1020`'s verifier instead of re-implementing anything. **VERIFIED**: fresh-container PyBoy 2.7.0 + numpy install, ROM rebuilt byte-identical (sha256 match, 23660/32768 bytes), full suite independently re-run **133/133 pass**. All 4 DoD + 8 Verification Checklist items confirmed by direct code read (WRAM constants, `generate_world`/`gw_prng_step` no-`DIV` scan, `worldgen.py`/SM83 side-by-side lockstep, `check_collisions`/`setup_zone_collects` generalization, scope audit — no excursion beyond the package's own named/justified `update_map_hearts`+reset-path companion fix). **[VR-1020](../implementation/verification/VR-1020-procedural-world-generation.md)** written. Ledger: `IP-1020` → **VERIFIED**; `IP-1030`/`1040`/`1050` → `READY` (sole dependency now `VERIFIED`); `IP-1031` stays `BLOCKED` on `IP-1030`. Harvested: new **BL-0041** (Medium, `SCHEDULED` — `ROADMAP.md`'s `IM-00`/`IP-xxxx` rows stale again, same recurring pattern as `BL-0035`); one Low finding (T12.g not separately-labeled, cosmetic only, RTM already cites it correctly — no backlog entry needed). Confirmed `BL-0017`/`BL-0019` do **not** ripen from this package (`ZONE_COLLECTS` genuinely untouched; `BL-0019`'s headroom rider satisfied inline, convention continues). | `08-code-implementation` on **`IP-1030`** (Generated-Region Screen Composition — code, FS-103/FEAT-4100) — the critical path's next node, now `READY` and G3-authorized; `IP-1040`/`1050` also `READY` and parallel-eligible but off the critical path |
 | 55 | 2026-07-10 | advance | `09-package-verification` | IP-1030 (Generated-Region Screen Composition — code) | ✅ **Drift found and corrected at Step 1 (same pattern as run #54, one ledger over):** `IP-1030`/`1040`/`1050` had all been implemented out-of-band (commits `3479dba`/`73cea72`/`5f58ab5`, following run #54's "Then move onto IP" instruction) and stood `COMPLETE` in the Master Build Plan by the time this run started, but `packages/INDEX.md` still read all three `READY` and the journal's run #54 Position block still named `08-code-implementation` on `IP-1030` as pending. This fresh session had no memory of implementing any of the three, so it served as `IP-1030`'s verifier (the critical-path package) instead of re-implementing anything. **VERIFIED**: fresh-container PyBoy 2.7.0 + numpy install, ROM rebuilt byte-identical (sha256 match), full suite independently re-run **180/180 pass** on tree head (IP-1030's own T13: 3/3). All 4 DoD + 7 Verification Checklist items confirmed by direct code read (`_zone_arrows` deletion confirmed, `draw_region_arrows`'s `REGION_GRAPH` neighbor-byte read confirmed, single `copy_screen` call site confirmed, `ALL_SCREENS`'s 5 named biome-family entries confirmed reusing existing shipped functions verbatim, scope audit — no excursion beyond the package's own declared file set). **[VR-1030](../implementation/verification/VR-1030-generated-region-screen-composition-code.md)** written. Ledger: `IP-1030` → **VERIFIED**; `IP-1031` → **READY** (both dependencies now `VERIFIED`); `IP-1040`/`1050` corrected from stale `READY` to accurate `COMPLETE` in `packages/INDEX.md` (Master Build Plan already had this right). Harvested: new **BL-0042** (Medium, doc-defect, `DONE` same run — `packages/INDEX.md` stale for `IP-1030`/`1040`/`1050`, resolved inline as part of this run's ledger updates). Confirmed `BL-0017`/`BL-0019` do **not** ripen from this package (no `ZONE_COLLECTS` touch; no new ROM growth — net reduction). No open gates. | `08-content-authoring` on **`IP-1031`** (Generated-Region Screen Composition — content, FS-103/FEAT-4100) — the critical path's final node, now `READY` and G3-authorized; `IP-1040`/`1050` remain `COMPLETE`, parallel-eligible for a future `09-package-verification` pass, but off the critical path |
 | 56 | 2026-07-11 | advance | `08-content-authoring` | IP-1031 (Generated-Region Screen Composition — content) | ✅ **No drift** (ledgers matched the journal exactly). Triage: `BL-0014` stays `DEFERRED`, `BL-0017`/`BL-0019`/`BL-0041` stay `SCHEDULED`, none ripened. **COMPLETE** — a confirmation-and-documentation pass, not new authorship: `IP-1030`'s own generalization of `ALL_SCREENS` had already wired all 5 `(family_name, fn)` pairs this package specifies as its default representative choice, so `tilemaps.py` needed zero further edits. Independently confirmed the DoD: `tiles.py` unchanged, `build_rom.py`'s `BG_PALETTES`/`OBJ_PALETTES` unchanged (diff-clean, zero new art/palette entries), each family's tile-index usage within its own 8-tile-aligned block (`IP-1030`'s own T13.a passes, no cross-family leakage), ROM rebuilds byte-identical (22344/32768 bytes), full suite **180/180 pass**. Installed PyBoy 2.7.0 + Pillow fresh in-session; rendered and screenshotted all 5 family screens via `force_region_redraw` (mirroring T13.a's own method) — all read cleanly with correct family tiles/labels (water=LAKE, sand=BEACH, grass=FOREST, stone=MOUNTAIN, brick=CASTLE). Docs updated: GDS-08 §8 confirming note, FS-103 metadata (both Open Questions now resolved), Master Build Plan/`packages/INDEX.md` rows → `COMPLETE`, RTM `FR-4300` → Met (both halves). **The tranche's critical path (`IP-1020`→`IP-1030`→`IP-1031`) is now fully implemented end-to-end.** Harvested: new **BL-0043** (Low, recommendation, `SCHEDULED` — the code/content package-split coupling risk this run surfaced: a code package generalizing a shared data structure can pre-empt its paired content package's reason to exist by needing default values to stay buildable). No open gates. | `09-package-verification` on **`IP-1031`** — closes the critical path end-to-end once verified; `09-content-review` on `IP-1031`'s rendered content and `09-package-verification` on the parallel-eligible `IP-1040`/`IP-1050` remain before `10-integration-review` can run on the full 5-package tranche |
+| 57 | 2026-07-11 | advance (redirected: `IP-1031` blocked by same-session independence) | `09-package-verification` | IP-1040 (Main Menu & New-Game Flow) | ✅ **No drift.** Triage: no new/re-triggered entries. **Recommended next step (`09-package-verification` on `IP-1031`) was ineligible this run** — `IP-1031` was implemented in this same session (run #56), and the skill's own SHALL-NOT rule bars same-session verification without the user's explicit acceptance of degraded independence, not sought here per this iteration's instruction to route around new-session-requirement blocks rather than force through them. Redirected to `IP-1040` (also `COMPLETE`, off critical path, independently implemented in an earlier separate session, `73cea72`) instead. **VERIFIED**: ROM rebuilt byte-identical (sha256 match), full suite independently re-run **180/180 pass** (T14 sub-total 20/20). All 4 DoD + 7 Verification Checklist items confirmed by direct code read (exactly one `try_load_save` call site — MAIN MENU's "continue" only; SEED/SCALE ENTRY's B-cancel branch writes nothing; SAVE's exit-to-main-menu option calls the identical `save_to_sram` the A-branch already calls; FR-9110's static+runtime sweep both clean). **[VR-1040](../implementation/verification/VR-1040-main-menu-new-game-flow.md)** written. Ledger: `IP-1040` → **VERIFIED**. Two Low findings fixed inline (not filed as separate backlog entries — cosmetic, fully resolved same run): RTM/FS-104's stale "163/163" snapshot corrected to 180/180 (T15 had grown the suite after IP-1040 landed); the implementing commit's "15 checks" undercount noted (actual 20, no ledger repeated the wrong number). Confirmed `BL-0017`/`BL-0019`/`BL-0043` do **not** ripen from this verification-only pass. No open gates. | `09-package-verification` on **`IP-1050`** (Generated-World Save Persistence) — the last package this session can independently verify; `IP-1031` remains blocked on a **fresh session** for its own verification |
