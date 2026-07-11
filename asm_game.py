@@ -119,8 +119,11 @@ GW_MAZE_DRAW_CTR = 0xC3F4  # 1 byte -- a monotonic, never-persisted per-draw cou
                           # perturbation). Never fed back into TMP1/TMP2.
 
 SAVE_VERSION_ADDR = 0xA012   # save-format version guard (FR-5220 / Design Decision 2)
-SAVE_VERSION_VAL  = 0x03     # bumped 0x02->0x03 (IP-9070, third bump since ship — the
-                              # value sequence is strictly monotonic, never reused)
+SAVE_VERSION_VAL  = 0x04     # bumped 0x03->0x04 (IP-9110, fourth bump since ship — the
+                              # value sequence is strictly monotonic, never reused. Excludes
+                              # a pre-fix save from "continue" now that gw_prng_step's own
+                              # mixing step changed (BL-0074/ADR-0014), rather than silently
+                              # regenerating a different world with no signal to the player.
 SRAM_SEED          = 0xA01C  # 2 bytes, A01C-A01D — SEED mirror (IP-1050)
 SRAM_WORLD_SCALE   = 0xA01E  # 1 byte — WORLD_SCALE mirror (IP-1050)
 SRAM_KEYITEM_FLAGS = 0xA01F  # up to 81 bytes, A01F-A06F — KEYITEM_FLAGS mirror,
@@ -1196,21 +1199,50 @@ def build_game_asm(rom: ROM) -> dict:
     def _xor_d(): rom.emit(0xAA)          # XOR D  (not wrapped in gbc_lib.py)
     def _xor_e(): rom.emit(0xAB)          # XOR E
     def _cp_e():  rom.emit(0xBB)          # CP E
+    def _sla_e(): rom.emit(0xCB, 0x23)    # SLA E  (not wrapped in gbc_lib.py)
+    def _rl_d():  rom.emit(0xCB, 0x12)    # RL D
+    def _srl_d(): rom.emit(0xCB, 0x22)    # SRL D
+    def _rr_e():  rom.emit(0xCB, 0x1B)    # RR E
 
     rom.label('gw_prng_step')
     # 16-bit xorshift-style state in TMP1:TMP2 (hi:lo). Shift+XOR only, no
-    # multiply/divide (NFR-2200): x ^= x<<1; x ^= x>>1; x ^= byteswap(x).
-    rom.LD_A_nn(TMP2); rom.SLA_A(); rom.LD_E_A()
-    rom.LD_A_nn(TMP1); rom.RLA(); rom.LD_D_A()
-    rom.LD_A_nn(TMP2); _xor_e(); rom.LD_nn_A(TMP2)
-    rom.LD_A_nn(TMP1); _xor_d(); rom.LD_nn_A(TMP1)
-    rom.LD_A_nn(TMP1); rom.SRL_A(); rom.LD_D_A()
-    rom.LD_A_nn(TMP2); rom.RRA(); rom.LD_E_A()
-    rom.LD_A_nn(TMP1); _xor_d(); rom.LD_nn_A(TMP1)
-    rom.LD_A_nn(TMP2); _xor_e(); rom.LD_nn_A(TMP2)
+    # multiply/divide (NFR-2200): x ^= x<<7; x ^= x>>9; x ^= x<<8 -- the
+    # period-sound R111-cited shift triplet (ADR-0014/IP-9110/BL-0074). The
+    # previously-shipped x^=x<<1;x^=x>>1;x^=byteswap(x) sequence forced the
+    # state's high and low bytes equal on every call (R113) -- fixed here.
+    # Clobbers A, D, E only; HL/BC untouched, matching every existing call
+    # site's own contract (the biome-assignment loop needs HL to survive
+    # across CALL('gw_prng_step'); the maze pass explicitly brackets its own
+    # D-must-survive call in PUSH_DE/POP_DE, confirming D/E are fair game).
+
+    # x ^= x<<7. No cheap byte-move decomposition exists for a truncated
+    # 16-bit left-shift-by-7 ((x<<8)>>1 != x<<7 for ~half of all 16-bit
+    # values, verified exhaustively) -- 7 chained single-bit left shifts on
+    # a D:E scratch pair (SLA on the low byte, RL on the high byte to rotate
+    # the carry in, mirroring the routine's own original step-1 primitive).
     rom.LD_A_nn(TMP1); rom.LD_D_A()
-    rom.LD_A_nn(TMP2); _xor_d()
-    rom.LD_nn_A(TMP1); rom.LD_nn_A(TMP2)
+    rom.LD_A_nn(TMP2); rom.LD_E_A()
+    for _ in range(7):
+        _sla_e(); _rl_d()
+    rom.LD_A_nn(TMP1); _xor_d(); rom.LD_nn_A(TMP1)
+    rom.LD_A_nn(TMP2); _xor_e(); rom.LD_nn_A(TMP2)
+
+    # x ^= x>>9 == (x>>8)>>1 (verified exact for all 65536 values) -- a free
+    # byte-move (E := old TMP1, D := 0, i.e. x>>8) followed by one
+    # single-bit right shift on the D:E pair.
+    rom.LD_A_nn(TMP1); rom.LD_E_A()
+    rom.LD_D_n(0)
+    _srl_d(); _rr_e()
+    rom.LD_A_nn(TMP1); _xor_d(); rom.LD_nn_A(TMP1)
+    rom.LD_A_nn(TMP2); _xor_e(); rom.LD_nn_A(TMP2)
+
+    # x ^= x<<8 -- a straight byte-move (D := old TMP2; the shifted low byte
+    # is always 0, so it never changes TMP2) -- cheaper than the byte-swap
+    # step it replaces.
+    rom.LD_A_nn(TMP2); rom.LD_D_A()
+    rom.LD_A_nn(TMP1); _xor_d(); rom.LD_nn_A(TMP1)
+
+    rom.LD_A_nn(TMP2)             # A = new PRNG state's low byte
     rom.RET()
 
     rom.label('generate_world')

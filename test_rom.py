@@ -948,6 +948,43 @@ check("T12.i WRAM headroom: SEED..GW_SCALE_SQ extent stays inside bank-0 + boot-
       SEED >= 0xC000 and GW_SCALE_SQ <= 0xC2FF,
       f"SEED=0x{SEED:04X} extent_end=0x{GW_SCALE_SQ:04X}")
 
+# T12.j — Non-degeneracy statistical check (BL-0074/IP-9110 regression guard):
+# across a seed corpus at scale=9 (the scale where the pre-fix defect was most
+# visible), the fraction of regions assigned biome_id=0 (Water) must stay well
+# below the ~46% mean / ~55%-of-seeds-over-50% the unrepaired PRNG produced.
+# Uses the live SM83-built ROM directly, not only the Python oracle (the
+# oracle is the thing being kept in lockstep, not independent evidence).
+T12J_SEED_CORPUS = list(range(30)) + [42, 12345, 65535, 777, 999, 42424]
+pb = fresh_boot(180)
+t12j_water_fracs = []
+t12j_over_40 = []
+for seed in T12J_SEED_CORPUS:
+    invoke_generate_world(pb, seed, 9)
+    regions = read_region_graph(pb, 9)
+    water = sum(1 for r in regions if r['biome_id'] == 0)
+    frac = water / len(regions)
+    t12j_water_fracs.append(frac)
+    if frac > 0.40:
+        t12j_over_40.append((seed, round(frac, 3)))
+pb.stop()
+check("T12.j Non-degeneracy: Water fraction stays under ~40% across a seed corpus at scale=9 (BL-0074 regression guard)",
+      len(t12j_over_40) == 0,
+      f"mean={sum(t12j_water_fracs)/len(t12j_water_fracs):.3f} over_40={t12j_over_40[:5]}")
+
+# T12.k — Direct BL-0074 reproduction check: seed=0 at scale=9 no longer
+# floods to Water (the literal originally-reported case; pre-fix, row 0 =
+# [2,3,2,1,0,0,0,0,0], rows 1-8 all zero).
+pb = fresh_boot(180)
+invoke_generate_world(pb, 0, 9)
+t12k_regions = read_region_graph(pb, 9)
+pb.stop()
+t12k_water = sum(1 for r in t12k_regions if r['biome_id'] == 0)
+t12k_frac = t12k_water / len(t12k_regions)
+t12k_rows_1_8_all_zero = all(r['biome_id'] == 0 for r in t12k_regions[9:81])
+check("T12.k Direct BL-0074 reproduction: seed=0 scale=9 no longer near-total-Water-flooded",
+      t12k_frac < 0.40 and not t12k_rows_1_8_all_zero,
+      f"water_frac={t12k_frac:.3f} rows1-8_all_zero={t12k_rows_1_8_all_zero}")
+
 # ══════════════════════════════════════════════════════
 # T13 — Generated-Region Screen Composition (IP-1030)
 # ══════════════════════════════════════════════════════

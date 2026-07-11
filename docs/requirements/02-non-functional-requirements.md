@@ -179,7 +179,12 @@
 - **Related ADRs:** ADR-0009.
 - **Notes:** This is what makes the Python reference-generator oracle (R305's extension) valid —
   an oracle can only predict SM83 output for a nondeterministic routine by accident, not by
-  design. Not yet implemented.
+  design. Not yet implemented. **2026-07-11 delta (`IP-9110`, `BL-0074`/`ADR-0014`):**
+  `gw_prng_step`'s mixing step was repaired (period-sound `7,9,8` shift triplet, replacing the
+  degenerate byteswap-XOR final step) — this NFR's own "no `DIV`/multiply" constraint remains
+  satisfied unchanged (the fix is shift/XOR-only, confirmed by `T12.h`'s unchanged static audit);
+  this NFR governs determinism and opcode discipline, not output *quality*, so the repair is
+  orthogonal to it, not a violation being fixed.
 
 ## Maintainability
 

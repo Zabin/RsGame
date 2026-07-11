@@ -14,11 +14,17 @@ Adjacency is grammar-legal iff axis indices differ by at most 1.
 
 
 def _step(x):
-    """One xorshift-style PRNG step. Shift+XOR only, no multiply/divide (NFR-2200)."""
+    """One xorshift-style PRNG step. Shift+XOR only, no multiply/divide (NFR-2200).
+
+    Period-sound 7,9,8 shift triplet (BL-0074/ADR-0014/IP-9110) -- mirrors
+    gw_prng_step's corrected mixing step exactly. The previously-shipped
+    x^=x<<1;x^=x>>1;x^=byteswap(x) sequence forced hi==lo on every call (R113);
+    fixed here.
+    """
     x &= 0xFFFF
-    x ^= (x << 1) & 0xFFFF
-    x ^= (x >> 1)
-    x ^= ((x << 8) | (x >> 8)) & 0xFFFF
+    x ^= (x << 7) & 0xFFFF
+    x ^= (x >> 9)
+    x ^= (x << 8) & 0xFFFF
     return x & 0xFFFF
 
 

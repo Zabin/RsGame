@@ -1,4 +1,4 @@
-BunnyQuest ROM Tests  PASS=220/220  FAIL=0
+BunnyQuest ROM Tests  PASS=222/222  FAIL=0
 ==================================================
 [PASS] T1.1 ROM size = 32768  (32768)
 [PASS] T1.2 Entry = NOP; JP
@@ -135,6 +135,8 @@ BunnyQuest ROM Tests  PASS=220/220  FAIL=0
 [PASS] T12.f seed=0 normalizes to a nonzero PRNG state, direct WRAM inspection (AC-7 precondition)  (state=(0,1))
 [PASS] T12.h Static audit: no LDH (hardware register, incl. DIV) read in generate_world/gw_prng_step (NFR-2200)  (source-scanned)
 [PASS] T12.i WRAM headroom: SEED..GW_SCALE_SQ extent stays inside bank-0 + boot-clear range (NFR-4200)  (SEED=0xC069 extent_end=0xC27C)
+[PASS] T12.j Non-degeneracy: Water fraction stays under ~40% across a seed corpus at scale=9 (BL-0074 regression guard)  (mean=0.156 over_40=[])
+[PASS] T12.k Direct BL-0074 reproduction: seed=0 scale=9 no longer near-total-Water-flooded  (water_frac=0.259 rows1-8_all_zero=False)
 [PASS] T13.a Tile-family audit: each of the 5 biome-ids renders its own family's tiles (AC-1)  (bad=[])
 [PASS] T13.b Transition call-site audit: exactly one copy_screen call site in dsr_p (AC-2)  (1 call site(s))
 [PASS] T13.c Regression: scale=3 arrow placement matches shipped 3x3 grid, every region/direction  (bad=[])
@@ -217,6 +219,6 @@ BunnyQuest ROM Tests  PASS=220/220  FAIL=0
 [PASS] T19.b Reachability: every region reachable from region 0, every corpus entry (AC-2)  (unreachable=[])
 [PASS] T19.c Determinism/oracle parity: worldgen.py matches SM83 output, every corpus entry (AC-3)  (mismatches=[])
 [PASS] T19.d Grammar-validity non-regression: every generated edge legal (|biome_a-biome_b|<=1), every corpus entry (AC-4)  (bad_edges=[])
-[PASS] T19.e Braid-fraction statistical check: aggregate reopen fraction within a reasonable band of ~25% target  (reopened=89/345 (25.80%))
+[PASS] T19.e Braid-fraction statistical check: aggregate reopen fraction within a reasonable band of ~25% target  (reopened=84/345 (24.35%))
 [PASS] T19.f Static audit: no LDH (hardware register, incl. DIV) read in the maze-generation pass (NFR-2200)  (source-scanned)
 [PASS] T19.g WRAM headroom: GW_MAZE_STATE..GW_MAZE_DRAW_CTR extent stays inside bank-0 (NFR-4200)  (GW_MAZE_STATE=0xc3a0 extent_end=0xc3f4)

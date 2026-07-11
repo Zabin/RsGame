@@ -1002,7 +1002,16 @@ FR-6000 for the presentation half)*
   D1/§4's explicit non-goal (not ruled out, not required at this vision's date). Not yet
   implemented. **2026-07-11 delta:** this FR's own "adjacency edges" output was never specified
   as necessarily complete — `FR-9140` (`ADR-0012`) narrows how that output is constructed (a
-  maze, not a full lattice); no change to this FR's own text was needed.
+  maze, not a full lattice); no change to this FR's own text was needed. **2026-07-11 delta
+  (`IP-9110`, `BL-0074`/`ADR-0014`):** the shipped `gw_prng_step` mixing step degenerated to a
+  fixed point/short cycle for effectively every seed, producing majority-Water worlds for a
+  large fraction of `scale=9` generations — a defect in the *implementation* of this FR's own
+  determinism guarantee, not in the guarantee's text. Repaired to a period-sound shift triplet
+  (`worldgen.py`'s oracle updated in lockstep); this FR's own acceptance criterion (byte-identical
+  output for identical `(seed, scale)`) continued to hold throughout, since the defect was a
+  quality-of-output problem, not a determinism problem. No FR/NFR currently states a testable
+  "the PRNG shall not degenerate" criterion — flagged as a candidate for a future
+  `04-requirements-engineering` pass, not resolved here.
 
 ### FR-9110 — Seed/scale immutable per save, entered only at new-game creation
 
