@@ -3,7 +3,8 @@
 > **Status: ✅ Authored (bootstrap as-built, 2026-07-06; delta 2026-07-09 for the procgen-world
 > increment — 17 new rows, target requirements; delta 2026-07-10 — FR-6400 added (BL-0020),
 > Feature Spec/Implementation Package columns filled for the 17 target rows now that
-> `06`/`07` have run, NFR-6100/NFR-1200/NFR-7100/NFR-5200 Test cells refreshed).** Owned by
+> `06`/`07` have run, NFR-6100/NFR-1200/NFR-7100/NFR-5200 Test cells refreshed; delta 2026-07-11
+> — NFR-6500/6510 Test cells filled with real evidence, `BL-0045`).** Owned by
 > `04-requirements-engineering`.
 > One row per [RQ-01](01-functional-requirements.md)/[RQ-02](02-non-functional-requirements.md)
 > requirement (Candidates marked). Populates the row-level matrix
@@ -80,8 +81,8 @@
 | NFR-2200 | Deterministic world generation | R111 | ADR-0009; A9 | ADR-0009 | `worldgen.py`, `asm_game.py` | FS-102 | IP-1020 | T12.f (seed=0 normalization, direct WRAM inspection), T12.h (static no-DIV/no-external-read source scan) |
 | NFR-4200 | Generated-world WRAM/SRAM headroom (WRAM half Met, `IP-1020`; SRAM half awaits `IP-1050`) | R111 | GDS-07 delta §6/§7 | ADR-0010 | `asm_game.py` | FS-102 | IP-1020 (WRAM), IP-1050 (SRAM) | T12.i (WRAM extent inside bank-0 + boot-clear range, confirmed at scale=9) |
 | NFR-5300 | Save-format version bump for seed/scale/region-flags (Met, 2026-07-10) | R106 (ext.) | GDS-07 delta §7 | ADR-0010, ADR-0006 | `asm_game.py` | FS-105 | IP-1050 | T15.b1/b2/b3 — 180/180 pass |
-| NFR-6500 | Aesthetic craft and clean-screen standard compliance (target) | R209 | GDS-08 delta §7 | — | `tiles.py`/`tilemaps.py` (proposed) | FS-106 | *(no package — see FS-106 §8/§10)* | UNASSIGNED — standard authored, first exercised via a future `09-content-review` pass on IP-1031's content |
-| NFR-6510 | Biome-transition palette-stepping compliance (target) | R212 | GDS-08 delta §8 | ADR-0009 | `build_rom.py`/`tiles.py` (proposed) | FS-106 | *(no package — see FS-106 §8/§10)* | UNASSIGNED — standard authored, first exercised via a future `09-content-review` pass on IP-1031's content |
+| NFR-6500 | Aesthetic craft and clean-screen standard compliance (Met, 2026-07-11) | R209 | GDS-08 delta §7 | — | `tiles.py`/`tilemaps.py` | FS-106 | *(no package — see FS-106 §8/§10)* | `content-review-IP-1031.md` — clean, no findings |
+| NFR-6510 | Biome-transition palette-stepping compliance (Met, 2026-07-11) | R212 | GDS-08 delta §8 | ADR-0009 | `build_rom.py`/`tiles.py` | FS-106 | *(no package — see FS-106 §8/§10)* | `content-review-IP-1031.md` — Met, 1 Low/informational note (Stone↔Brick pairing) |
 
 ## Notes on this matrix's honesty discipline
 

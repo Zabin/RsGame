@@ -1,7 +1,8 @@
 # RQ-02 — Non-Functional Requirements
 
 > **Status: ✅ Authored (bootstrap as-built, 2026-07-06; delta 2026-07-09 for the procgen-world
-> increment, NFR-1300/2200/4200/5300/6500/6510 — see Changelog).** Owned by
+> increment, NFR-1300/2200/4200/5300/6500/6510; delta 2026-07-11 — NFR-6500/6510 flipped to Met
+> — see Changelog).** Owned by
 > `04-requirements-engineering`. Derives from
 > [GDS-06](../architecture/06-non-functional-requirements.md)'s five NFRs (N1–N5) — formalized
 > into numbered `NFR-xxxx` requirements per
@@ -33,6 +34,12 @@
   VR-9010, finding #1, run #23, `BL-0026`); `IP-9010`'s own citation of a nonexistent `NFR-7000`
   (should read `NFR-6100`) is a package-document correction routed to a future
   `07-implementation-planning` touch, not fixed here (out of this stage's write scope).
+- **2026-07-11 — 04-delta (`BL-0045`).** **NFR-6500/6510** flipped from "not yet implemented" to
+  **Met** — `09-content-review` exercised both against `IP-1031`'s content
+  ([content-review-IP-1031.md](../reviews/content-review-IP-1031.md)), the first biome-family
+  palette assignment either NFR had to judge. NFR-6500: clean, no findings. NFR-6510: Met with
+  one Low/informational note (the Stone↔Brick pairing sits outside GDS-08 §8's worked example —
+  does not fail the requirement, per its own "Should" priority). RTM rows for both updated.
 
 ## Performance
 
@@ -363,10 +370,13 @@
   clean-screen rules (no undefined tile indices, no illegal tile-adjacency pairs, correct
   transition-edge neighbors).
 - **Rationale:** MSTR-001 C8/D4 ("every screen/room/view clean"); GDS-08 delta §7; R209.
-- **Priority:** Must (target — not yet implemented as a checked gate; the shipped art already
-  substantially complies per R209's own Operational Context, but no formal check exists yet)
-- **Status: NOT YET IMPLEMENTED as a checked gate.** GDS-08 delta §7 is the checklist; no
-  automated or reviewer-gated check against it exists in the pipeline yet.
+- **Priority:** Must
+- **Status: Met (2026-07-11).** First exercised against `IP-1031`'s content by
+  `09-content-review` — [content-review-IP-1031.md](../reviews/content-review-IP-1031.md): no
+  undefined tile indices, no illegal tile-adjacency pairs, all four walked transition edges
+  rendered a consistent, correctly-rendered neighbor. The craft checklist itself had no new
+  tile/sprite art to check (IP-1031 reuses existing art verbatim) but was spot-checked
+  opportunistically against the reused art with no defects found.
 - **Acceptance Criteria:** Every checklist item in GDS-08 delta §7 passes for every screen a
   content package produces, confirmed by `09-content-review` per its existing review process
   (extended to apply this checklist, not a new review mechanism).
@@ -391,7 +401,14 @@
 - **Priority:** Should (a design-quality standard, not a hard functional gate — GDS-08 delta §8
   itself frames this as a content-authoring guideline within the existing 8-palette budget, not
   a new hardware constraint)
-- **Status: NOT YET IMPLEMENTED.** No biome-family palette assignments exist yet to check.
+- **Status: Met, with one Low/informational note (2026-07-11).** First exercised against
+  `IP-1031`'s 5 biome-family assignments by `09-content-review` —
+  [content-review-IP-1031.md](../reviews/content-review-IP-1031.md): 3 of the 4 grammar-legal
+  adjacent pairs walked (Water↔Sand, Sand↔Grass, Grass↔Stone) match GDS-08 delta §8's own worked
+  example exactly; the fourth (Stone↔Brick) is the one pairing outside that example and reads as
+  a larger hue jump — not arbitrary (a plausible mountain-to-castle reading), but flagged for a
+  future GDS-08 §8 touch to consider extending the worked example. Consistent with this NFR's own
+  "Should" priority — the finding does not fail the requirement.
 - **Acceptance Criteria:** For every grammar-legal adjacent biome-family pair, a reviewer
   (`09-content-review`) confirms their assigned palettes read as color-family-related rather than
   arbitrary, per GDS-08 delta §8's worked example ordering.
