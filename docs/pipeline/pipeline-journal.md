@@ -14,33 +14,39 @@
 
 ## Position
 
-- **Updated:** 2026-07-10 (run #54)
+- **Updated:** 2026-07-10 (run #55)
 - **Increment:** Bootstrap baseline remains fully closed (01–11 ✅, GO recorded). **Aesthetics /
-  visual-story-narrative / procgen-world-map:** `IP-1020` (the tranche's foundational,
-  dependency-root package) independently **VERIFIED** this run
-  ([VR-1020](../implementation/verification/VR-1020-procedural-world-generation.md)) — 133/133
-  pass, ROM byte-identical, all 8 FS-102 ACs confirmed. `IP-1030`/`1040`/`1050` flipped
-  `READY` (sole dependency now `VERIFIED`); `IP-1031` stays `BLOCKED` on `IP-1030`. **Drift
-  corrected this run:** the journal's run #53 Position block still named `08-code-implementation`
-  on `IP-1020` as the pending next step, but `IP-1020` had already gone `COMPLETE` in an
-  un-journaled out-of-band session by the time this run started (commit `6430001`) — this run's
-  independence (no memory of that implementation) let it serve as `IP-1020`'s required
-  fresh-session verifier instead of re-implementing anything.
+  visual-story-narrative / procgen-world-map:** `IP-1030` (critical path's second node)
+  independently **VERIFIED** this run
+  ([VR-1030](../implementation/verification/VR-1030-generated-region-screen-composition-code.md))
+  — 180/180 pass on tree head (IP-1030's own T13: 3/3), ROM byte-identical, both FS-103 ACs
+  confirmed, `_zone_arrows` retirement + scale=3 arrow regression confirmed by direct code read.
+  `IP-1031` (content peer) flips `BLOCKED` → `READY` (both dependencies now `VERIFIED`). **Drift
+  found and corrected this run:** `IP-1030`/`1040`/`1050` had all been implemented out-of-band
+  (commits `3479dba`/`73cea72`/`5f58ab5`, following run #54's "Then move onto IP" instruction) and
+  stood `COMPLETE` in the Master Build Plan by the time this run started, but `packages/INDEX.md`
+  still read all three `READY` and the journal's own run #54 Position block still named
+  `08-code-implementation` on `IP-1030` as pending — this run's independence (no memory of
+  implementing any of the three) let it serve as `IP-1030`'s required fresh-session verifier
+  instead of re-implementing anything; `packages/INDEX.md`'s `IP-1040`/`1050` rows were also
+  corrected from stale `READY` to accurate `COMPLETE` while reconciling.
 - **Pipeline state:** Bootstrap: stages 01–11 ✅ — complete, GO recorded. New increment: stages
-  01–07 ✅, G3 cleared, `IP-1020` `VERIFIED`; `IP-1030`/`1040`/`1050` `READY`, `IP-1031` `BLOCKED`
-  on `IP-1030`. Critical path (`IP-1020`→`IP-1030`→`IP-1031`) now one package deep into `08`/`09`.
-- **Backlog:** 42 entries, 3 open. Run #54 harvest: new **BL-0041** (Medium, doc-defect,
-  `SCHEDULED` — `ROADMAP.md`'s `IM-00`/`IP-xxxx` rows stale again, same recurring pattern as the
-  now-`DONE` `BL-0035`; rides the next `07-implementation-planning` touch). Standing entries
-  unchanged: **`BL-0014`** (`DEFERRED`, not ripe) and **`BL-0017`/`BL-0019`** (`SCHEDULED`) —
-  `IP-1020` confirmed **not** the ripening trigger for either (`ZONE_COLLECTS` itself stayed
-  untouched, `IP-1030`'s scope; `BL-0019`'s WRAM-headroom rider was satisfied inline by `IP-1020`'s
-  own checklist item, but the standing convention continues for future ROM-growing packages, so it
-  stays `SCHEDULED` rather than flipping `DONE`).
-- **Next step:** `08-code-implementation` on **`IP-1030`** (Generated-Region Screen Composition —
-  code, FS-103/FEAT-4100) — the critical path's next node, now `READY` (`IP-1020` `VERIFIED`) and
-  G3-authorized (`BL-0040`). `IP-1040`/`IP-1050` are also `READY` and parallel-eligible but not on
-  the critical path; `IP-1031` (content peer) stays `BLOCKED` until `IP-1030` is `VERIFIED`.
+  01–07 ✅, G3 cleared; `IP-1020`/`IP-1030` `VERIFIED`; `IP-1031` `READY`; `IP-1040`/`1050`
+  `COMPLETE` (awaiting independent verification). Critical path
+  (`IP-1020`→`IP-1030`→`IP-1031`) now two of three nodes `VERIFIED`, final node `READY`.
+- **Backlog:** 43 entries, 3 open. Run #55 harvest: new **BL-0042** (Medium, doc-defect,
+  `DONE` same run — `packages/INDEX.md` stale for `IP-1030`/`1040`/`1050`, the exact
+  `BL-0035`/`BL-0041` recurrence one ledger over; resolved inline as part of this run's own ledger
+  updates). Standing entries unchanged: **`BL-0014`** (`DEFERRED`, not ripe) and
+  **`BL-0017`/`BL-0019`** (`SCHEDULED`) — `IP-1030` confirmed **not** the ripening trigger for
+  either (no `ZONE_COLLECTS` touch; no new ROM-growth beyond what `IP-1020` already re-affirmed).
+  **`BL-0041`** (`ROADMAP.md` staleness) remains `SCHEDULED`, reconfirmed still open by `VR-1030`.
+- **Next step:** `08-content-authoring` on **`IP-1031`** (Generated-Region Screen Composition —
+  content, FS-103/FEAT-4100) — the critical path's final node, now `READY` (both `IP-1020` and
+  `IP-1030` `VERIFIED`) and G3-authorized (`BL-0040`). Once `IP-1031` reaches `COMPLETE` and is
+  verified, the tranche's critical path closes end-to-end; `IP-1040`/`IP-1050` (`COMPLETE`,
+  parallel-eligible, off critical path) still await their own `09-package-verification` passes
+  before `10-integration-review` can run on the full 5-package tranche.
 - **Open gates:** None.
 
 ## Run log
@@ -102,3 +108,4 @@
 | 52 | 2026-07-10 | advance (both main threads gated; third thread — backlog hygiene, final sweep) | `07-implementation-planning` (BL-0026 remainder + BL-0027), `05-feature-decomposition` (BL-0037) | ✅ **Backlog hygiene thread exhausted — every actionable item closed.** **`run-bunnygarden/SKILL.md`** rewritten in full (not just paths — stale filename, "v2.1"/"88/88" status line, "gifts" WRAM naming all corrected to current reality), with forward notes flagging where the still-unimplemented `FEAT-1100`/`FEAT-9000` packages will change two gotchas once they ship (closes `BL-0027`). **`IP-9010`**'s citation of nonexistent `NFR-7000` corrected to `NFR-6100` (closes `BL-0026`'s remainder — the RTM-side half closed at run #49). **`FEAT-6000`/`FEAT-7000`**'s own Risk fields in the Feature Catalog corrected from stale "not met" claims to Low risk citing their VERIFIED status (`VR-9020`/`VR-9010`); `FEAT-7000`'s Open Questions field also corrected (its sequencing question is moot, both items landed the same day); FP-05 finding #5 marked resolved (closes `BL-0037`). Harvested: **BL-0026 → DONE**, **BL-0027 → DONE**, **BL-0037 → DONE**. **Backlog swept end to end: 40 entries, 2 open, both standing conventions with no ripe instance today (`BL-0014` deferred, `BL-0017`/`BL-0019` riding future not-yet-existing packages).** No new findings. No drift. | **All three threads now blocked.** Bootstrap: `11-release-readiness` GO/NO-GO (user decision). Procgen-world: G3 authorization for `IP-1020`/`1030`/`1031`/`1040`/`1050` (user decision). Backlog hygiene: exhausted, nothing left to work. Next `00-pipeline-manager` advance has nothing to do until a human decision arrives or new work enters via `00-intake` |
 | 53 | 2026-07-10 | advance | `11-release-readiness` | Bootstrap tranche (Baseline + Release 1) | ✅ **Reconciled — no drift** (Master Build Plan/ROADMAP matched the journal exactly). Triage: no new/re-triggered backlog entries since run #52. **Step 4 gate check:** both standing gates (bootstrap GO/NO-GO, Release-2 G3) batched into one `AskUserQuestion` per the "batch the user questions" rule — user answered **"Run 11 release with a GO. Then move onto IP"** (bootstrap) and **"Authorize all five"** (Release 2), filed as **BL-0040** (immediately `DONE`, both parts resolved same run). Invoked `11-release-readiness` on the bootstrap tranche: scope audit (all 8 Features, 7 Baseline + FEAT-5100/Release-1, none dropped/deviated beyond two already-closed doc-lag findings), evidence (125/125, byte-identical build, 5/5 VRs, clean integration review), residual risks swept (all Low/Medium, all already `SCHEDULED`/`DEFERRED` in the backlog, none newly discovered) — **[release-assessment-bootstrap-tranche.md](../reviews/release-assessment-bootstrap-tranche.md) written, GO recorded** per the user's explicit direction. Baseline flipped: `ROADMAP.md`'s RV-RELEASE row, `01-release-plan.md`'s Baseline/Release-1 bucket headers + status banner, `Claude.md`'s Known Good Behavior heading, `docs/reviews/INDEX.md`. Release-2's G3 authorization recorded in the backlog (`BL-0040`) but **not** written into the Master Build Plan's own Authorized? column — that ledger is stage-07-owned per its own header note, so the flip is left to `08-code-implementation`'s own run on `IP-1020` rather than edited out-of-band by the manager. No new findings beyond `BL-0040`. | `08-code-implementation` on **`IP-1020`** — the Release-2 tranche's foundational, now-authorized, fully `READY` package; `IP-1030`/`1031`/`1040`/`1050` remain `BLOCKED` on it per the Master Build Plan's dependency graph, not on authorization |
 | 54 | 2026-07-10 | advance | `09-package-verification` | IP-1020 (Procedural World Generation & Item-Agnostic Collection) | ✅ **Drift found and corrected at Step 1:** `IP-1020` had already been implemented in an un-journaled out-of-band session (commit `6430001`, following run #53's "Then move onto IP" instruction) and stood at `COMPLETE — 133/133 checks pass` in the Master Build Plan by the time this run started — the journal's own run #53 Position block still named `08-code-implementation` on `IP-1020` as pending. This fresh session had no memory of that implementation, satisfying the independence requirement, so it served as `IP-1020`'s verifier instead of re-implementing anything. **VERIFIED**: fresh-container PyBoy 2.7.0 + numpy install, ROM rebuilt byte-identical (sha256 match, 23660/32768 bytes), full suite independently re-run **133/133 pass**. All 4 DoD + 8 Verification Checklist items confirmed by direct code read (WRAM constants, `generate_world`/`gw_prng_step` no-`DIV` scan, `worldgen.py`/SM83 side-by-side lockstep, `check_collisions`/`setup_zone_collects` generalization, scope audit — no excursion beyond the package's own named/justified `update_map_hearts`+reset-path companion fix). **[VR-1020](../implementation/verification/VR-1020-procedural-world-generation.md)** written. Ledger: `IP-1020` → **VERIFIED**; `IP-1030`/`1040`/`1050` → `READY` (sole dependency now `VERIFIED`); `IP-1031` stays `BLOCKED` on `IP-1030`. Harvested: new **BL-0041** (Medium, `SCHEDULED` — `ROADMAP.md`'s `IM-00`/`IP-xxxx` rows stale again, same recurring pattern as `BL-0035`); one Low finding (T12.g not separately-labeled, cosmetic only, RTM already cites it correctly — no backlog entry needed). Confirmed `BL-0017`/`BL-0019` do **not** ripen from this package (`ZONE_COLLECTS` genuinely untouched; `BL-0019`'s headroom rider satisfied inline, convention continues). | `08-code-implementation` on **`IP-1030`** (Generated-Region Screen Composition — code, FS-103/FEAT-4100) — the critical path's next node, now `READY` and G3-authorized; `IP-1040`/`1050` also `READY` and parallel-eligible but off the critical path |
+| 55 | 2026-07-10 | advance | `09-package-verification` | IP-1030 (Generated-Region Screen Composition — code) | ✅ **Drift found and corrected at Step 1 (same pattern as run #54, one ledger over):** `IP-1030`/`1040`/`1050` had all been implemented out-of-band (commits `3479dba`/`73cea72`/`5f58ab5`, following run #54's "Then move onto IP" instruction) and stood `COMPLETE` in the Master Build Plan by the time this run started, but `packages/INDEX.md` still read all three `READY` and the journal's run #54 Position block still named `08-code-implementation` on `IP-1030` as pending. This fresh session had no memory of implementing any of the three, so it served as `IP-1030`'s verifier (the critical-path package) instead of re-implementing anything. **VERIFIED**: fresh-container PyBoy 2.7.0 + numpy install, ROM rebuilt byte-identical (sha256 match), full suite independently re-run **180/180 pass** on tree head (IP-1030's own T13: 3/3). All 4 DoD + 7 Verification Checklist items confirmed by direct code read (`_zone_arrows` deletion confirmed, `draw_region_arrows`'s `REGION_GRAPH` neighbor-byte read confirmed, single `copy_screen` call site confirmed, `ALL_SCREENS`'s 5 named biome-family entries confirmed reusing existing shipped functions verbatim, scope audit — no excursion beyond the package's own declared file set). **[VR-1030](../implementation/verification/VR-1030-generated-region-screen-composition-code.md)** written. Ledger: `IP-1030` → **VERIFIED**; `IP-1031` → **READY** (both dependencies now `VERIFIED`); `IP-1040`/`1050` corrected from stale `READY` to accurate `COMPLETE` in `packages/INDEX.md` (Master Build Plan already had this right). Harvested: new **BL-0042** (Medium, doc-defect, `DONE` same run — `packages/INDEX.md` stale for `IP-1030`/`1040`/`1050`, resolved inline as part of this run's ledger updates). Confirmed `BL-0017`/`BL-0019` do **not** ripen from this package (no `ZONE_COLLECTS` touch; no new ROM growth — net reduction). No open gates. | `08-content-authoring` on **`IP-1031`** (Generated-Region Screen Composition — content, FS-103/FEAT-4100) — the critical path's final node, now `READY` and G3-authorized; `IP-1040`/`1050` remain `COMPLETE`, parallel-eligible for a future `09-package-verification` pass, but off the critical path |
