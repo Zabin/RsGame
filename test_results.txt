@@ -1,4 +1,4 @@
-BunnyQuest ROM Tests  PASS=217/217  FAIL=0
+BunnyQuest ROM Tests  PASS=220/220  FAIL=0
 ==================================================
 [PASS] T1.1 ROM size = 32768  (32768)
 [PASS] T1.2 Entry = NOP; JP
@@ -48,6 +48,9 @@ BunnyQuest ROM Tests  PASS=217/217  FAIL=0
 [PASS] T5.7 Zone: col 7 = star icon (0x14)  (0x14)
 [PASS] T5.8 Zone: score digits at cols 8-10  (['20', '20', '20'])
 [PASS] T5.9 Region 0 (seed=1,scale=3 -> biome-id 2) uses its own tile family  (299 tiles in 0x78-0x7D)
+[PASS] T5.10 SAVE screen reached (GS=3)  (GS=3)
+[PASS] T5.11 SAVE screen SELECT-option label present (rows 12-13)  (font_tiles=20)
+[PASS] T5.12 SELECT-option label doesn't collide with A/B rows (9/11) or bottom border (14)  (existing rows unaffected)
 [PASS] T6.1 Bunny OAM Y = player_y+16  (96 vs 96)
 [PASS] T6.2 Bunny OAM X = player_x+8  (88 vs 88)
 [PASS] T6.3 Bunny tile = frame*2 (0 or 2)  (0x00)

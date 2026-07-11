@@ -313,7 +313,10 @@
 - **Notes:** **Implemented (2026-07-10, `IP-1040`):** `st_save`'s SELECT branch (`asm_game.py`)
   calls the exact same `save_to_sram` A(save) already calls, then targets `GS_MAIN_MENU` instead
   of `GS_PLAYING`; `test_rom.py` T14.d1/d2 confirm the auto-save and exact state restoration on
-  a subsequent "continue".
+  a subsequent "continue". **2026-07-11 delta (`IP-9080`, `BL-0049`):** the option's own behavior
+  was already correct, but had no on-screen label — `save_screen` (`tilemaps.py`) now renders
+  "SELECT: SAVE" / "AND EXIT" (rows 12–13), fixing a real discoverability gap (the option was
+  functionally present but invisible to the player). Content-only; no behavior change.
 
 ## FR-2000 — Player movement & zone traversal
 

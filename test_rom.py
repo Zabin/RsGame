@@ -374,6 +374,22 @@ family_tiles = sum(1 for b in field if _lo <= b <= _hi)
 check(f"T5.9 Region 0 (seed=1,scale=3 -> biome-id {_region0_biome}) uses its own tile family",
       family_tiles > 40, f"{family_tiles} tiles in 0x{_lo:02X}-0x{_hi:02X}")
 
+# IP-9080 (BL-0049): SAVE screen's SELECT-option text (rows 12-13),
+# previously silent -- confirm the label is present and doesn't collide
+# with the existing "A: YES"/"B: NO" rows (9/11) or the bottom border (14).
+pb.button('start'); [pb.tick() for _ in range(40)]
+check("T5.10 SAVE screen reached (GS=3)", pb.memory[GAMESTATE] == 3, f"GS={pb.memory[GAMESTATE]}")
+save_label_rows = [[pb.memory[0x9800 + r*32 + c] for c in range(2, 18)] for r in (12, 13)]
+save_label_font_tiles = sum(1 for row in save_label_rows for b in row if TL_FONT_A <= b <= TL_FONT_COLON)
+check("T5.11 SAVE screen SELECT-option label present (rows 12-13)",
+      save_label_font_tiles > 0, f"font_tiles={save_label_font_tiles}")
+existing_rows = [[pb.memory[0x9800 + r*32 + c] for c in range(2, 18)] for r in (9, 11, 14)]
+check("T5.12 SELECT-option label doesn't collide with A/B rows (9/11) or bottom border (14)",
+      all(b in (TL_BG_BLANK, TL_BORDER_H) or (TL_FONT_A <= b <= TL_FONT_COLON) for row in existing_rows for b in row),
+      "existing rows unaffected")
+shoot(pb, "T5_save_screen")
+pb.button('b'); [pb.tick() for _ in range(40)]
+
 shoot(pb, "T5_region0")
 pb.stop()
 

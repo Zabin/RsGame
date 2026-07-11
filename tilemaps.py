@@ -305,6 +305,12 @@ def save_screen():
     _str(t, a, 5, 5, "SAVE GAME?", 2)
     _str(t, a, 5, 9, "A: YES", 2)
     _str(t, a, 5, 11, "B: NO", 2)
+    # IP-9080 (BL-0049): the SELECT option (saves and exits to MAIN MENU,
+    # st_save's own already-correct behavior, IP-1040) had no on-screen
+    # label -- two short lines instead of one, since "SELECT: SAVE+EXIT"
+    # doesn't fit the column budget and '+' isn't in the font's char set.
+    _str(t, a, 5, 12, "SELECT: SAVE", 2)
+    _str(t, a, 5, 13, "AND EXIT", 2)
     for x in range(2, 18):
         _put(t, a, x, 3,  TL_BORDER_H, 2)
         _put(t, a, x, 14, TL_BORDER_H, 2)

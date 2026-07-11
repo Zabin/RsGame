@@ -53,7 +53,7 @@
 | CR-05 | Biome-blob clustering seeded from maze dead-ends (`BL-0066`) — conflicts with `ADR-0012` point 1's fixed biome-first pass ordering, per RQ-03 finding #13 | — | GDS-04; BL-0066 | ADR-0012 | `worldgen.py` | `CANDIDATE — NOT BASELINED` | `CANDIDATE — NOT BASELINED` | `CANDIDATE — NOT BASELINED` |
 | FR-1170 | MAIN MENU state (Met, 2026-07-10) | — | GDS-01 §2a/§4a | ADR-0010 | `asm_game.py` | FS-104 | IP-1040 | T14.a1–a4 — 180/180 pass (T14 sub-total 20/20) |
 | FR-1180 | New-game seed/scale entry + generation trigger (Met) | R111 | GDS-01 §4a | ADR-0009, ADR-0010 | `asm_game.py` | FS-104 | IP-1040 | T14.b1–b3, T14.c1 — 180/180 pass (T14 sub-total 20/20) |
-| FR-1190 | Exit-to-main-menu with auto-save (Met) | — | GDS-01 §4a | — | `asm_game.py` | FS-104 | IP-1040 | T14.d1–d2 — 180/180 pass (T14 sub-total 20/20) |
+| FR-1190 | Exit-to-main-menu with auto-save (Met) | — | GDS-01 §4a | — | `asm_game.py`, `tilemaps.py` | FS-104 | IP-1040, IP-9080 | T14.d1–d2 (behavior), T5.10–T5.12 (on-screen label, IP-9080) |
 | FR-3220 | Item-agnostic KeyItem collection (generalizes FR-3210) | — | GDS-04 delta | ADR-0009 | `asm_game.py` | FS-102 | IP-1020 | T8.7, T8.8 (retargeted KEYITEM_FLAGS/KEYITEM_COUNT checks), T12.g (cross-reference) — 133/133 pass |
 | FR-4300 | One biome per screen (Met — code half `IP-1030`, content half `IP-1031`, both 2026-07-10/11) | R212 | GDS-08 delta §8 | ADR-0009 | `asm_game.py`, `tilemaps.py` | FS-103 | IP-1030 (code), IP-1031 (content) | T13.a (tile-family audit, exercises both halves) — 180/180 pass |
 | FR-4310 | Grammar-valid adjacency only | R212 | GDS-04 delta | ADR-0009 | `asm_game.py`, `worldgen.py` | FS-102 | IP-1020 | T12.d (15-entry seed/scale corpus, 0 illegal edges) |
