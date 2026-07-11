@@ -6,7 +6,8 @@
   persisting the seed/scale), R110 (interrupt/RETI discipline the PRNG routine must not violate)
 - **Referenced By:** R213 (this topic grounds R213's screen/room-graph + xorshift-PRNG
   recommendation in real hardware terms), R305 (the reference-generator oracle must mirror this
-  topic's PRNG step-for-step)
+  topic's PRNG step-for-step), R112 (re-measures this topic's WRAM-headroom estimate against the
+  shipped, post-generation tree, for the maze-generation hardware-feasibility comparison)
 - **Produces:** grounds `asm_game.py`'s future WRAM working-set for a generated world and its
   future PRNG routine; grounds strategic assumption **A9** (seed is the sole determinism input)
 - **Feature Mapping:** *(none yet)*

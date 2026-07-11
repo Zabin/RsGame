@@ -23,6 +23,7 @@ section, 3–8 page band) is embedded in each `02-research-*` skill.
 | R109 | [Cartridge header, checksums & boot](encyclopedia/R109-cartridge-header-checksums.md) | header fields, checksum algorithms, GBC flag | ✅ |
 | R110 | [Interrupt model & ISR conventions](encyclopedia/R110-interrupt-model-isr.md) | IE/IF, vector table, RETI discipline, VBLANK_FLAG pattern | ✅ |
 | R111 | [CGB banked WRAM & SM83 PRNG determinism](encyclopedia/R111-wram-banking-sm83-prng.md) | SVBK mechanism and generated-world WRAM headroom; a deterministic xorshift-style PRNG in SM83 assembly, grounding MSTR-001 C10/A9 (filed via `BL-0031`/D3) | ✅ |
+| R112 | [Maze-generation algorithm hardware feasibility (spanning tree + braid)](encyclopedia/R112-maze-generation-hardware-feasibility.md) | SM83/WRAM cost of randomized Kruskal/Prim/recursive-backtracker spanning-tree generation plus a braid pass, replacing `REGION_GRAPH`'s current full-lattice adjacency (filed via `BL-0064`) | ✅ |
 
 ## Tier R200 — Game Design (`02-research-game-design`)
 
