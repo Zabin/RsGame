@@ -14,43 +14,51 @@
 
 ## Position
 
-- **Updated:** 2026-07-11 (run #79)
+- **Updated:** 2026-07-11 (run #80)
 - **Increment:** Bootstrap baseline remains fully closed (01–11 ✅, GO recorded). Release-2
   procgen-world tranche unchanged since run #62: `IP-1031` `COMPLETE`, four of five `VERIFIED`,
   blocked on a fresh session. Post-ship remediation tranche: all three packages `COMPLETE` since
   run #68 (`IP-9070`/`IP-9060`/`IP-9050`), still blocked on `09-package-verification` by the
-  same-session independence rule. **Procgen-map-shape thread: the PRNG defect is fully resolved,
-  `IP-1070` re-planned and back to `READY` — a fresh `08-code-implementation` attempt is all that
-  remains.** `R112` (run #69) → `ADR-0012` (run #70) → `FR-9140`/`FR-9150`/`FR-2330` baselined
-  (run #71) → `FEAT-9100`/`FEAT-2100` decomposed (run #72) → `FS-107`/`FS-108` specified (run #73)
-  → `IP-1070`/`IP-1080` planned (run #74), `IP-1070` authorized (run #75) → `08-code-
-  implementation` attempt hit a Blocking Report (run #76) → `R113` (run #77) root-caused the PRNG
-  defect → `ADR-0013` (run #78) decided the fix → **`IP-1070` re-planned with a light touch
-  (run #79): §4/§6/§7/§13 updated with `ADR-0013`'s counter-XOR perturbation detail; sanity check
-  confirmed no leftover code from the earlier attempt; not a redesign.** `IP-1070` back to
-  `READY`, authorization `BL-0069` unaffected throughout. `IP-1080` remains `BLOCKED` on `IP-1070`
-  reaching `VERIFIED`. `FS-108`'s rendering half remains blocked on `BL-0068`'s `GDS-08` delta,
-  independent of this. **`BL-0066`** (biome-blob clustering) remains `NEEDS-USER` (the `ADR-0012`
-  pass-ordering conflict, routed as `CR-05`/RQ-03 finding #13).
+  same-session independence rule. **Procgen-map-shape thread: `IP-1070` implemented and reached
+  `COMPLETE` (run #80)** — the counter-XOR perturbation (`ADR-0013`) shipped in `asm_game.py`/
+  `worldgen.py`; two hand-assembly bugs found and fixed during implementation (fall-through into
+  a subroutine body, a register clobber in the prune-write block); a supersession-sweep gap found
+  in `test_rom.py`'s own `T11`/`T17` suites (hardcoded full-lattice traversal paths, invalid
+  under the new maze topology even at the default scale=3 fixture) fixed in the same run
+  (graph-driven DFS-tour rewrite) and filed as **`BL-0071`** for `07-implementation-planning`'s
+  own future supersession-sweep discipline. New suite `T19` (7 checks). Full suite: **211/211
+  pass.** Documentation/traceability updated (GDS-07 §7b, FR-9140/FR-9150, NFR-4200, RTM, FS-107
+  Open Questions 1–3 resolved). `IP-1070` now awaits `09-package-verification` (fresh session).
+  `IP-1080` remains `BLOCKED` on `IP-1070` reaching `VERIFIED` (`COMPLETE` is not sufficient).
+  `R112` (run #69) → `ADR-0012` (run #70) → `FR-9140`/`FR-9150`/`FR-2330` baselined (run #71) →
+  `FEAT-9100`/`FEAT-2100` decomposed (run #72) → `FS-107`/`FS-108` specified (run #73) →
+  `IP-1070`/`IP-1080` planned (run #74), `IP-1070` authorized (run #75) → Blocking Report
+  (run #76) → `R113` (run #77) → `ADR-0013` (run #78) → light re-plan (run #79) → **implemented,
+  `COMPLETE` (run #80).** `FS-108`'s rendering half remains blocked on `BL-0068`'s `GDS-08`
+  delta, independent of this. **`BL-0066`** (biome-blob clustering) remains `NEEDS-USER` (the
+  `ADR-0012` pass-ordering conflict, routed as `CR-05`/RQ-03 finding #13).
 - **Pipeline state:** Bootstrap: stages 01–11 ✅ — complete, GO recorded. Release-2 + remediation
-  tranche: four packages `COMPLETE`, zero `VERIFIED` — all blocked on a fresh session's
-  `09-package-verification` (same-session independence rule). Procgen-map-shape thread: all
-  design/planning/re-planning done; `08-code-implementation` is next, on `IP-1070`, `READY` and
-  authorized, no gate. `BL-0068` (`GDS-08` delta) rides a separate future `03` pass, independent.
-- **Backlog:** 70 entries, 24 open. Run #79: **`BL-0070`** updated (package touch done, remains
-  `SCHEDULED`, riding `08-code-implementation` next). No new entries. `BL-0064`/`0065`/`0067`
-  remain `SCHEDULED`, riding the same step. `BL-0068`/`BL-0066`/`BL-0050` (all standing) remain
-  open, unrelated.
-- **Next step:** `08-code-implementation` on **`IP-1070`** — now `READY` and authorized, resuming
-  where the earlier attempt was blocked (the carve phase's own design was already directly
-  confirmed correct; only the perturbation addition is new). Independently: `BL-0068` rides a
-  future `03` pass (unrelated, the `GDS-08` tile-art delta); `BL-0066` and `BL-0050` (both
-  `NEEDS-USER`) await the user whenever convenient; `09-package-verification` on the four
-  `COMPLETE` packages remains blocked on a fresh session — none of the three actionable from here.
+  + procgen-map-shape tranches: **five** packages `COMPLETE` (`IP-1031`/`IP-9050`/`IP-9060`/
+  `IP-9070`/`IP-1070`), zero `VERIFIED` — all blocked on a fresh session's
+  `09-package-verification` (same-session independence rule). `IP-1080` `BLOCKED` on `IP-1070`
+  reaching `VERIFIED`, unauthorized. `BL-0068` (`GDS-08` delta for `FS-108`'s rendering half) is
+  the only unblocked, non-gated actionable step this session — rides a `03-architecture-design-
+  synthesis` pass next.
+- **Backlog:** 71 entries, 24 open. Run #80: **`BL-0070`** flipped `DONE` (the counter-XOR
+  perturbation shipped, measured 25.80% braid fraction against the ~25% target). New **`BL-0071`**
+  filed (Medium, `finding`, `SCHEDULED` riding a future `07-implementation-planning` pass) — the
+  `T11`/`T17` supersession-sweep gap found and fixed this run. `BL-0064`/`0065`/`0067` remain
+  `SCHEDULED`, their `IP-1070`-riding portion now done (implemented, not yet verified). `BL-0068`/
+  `BL-0066`/`BL-0050` (all standing) remain open, unrelated.
+- **Next step:** `03-architecture-design-synthesis` on **`BL-0068`** (the `GDS-08` tile-art delta
+  for `FEAT-2100`'s blocked-edge indicator, `FS-108` Open Question 1) — the only unblocked,
+  non-gated actionable step: `09-package-verification` on the five `COMPLETE` packages remains
+  blocked on a fresh session; `IP-1080` remains `BLOCKED` on `IP-1070` reaching `VERIFIED`;
+  `BL-0066`/`BL-0050` await the user whenever convenient; `BL-0071` is low-urgency, non-blocking
+  process debt for a future `07` pass, not this one.
 - **Open gates:** None blocking this run's own thread. Two independent `NEEDS-USER` entries open:
   `BL-0050` (MAP/status-screen redesign, standing) and `BL-0066` (biome-blob clustering,
-  standing). Neither blocks `08-code-implementation`'s own work on `IP-1070`. `IP-1070`'s G3
-  authorization (`BL-0069`) stands and does not need to be re-asked.
+  standing). Neither blocks `03-architecture-design-synthesis`'s own work on `BL-0068`.
 
 ## Run log
 
@@ -138,3 +146,4 @@
 
 
 | 79 | 2026-07-11 | advance | `07-implementation-planning` | IP-1070 (light touch) | ✅ **No drift; no new/re-triggered backlog entries at triage.** **Step 3/5:** invoked `07-implementation-planning` for a light touch to `IP-1070`'s own package document, per `ADR-0013`. Added the counter-XOR perturbation detail to §4 (cites `ADR-0013`/`R113`), §6 (both the carve phase's direction-draw site and the braid phase's keep/prune-draw site, plus a note `worldgen.py`'s oracle mirror must replicate the perturbation step-for-step — the same lockstep discipline the carve/braid algorithm itself already required), §7 (task ordering), and §13 (records `ADR-0013`'s own explicit deferral of `gw_prng_step`'s underlying repair as a known, accepted limitation, not silently assumed away). **Sanity check confirmed clean:** direct grep of `asm_game.py` found zero leftover maze-pass symbols from the earlier blocked attempt — the revert was complete. Not a redesign — the carve/braid algorithm itself (§6 tasks 3–4) is unchanged. Flipped `IP-1070` back to `READY` across the Master Build Plan, `packages/INDEX.md`, `ROADMAP.md`; authorization `BL-0069` stood throughout, unaffected. Harvested: `BL-0070` updated (package touch done, remains `SCHEDULED`, riding `08-code-implementation` next). No new backlog entries. No open gates. | `08-code-implementation` on **`IP-1070`** — now `READY` and authorized, resuming where the earlier attempt was blocked. Separately: `BL-0068` (`GDS-08` delta) rides a future `03` pass, independent; `BL-0066`/`BL-0050` (both `NEEDS-USER`) remain open; `09-package-verification` on the four `COMPLETE` remediation packages remains blocked on a fresh session. |
+| 80 | 2026-07-11 | advance | `08-code-implementation` | IP-1070 (implementation, second attempt) | ✅ **No drift; no new/re-triggered backlog entries at triage beyond `BL-0070`.** **Step 3/5:** invoked `08-code-implementation` on `IP-1070`, `READY` and authorized (`BL-0069`), resuming the design already confirmed correct in the earlier attempt plus `ADR-0013`'s counter-XOR perturbation. Implemented the maze-generation pass (`asm_game.py`): iterative randomized DFS/recursive-backtracker spanning-tree carve, canonical-edge braid/prune pass, new WRAM (`GW_MAZE_STATE`/`GW_CUR_REGION`/`GW_MAZE_DIR`/`GW_BRAID_IDX`/`GW_MAZE_DRAW_CTR`), two new subroutines (`gw_neighbor_hl`/`gw_maze_state_hl`). Found and fixed two hand-assembly bugs via direct PyBoy debugging: a fall-through-into-subroutine premature-`RET` bug, and a register-clobber bug in the prune-write block (`gw_neighbor_hl` called twice without stashing the first result, corrupting the second call's target). `worldgen.py`'s `_carve_maze` oracle validated byte-identical across a 36-`(seed,scale)` corpus. New suite `T19` (7 checks, braid-fraction measured 25.80% against ~25% target). Found and fixed a supersession-sweep gap `IP-1070`'s own `07` pass missed: `test_rom.py`'s `T11`/`T17` suites hardcoded full-lattice traversal assumptions invalid under the new maze topology, including at the default scale=3 fixture — rewritten graph-driven (real DFS tour over the actual generated graph) rather than patched around, in scope per `08`'s own Step 7. Full suite: 211/211 pass, stable across repeated runs. Documentation/traceability updated: GDS-07 §7b (new section), FR-9140/FR-9150 Notes, NFR-4200 Notes, RTM rows, FS-107 §19 Open Questions 1–3 resolved, Master Build Plan/`packages/INDEX.md`/`ROADMAP.md` flipped to `COMPLETE`. Committed (`f9ecbc7`) and pushed. Harvested: `BL-0070` flipped `DONE`; new `BL-0071` filed (Medium, `finding`, `SCHEDULED`) for the supersession-sweep gap, riding a future `07-implementation-planning` pass. No open gates. | `03-architecture-design-synthesis` on **`BL-0068`** (the `GDS-08` tile-art delta for `FEAT-2100`'s blocked-edge indicator) — the only unblocked, non-gated actionable step; `09-package-verification` on the five `COMPLETE` packages remains blocked on a fresh session; `IP-1080` remains `BLOCKED` on `IP-1070` reaching `VERIFIED`; `BL-0066`/`BL-0050` (both `NEEDS-USER`) remain open for the user. |
