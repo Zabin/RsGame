@@ -7,9 +7,11 @@
 >
 > **Forward reference (metadata only):** planned 2026-07-10 as needing **no Implementation
 > Package** — see the [Technical Work Breakdown](../implementation/01-technical-work-breakdown.md)'s
-> "Release-2 tranche" §Split rationale. First exercised via a future `09-content-review` pass on
-> [IP-1031](../implementation/packages/IP-1031-generated-region-screen-composition-content.md)'s
-> content.
+> "Release-2 tranche" §Split rationale. **First exercised 2026-07-11** via `09-content-review`'s
+> pass on [IP-1031](../implementation/packages/IP-1031-generated-region-screen-composition-content.md)'s
+> content — clean ([content-review-IP-1031.md](../reviews/content-review-IP-1031.md)): both
+> Acceptance Criteria confirmed (AC-1 craft/clean-screen, AC-2 palette-stepping), one Low
+> informational finding on the Stone↔Brick pairing (NFR-6510 is a "Should," not a "Must").
 
 [↑ Features index](INDEX.md) · [Feature Catalog](../feature-planning/03-feature-catalog.md) ·
 [Epic Catalog](../feature-planning/02-epic-catalog.md)
