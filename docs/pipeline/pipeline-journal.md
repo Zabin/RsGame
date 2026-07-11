@@ -14,46 +14,43 @@
 
 ## Position
 
-- **Updated:** 2026-07-11 (run #87)
+- **Updated:** 2026-07-11 (run #88)
 - **Increment:** Bootstrap baseline remains fully closed (01–11 ✅, GO recorded). Movement/pickup/
-  UI bug-remediation tranche fully implemented end-to-end (`IP-9080`/`IP-9090`/`IP-9100`, runs
-  #84–86). Eight packages `COMPLETE` overall, zero `VERIFIED`. `IP-1080` `BLOCKED`/unauthorized.
-  **New thread this run — a real, user-reported regression:** the project owner started two new
-  games at the literal default seed (`SEED=0`, scale 3 and scale 9) and got heavily degenerate,
-  water-flooded worlds. Directly reproduced and root-caused (both via `worldgen.py` and the real
-  built ROM): `seed=0` normalizes to `1` (`ADR-0010`), and `gw_prng_step(1)`'s state collapses to
-  its absorbing fixed point after 2 draws — every biome-assignment draw after that returns a
-  constant `delta=-1`. Confirmed on the real ROM: `scale=9`'s `REGION_GRAPH` biome grid is >90%
-  Water (row 0 = `[2,3,2,1,0,0,0,0,0]`, rows 1–8 all zero); `scale=3` only looks "textured" by
-  coincidence of the grammar-clamp's own gradient-decay behavior. Maze/adjacency connectivity
-  itself is unaffected (`ADR-0013`'s counter-XOR perturbation works as intended for the maze
-  pass) — the defect is isolated to biome-assignment's own unperturbed draws, the exact "future
-  caller" risk `ADR-0013` named but didn't expect to already be live. Filed **`BL-0074`** (High),
-  re-dispositioned at this run's own triage from intake's suggested `07` to **`03`** — this fix
-  carries a materially bigger compatibility question than `ADR-0013` faced (biome-assignment is
-  the already-shipped-and-`VERIFIED` foundational step every `(seed,scale)` combination depends
-  on; any fix changes existing seeds' output, not just degenerate ones). `BL-0066` (biome-blob
-  clustering) remains `NEEDS-USER`.
+  UI bug-remediation tranche fully implemented end-to-end. Eight packages `COMPLETE` overall, zero
+  `VERIFIED`. `IP-1080` `BLOCKED`/unauthorized. **`BL-0074` (default-seed biome flooding) — the
+  architecture decision is made, but reveals a much larger defect than first framed.** Direct
+  investigation (run #88, `03-architecture-design-synthesis`) found the shipped `gw_prng_step`
+  degenerates to a fixed point/short cycle within 20 draws for **100% of 2000 tested seeds**, not
+  just `seed=0` — at `scale=9`, 55% of seeds already produce a majority-Water world today, 32%
+  almost-entirely-Water. This has been true since `IP-1020` shipped, never visually obvious until
+  a large-scale biome map was actually inspected. The correct fix (`gw_prng_step`'s mixing step
+  repaired to the `7,9,8` shift triplet, per R113) is verified directly: 0/2000 seeds degenerate
+  under it. **[ADR-0014](../architecture/adr/ADR-0014-gw-prng-step-repair-needs-user-authorization.md)
+  confirms this fix but explicitly declines to authorize shipping it** — `REGION_GRAPH`
+  regenerates from `(seed,scale)` on every save load, so this changes every existing save's world
+  on next load, the same class of consequence `ADR-0013` already established needs the user's own
+  sign-off. `BL-0074` re-dispositioned `NEEDS-USER`. `BL-0066` (biome-blob clustering) also
+  remains `NEEDS-USER`.
 - **Pipeline state:** Bootstrap: stages 01–11 ✅ — complete, GO recorded. Eight `COMPLETE`
   packages await a fresh-session `09-package-verification`. `IP-1080` `BLOCKED`/unauthorized.
-  **New active thread: `BL-0074` (default-seed biome flooding) needs a `03-architecture-design-
-  synthesis` decision** — R113 already provides sufficient research grounding, no `02` pass
-  needed unless `03` finds a gap.
-- **Backlog:** 74 entries, 25 open. Run #87: new **`BL-0074`** filed (High, `bug`, via
-  `00-intake`) and triaged `SCHEDULED`, re-dispositioned to ride `03-architecture-design-synthesis`
-  (not `07` as intake suggested — see the entry's own triage note). `BL-0049` implicitly resolved
-  by `IP-9080` reaching `COMPLETE` (stays `SCHEDULED` pending verification, standing convention).
-  `BL-0066`/`BL-0050` (both standing `NEEDS-USER`) remain open. `BL-0071`/`BL-0073` remain
-  `SCHEDULED`, low urgency, no active `07` pass to ride.
-- **Next step:** **`03-architecture-design-synthesis` on `BL-0074`** — decide the fix for
-  biome-assignment's own PRNG degeneracy (repair `gw_prng_step` directly vs. a scoped perturbation
-  like the maze pass got vs. another option), explicitly weighing the compatibility question
-  (changes every existing seed's biome output either way). Independently: `09-package-verification`
-  on the eight `COMPLETE` packages remains blocked on a fresh session; `BL-0066`/`BL-0050` (both
-  `NEEDS-USER`) await the user whenever convenient; `BL-0071`/`BL-0073` remain low-urgency,
-  no active `07` pass to ride.
-- **Open gates:** None new. Two standing, independent: `BL-0050` (MAP/status-screen redesign) and
-  `BL-0066` (biome-blob clustering pass-ordering conflict) — both ripe, neither urgent.
+  **A third `NEEDS-USER` gate now open: `BL-0074`, materially higher-stakes than the other two**
+  (a real, measured, majority-of-seeds defect in the shipped game's core procgen, not a design
+  preference).
+- **Backlog:** 74 entries, 25 open. Run #88: `BL-0074` re-dispositioned `SCHEDULED`→`NEEDS-USER`
+  after `ADR-0014` landed (the architecture question is answered; the authorization question is
+  not). `BL-0049` implicitly resolved by `IP-9080` reaching `COMPLETE` (stays `SCHEDULED` pending
+  verification). `BL-0066`/`BL-0050` (both standing `NEEDS-USER`) remain open. `BL-0071`/`BL-0073`
+  remain `SCHEDULED`, low urgency, no active `07` pass to ride.
+- **Next step:** **GATE.** Ask the user: authorize shipping the `gw_prng_step` repair (`BL-0074`/
+  `ADR-0014`) — accepting that every existing save regenerates a different world on its next load
+  — or decline (leaving biome-assignment broken for roughly half of all `scale=9` worlds
+  indefinitely, including the literal default seed)? Independently, whenever convenient: `BL-0050`
+  (MAP/status-screen redesign) and `BL-0066` (biome-blob clustering pass-ordering conflict), both
+  standing `NEEDS-USER`. `09-package-verification` on the eight `COMPLETE` packages remains
+  blocked on a fresh session regardless of this gate's answer.
+- **Open gates:** **`BL-0074`/`ADR-0014`** (new this run — ship the `gw_prng_step` repair?),
+  asked below. Two standing, independent: `BL-0050` (MAP/status-screen redesign) and `BL-0066`
+  (biome-blob clustering pass-ordering conflict) — both ripe, neither urgent.
 
 ## Run log
 
@@ -149,3 +146,4 @@
 | 85 | 2026-07-11 | advance | `08-code-implementation` | IP-9100 (collectible pickup hitbox fix) | ✅ **No drift** in cited files/lines. **Step 3/5:** invoked `08-code-implementation` on `IP-9100`, `READY` and authorized (`BL-0072`). Implemented the package's own originally-planned symmetric `CP_n(8)`/`CP_n(16)` threshold change first — **direct PyBoy verification against `BL-0053`'s own two reproduction data points (item at `item_y=75` must NOT collect, `item_y=94` must collect) found it still wrong** (symmetric formula still collected `item_y=75`, since `\|80-75\|=5<16`). Re-derived the correct model: the Collectible is a collision point, not a same-sized second box — pickup fires iff that point falls inside the player's real 8×16 box, an asymmetric one-directional range test (`0<=item_x-PLAYER_X<=7`, `0<=item_y-PLAYER_Y<=15`), implemented as a single unsigned subtract+compare per axis using `H` as scratch (not `B`/`C`, both live/needed later in the same routine for the loop counter and item type). Re-verified via PyBoy against both reproduction points plus all four exact boundary values (`dx∈{-1,0,7,8}`, `dy∈{-1,0,15,16}`) — all correct. Found and fixed a real regression this correction exposed: `T11.a1` forced the player 8px away from its target item on both axes, valid only under the old buggy tolerance — corrected to the item's exact coordinates, matching every other pickup test's own convention (in scope, Step 7). New checks `T8.x`/`T8.y`/`T8.z1`/`T8.z2`. Full suite: 217/217 pass, stable. **Corrected the package document itself** (`IP-9100`'s own §6/§7/§10/§11) to match what was actually built and verified, rather than leaving it describing the wrong formula. Documentation updated: `FR-3100` Notes (corrected formula, `FR-3100`'s own baselined text flagged for a future `04` rewrite), RTM `FR-3100` row. Master Build Plan/`packages/INDEX.md`/`ROADMAP.md` flipped to `COMPLETE`. Committed (`623c33a`) and pushed. Harvested: new **`BL-0073`** filed (process finding — `07-implementation-planning` packages specifying an exact formula should verify it against embedded reproduction data). No open gates. | `08-content-authoring` on **`IP-9080`** (SAVE screen third-option labeling) — the last unimplemented package from this tranche. Independently: `09-package-verification` on the six `COMPLETE` packages remains blocked on a fresh session; `BL-0066`/`BL-0050` (both `NEEDS-USER`) await the user whenever convenient. |
 | 86 | 2026-07-11 | advance (pipeline exhausted) | `08-content-authoring` | IP-9080 (SAVE screen third-option labeling) | ✅ **No drift.** **Step 3/5:** invoked `08-content-authoring` on `IP-9080`, `READY` and authorized (`BL-0072`). Added two `_str()` lines to `save_screen` (`tilemaps.py`): "SELECT: SAVE" / "AND EXIT" (rows 12–13, columns 5–16/5–12), reusing the screen's existing font tiles and palette 2 — zero new tile art, zero new palette entries; `'+'` avoided (not in the font's char set). `asm_game.py` left untouched, per this package's own content-only scope. New checks `T5.10`–`T5.12` (SAVE screen reachable, label present, no collision with existing rows). Screenshot `T5_save_screen.png` captured and visually confirmed clean, sent to the user. Full suite: 220/220 pass. Documentation updated: `FR-1190` Notes, RTM `FR-1190` row. Master Build Plan/`packages/INDEX.md`/`ROADMAP.md` flipped to `COMPLETE`. Committed (`7298fca`) and pushed. **This closes the movement/pickup/UI bug-remediation tranche end-to-end** — all three packages (`IP-9080`/`IP-9090`/`IP-9100`) now `COMPLETE`. Harvested: no new backlog entries. **Step 1 reconciliation for this run found no further unblocked, non-gated actionable work**: `ROADMAP.md` swept clean (only two explicitly-"on demand" `⛔` rows remain); every other open backlog entry either rides a not-yet-existing future package or is a `07`-skill-file process addition (`BL-0071`/`BL-0073`) with no standing instruction to self-invoke, per `BL-0054`'s own precedent requiring explicit user direction for that class of edit. **Pipeline genuinely exhausted for this session** — ending the advance loop here. | **None available this session.** Three paths remain, all requiring something outside this session's own reach: (a) `09-package-verification` on any of the eight `COMPLETE` packages — needs a fresh session (same-session independence rule); (b) the user's decision on `BL-0050`/`BL-0066` (both standing `NEEDS-USER`), whenever convenient; (c) explicit user direction to fold `BL-0071`/`BL-0073` into `07-implementation-planning`'s own `SKILL.md`. The next `00-pipeline-manager` advance resumes normally once any of these unblocks. |
 | 87 | 2026-07-11 | advance | `00-intake` (harvest) → triage | BL-0074 (default-seed biome-flooding bug) | ✅ **Step 1 reconciliation:** the user reported degenerate procgen output at the literal default seed (`SEED=0`) at both scale=3 and scale=9. Investigated directly before filing (per this run's own judgment — cheap, high-value confirmation): traced `gw_prng_step`'s state from `x=1` (seed=0 normalized per `ADR-0010`) and confirmed it collapses to the absorbing fixed point `0x0000` after 2 draws; confirmed on the real built ROM via PyBoy that `REGION_GRAPH`'s biome grid is correspondingly degenerate (scale=9: >90% Water). Filed **`BL-0074`** (High) via `00-intake`. **Step 2 triage:** re-dispositioned from intake's suggested entry stage `07` to **`03`** — this fix carries a real compatibility tension `07` packaging can't resolve on its own: biome-assignment is the already-shipped, `VERIFIED` (`IP-1020`) foundational generation step every `(seed,scale)` combination depends on (unlike the maze pass, which is brand-new this session with no existing saves at stake), so any fix — repairing `gw_prng_step` directly or adding a scoped perturbation like `ADR-0013` gave the maze pass — changes every existing seed's biome output, not just degenerate ones. R113 already grounds the underlying PRNG theory; no new `02` pass needed unless `03` finds a gap. No drift found elsewhere. | `03-architecture-design-synthesis` on **`BL-0074`** — decide the fix (repair `gw_prng_step` vs. a scoped biome-assignment perturbation vs. another option), explicitly weighing the compatibility question. Independently: `09-package-verification` on the eight `COMPLETE` packages remains blocked on a fresh session; `BL-0066`/`BL-0050` (both `NEEDS-USER`) await the user whenever convenient. |
+| 88 | 2026-07-11 | advance | `03-architecture-design-synthesis` | BL-0074 (default-seed biome-flooding, gw_prng_step repair decision) | ✅ **No drift.** **Step 3/5:** invoked `03-architecture-design-synthesis` on `BL-0074`. Investigated directly before deciding (per this run's own judgment, mirroring `ADR-0012`/`ADR-0013`'s own precedent of grounding decisions in direct verification, not just citing prior research): traced `gw_prng_step`'s degeneracy across 2000 seeds, found **100% degenerate** (fixed point or short cycle within 20 draws) — not a "seed=0 is unlucky" bug, the shipped PRNG is essentially always degenerate. Measured real downstream impact: at `scale=9`, 55% of 200 tested seeds already produce a majority-Water world, 32% almost-entirely-Water — a defect that has existed since `IP-1020` shipped, never visually obvious until a large-scale biome map was actually inspected. Verified the R113-cited `7,9,8` shift-triplet fix directly: 0/2000 seeds degenerate under it, full 65535-state period from seed=1. Authored **[ADR-0014](../architecture/adr/ADR-0014-gw-prng-step-repair-needs-user-authorization.md)**: confirms the shift-triplet repair as the technically correct fix (not a close call), but explicitly declines to authorize shipping it — `REGION_GRAPH` regenerates from `(seed,scale)` on every save load, so this changes every existing save's world on next load, materially larger blast radius than `ADR-0013` anticipated when it declined the same fix for the (then brand-new) maze pass. Routed to the user, following `ADR-0013`'s own established precedent for this exact class of consequence. Updated `docs/architecture/adr/INDEX.md`, R113's Referenced By, `ROADMAP.md`'s ADR row. Committed (`a8583a4`) and pushed. Harvested: `BL-0074` re-dispositioned `SCHEDULED`→`NEEDS-USER`. No new backlog entries — the finding is recorded inside `BL-0074`'s own updated disposition and `ADR-0014` itself. **Gate hit:** ship the `gw_prng_step` repair? Asking this run. | **GATE: `BL-0074`/`ADR-0014`** — authorize shipping the `gw_prng_step` repair (every existing save regenerates a different world on next load) or decline (biome-assignment stays broken for ~55% of `scale=9` worlds, including the default seed, indefinitely). Independently: `BL-0050`/`BL-0066` (both standing `NEEDS-USER`) await the user whenever convenient; `09-package-verification` on the eight `COMPLETE` packages remains blocked on a fresh session regardless. |
