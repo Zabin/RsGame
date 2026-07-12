@@ -14,7 +14,7 @@
 
 ## Position
 
-- **Updated:** 2026-07-12 (run #125)
+- **Updated:** 2026-07-12 (run #126)
 - **Increment:** Bootstrap baseline remains fully closed (01–11 ✅, GO recorded). Run #96
   implemented `IP-1080` (`COMPLETE`, 230/230), closing the maze-shaped region adjacency tranche's
   critical-path extent. **Run #97:** the user then directly reported a bug while reviewing that
@@ -406,13 +406,29 @@
   `ROADMAP.md` updated. No code touched, ROM unchanged. Committed (`4b20a85`) and pushed.
   Harvested: no new findings beyond the two Open Questions already recorded in the spec itself —
   `BL-0093` updated in place, still `SCHEDULED`.
-- **Next step:** No skill invocation is gated. **Recommend:** `07-implementation-planning` to
-  package `FS-102`'s revised placement/win-condition behavior (neither Open Question blocks
-  implementation-readiness, both are explicitly deferred bookkeeping). Separately, still
+- **Run #126 (advance, user-directed iteration until blocked):** invoked
+  `07-implementation-planning` on `FS-102`'s revised behavior. Packaged as a single package,
+  **`IP-1021`** (`08-code-implementation`) — `generate_world`'s new placement pass (inserted
+  between `maze_carve_done` and the braid pass, reusing `IP-1070`'s own `GW_MAZE_STATE` for leaf
+  classification), `check_complete`'s corrected `WORLD_SCALE` comparison, `worldgen.py`'s oracle
+  mirror. **Resolved `FS-102`'s Open Question 5**, the per-region encoding: widened
+  `KEYITEM_FLAGS`'s existing value domain to a tri-state, not a new bitmap — confirmed by direct
+  code read that both real consumers (`setup_zone_collects`, `check_collisions`) already treat any
+  nonzero value as "no active item here," a genuine "found nothing to fix" Supersession-sweep
+  result, zero new WRAM/SRAM, no save-format bump. Recommends (not mandates) a no-new-PRNG-draw
+  fixed-order fallback fill for the "too few dead ends" case, avoiding the same
+  modulo-by-variable-count problem `ADR-0012` already ruled out for the maze algorithm itself.
+  TWBS, Master Build Plan, `packages/INDEX.md`, `FS-102`/`FEAT-9000` metadata, `ROADMAP.md`
+  updated. No code touched, ROM byte-identical. Committed (`aeacf85`) and pushed. Harvested: no
+  new findings — `BL-0093` updated in place, still `SCHEDULED`. **`IP-1021` is not authorized.**
+- **Next step:** **GATE — `IP-1021` is not authorized** (no G3 on record, a forward-design
+  package, not bootstrap-carve-out eligible). Per `00-pipeline-manager`'s own Step 4, this stops
+  for the user's explicit go-ahead before `08-code-implementation` can begin. Separately, still
   available: `BL-0082` (streaming/infinite-world research) and `BL-0066` (`NEEDS-USER`). Still
   session-blocked: `09-package-verification` on `IP-1081`.
-- **Open gates:** None requiring the user this run. **Session-blocked:** `09-package-verification`
-  on `IP-1081` (needs a fresh session before `IP-1082` can build).
+- **Open gates:** G3 authorization for `IP-1021` (win-condition redesign, `BL-0093`) — awaiting
+  the user. **Session-blocked:** `09-package-verification` on `IP-1081` (needs a fresh session
+  before `IP-1082` can build).
 
 ## Run log
 
@@ -546,3 +562,4 @@
 | 123 | 2026-07-12 | advance (user-directed iteration until blocked) | `03-architecture-design-synthesis` | `BL-0093` — win-condition redesign ADR | ✅ Authored [ADR-0015](../architecture/adr/ADR-0015-dead-end-anchored-treasure-and-win-condition.md) — records the owner's own resolved decision (dead-end-priority placement, `WORLD_SCALE`-sized target, random-fill fallback, `KeyItemCount==WORLD_SCALE` win condition) as a binding decision, names the new generation-pass interaction (placement reads `GW_MAZE_STATE` at `maze_carve_done`, before the braid pass) without specifying code. Corrected `GDS-04`'s "exactly one `KeyItem` per `Region`" rule in place; added `GDS-07` §7c naming the new data-model concept, leaving byte encoding to `07`/`08`. `docs/architecture/INDEX.md`/`ROADMAP.md`/ADR index updated. No code touched, ROM unchanged. Committed (`b201694`) and pushed. Harvested: no new findings. | No skill invocation is gated. **Recommend:** `04-requirements-engineering` to derive/update the FR `ADR-0015` grounds, then `06` to update `FS-102`, then `07`/`08` to implement. Separately available: `BL-0082`, `BL-0066` (`NEEDS-USER`). Still session-blocked: `09-package-verification` on `IP-1081`. |
 | 124 | 2026-07-12 | advance (user-directed iteration until blocked) | `04-requirements-engineering` | `ADR-0015` delta — FR-9160/9161 | ✅ Authored FR-9160 (placement, supersedes FR-9130) and FR-9161 (victory condition, supersedes FR-3300), both target/not-yet-implemented, textually unmodified predecessors per the established coexistence precedent. Corrected an unrelated FR-9130 staleness (IP-1020/VR-1020 already shipped/verified it). RTM +2 rows, Review finding #14 (clean). `docs/requirements/INDEX.md`/`ROADMAP.md` updated. No code touched, ROM unchanged. Committed (`0874ce7`) and pushed. Harvested: no new findings. | No skill invocation is gated. **Recommend:** `06-feature-specification` to update `FS-102`'s KeyItem-placement workflow/AC and the victory-condition FS section. Separately available: `BL-0082`, `BL-0066` (`NEEDS-USER`). Still session-blocked: `09-package-verification` on `IP-1081`. |
 | 125 | 2026-07-12 | advance (user-directed iteration until blocked) | `06-feature-specification` | `FS-102` — revise for win-condition redesign | ✅ Updated Workflow A/B (placement algorithm, corrected a genuine victory-formula drift — the prior text stated `WorldScale²`, never actually decided by any binding artifact), Data Model Changes (§7c tri-state concept), AC (AC-5 revised, AC-9 new), Verification Plan, Dependencies, Related ADRs. Filed 2 non-blocking Open Questions (catalog-citation lag → `05`; encoding choice → `07`). `docs/features/INDEX.md`/`FEAT-9000` metadata/`ROADMAP.md` updated. No code touched, ROM unchanged. Committed (`4b20a85`) and pushed. Harvested: no new findings. | No skill invocation is gated. **Recommend:** `07-implementation-planning` to package `FS-102`'s revised behavior. Separately available: `BL-0082`, `BL-0066` (`NEEDS-USER`). Still session-blocked: `09-package-verification` on `IP-1081`. |
+| 126 | 2026-07-12 | advance (user-directed iteration until blocked) | `07-implementation-planning` | `FS-102` revised behavior — package `BL-0093` | ✅ Packaged as `IP-1021` (`08-code-implementation`): `generate_world`'s new placement pass, `check_complete`'s corrected comparison, `worldgen.py` mirror. Resolved OQ5 (widened `KEYITEM_FLAGS` domain, confirmed zero downstream changes needed via direct code read). TWBS/Master Build Plan/`packages/INDEX.md`/metadata/`ROADMAP.md` updated. No code touched, ROM byte-identical. Committed (`aeacf85`) and pushed. Neither authorized. | **GATE:** G3 authorization needed for `IP-1021` before `08-code-implementation` can begin. |
