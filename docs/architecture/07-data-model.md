@@ -1,7 +1,8 @@
 # GDS-07 — Data Model
 
 > **Status: ✅ Authored (bootstrap as-built, 2026-07-06; delta 2026-07-09 for the procgen-world
-> increment — see "Data Model delta" below).** Owned by `03-architecture-design-synthesis`.
+> increment — see "Data Model delta" below; delta 2026-07-12 — §7c, per-region treasure-presence
+> concept, `ADR-0015`).** Owned by `03-architecture-design-synthesis`.
 > Builds on [GDS-06](06-non-functional-requirements.md); the next level,
 > [GDS-08 Presentation Architecture](08-presentation-architecture.md), builds on this one.
 > **This is the first level authorized to state exact byte addresses** — GDS-04's Domain
@@ -264,6 +265,48 @@ explicitly zeroes `GW_MAZE_STATE`/`GW_MAZE_DRAW_CTR` and marks region 0 visited 
 start of every call). Two new subroutines, `gw_neighbor_hl` (region+direction → `REGION_GRAPH`
 neighbor-byte address) and `gw_maze_state_hl` (region → `GW_MAZE_STATE` byte address), reached
 only via `CALL`, placed immediately before `save_to_sram`'s label.
+
+### 7c. Per-region treasure-presence concept — `ADR-0015` (decided 2026-07-12, not yet implemented)
+
+`ADR-0015` (`BL-0093`) makes `KeyItem` placement selective — `WorldScale` total, zero-or-one per
+`Region`, decided at generation time from the pre-braid spanning-tree's leaf structure (§7b's
+`GW_MAZE_STATE`, read before `maze_prune` runs) with a random-fill fallback. **This needs a new
+data-model concept `KEYITEM_FLAGS` cannot currently represent**: today `KEYITEM_FLAGS` (§2, up to
+81 bytes) is a 2-valued bitmap per region — `0` = has a `KeyItem`, not yet collected; `1` =
+collected. There is no value meaning "this region was never assigned a `KeyItem`," because under
+the shipped (and 2026-07-09 target) model every region always has one.
+
+**This level names the concept, not the byte encoding** (this pass's own scope boundary; the
+choice below is a real, open implementation decision for `07-implementation-planning`/
+`08-code-implementation` to make against the real code, not dictated here):
+
+- A per-region **tri-state** is needed: *no `KeyItem`* / *`KeyItem` present, uncollected* /
+  *`KeyItem` present, collected*. Two representationally distinct shapes are both plausible
+  against the existing byte-per-region convention this codebase already uses throughout
+  (`KEYITEM_FLAGS`, `SCOREITEM_FLAGS`, `GW_MAZE_STATE`):
+  - **Widen `KEYITEM_FLAGS`'s own value domain** from `{0, 1}` to `{0, 1, 2}` (e.g. `0`=present/
+    uncollected, `1`=present/collected, `2`=absent) — no new WRAM/SRAM address, but every reader
+    of `KEYITEM_FLAGS` that currently treats "nonzero" as "collected" (`setup_zone_collects`'s
+    inactive-marking check, per its own comment at `asm_game.py:1194-1196`) needs re-auditing,
+    since a value of `2` would also read as "nonzero" — whether that's the *correct* behavior
+    (suppressing render for an absent item, same visible effect as an already-collected one) or a
+    latent bug needs direct confirmation against the real pickup/render code paths at
+    implementation time, not assumed here.
+  - **A new, separate per-region presence bitmap** (up to 81 bytes, mirroring `KEYITEM_FLAGS`'s
+    own sizing convention) — costs new WRAM (comfortably inside the confirmed headroom, per §7b's
+    own precedent of adding 85 bytes for the maze pass alone) but keeps "has an item" and "has
+    been collected" as cleanly separable concerns, avoiding the widened-value-domain's re-audit
+    risk above.
+- **SRAM/save-format impact:** whichever encoding is chosen, the presence decision (unlike
+  collected-state) is **generation-derived, not save-worthy on its own** — it must be
+  recomputed identically every time `REGION_GRAPH` regenerates from `(SEED, WORLD_SCALE)` on load
+  (`ADR-0009`'s existing determinism guarantee, extended here), the same "regenerate, don't
+  persist" precedent `REGION_GRAPH` itself already sets (`ADR-0012` point 6). Only the *collected*
+  half of whichever encoding is chosen needs its own save-format field, following `KEYITEM_FLAGS`'
+  existing `SRAM_KEYITEM_FLAGS` precedent (§7 above) exactly.
+- **Victory-check impact:** `check_complete`'s comparison target changes from the literal `9` to
+  a read of `WORLD_SCALE` (§2's existing WRAM address, no new field needed) — a one-operand change
+  at the implementation level, named here only because it is this delta's own direct consequence.
 
 ### 8. Tile index map implication (cross-reference only — GDS-08 decides the actual strategy)
 

@@ -2,7 +2,8 @@
 
 > **Status: ✅ Authored (bootstrap as-built, 2026-07-06; delta 2026-07-09 for the procgen-world
 > increment — see "Domain Model delta" below; delta 2026-07-10 — SaveGame relationship bullet
-> corrected to reflect shipped `ScoreItem` persistence, `BL-0033`).** Owned by
+> corrected to reflect shipped `ScoreItem` persistence, `BL-0033`; delta 2026-07-12 — `KeyItem`
+> cardinality/win-condition correction, `ADR-0015`).** Owned by
 > `03-architecture-design-synthesis`.
 > Builds on [GDS-03](03-architecture.md); the next level,
 > [GDS-05 Functional Requirements](05-functional-requirements.md), builds on this one.
@@ -160,13 +161,14 @@ ship** — the entities and rules above remain the accurate as-shipped model unt
 
 ### New domain rules (generator-guaranteed, per ADR-0009)
 
-- **Exactly one `KeyItem` per `Region`** — generalizes the existing "exactly one Carrot per Zone"
-  invariant. Where the shipped rule holds only because `ZONE_COLLECTS` happens to be authored
-  that way (no code-level enforcement, per this document's existing "Relationships worth naming
-  explicitly" note above), the generated-world version is **structurally guaranteed by the
-  generator itself** (ADR-0009) and independently confirmed by a generator-property test across a
-  `(seed, scale)` corpus ([R305](../research/encyclopedia/R305-emulator-based-test-design.md)'s
-  extension) — a stronger guarantee than the shipped model's, not a weaker one.
+- **Exactly one `KeyItem` per `Region`** *(superseded 2026-07-12 by
+  [ADR-0015](adr/ADR-0015-dead-end-anchored-treasure-and-win-condition.md) — see the
+  "Decided, not yet implemented" note above; kept here, struck through in spirit rather than
+  deleted, so the supersession itself stays visible in this document's own history)* — originally
+  generalized "exactly one Carrot per Zone" and was structurally guaranteed by the generator
+  itself (ADR-0009). **Replaced by:** exactly `WorldScale` `KeyItem`s total, placed at zero-or-one
+  per `Region`, prioritizing pre-braid maze dead ends with a random-fill fallback — still a
+  generator-guaranteed *count*, no longer a per-region universal.
 - **Grammar-valid adjacency everywhere** *(new — no shipped precedent)* — every generated
   `Region`-to-`Region` edge must appear in
   [R212](../research/encyclopedia/R212-wordless-environmental-storytelling-biome-grammar.md)'s
@@ -196,6 +198,19 @@ description above ("generated adjacency edges... not derivable from its index al
 accommodates this — no entity-model change is needed, only the generator that populates the
 edges. Awaits a future `07`/`08` implementation package.
 
+**Decided, not yet implemented ([ADR-0015](adr/ADR-0015-dead-end-anchored-treasure-and-win-condition.md),
+2026-07-12) — corrects this section's own "New domain rules" below:** the "exactly one `KeyItem`
+per `Region`" rule this section states is **superseded**. A `Region` now has **zero or one**
+`KeyItem` — the generator places exactly `WorldScale` `KeyItem`s total (not one per `Region`),
+prioritizing the pre-braid spanning tree's own leaf (dead-end) regions, with a random-fill
+fallback among the remaining regions when leaf count falls short of `WorldScale` (confirmed the
+common case at `WorldScale` ≤ 7, per
+[R215](../research/encyclopedia/R215-procgen-win-condition-design.md)'s measured data). The
+*count* is still generator-guaranteed (exactly `WorldScale`, always achievable), only the
+*per-region universality* is not. `KeyItemCount == WorldScale` becomes the win condition,
+replacing the fixed `CarrotCount == 9`/`KeyItemCount == 9` check this section's Relationships
+section (above) still describes. Awaits a future `07`/`08` implementation package.
+
 ### Updated relationship overview (target state)
 
 ```
@@ -219,6 +234,23 @@ SaveGame ──snapshots──▶ { Player.Position, current Region, KeyItemCoun
 **This delta does not touch `Player`, `Score`, `ScoreItem`, or `GameState`'s core shape** — those
 entities and their relationships are unaffected by C9/C10 beyond `GameState` gaining the two new
 states [GDS-01](01-concept-of-play.md) §4a already records (MAIN MENU, SEED/SCALE ENTRY).
+
+**Correction ([ADR-0015](adr/ADR-0015-dead-end-anchored-treasure-and-win-condition.md),
+2026-07-12) to the diagram above:** the `KeyItem` cardinality and win condition it shows are
+superseded —
+
+```
+                                      ├──hosts, per region (0 or 1)──▶ KeyItem (WorldScale total,
+                                      │                                 dead-end-prioritized) — scarce,
+                                      │                                 feeds victory
+
+KeyItemCount ──accumulates from──▶ KeyItem collection, up to WorldScale total (KeyItemFlags[region])
+
+Victory ──triggers when──▶ KeyItemCount == WorldScale  (replaces the fixed == 9 check)
+```
+
+`ScoreItem`'s own abundant-tier structure and per-region hosting are unaffected — only `KeyItem`'s
+cardinality and the victory threshold change.
 
 ## Merge gate
 
