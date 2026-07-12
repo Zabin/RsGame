@@ -557,3 +557,70 @@ safe.
   verification-against-reproduction-data): both honored directly in this pass (see Supersession
   sweep above; the `7,9,8` triplet's own non-degeneracy was verified against a 2000-seed corpus
   before this package was written, not merely asserted from `ADR-0014`'s own citation).
+
+## RIGHT zone-transition regression (`BL-0076`, planned 2026-07-12)
+
+One package: a single boundary-constant fix in `check_zone_transition`, a direct regression from
+this session's own `IP-9090`. No FS — this repairs an already-shipped, already-`COMPLETE`
+routine's internal threshold, not a new capability; `check_zone_transition`'s own interface and
+every other direction's behavior are unchanged.
+
+### Verb inventory
+
+Not applicable — a single-constant boundary fix, not a multi-verb capability.
+
+### Supersession sweep
+
+Run directly, extended per this bug's own root-cause class (a magic-number boundary constant that
+drifted out of sync with a sibling constant elsewhere in the same file — exactly the class of gap
+`IP-9090`'s own supersession sweep should have, but did not, catch): grepped `asm_game.py` for
+every `CP_n(156)`, `CP_n(152)`, `CP_n(153)`, `CP_n(159)`, `CP_n(160)` occurrence. **Exactly two
+hits, both already accounted for**: `handle_play_input`'s own RIGHT clamp (`asm_game.py:518`,
+`CP_n(153)`, correctly fixed by `IP-9090`) and `check_zone_transition`'s own RIGHT-edge trigger
+(`asm_game.py:662`, `CP_n(156)`, this package's own target). No third call site carries the same
+latent inconsistency (`draw_region_arrows`' `ARROW_ADDR_R` is a fixed VRAM tilemap offset,
+unrelated to `PLAYER_X`; `update_oam`'s own OAM-X write is a flat `+8` sprite-offset add, not a
+boundary comparison). Extended to `test_rom.py` per `BL-0071`'s own established discipline:
+`T7.10`/`T17.c1`/`T11.a2` all use a memory-forced `PLAYER_X` value (`159`, `159`, `156`
+respectively) at or above the *new* threshold (`152`) as well as the old one — none needs updating,
+each remains correct under the new comparison for the reason it was written (a true grid-boundary
+region with no right neighbor, or a value comfortably above either threshold). **Sweep result:
+clean — exactly one other file location shares the old constant, and it's this package's own
+target, not an overlooked duplicate.**
+
+**Broader test-coverage gap found, named but not fixed by this package** (a `BL-0071`/`BL-0073`-
+class process finding, not this package's own scope-creep): no existing `test_rom.py` check
+confirms a zone transition actually *fires* via genuine, real button-press-driven walking, in any
+of the four directions — every existing "did the zone change" check (`T11.a2`, `T17.a`, `T19.*`)
+uses memory-forced `PLAYER_X`/`PLAYER_Y` teleportation to isolate the transition logic from the
+movement clamp, which is legitimate for *their* own purpose (testing `check_zone_transition` in
+isolation) but is exactly the reason this regression shipped undetected — no test exercises the
+*combination* of the real movement clamp and the transition threshold together. This package adds
+that missing case for RIGHT (`BL-0076`'s own direction); UP/DOWN/LEFT remain covered only
+indirectly (their clamp/threshold pairs are separately confirmed consistent, see the package's own
+§4) — a full real-button-press positive-transition sweep across all four directions is recommended
+as a future, low-urgency `07` pass, not required here.
+
+### Work unit and package cut
+
+| Work unit | Package | Owner |
+|---|---|---|
+| Fix `check_zone_transition`'s RIGHT-edge threshold (`CP_n(156)`→`CP_n(152)`) to match `IP-9090`'s corrected movement clamp; add a real-button-press regression test (`BL-0076`) | [IP-9120](packages/IP-9120-right-zone-transition-threshold-fix.md) | `08-code-implementation` |
+
+**No split** — one comparison operand, one coherent Definition of Done ("a real, sustained
+rightward button-press walk crosses into an open right-neighbor zone"), a single `asm_game.py`/
+`test_rom.py` change set with no independently-shippable sub-piece.
+
+### Sequencing summary
+
+No dependency on any other in-flight package this session — `check_zone_transition`'s only
+functional dependency is `IP-1010`'s own bootstrap (`VERIFIED`) and the already-`COMPLETE`
+`IP-9050`/`IP-9090` (both touch the same function/its caller; this package's own diff is additive
+to `IP-9090`'s, not a conflict). Independent of `IP-9110` (touches `gw_prng_step`, a disjoint
+routine) and the blocked/unauthorized `IP-1080`.
+
+### Backlog riders honored in this pass
+
+- **`BL-0076`** (Critical, RIGHT zone-transition regression — root-caused and reproduced this
+  session): packaged as `IP-9120`.
+- **`BL-0071`** (supersession sweep must include `test_rom.py`): honored directly above.
