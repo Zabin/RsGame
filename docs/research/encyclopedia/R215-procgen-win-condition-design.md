@@ -1,17 +1,46 @@
 # R215 — Win-Condition Design for Procedurally Generated, Variable-Size Worlds
 
-- **Document ID:** R215 · **Version:** 1.0 · **Status:** ✅
+- **Document ID:** R215 · **Version:** 1.1 (decision recorded 2026-07-12) · **Status:** ✅
 - **Dependencies:** R201 (the tiered collect-a-thon structure this topic re-examines under
   scaling), R213 (the spanning-tree-plus-braid generator whose reachability guarantee this
   topic's recommendations lean on), R206 (session-length/pacing constraints a win condition must
   respect)
 - **Referenced By:** none yet
-- **Produces:** the citation-grounded evidence a future `03`/`04`/`06` pass needs to redesign
-  `CARROTS_COUNT`'s victory check for a scale-driven world; unblocks `BL-0050` (the MAP/
-  status-screen redesign, which the project owner says can't be meaningfully designed until the
-  win condition is settled)
+- **Produces:** the citation-grounded evidence and empirical data behind the project owner's
+  resolved decision (below) — the direct input to the `03`/`04`/`06` passes that turn it into an
+  ADR/FR/FS; unblocked `BL-0050` (the MAP/status-screen redesign)
 - **Feature Mapping:** *(none yet)*
 - **Related Topics:** R201, R206, R213, R214
+
+## Decision (resolved 2026-07-12, project owner, direct)
+
+Neither candidate A–D below was adopted as originally framed. The owner's own synthesis, after
+reviewing this topic's dead-end-count data (§Operational Context addendum below), combines
+candidate A's shape (a fixed target count) with candidate C's spirit (tie treasure to maze
+topology, not raw region count) into a fifth shape not enumerated in the original four:
+
+- **Finite worlds (implement now):** generate a minimum of `WORLD_SCALE` treasures per world
+  (not `WORLD_SCALE²` — a small, scale-proportional count, 2 at `scale=2` up to 9 at `scale=9`).
+  Placement priority: the pre-braid spanning-tree's own leaf (dead-end) regions first — ties
+  reward to genuinely solving the maze structure, not merely visiting an adjacent region. If the
+  pre-braid tree has fewer leaves than `WORLD_SCALE` (a real, confirmed possibility — see the
+  min=0 finding below), the remainder is distributed randomly among the other regions. **Win
+  condition: collect all `WORLD_SCALE` treasures** — a fixed target, scale-and-infinity-agnostic
+  by construction (never references total region count), and always achievable by construction
+  (generation guarantees exactly `WORLD_SCALE` treasures exist somewhere reachable, per `FR-9140`).
+- **Infinite/streaming worlds (deferred — files as its own backlog item, not implemented now,
+  blocked on `BL-0082` landing first):** treasure exists *only* at maze dead ends (no
+  random-remainder fallback needed or wanted — an unbounded world always has more dead ends
+  ahead), and the win condition becomes a running high-score of treasures collected (top 3
+  persisted), replacing a fixed completion threshold entirely — the "switch to score-chasing"
+  pattern this topic's Concepts section already names as a real, precedented convention for
+  unbounded play. Recording a top-3 high score's *3-character name entry* (classic arcade
+  initials-entry UI) is explicitly deprioritized within that future work — track the numeric
+  scores, skip the name-entry UI — not a decision to omit high-score tracking itself.
+- **Standing instruction, not a one-time decision:** the owner asked for this to be revisited at
+  major release checkpoints, not treated as permanently fixed — filed as a durable disposition
+  note (not a one-shot backlog item) so future `11-release-readiness` passes know to ask whether
+  the win condition still fits as the game grows.
 
 ## Purpose
 
@@ -112,10 +141,42 @@ Confirmed directly against the shipped code and `worldgen.py`'s oracle:
   appropriately sized at 9 fixed carrots would become a much longer commitment at `scale=9`
   (81 carrots across a maze with real dead ends, per `BL-0075`'s own measured corridor lengths).
 
+### Addendum — pre-braid spanning-tree dead-end counts (measured, informs the Decision above)
+
+Measured directly against `worldgen.py`'s oracle (200 seeds per scale, dead end = a region with
+degree 1 in the finished `REGION_GRAPH`, i.e. exactly one open neighbor):
+
+| `WORLD_SCALE` | regions | mean dead-ends | min | max |
+|---|---|---|---|---|
+| 2 | 4 | 1.50 | 0 | 2 |
+| 3 | 9 | 1.71 | 0 | 3 |
+| 4 | 16 | 2.13 | 0 | 5 |
+| 5 | 25 | 2.40 | 0 | 6 |
+| 6 | 36 | 3.04 | 0 | 7 |
+| 7 | 49 | 3.60 | 0 | 7 |
+| 8 | 64 | 4.38 | 1 | 9 |
+| 9 | 81 | 5.16 | 1 | 10 |
+
+Two findings this directly informs:
+
+- **Dead-end count grows much slower than region count** — a 20× growth in regions (4→81, scale
+  2→9) produces only a ~3.5× growth in dead ends (1.5→5.2 mean). A "one treasure per dead end,
+  collect them all" design would give a *shrinking* proportion of achievable treasure as the world
+  grows, not a bigger goal — the opposite of naive scaling intuition. This is why the resolved
+  Decision above ties the target *count* to `WORLD_SCALE` (a value the design controls directly)
+  rather than to the dead-end count itself (a value the maze algorithm only loosely controls).
+- **Some seeds have zero pre-braid dead ends at every scale from 2–7** (`min=0`) — a fully-braided
+  spanning tree can legitimately have no leaves at all. This is the direct evidence behind the
+  Decision's random-remainder fallback: a strict dead-ends-only rule would be unwinnable-by-design
+  in those seeds at the `WORLD_SCALE` treasure count the Decision targets, so the fallback is not
+  a minor edge case — it is load-bearing for every scale below 8.
+
 ## Implementation Guidance
 
-Three grounded candidates, matching the ones named at `BL-0081`'s own intake, each evaluated
-against the evidence above — presented as tradeoffs for the next design stage to choose from, not
+**Superseded by the Decision recorded above** — kept below as the tradeoff analysis that led
+there, not as open options. Four grounded candidates, matching the ones named at `BL-0081`'s own
+intake, each evaluated against the evidence above — presented as tradeoffs for the next design
+stage to choose from, not
 resolved here (that decision belongs to `03`/`04`, not this research topic):
 
 - **A. Scale-relative carrot count** (e.g. `CARROTS_COUNT >= WORLD_SCALE² ` for full 100%, or a
