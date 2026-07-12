@@ -14,7 +14,7 @@
 
 ## Position
 
-- **Updated:** 2026-07-12 (run #123)
+- **Updated:** 2026-07-12 (run #124)
 - **Increment:** Bootstrap baseline remains fully closed (01–11 ✅, GO recorded). Run #96
   implemented `IP-1080` (`COMPLETE`, 230/230), closing the maze-shaped region adjacency tranche's
   critical-path extent. **Run #97:** the user then directly reported a bug while reviewing that
@@ -378,12 +378,25 @@
   (widen `KEYITEM_FLAGS`'s value domain vs. a new bitmap) to `07`/`08`. `docs/architecture/INDEX.md`/
   `ROADMAP.md`/the ADR index all updated. No code touched, ROM unchanged. Committed (`b201694`)
   and pushed. Harvested: no new findings — `BL-0093` updated in place, still `SCHEDULED`.
-- **Next step:** No skill invocation is gated. **Recommend:** `04-requirements-engineering` to
-  derive/update the FR `ADR-0015` grounds (the `KeyItemCount == WORLD_SCALE` win condition and the
-  selective-placement requirement), then `06-feature-specification` to update `FS-102`'s own
-  workflow/AC accordingly, then `07`/`08` to implement. Separately, still available: `BL-0082`
-  (streaming/infinite-world research) and `BL-0066` (`NEEDS-USER`). Still session-blocked:
-  `09-package-verification` on `IP-1081`.
+- **Run #124 (advance, user-directed iteration until blocked):** invoked
+  `04-requirements-engineering` on `ADR-0015`'s delta. Authored **FR-9160** (scale-relative,
+  dead-end-prioritized `KeyItem` placement — supersedes `FR-9130`) and **FR-9161** (scale-relative
+  victory condition — supersedes `FR-3300`), both target/not-yet-implemented. `FR-9130`/`FR-3300`
+  left textually unmodified, each gained a Notes forward-pointer only, per the established
+  `FR-1120`→`FR-1170`-`1190` coexistence precedent (now a fourth instance). Corrected an
+  unrelated, pre-existing staleness in `FR-9130`'s own Notes (falsely claimed "Not yet
+  implemented" — `IP-1020`/`VR-1020` had already shipped and verified it) while the FR was
+  already open. Added finding #14 to the Requirements Review (delta reviewed as a set, clean —
+  `FR-9160`/`FR-9161` confirmed consistent with `FR-9120`/`FR-3220`, both unaffected) and two new
+  `UNASSIGNED` rows to the traceability matrix. `docs/requirements/INDEX.md`/`ROADMAP.md` updated.
+  No code touched, ROM unchanged. Committed (`0874ce7`) and pushed. Harvested: no new findings —
+  `BL-0093` updated in place, still `SCHEDULED`.
+- **Next step:** No skill invocation is gated. **Recommend:** `06-feature-specification` to update
+  `FS-102`'s (`FEAT-9000`'s spec) own `KeyItem`-placement workflow/AC to match `FR-9160`, and
+  either extend `FS-105`/`FS-104` or a new FS section for the `FR-9161` victory-threshold change,
+  then `07`/`08` to implement. Separately, still available: `BL-0082` (streaming/infinite-world
+  research) and `BL-0066` (`NEEDS-USER`). Still session-blocked: `09-package-verification` on
+  `IP-1081`.
 - **Open gates:** None requiring the user this run. **Session-blocked:** `09-package-verification`
   on `IP-1081` (needs a fresh session before `IP-1082` can build).
 
@@ -517,3 +530,4 @@
 | 121 | 2026-07-12 | advance (user-directed iteration until blocked) | `08-content-authoring` | `IP-1081` — maze-blocked edge indicator content | ✅ Added 4 new tile bitmaps (`TL_BLOCKED_U/D/L/R`, `0x1A`-`0x1D`), a broken/dashed-bar silhouette confirmed visually distinct from the arrow tiles (rendered comparison), registered via `build_tile_data()`'s `put()` convention. Zero new palette entries. `GDS-07` §4/`memory.md` updated. Suite unchanged at 231/231 (nothing calls the tiles yet). ROM modified (new tile data), rebuilt, byte growth absorbed within existing padding. `IP-1081` → `COMPLETE`. Committed (`5569ba7`) and pushed. Harvested: no new findings. | **GATE (session-blocked):** `09-package-verification` needs a fresh session (same-session independence rule) before `IP-1082` can build on `IP-1081`. |
 | 122 | 2026-07-12 | advance (user-directed iteration until blocked) | `02-research-game-design` | `BL-0081` — win-condition research for procgen worlds | ✅ Authored [R215](../research/encyclopedia/R215-procgen-win-condition-design.md) — surveyed fixed-goal-node/percentage-completion/open-world conventions via cited `WebSearch`, confirmed `FR-9140`'s reachability guarantee, presented 4 candidates (scale-relative count, percentage threshold, fixed goal region, hybrid) without picking one. Cross-linked R201/R206/R213. `BL-0081` → `DONE`; `BL-0050`'s revisit trigger fired, re-dispositioned `SCHEDULED`. No code touched, ROM unchanged. Committed (`584233a`) and pushed. Harvested: no new findings. | No skill invocation is gated. **Recommend:** `04-requirements-engineering` to pick a win-condition candidate from R215 and derive the FR — a real design decision that may itself need surfacing to the user. Separately available: `BL-0082` (streaming/infinite-world research), `BL-0066` (`NEEDS-USER`). Still session-blocked: `09-package-verification` on `IP-1081`. |
 | 123 | 2026-07-12 | advance (user-directed iteration until blocked) | `03-architecture-design-synthesis` | `BL-0093` — win-condition redesign ADR | ✅ Authored [ADR-0015](../architecture/adr/ADR-0015-dead-end-anchored-treasure-and-win-condition.md) — records the owner's own resolved decision (dead-end-priority placement, `WORLD_SCALE`-sized target, random-fill fallback, `KeyItemCount==WORLD_SCALE` win condition) as a binding decision, names the new generation-pass interaction (placement reads `GW_MAZE_STATE` at `maze_carve_done`, before the braid pass) without specifying code. Corrected `GDS-04`'s "exactly one `KeyItem` per `Region`" rule in place; added `GDS-07` §7c naming the new data-model concept, leaving byte encoding to `07`/`08`. `docs/architecture/INDEX.md`/`ROADMAP.md`/ADR index updated. No code touched, ROM unchanged. Committed (`b201694`) and pushed. Harvested: no new findings. | No skill invocation is gated. **Recommend:** `04-requirements-engineering` to derive/update the FR `ADR-0015` grounds, then `06` to update `FS-102`, then `07`/`08` to implement. Separately available: `BL-0082`, `BL-0066` (`NEEDS-USER`). Still session-blocked: `09-package-verification` on `IP-1081`. |
+| 124 | 2026-07-12 | advance (user-directed iteration until blocked) | `04-requirements-engineering` | `ADR-0015` delta — FR-9160/9161 | ✅ Authored FR-9160 (placement, supersedes FR-9130) and FR-9161 (victory condition, supersedes FR-3300), both target/not-yet-implemented, textually unmodified predecessors per the established coexistence precedent. Corrected an unrelated FR-9130 staleness (IP-1020/VR-1020 already shipped/verified it). RTM +2 rows, Review finding #14 (clean). `docs/requirements/INDEX.md`/`ROADMAP.md` updated. No code touched, ROM unchanged. Committed (`0874ce7`) and pushed. Harvested: no new findings. | No skill invocation is gated. **Recommend:** `06-feature-specification` to update `FS-102`'s KeyItem-placement workflow/AC and the victory-condition FS section. Separately available: `BL-0082`, `BL-0066` (`NEEDS-USER`). Still session-blocked: `09-package-verification` on `IP-1081`. |
