@@ -30,7 +30,7 @@
 | FR-1160 | PLAYING→VICTORY→TITLE transition | — | GDS-01 §4; GDS-05 C4 | — | `asm_game.py` | UNASSIGNED | UNASSIGNED | T4.8/T4.9/T4.10 |
 | FR-2100 | Continuous fixed-speed movement | R202 | GDS-05 C2 | — | `asm_game.py` | UNASSIGNED | IP-9090 | T7.1–T7.7, T7.8/T7.8b/T7.10/T7.10b (boundary-clamp fix) |
 | FR-2200 | Facing-direction tracking | — | GDS-04; GDS-05 C2 | — | `asm_game.py` | UNASSIGNED | UNASSIGNED | T7.2/T7.4, T6.5/T6.6 |
-| FR-2300 | Zone-boundary transition on valid neighbor | — | GDS-05 C2; GDS-04 | — | `asm_game.py` | UNASSIGNED | IP-9050, IP-9120 | T17.a–b (all four edges, scale=5 + scale=3 regression — supersedes retired T9.2–T9.13, `IP-9050`), T7.11 (real button-press-driven RIGHT transition, `IP-9120`) |
+| FR-2300 | Zone-boundary transition on valid neighbor | — | GDS-05 C2; GDS-04 | — | `asm_game.py` | UNASSIGNED | IP-9050, IP-9120, IP-9130 | T17.a–b (all four edges, scale=5 + scale=3 regression — supersedes retired T9.2–T9.13, `IP-9050`), T7.11 (real button-press-driven RIGHT transition, `IP-9120`), T7.12 (no spurious transition on a perpendicular approach, `IP-9130`) |
 | FR-2310 | No transition at grid boundary | — | GDS-05 C2 | — | `asm_game.py` | UNASSIGNED | UNASSIGNED | T7.9/T7.10, T17.c (supersedes retired T9.5/T9.11/T9.14, `IP-9050`) |
 | FR-2320 | On-screen transition-edge signaling | R203 | GDS-05 C2 | — | `tilemaps.py` | UNASSIGNED | UNASSIGNED | UNASSIGNED |
 | FR-2330 | Three-state transition-edge signaling for a maze-shaped world (target — 2026-07-11) | — | ADR-0012 point 2 | ADR-0009, ADR-0012 | `asm_game.py` | UNASSIGNED | UNASSIGNED | UNASSIGNED |

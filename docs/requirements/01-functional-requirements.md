@@ -414,6 +414,16 @@
   defect, not a requirement-text problem; fixed by aligning the threshold to the corrected
   clamp (`152`). `T7.11` added as a real-button-press-driven positive-transition regression
   test, the class of check missing across all four directions that let this ship undetected.
+  **2026-07-12 delta (`IP-9130`, `BL-0078`):** a second, distinct defect in this FR's own
+  implementation — `check_zone_transition`'s four branches tested only position, never whether
+  the player was actually holding the corresponding direction, so entering a new region via one
+  axis while still positioned at a boundary on the *other* axis (e.g. sitting at the RIGHT clamp
+  ceiling after an earlier rightward walk, then entering a new region by walking DOWN) could fire
+  a spurious transition the player never intended. Invisible under the old full-lattice model
+  (blocked-right was uniform per grid column); reachable once the maze pass (`IP-1070`) made
+  open/blocked vary per-region. Fixed by gating all four branches on the corresponding `JOY_CUR`
+  direction bit, mirroring `handle_play_input`'s own gating. New check `T7.12` (direct `BL-0078`
+  regression test).
 
 ### FR-2310 — No transition at grid boundary
 

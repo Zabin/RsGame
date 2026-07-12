@@ -662,6 +662,13 @@ def build_game_asm(rom: ROM) -> dict:
     # ceiling exactly -- IP-9090's corrected clamp (max X=152) fell below
     # this threshold's old value of 156, making the RIGHT transition
     # unreachable through normal play; fixed here, IP-9120/BL-0076)
+    # -- gated on RIGHT actually being held (IP-9130/BL-0078): the
+    # position test alone is not enough, since PLAYER_X persists across a
+    # transition on the OTHER axis -- entering a new region via DOWN/UP
+    # while still sitting at the RIGHT clamp ceiling from an earlier walk
+    # must not spuriously fire RIGHT here just because that new region
+    # happens to have an open right neighbor.
+    rom.LD_A_nn(JOY_CUR); rom.BIT_b_A(J_RIGHT); rom.JR_Z('czt_left')
     rom.LD_A_nn(PLAYER_X); rom.CP_n(152); rom.JR_C('czt_left')
     rom.CALL('czt_region_hl')
     rom.INC_HL(); rom.INC_HL(); rom.INC_HL(); rom.INC_HL()   # HL -> +4 (right)
@@ -671,6 +678,7 @@ def build_game_asm(rom: ROM) -> dict:
     rom.JP('czt_redraw')
 
     rom.label('czt_left')
+    rom.LD_A_nn(JOY_CUR); rom.BIT_b_A(J_LEFT); rom.JR_Z('czt_top')
     rom.LD_A_nn(PLAYER_X); rom.OR_A(); rom.JR_NZ('czt_top')
     rom.CALL('czt_region_hl')
     rom.INC_HL(); rom.INC_HL(); rom.INC_HL()   # HL -> +3 (left)
@@ -680,6 +688,7 @@ def build_game_asm(rom: ROM) -> dict:
     rom.JP('czt_redraw')
 
     rom.label('czt_top')
+    rom.LD_A_nn(JOY_CUR); rom.BIT_b_A(J_UP); rom.JR_Z('czt_bot')
     rom.LD_A_nn(PLAYER_Y); rom.CP_n(18); rom.JR_NC('czt_bot')
     rom.CALL('czt_region_hl')
     rom.INC_HL()   # HL -> +1 (up)
@@ -689,6 +698,7 @@ def build_game_asm(rom: ROM) -> dict:
     rom.JP('czt_redraw')
 
     rom.label('czt_bot')
+    rom.LD_A_nn(JOY_CUR); rom.BIT_b_A(J_DOWN); rom.RET_Z()
     rom.LD_A_nn(PLAYER_Y); rom.CP_n(128); rom.RET_C()
     rom.CALL('czt_region_hl')
     rom.INC_HL(); rom.INC_HL()   # HL -> +2 (down)

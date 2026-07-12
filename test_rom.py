@@ -563,6 +563,31 @@ check("T7.11 Real, sustained RIGHT button-press input crosses into the open neig
       pb.memory[CUR_ZONE] == 4 and pb.memory[PLAYER_X] <= 20,
       f"zone={pb.memory[CUR_ZONE]} x={pb.memory[PLAYER_X]}")
 
+# T7.12 -- no spurious transition on a perpendicular approach (the direct
+# BL-0078 regression test). Region 0 (the default new-game start) has no
+# right neighbor (true grid boundary) but does have an open down neighbor
+# (region 3), which itself has an open right neighbor (region 4) -- walk
+# RIGHT until blocked, release, then walk DOWN only (never touching
+# left/right again): the down transition must still fire correctly, and
+# must NOT spuriously continue on into region 4 just because PLAYER_X is
+# still sitting at the RIGHT clamp ceiling from the earlier walk.
+pb.memory[CUR_ZONE] = 0; pb.memory[PLAYER_X] = 76; pb.memory[PLAYER_Y] = 80
+pb.memory[NEED_REDRAW] = 0
+[pb.tick() for _ in range(3)]
+pb.button_press('right')
+[pb.tick() for _ in range(120)]
+pb.button_release('right')
+[pb.tick() for _ in range(2)]
+check("T7.12 setup: RIGHT walk in region 0 stays blocked (true grid boundary, no right neighbor)",
+      pb.memory[CUR_ZONE] == 0 and pb.memory[PLAYER_X] == 152,
+      f"zone={pb.memory[CUR_ZONE]} x={pb.memory[PLAYER_X]}")
+pb.button_press('down')
+[pb.tick() for _ in range(120)]
+pb.button_release('down')
+[pb.tick() for _ in range(20)]
+check("T7.12 No spurious follow-on transition after a perpendicular approach (BL-0078 direct regression test)",
+      pb.memory[CUR_ZONE] == 3, f"zone={pb.memory[CUR_ZONE]}")
+
 pb.stop()
 
 # ══════════════════════════════════════════════════════
@@ -786,17 +811,27 @@ pb.memory[PLAYER_X] = 28; pb.memory[PLAYER_Y] = 40
 sc_after = pb.memory[SCORE]
 check("T11.a1 Star (index 0) collected", sc_after > 0, f"score={sc_after}")
 
+# IP-9130 (BL-0078): check_zone_transition now also requires the matching
+# direction actually held (not just position) -- hold the real button
+# across each teleport-and-settle window, mirroring T7.9-T7.11's own
+# already-working pattern.
+_t11a_out_btn = 'right' if _t11a_dir == 3 else 'down'
+pb.button_press(_t11a_out_btn)
 if _t11a_dir == 3:
     pb.memory[PLAYER_X] = 156; pb.memory[PLAYER_Y] = 72
 else:
     pb.memory[PLAYER_X] = 80; pb.memory[PLAYER_Y] = 128
 [pb.tick() for _ in range(80)]
+pb.button_release(_t11a_out_btn)
 check("T11.a2 Transitioned out of zone 0", pb.memory[CUR_ZONE] == _t11a_expect, f"zone={pb.memory[CUR_ZONE]}")
+_t11a_back_btn = 'left' if _t11a_dir == 3 else 'up'
+pb.button_press(_t11a_back_btn)
 if _t11a_dir == 3:
     pb.memory[PLAYER_X] = 0
 else:
     pb.memory[PLAYER_Y] = 17
 [pb.tick() for _ in range(80)]
+pb.button_release(_t11a_back_btn)
 check("T11.a3 Back in zone 0", pb.memory[CUR_ZONE] == 0, f"zone={pb.memory[CUR_ZONE]}")
 check("T11.a4 Collected item (index 0) stays inactive on re-entry (AC-1)",
       pb.memory[COLL_DATA + 3] == 0, f"active={pb.memory[COLL_DATA + 3]}")
@@ -1598,21 +1633,44 @@ def _t17_dfs_tour(regions, start=0):
     dfs(start)
     return moves, visited
 
+_T17_DIR_BTN = {0: 'up', 1: 'down', 2: 'left', 3: 'right'}
+
 def _t17_do_move(pb, direction):
     """Performs the memory-forced edge-crossing move for `direction`
     (0=up,1=down,2=left,3=right, REGION_GRAPH's own order) and returns
-    (actual_zone, position_ok)."""
+    (actual_zone, position_ok). IP-9130 (BL-0078): check_zone_transition
+    now also requires the matching direction actually held, not just
+    position -- holds the real button across the teleport window,
+    mirroring T7.9-T7.11's own already-working pattern. Released the
+    instant CUR_ZONE changes (not for a fixed tick count) -- held past
+    that point, the button would keep moving the player inside the
+    *newly entered* zone too (T7.11's own overshoot bug, mirrored here)."""
+    btn = _T17_DIR_BTN[direction]
+    start_zone = pb.memory[CUR_ZONE]
+    pb.button_press(btn)
     if direction == 3:
-        pb.memory[PLAYER_X] = 156; settle(pb)
-        return pb.memory[CUR_ZONE], pb.memory[PLAYER_X] <= 20
-    if direction == 2:
-        pb.memory[PLAYER_X] = 0; settle(pb)
-        return pb.memory[CUR_ZONE], pb.memory[PLAYER_X] >= 140
-    if direction == 1:
-        pb.memory[PLAYER_Y] = 128; settle(pb)
-        return pb.memory[CUR_ZONE], pb.memory[PLAYER_Y] <= 40
-    pb.memory[PLAYER_Y] = 17; settle(pb)
-    return pb.memory[CUR_ZONE], pb.memory[PLAYER_Y] >= 100
+        pb.memory[PLAYER_X] = 156
+    elif direction == 2:
+        pb.memory[PLAYER_X] = 0
+    elif direction == 1:
+        pb.memory[PLAYER_Y] = 128
+    else:
+        pb.memory[PLAYER_Y] = 17
+    for _ in range(80):
+        pb.tick()
+        if pb.memory[CUR_ZONE] != start_zone:
+            break
+    pb.button_release(btn)
+    [pb.tick() for _ in range(2)]
+    if direction == 3:
+        result = pb.memory[CUR_ZONE], pb.memory[PLAYER_X] <= 20
+    elif direction == 2:
+        result = pb.memory[CUR_ZONE], pb.memory[PLAYER_X] >= 140
+    elif direction == 1:
+        result = pb.memory[CUR_ZONE], pb.memory[PLAYER_Y] <= 40
+    else:
+        result = pb.memory[CUR_ZONE], pb.memory[PLAYER_Y] >= 100
+    return result
 
 # T17.a/T17.d — scale=5 full-world traversal (the direct BL-0047 regression
 # test): a graph-driven DFS tour via real button-driven navigation
