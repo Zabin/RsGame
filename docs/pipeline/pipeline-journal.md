@@ -14,7 +14,7 @@
 
 ## Position
 
-- **Updated:** 2026-07-12 (run #118)
+- **Updated:** 2026-07-12 (run #119)
 - **Increment:** Bootstrap baseline remains fully closed (01–11 ✅, GO recorded). Run #96
   implemented `IP-1080` (`COMPLETE`, 230/230), closing the maze-shaped region adjacency tranche's
   critical-path extent. **Run #97:** the user then directly reported a bug while reviewing that
@@ -288,13 +288,33 @@
   assessment document itself both updated to record the confirmed GO. ROM confirmed byte-identical
   throughout (no code touched — this run is trackers/docs only, as the skill's own scope requires).
   **This closes `11-release-readiness`'s own invocation for Release 2 (bundled) end-to-end.**
-- **Next step:** No skill invocation is gated. **Recommend:** `00-pipeline-manager` to survey the
-  tree for the next increment now that Release 2 is baselined. Two live threads, neither blocking
-  the other: (1) `07-implementation-planning` to scope a rendering-half package for `BL-0075`
-  (`FEAT-2100`'s one open gap); (2) the `02-research-*` gaps `BL-0081`/`BL-0082`, now that the
-  release itself is closed and nothing else depends on their outcome first. Also open, not
-  blocking: `BL-0066` (`NEEDS-USER`), `BL-0086` (`DEFERRED`), `BL-0089`/`BL-0090`/`BL-0091` (all
-  `SCHEDULED`/`NEW` doc-refresh passes).
+- **Run #119 (advance, user-directed iteration until blocked):** Step 1/2 reconciliation +
+  triage: dispositioned `BL-0091` (`DEFERRED`, revisit trigger `BL-0050`+`BL-0081` both resolved).
+  **Caught a routing error on `BL-0075`** while re-checking its chain against `FS-108`'s own text:
+  the entry's prior disposition said "`09 → 07`, no new `06` work needed," but `FS-108` §14/§19
+  OQ2 explicitly state the rendering half's own FR/AC still need a future `06-feature-specification`
+  pass before `07`/`08` can touch it — corrected in place. **Step 3:** with that correction, the
+  highest-leverage unblocked step is `06-feature-specification` on `FS-108`'s rendering half (High
+  severity, `BL-0075`'s own resolution path, no gate — spec-writing needs no G3). **Step 4:** no
+  gate (06 writes specs only). **Step 5:** invoked `06-feature-specification`. It revised `FS-108`
+  in place — dropped the "(logic half)" qualifier, added **Workflow C** (the blocked-edge render
+  branch: reuse `DRA_ROW`/`DRA_COL` + `WORLD_SCALE` to test `row>0`/`row<SCALE-1`/`col>0`/
+  `col<SCALE-1` per direction, draw one of 4 new tiles `0x1A`–`0x1D` at the existing `ARROW_ADDR_*`
+  position on palette 2 — all already committed by `GDS-08` §10, nothing invented), closed AC-4 and
+  added AC-5 (open-case non-regression), extended the Verification Plan to ride the existing `T20`
+  suite (no new suite number), and left the exact pixel bitmap an explicit non-question (content-
+  authoring's job, consistent with every other tile-bearing FS in the tree). `docs/features/INDEX.md`,
+  the `FEAT-2100` catalog forward-reference metadata, and `ROADMAP.md`'s `FS-101+` row updated to
+  match. No code touched, ROM confirmed byte-identical. Committed (`006fe5b`) and pushed. **Step 6
+  (harvest):** no new findings beyond what's already tracked — `BL-0075` updated in place (still
+  `SCHEDULED`, next step `07`, not yet `DONE` since the rendering half remains unimplemented). No
+  open gates.
+- **Next step:** No skill invocation is gated. **Recommend:** `07-implementation-planning` to
+  package `FS-108`'s now-fully-specified rendering half (`BL-0075`) — a small package, likely
+  `08-content-authoring`-shaped (4 new tile bitmaps) plus a small `asm_game.py` branch reusing
+  already-specified arithmetic/constants. Separately, not blocking: the `02-research-*` gaps
+  `BL-0081`/`BL-0082`; `BL-0066` (`NEEDS-USER`); `BL-0086`/`BL-0089`/`BL-0090`/`BL-0091` (all
+  `DEFERRED`/`SCHEDULED` doc/research passes).
 - **Open gates:** None.
 
 ## Run log
@@ -422,3 +442,4 @@
 | 116 | 2026-07-12 | advance (gate resolution) | — | — | ✅ Asked the user directly via `AskUserQuestion` which scope `11-release-readiness` should assess. **User answered: "Release 2 bundled with all post-ship work (Recommended)."** No code/architecture change this run — a pure gate-resolution step, per the manager's own Step 4 convention (a gate stop/resolution is a complete run in its own right). | `11-release-readiness` on the bundled scope: Release 2 (`IP-1020`/`1030`/`1031`/`1040`/`1050`) plus post-ship remediation (`IP-9050`/`9060`/`9070`), maze-shaped adjacency (`IP-1070`/`1080`), movement/pickup/UI (`IP-9080`/`9090`/`9100`), and `IP-9110`/`9120`/`9130`/`9140` — everything currently shipped in the tree. |
 | 117 | 2026-07-12 | advance (user-directed iteration until blocked) | `11-release-readiness` | Bundled scope: Release 2 (IP-1020/1030/1031/1040/1050) + post-ship remediation (IP-9050/9060/9070) + maze-shaped adjacency (IP-1070/1080) + movement/pickup/UI (IP-9080/9090/9100) + IP-9110/9120/9130/9140 | ✅ **Step 1 (reconstruct the promise):** read `01-release-plan.md`'s Release 2 bucket — 7 Features (5 original + the 2026-07-11 addendum's `FEAT-9100`/`FEAT-2100`) — then confirmed each package's own Feature ownership by direct package-document read (each cites its owning FS/FEAT in §1). **Step 2 (audit delivery):** built a Scope Audit, one row per planned Feature: FS → package(s) → VR(s) → integration coverage → delivered? 6/7 fully delivered. **`FEAT-2100` found genuinely partial** — `IP-1080`'s own package title says "logic half only"; `VR-1080`'s own audit explicitly leaves AC-4 (visual rendering) open — recorded as **Deviation #1**, tied to `BL-0075` (deliberately left `SCHEDULED`, not closed by this run). The 15 bundled remediation packages have no `FEAT-xxxx` row to audit against (pure `BL-xxxx` fixes, never promised release-plan scope) — represented in a supplementary table citing their own VRs/integration reviews instead of forcing them into nonexistent Feature rows. **Step 3 (residual risk):** swept `BL-0066` (`NEEDS-USER`), `BL-0075`/`0081`/`0082`/`0086`/`0088`/`0089`/`0090` — none blocks GO except the judgment call on `FEAT-2100` itself. **Step 4:** re-ran the full gates fresh (not reused): ROM byte-identical rebuild, 231/231 tests. Wrote **[release-assessment-release-2-bundled.md](../reviews/release-assessment-release-2-bundled.md)** — **Assessment: GO recommended, with `FEAT-2100`'s partial delivery carried forward explicitly as a named exception, not silently absorbed into a clean GO.** `docs/reviews/INDEX.md` updated. **Step 5 explicitly NOT taken** — per this skill's own G4 rule, no baseline record (`01-release-plan.md`, `ROADMAP.md`, `Claude.md`, `INDEX.md` files) may be flipped without the user's own explicit GO, which has not yet been given. No drift found. | **GATE: awaiting the user's explicit GO/NO-GO decision** on the Release Assessment (including whether `FEAT-2100`'s partial-delivery framing is acceptable to baseline now, or whether the baseline flip should wait for a follow-on package covering the rendering half). On GO: same `11-release-readiness` invocation continues into Step 5 (baseline flip + commit). On NO-GO/hold: `07-implementation-planning` to scope `BL-0075`'s rendering-half package. Independently, not blocking: `BL-0066` (`NEEDS-USER`), `BL-0081`/`BL-0082`/`BL-0086`/`BL-0088`/`BL-0089`/`BL-0090` (all `SCHEDULED`/`DEFERRED`, available for the manager to pick up regardless of the release-GO answer). |
 | 118 | 2026-07-12 | advance (gate resolution + baseline update) | `11-release-readiness` | Step 5 — baseline flip on the user's explicit GO | ✅ Asked the user via `AskUserQuestion` for the explicit GO/NO-GO call on run #117's Release Assessment. **User answered: "GO now, FEAT-2100 partial (Recommended)"** — baseline Release 2 (bundled) as shipped today, with `FEAT-2100`'s rendering half explicitly recorded as not-yet-delivered rather than silently marked done. Executed Step 5: `01-release-plan.md` (Release 2 bucket header + `FEAT-2100`'s addendum row both flipped to shipped/GO-with-exception), `ROADMAP.md` (`RV-RELEASE` row, `FP-01` status line), `Claude.md` (status heading updated; the still-pre-Release-2 "Known Good Behavior" bullet list flagged as stale rather than rewritten in place — full rewrite is outside this step's trackers-only scope, filed as new **`BL-0091`**), `docs/features/INDEX.md` (`FS-107`/`FS-108` corrected to `VERIFIED`; `FS-103`'s pre-existing staleness, `BL-0088`, fixed as a natural rider — flipped `DONE`), `docs/reviews/INDEX.md` and the assessment document itself updated to record the confirmed GO. ROM confirmed byte-identical (no code touched this run). Committed and pushed. **This closes `11-release-readiness`'s Release-2-bundled invocation end-to-end.** | No skill invocation is gated. **Recommend:** `00-pipeline-manager` to survey the tree for the next increment. Two live threads, neither blocking the other: `07-implementation-planning` to scope `BL-0075`'s rendering-half package (`FEAT-2100`'s one open gap), and the `02-research-*` gaps `BL-0081`/`BL-0082`. Also open, not blocking: `BL-0066` (`NEEDS-USER`), `BL-0086` (`DEFERRED`), `BL-0089`/`BL-0090`/`BL-0091` (`SCHEDULED`/`NEW` doc-refresh passes). |
+| 119 | 2026-07-12 | advance (user-directed iteration until blocked) | `06-feature-specification` | `FS-108` — specify `FEAT-2100`'s rendering half (`BL-0075`) | ✅ **Step 1/2:** dispositioned `BL-0091` (`DEFERRED`, trigger: `BL-0050`+`BL-0081` resolved). Caught and corrected a routing error on `BL-0075` — its prior disposition skipped `06`, but `FS-108` itself says the rendering half needs a spec pass first. **Step 3/5:** invoked `06-feature-specification` on `FS-108`. Revised it in place: new **Workflow C** (blocked-edge render branch, reusing `IP-1080`'s own `DRA_ROW`/`DRA_COL` plus `WORLD_SCALE` comparisons per direction, drawing one of 4 new tiles `0x1A`–`0x1D` — all already committed by `GDS-08` §10 — at the existing `ARROW_ADDR_*` position), closed AC-4, added AC-5 (open-case non-regression), extended `T20`'s own Verification Plan (no new suite), left the exact pixel bitmap an explicit non-question (content-authoring's job). `docs/features/INDEX.md`, `FEAT-2100`'s catalog forward-reference, `ROADMAP.md`'s `FS-101+` row all updated. No code touched, ROM byte-identical. Committed (`006fe5b`) and pushed. **Step 6:** `BL-0075` updated (still `SCHEDULED`, next step `07`). No open gates. | No skill invocation is gated. **Recommend:** `07-implementation-planning` to package `FS-108`'s now-complete rendering-half spec (`BL-0075`). Separately, not blocking: `BL-0081`/`BL-0082` (`02-research-*`), `BL-0066` (`NEEDS-USER`), `BL-0086`/`BL-0089`/`BL-0090`/`BL-0091` (`DEFERRED`/`SCHEDULED`). |
