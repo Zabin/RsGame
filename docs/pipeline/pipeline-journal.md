@@ -14,7 +14,7 @@
 
 ## Position
 
-- **Updated:** 2026-07-12 (run #124)
+- **Updated:** 2026-07-12 (run #125)
 - **Increment:** Bootstrap baseline remains fully closed (01–11 ✅, GO recorded). Run #96
   implemented `IP-1080` (`COMPLETE`, 230/230), closing the maze-shaped region adjacency tranche's
   critical-path extent. **Run #97:** the user then directly reported a bug while reviewing that
@@ -391,12 +391,26 @@
   `UNASSIGNED` rows to the traceability matrix. `docs/requirements/INDEX.md`/`ROADMAP.md` updated.
   No code touched, ROM unchanged. Committed (`0874ce7`) and pushed. Harvested: no new findings —
   `BL-0093` updated in place, still `SCHEDULED`.
-- **Next step:** No skill invocation is gated. **Recommend:** `06-feature-specification` to update
-  `FS-102`'s (`FEAT-9000`'s spec) own `KeyItem`-placement workflow/AC to match `FR-9160`, and
-  either extend `FS-105`/`FS-104` or a new FS section for the `FR-9161` victory-threshold change,
-  then `07`/`08` to implement. Separately, still available: `BL-0082` (streaming/infinite-world
-  research) and `BL-0066` (`NEEDS-USER`). Still session-blocked: `09-package-verification` on
-  `IP-1081`.
+- **Run #125 (advance, user-directed iteration until blocked):** invoked
+  `06-feature-specification` on `FS-102`. Updated Workflow A step 5 (scale-relative, dead-end-
+  prioritized placement, supersedes the original one-per-region text), Workflow B step 4 (also
+  corrected a genuine drift: FS-102's own prior victory-condition forward-reference stated
+  `KeyItemCount == WorldScale²`, a formula never actually decided by any binding artifact —
+  now correctly cites `FR-9161`'s `WORLD_SCALE` threshold), Data Model Changes (§7c's new
+  tri-state concept, encoding left open), Acceptance Criteria (AC-5 revised, AC-9 new),
+  Verification Plan, Dependencies (new: `FR-9140`/`FS-107`), Related ADRs. Filed 2 new Open
+  Questions, both explicitly non-blocking: OQ4 (`FEAT-9000`'s own catalog entry still cites
+  `FR-9130`, not its successor `FR-9160` — routed to `05-feature-decomposition`, out of this
+  skill's own edit authority) and OQ5 (the per-region encoding choice — routed to `07`, per
+  `GDS-07` §7c's own deferral). `docs/features/INDEX.md`/`FEAT-9000`'s forward-reference metadata/
+  `ROADMAP.md` updated. No code touched, ROM unchanged. Committed (`4b20a85`) and pushed.
+  Harvested: no new findings beyond the two Open Questions already recorded in the spec itself —
+  `BL-0093` updated in place, still `SCHEDULED`.
+- **Next step:** No skill invocation is gated. **Recommend:** `07-implementation-planning` to
+  package `FS-102`'s revised placement/win-condition behavior (neither Open Question blocks
+  implementation-readiness, both are explicitly deferred bookkeeping). Separately, still
+  available: `BL-0082` (streaming/infinite-world research) and `BL-0066` (`NEEDS-USER`). Still
+  session-blocked: `09-package-verification` on `IP-1081`.
 - **Open gates:** None requiring the user this run. **Session-blocked:** `09-package-verification`
   on `IP-1081` (needs a fresh session before `IP-1082` can build).
 
@@ -531,3 +545,4 @@
 | 122 | 2026-07-12 | advance (user-directed iteration until blocked) | `02-research-game-design` | `BL-0081` — win-condition research for procgen worlds | ✅ Authored [R215](../research/encyclopedia/R215-procgen-win-condition-design.md) — surveyed fixed-goal-node/percentage-completion/open-world conventions via cited `WebSearch`, confirmed `FR-9140`'s reachability guarantee, presented 4 candidates (scale-relative count, percentage threshold, fixed goal region, hybrid) without picking one. Cross-linked R201/R206/R213. `BL-0081` → `DONE`; `BL-0050`'s revisit trigger fired, re-dispositioned `SCHEDULED`. No code touched, ROM unchanged. Committed (`584233a`) and pushed. Harvested: no new findings. | No skill invocation is gated. **Recommend:** `04-requirements-engineering` to pick a win-condition candidate from R215 and derive the FR — a real design decision that may itself need surfacing to the user. Separately available: `BL-0082` (streaming/infinite-world research), `BL-0066` (`NEEDS-USER`). Still session-blocked: `09-package-verification` on `IP-1081`. |
 | 123 | 2026-07-12 | advance (user-directed iteration until blocked) | `03-architecture-design-synthesis` | `BL-0093` — win-condition redesign ADR | ✅ Authored [ADR-0015](../architecture/adr/ADR-0015-dead-end-anchored-treasure-and-win-condition.md) — records the owner's own resolved decision (dead-end-priority placement, `WORLD_SCALE`-sized target, random-fill fallback, `KeyItemCount==WORLD_SCALE` win condition) as a binding decision, names the new generation-pass interaction (placement reads `GW_MAZE_STATE` at `maze_carve_done`, before the braid pass) without specifying code. Corrected `GDS-04`'s "exactly one `KeyItem` per `Region`" rule in place; added `GDS-07` §7c naming the new data-model concept, leaving byte encoding to `07`/`08`. `docs/architecture/INDEX.md`/`ROADMAP.md`/ADR index updated. No code touched, ROM unchanged. Committed (`b201694`) and pushed. Harvested: no new findings. | No skill invocation is gated. **Recommend:** `04-requirements-engineering` to derive/update the FR `ADR-0015` grounds, then `06` to update `FS-102`, then `07`/`08` to implement. Separately available: `BL-0082`, `BL-0066` (`NEEDS-USER`). Still session-blocked: `09-package-verification` on `IP-1081`. |
 | 124 | 2026-07-12 | advance (user-directed iteration until blocked) | `04-requirements-engineering` | `ADR-0015` delta — FR-9160/9161 | ✅ Authored FR-9160 (placement, supersedes FR-9130) and FR-9161 (victory condition, supersedes FR-3300), both target/not-yet-implemented, textually unmodified predecessors per the established coexistence precedent. Corrected an unrelated FR-9130 staleness (IP-1020/VR-1020 already shipped/verified it). RTM +2 rows, Review finding #14 (clean). `docs/requirements/INDEX.md`/`ROADMAP.md` updated. No code touched, ROM unchanged. Committed (`0874ce7`) and pushed. Harvested: no new findings. | No skill invocation is gated. **Recommend:** `06-feature-specification` to update `FS-102`'s KeyItem-placement workflow/AC and the victory-condition FS section. Separately available: `BL-0082`, `BL-0066` (`NEEDS-USER`). Still session-blocked: `09-package-verification` on `IP-1081`. |
+| 125 | 2026-07-12 | advance (user-directed iteration until blocked) | `06-feature-specification` | `FS-102` — revise for win-condition redesign | ✅ Updated Workflow A/B (placement algorithm, corrected a genuine victory-formula drift — the prior text stated `WorldScale²`, never actually decided by any binding artifact), Data Model Changes (§7c tri-state concept), AC (AC-5 revised, AC-9 new), Verification Plan, Dependencies, Related ADRs. Filed 2 non-blocking Open Questions (catalog-citation lag → `05`; encoding choice → `07`). `docs/features/INDEX.md`/`FEAT-9000` metadata/`ROADMAP.md` updated. No code touched, ROM unchanged. Committed (`4b20a85`) and pushed. Harvested: no new findings. | No skill invocation is gated. **Recommend:** `07-implementation-planning` to package `FS-102`'s revised behavior. Separately available: `BL-0082`, `BL-0066` (`NEEDS-USER`). Still session-blocked: `09-package-verification` on `IP-1081`. |
