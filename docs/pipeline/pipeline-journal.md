@@ -14,7 +14,7 @@
 
 ## Position
 
-- **Updated:** 2026-07-12 (run #120)
+- **Updated:** 2026-07-12 (run #121)
 - **Increment:** Bootstrap baseline remains fully closed (01–11 ✅, GO recorded). Run #96
   implemented `IP-1080` (`COMPLETE`, 230/230), closing the maze-shaped region adjacency tranche's
   critical-path extent. **Run #97:** the user then directly reported a bug while reviewing that
@@ -325,14 +325,29 @@
   No code touched, ROM byte-identical. Committed (`afc7606`) and pushed. **Step 6:** `BL-0075`
   updated (still `SCHEDULED`, next step: G3 authorization, then `08-content-authoring` on
   `IP-1081`).
-- **Next step:** **GATE — neither `IP-1081` nor `IP-1082` is authorized** (no G3 on record, both
-  are forward-design packages, not bootstrap-carve-out eligible per this skill's own rule). Per
-  `00-pipeline-manager`'s own Step 4, this stops for the user's explicit go-ahead before
-  `08-content-authoring` can begin on `IP-1081` (the critical-path package). Separately, not
-  blocking: the `02-research-*` gaps `BL-0081`/`BL-0082`; `BL-0066` (`NEEDS-USER`);
-  `BL-0086`/`BL-0089`/`BL-0090`/`BL-0091` (all `DEFERRED`/`SCHEDULED` doc/research passes).
-- **Open gates:** G3 authorization for `IP-1081`/`IP-1082` (`FS-108`'s rendering half, `BL-0075`)
-  — awaiting the user.
+- **Run #120 gate resolved (same run continued):** asked the user via `AskUserQuestion`.
+  **User answered: "Yes, build both (Recommended)"** — filed as **`BL-0092`**, `DONE` same run.
+  `IP-1081`/`IP-1082` flipped to authorized in the Master Build Plan/`packages/INDEX.md`; `IP-1081`
+  flips `NOT STARTED`→`READY`.
+- **Run #121 (advance, user-directed iteration until blocked):** with `IP-1081` `READY` and
+  authorized, invoked `08-content-authoring` on it (the critical-path package). Added 4 new tile
+  bitmaps (`TL_BLOCKED_U/D/L/R`, `0x1A`–`0x1D`) — a broken/dashed-bar silhouette, rendered and
+  visually compared against the existing arrow tiles to confirm distinctness (not merely
+  asserted) — registered via `build_tile_data()`'s `put()` convention. Zero new palette entries
+  confirmed by diff. GDS-07 §4/`memory.md` tile-index quick-refs updated (87 of 256 slots, up
+  from 83). Full suite unchanged at 231/231 (no new checks — nothing calls the new tiles yet, per
+  this package's own scope). **ROM modified** (new tile data) — rebuilt, confirmed the byte
+  growth absorbs within existing section padding, no budget concern. Package → `COMPLETE`.
+  Committed (`5569ba7`) and pushed. **Step 6 (harvest):** no new findings. `BL-0075` still
+  `SCHEDULED` (not `DONE` — `IP-1082`, the actual rendering, hasn't shipped yet).
+- **Next step:** **GATE — same-session independence.** `IP-1081` was implemented this session, so
+  `09-package-verification` cannot verify it in this session (the skill's own hard rule). `IP-1082`
+  is `BLOCKED` on `IP-1081` reaching `VERIFIED` (not merely `COMPLETE`), so it cannot proceed
+  either until a fresh session runs `09-package-verification` on `IP-1081`. This does **not**
+  block the rest of the pipeline, though — other unblocked work continues: the `02-research-*`
+  gaps `BL-0081`/`BL-0082` remain available this session.
+- **Open gates:** None requiring the user. **Session-blocked:** `09-package-verification` on
+  `IP-1081` (needs a fresh session before `IP-1082` can build).
 
 ## Run log
 
@@ -461,3 +476,4 @@
 | 118 | 2026-07-12 | advance (gate resolution + baseline update) | `11-release-readiness` | Step 5 — baseline flip on the user's explicit GO | ✅ Asked the user via `AskUserQuestion` for the explicit GO/NO-GO call on run #117's Release Assessment. **User answered: "GO now, FEAT-2100 partial (Recommended)"** — baseline Release 2 (bundled) as shipped today, with `FEAT-2100`'s rendering half explicitly recorded as not-yet-delivered rather than silently marked done. Executed Step 5: `01-release-plan.md` (Release 2 bucket header + `FEAT-2100`'s addendum row both flipped to shipped/GO-with-exception), `ROADMAP.md` (`RV-RELEASE` row, `FP-01` status line), `Claude.md` (status heading updated; the still-pre-Release-2 "Known Good Behavior" bullet list flagged as stale rather than rewritten in place — full rewrite is outside this step's trackers-only scope, filed as new **`BL-0091`**), `docs/features/INDEX.md` (`FS-107`/`FS-108` corrected to `VERIFIED`; `FS-103`'s pre-existing staleness, `BL-0088`, fixed as a natural rider — flipped `DONE`), `docs/reviews/INDEX.md` and the assessment document itself updated to record the confirmed GO. ROM confirmed byte-identical (no code touched this run). Committed and pushed. **This closes `11-release-readiness`'s Release-2-bundled invocation end-to-end.** | No skill invocation is gated. **Recommend:** `00-pipeline-manager` to survey the tree for the next increment. Two live threads, neither blocking the other: `07-implementation-planning` to scope `BL-0075`'s rendering-half package (`FEAT-2100`'s one open gap), and the `02-research-*` gaps `BL-0081`/`BL-0082`. Also open, not blocking: `BL-0066` (`NEEDS-USER`), `BL-0086` (`DEFERRED`), `BL-0089`/`BL-0090`/`BL-0091` (`SCHEDULED`/`NEW` doc-refresh passes). |
 | 119 | 2026-07-12 | advance (user-directed iteration until blocked) | `06-feature-specification` | `FS-108` — specify `FEAT-2100`'s rendering half (`BL-0075`) | ✅ **Step 1/2:** dispositioned `BL-0091` (`DEFERRED`, trigger: `BL-0050`+`BL-0081` resolved). Caught and corrected a routing error on `BL-0075` — its prior disposition skipped `06`, but `FS-108` itself says the rendering half needs a spec pass first. **Step 3/5:** invoked `06-feature-specification` on `FS-108`. Revised it in place: new **Workflow C** (blocked-edge render branch, reusing `IP-1080`'s own `DRA_ROW`/`DRA_COL` plus `WORLD_SCALE` comparisons per direction, drawing one of 4 new tiles `0x1A`–`0x1D` — all already committed by `GDS-08` §10 — at the existing `ARROW_ADDR_*` position), closed AC-4, added AC-5 (open-case non-regression), extended `T20`'s own Verification Plan (no new suite), left the exact pixel bitmap an explicit non-question (content-authoring's job). `docs/features/INDEX.md`, `FEAT-2100`'s catalog forward-reference, `ROADMAP.md`'s `FS-101+` row all updated. No code touched, ROM byte-identical. Committed (`006fe5b`) and pushed. **Step 6:** `BL-0075` updated (still `SCHEDULED`, next step `07`). No open gates. | No skill invocation is gated. **Recommend:** `07-implementation-planning` to package `FS-108`'s now-complete rendering-half spec (`BL-0075`). Separately, not blocking: `BL-0081`/`BL-0082` (`02-research-*`), `BL-0066` (`NEEDS-USER`), `BL-0086`/`BL-0089`/`BL-0090`/`BL-0091` (`DEFERRED`/`SCHEDULED`). |
 | 120 | 2026-07-12 | advance (user-directed iteration until blocked) | `07-implementation-planning` | `FS-108` rendering half — package `BL-0075` | ✅ Invoked `07-implementation-planning`. Packaged as a code/content peer pair mirroring `IP-1030`/`IP-1031`'s own precedent: **`IP-1081`** (content, `08-content-authoring`, 4 new tiles `0x1A`-`0x1D` per `GDS-08` §10) → **`IP-1082`** (render, `08-code-implementation`, `draw_region_arrows`'s blocked-case branch, reuses `IP-1080`'s `DRA_ROW`/`DRA_COL`, corrects `T20.b`, adds `T20.e`) — ordering reversed from precedent since the render branch needs the content package's tile constants. TWBS, Master Build Plan, `packages/INDEX.md`, `FS-108`/`FEAT-2100` metadata, `ROADMAP.md` updated. No code touched, ROM byte-identical. Committed (`afc7606`) and pushed. Neither package authorized. | **GATE:** G3 authorization needed for `IP-1081`/`IP-1082` before `08-content-authoring` can begin. |
+| 121 | 2026-07-12 | advance (user-directed iteration until blocked) | `08-content-authoring` | `IP-1081` — maze-blocked edge indicator content | ✅ Added 4 new tile bitmaps (`TL_BLOCKED_U/D/L/R`, `0x1A`-`0x1D`), a broken/dashed-bar silhouette confirmed visually distinct from the arrow tiles (rendered comparison), registered via `build_tile_data()`'s `put()` convention. Zero new palette entries. `GDS-07` §4/`memory.md` updated. Suite unchanged at 231/231 (nothing calls the tiles yet). ROM modified (new tile data), rebuilt, byte growth absorbed within existing padding. `IP-1081` → `COMPLETE`. Committed (`5569ba7`) and pushed. Harvested: no new findings. | **GATE (session-blocked):** `09-package-verification` needs a fresh session (same-session independence rule) before `IP-1082` can build on `IP-1081`. |
