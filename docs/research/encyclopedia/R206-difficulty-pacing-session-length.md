@@ -2,10 +2,10 @@
 
 - **Document ID:** R206 · **Version:** 1.0 · **Status:** ✅
 - **Dependencies:** R201 (goal density directly drives pacing)
-- **Referenced By:** none yet
+- **Referenced By:** R215 (pacing bounds on how large a win-condition threshold can grow, `BL-0081`)
 - **Produces:** grounds zone sizing/collectible density decisions in `tilemaps.py`
 - **Feature Mapping:** *(none yet)*
-- **Related Topics:** R201
+- **Related Topics:** R201, R215
 
 ## Purpose
 
