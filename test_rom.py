@@ -114,6 +114,7 @@ GW_SEED_OK_ADDR = _gw_rom.labels['gw_seed_ok']
 GW_SCALE_SQ = 0xC27C
 TMP1 = 0xC013; TMP2 = 0xC014
 GW_TRAP_ADDR = 0xC27D   # scratch, inside the boot-clear range, never read elsewhere
+DRA_ROW = 0xC2D8; DRA_COL = 0xC2D9   # draw_region_arrows' own re-derived row/col (IP-1080)
 
 def fresh_boot(frames=180):
     """Clean boot to title screen with no saved game."""
@@ -1114,7 +1115,9 @@ check("T13.b Transition call-site audit: exactly one copy_screen call site in ds
 # correctness; this test isolates the rendering side, same as T13.a).
 def arrow_addr(x, y): return 0x9800 + y*32 + x
 ARROW_POS = {'up': arrow_addr(15, 1), 'down': arrow_addr(15, 16),
-             'left': arrow_addr(1, 9), 'right': arrow_addr(32-2, 9)}
+             'left': arrow_addr(1, 9), 'right': arrow_addr(20-2, 9)}   # IP-9140
+             # (BL-0084): right arrow moved from column 32-2=30 (off the
+             # true 20-column visible window, never rendered) to 20-2=18.
 ARROW_TILE = {'up': 0x18, 'down': 0x19, 'left': 0x17, 'right': 0x16}  # TL_ARROW_U/D/L/R
 
 pb = fresh_boot(180)
@@ -1135,6 +1138,24 @@ for region in range(9):
 pb.stop()
 check("T13.c Regression: scale=3 arrow placement matches shipped 3x3 grid, every region/direction",
       len(arrow_bad) == 0, f"bad={arrow_bad[:5]}")
+
+# T13.d — screen-visibility audit (the direct BL-0084 regression test):
+# each of the four arrow addresses must fall inside the true visible
+# background window (20 columns x 18 rows -- the fixed 160x144px GBC
+# display, SCX=SCY=0 always in this codebase, confirmed by direct code
+# read: asm_game.py never writes either register). A tilemap-byte-value
+# check alone (T13.a-c's own method) cannot distinguish a correctly
+# written but off-screen tile from a correctly written and visible one --
+# this is the check that would have caught BL-0084 (ARROW_ADDR_R at
+# column 32-2=30, never on-screen) before it shipped.
+visibility_bad = []
+for direction, addr in ARROW_POS.items():
+    col = (addr - 0x9800) % 32
+    row = (addr - 0x9800) // 32
+    if not (0 <= col <= 19 and 0 <= row <= 17):
+        visibility_bad.append((direction, col, row))
+check("T13.d Screen-visibility audit: every arrow address falls inside the true visible 20x18 window (BL-0084)",
+      len(visibility_bad) == 0, f"bad={visibility_bad}")
 
 # ══════════════════════════════════════════════════════
 # T14 — Main Menu & New-Game Flow (IP-1040)
@@ -1990,6 +2011,119 @@ GW_MAZE_DRAW_CTR_ADDR = 0xC3F4
 check("T19.g WRAM headroom: GW_MAZE_STATE..GW_MAZE_DRAW_CTR extent stays inside bank-0 (NFR-4200)",
       0xC000 <= GW_MAZE_STATE_ADDR and GW_MAZE_DRAW_CTR_ADDR <= 0xCFFF,
       f"GW_MAZE_STATE={hex(GW_MAZE_STATE_ADDR)} extent_end={hex(GW_MAZE_DRAW_CTR_ADDR)}")
+
+# ══════════════════════════════════════════════════════
+# T20 — Maze-Aware Transition-Edge Classification (IP-1080) — render-time
+#       open/blocked/absent classification inside draw_region_arrows,
+#       distinguishing a maze-pruned edge from a true grid boundary once
+#       REGION_GRAPH's own neighbor byte alone can no longer tell them
+#       apart (FR-2330, FS-108). AC-4 (visual rendering of the blocked
+#       state) is explicitly NOT exercised here -- no suite section covers
+#       it, per FS-108 §16/§15 item 4; that gap stays open pending
+#       BL-0068's own future rendering-half package, not silently treated
+#       as covered by the checks below.
+# ══════════════════════════════════════════════════════
+print("\n=== T20: Maze-Aware Transition-Edge Classification ===")
+
+T20_CORPUS = [(0, 2), (0, 3), (1, 3), (0, 9)]   # FS-108 §16's own minimum:
+                           # scale in {2,3,9}, seed 0 included. Deliberately
+                           # NOT the full 15-entry T19_CORPUS -- unlike T19's
+                           # own checks (which read WRAM straight after
+                           # invoke_generate_world's PC/SP hijack trap),
+                           # this suite needs the CPU actually running its
+                           # normal game loop afterward (force_region_redraw
+                           # relies on it), so each entry is driven through
+                           # real button input (enter_seed_scale, T17's own
+                           # established method) rather than the trap -- an
+                           # invoke_generate_world'd CPU is left spinning in
+                           # a self-loop and never processes another redraw
+                           # (see T13.c's own comment on exactly this). A
+                           # full 15-entry real-input corpus would be a lot
+                           # of button-driven ticks for marginal extra
+                           # coverage; ARROW_POS/ARROW_TILE reused from
+                           # T13.c, defined above.
+
+t20_open_bad = []
+t20_blocked_bad = []
+t20_absent_bad = []
+t20_blocked_n = 0
+t20_absent_n = 0
+
+for seed, scale in T20_CORPUS:
+    pb = fresh_boot(200)
+    pb.button('a'); [pb.tick() for _ in range(40)]   # MAIN MENU -> new game -> SEED/SCALE ENTRY
+    enter_seed_scale(pb, [int(c) for c in f"{seed:05d}"], scale)   # -> INTRO
+    pb.button('a'); [pb.tick() for _ in range(80)]   # INTRO -> PLAYING
+    regions = worldgen.generate(seed, scale)   # oracle -- T19.c already
+                                                # proves this matches the
+                                                # real SM83-generated
+                                                # REGION_GRAPH byte-for-byte
+    for i, r in enumerate(regions):
+        row, col = divmod(i, scale)
+        # One real redraw (dsr_p -> draw_region_arrows, IP-1030's own
+        # established call site, mirroring T13.c) covers all four
+        # directions of region i in a single pass -- draw_region_arrows'
+        # own row/col re-derivation (IP-1080 §6) is left in TMP1/TMP2 by
+        # the time do_screen_redraw's LCD-off bracket completes.
+        force_region_redraw(pb, i)
+        got_row, got_col = pb.memory[DRA_ROW], pb.memory[DRA_COL]
+        row_col_ok = (got_row, got_col) == (row, col)
+        for d, direction in enumerate(('up', 'down', 'left', 'right')):
+            nb = r['neighbors'][d]
+            full_cand = _t19_full_lattice_neighbor(i, d, scale)
+            arrow_present = pb.memory[ARROW_POS[direction]] == ARROW_TILE[direction]
+            if nb is not None:
+                # open (AC-1): REGION_GRAPH shows a live neighbor -- arrow
+                # must render, unchanged from today's shipped behavior.
+                if not arrow_present:
+                    t20_open_bad.append((seed, scale, i, direction))
+            elif full_cand is not None:
+                # blocked (AC-2): grid-adjacent but maze-pruned. No-op
+                # render-wise (rendering half is BL-0068's own future
+                # scope) -- but the re-derivation arithmetic that DRIVES
+                # the classification must be correct and no arrow drawn.
+                t20_blocked_n += 1
+                if not row_col_ok or arrow_present:
+                    t20_blocked_bad.append((seed, scale, i, direction,
+                                             (got_row, got_col), (row, col), arrow_present))
+            else:
+                # absent (AC-3): true grid boundary -- identical to
+                # today's shipped no-op, no arrow drawn.
+                t20_absent_n += 1
+                if not row_col_ok or arrow_present:
+                    t20_absent_bad.append((seed, scale, i, direction,
+                                            (got_row, got_col), (row, col), arrow_present))
+    pb.stop()
+
+check("T20.a Open classification: arrow renders wherever REGION_GRAPH shows a live neighbor, every corpus entry (AC-1)",
+      len(t20_open_bad) == 0, f"bad={t20_open_bad[:3]}")
+check("T20.b Blocked classification: grid-adjacent-but-maze-pruned edges re-derive the correct (row,col) and draw no arrow, every corpus entry (AC-2)",
+      t20_blocked_n > 0 and len(t20_blocked_bad) == 0,
+      f"n={t20_blocked_n} bad={t20_blocked_bad[:3]}")
+check("T20.c Absent classification: true grid-boundary edges re-derive the correct (row,col) and draw no arrow, every corpus entry (AC-3)",
+      t20_absent_n > 0 and len(t20_absent_bad) == 0,
+      f"n={t20_absent_n} bad={t20_absent_bad[:3]}")
+
+# T20.d -- static audit (Inspection): the row/col re-derivation sits before
+# the four REGION_GRAPH neighbor bytes are loaded into B-E (must, since
+# that load clobbers the same registers the division loop uses), and the
+# existing open-edge branch/arrow-write logic is textually unchanged from
+# IP-1030's own shipped form (FR-2320 zero-diff claim, DoD item 4).
+with open('asm_game.py') as f:
+    _t20_src = f.read()
+_dra_start = _t20_src.index("rom.label('draw_region_arrows')")
+_dra_end = _t20_src.index("rom.label('dra_no_right')")
+_dra_src = _t20_src[_dra_start:_dra_end]
+_div_pos = _dra_src.find('dra_div_loop')
+_div_done_pos = _dra_src.find('dra_div_done')
+_b_up_pos = _dra_src.find("LD_B_A()", _div_done_pos)   # first B=up load,
+                           # searched only after dra_div_done -- LD_B_A()
+                           # also appears earlier (stashing WORLD_SCALE for
+                           # the division loop itself), an unrelated call
+                           # this scan must not match
+check("T20.d Static audit: row/col re-derivation precedes the neighbor-byte loads it would otherwise clobber (AC-2/AC-3 precondition)",
+      _div_pos != -1 and _b_up_pos != -1 and _div_pos < _b_up_pos,
+      "source-scanned")
 
 # ══════════════════════════════════════════════════════
 # SUMMARY

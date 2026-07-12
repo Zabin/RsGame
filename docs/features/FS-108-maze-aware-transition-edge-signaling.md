@@ -20,11 +20,13 @@
 [↑ Features index](INDEX.md) · [Feature Catalog](../feature-planning/03-feature-catalog.md) ·
 [Epic Catalog](../feature-planning/02-epic-catalog.md) · [ADR-0012](../architecture/adr/ADR-0012-maze-shaped-region-adjacency.md)
 
-> **Forward reference (metadata only):** logic half planned by
-> [IP-1080](../implementation/packages/IP-1080-maze-aware-edge-classification.md) (2026-07-11),
-> which resolves this document's Open Question 2. Open Question 1 (the rendering half's tile art)
-> **resolved 2026-07-11** — see §19; `BL-0068` closed. The rendering half itself remains
-> unspecified (no `FS-xxx` document covers it yet) but is no longer architecturally blocked.
+> **Forward reference (metadata only):** logic half implemented by
+> [IP-1080](../implementation/packages/IP-1080-maze-aware-edge-classification.md) (2026-07-12,
+> `COMPLETE`), which resolves this document's Open Question 2 (see §19). Open Question 1 (the
+> rendering half's tile art) **resolved 2026-07-11** — see §19; `BL-0068` closed. The rendering
+> half itself remains unspecified (no `FS-xxx` document covers it yet) and unimplemented, and
+> AC-4 (§15 item 4) remains explicitly open — neither is silently implied covered by this
+> package.
 
 ## 1. Feature ID
 
@@ -271,11 +273,19 @@ not an open architectural blocker.
    rendering-half workflow/behavior contract (extending this document or authoring a sibling
    `FS-xxx`); that spec-writing work was not performed by this edit, which closes only the open
    question the missing architecture created.
-2. **Whether the classification result needs any transient storage of its own** (e.g. a per-
-   direction scratch byte holding the 3-way state before the render decision consumes it) or can
-   be computed and consumed inline within the existing loop iteration, is an implementation-detail
-   choice not decided here — mirrors `FS-107` Open Question 2's identical deferral pattern.
-   Resolves at: `07-implementation-planning`/`08-code-implementation`.
+2. **RESOLVED (`IP-1080`, 2026-07-12).** The classification needs one piece of transient
+   storage: the re-derived `(row, col)` position, computed once per `draw_region_arrows` call
+   (shared by all four direction tests) via repeated-subtraction division from `CUR_ZONE`/
+   `WORLD_SCALE`. Not a per-direction scratch byte — a single per-call pair. Originally planned to
+   reuse `TMP1`/`TMP2` (this package's own §6 text); implementation found `TMP1` collides with
+   `handle_play_input`'s own per-frame "did the player move" flag (confirmed by a real `T20.b`/`c`
+   test failure, not assumed), so two new dedicated transient bytes were added instead —
+   `DRA_ROW`/`DRA_COL` (`0xC2D8`–`0xC2D9`, the same confirmed-unused gap `MM_JUST_ENTERED`
+   already documents), meaningless outside a `draw_region_arrows` call, same convention as the
+   `GW_*` family. The classification *decision* itself (open/blocked/absent) is not separately
+   stored — it remains a no-op branch outcome for the blocked/absent cases, per this document's
+   own §6 design; only the arithmetic that determines it is stashed, and that is what `T20.b`/`c`
+   directly verify.
 
 ## 20. Related ADRs
 
