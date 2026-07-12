@@ -14,7 +14,7 @@
 
 ## Position
 
-- **Updated:** 2026-07-12 (run #114)
+- **Updated:** 2026-07-12 (run #115)
 - **Increment:** Bootstrap baseline remains fully closed (01–11 ✅, GO recorded). Run #96
   implemented `IP-1080` (`COMPLETE`, 230/230), closing the maze-shaped region adjacency tranche's
   critical-path extent. **Run #97:** the user then directly reported a bug while reviewing that
@@ -220,11 +220,26 @@
   with zero interference. **Result: Clean**, no findings. Report:
   [integration-review-movement-pickup-ui-tranche.md](../reviews/integration-review-movement-pickup-ui-tranche.md).
   `ROADMAP.md`'s `RV-INTEG` row/`docs/reviews/INDEX.md` updated. Committed (`dbd73e3`) and pushed.
+  **Run #115 (this run):** `10-integration-review` on **the `IP-9110`/`9120`/`9130`/`9140`
+  package set** — the last remaining integration-review scope. Rebuilt (byte-identical), full
+  suite 231/231. Confirmed `check_zone_transition`'s RIGHT branch carries both `IP-9120`'s
+  threshold fix and `IP-9130`'s `JOY_CUR` gate correctly layered. Drove all four packages together
+  live at `seed=1`/`scale=9`: RIGHT-held settles blocked at region 0 (`IP-9090`/`9120`), DOWN-held
+  transitions cleanly to region 9 with no spurious RIGHT re-trigger (`IP-9130`, `BL-0078`'s own
+  sequence exercised at scale=9 rather than `T7.12`'s own default scale=3), region 9's own right
+  arrow renders visibly (`IP-9140`) — and confirmed the whole world is non-degenerate (25.9%
+  Water) under `IP-9110`'s repaired PRNG. **Result: Clean**, one Low finding: GDS-07's
+  `SAVE_VERSION_VAL` cell still reads `0x03`, one version behind the shipped `0x04`
+  (`IP-9110`'s own bump) — filed as `BL-0090`, distinct from `BL-0089`. Report:
+  [integration-review-ip-9110-9120-9130-9140.md](../reviews/integration-review-ip-9110-9120-9130-9140.md).
+  `ROADMAP.md`'s `RV-INTEG` row (flipped to ✅, fully closed)/`docs/reviews/INDEX.md` updated.
+  Committed (`c2a5951`) and pushed. **This closes the `10-integration-review` sweep — every
+  `VERIFIED` package in the tree now belongs to a reviewed tranche or set.**
 - **Pipeline state:** Bootstrap: stages 01–11 ✅ — complete, GO recorded. **All 22 implementation
-  packages `VERIFIED`.** Bootstrap, Release 2, post-ship remediation, maze-shaped adjacency, and
-  movement/pickup/UI tranches all integration-reviewed (all clean, no Critical/High). Only the
-  `IP-9110`/`9120`/`9130`/`9140` package set remains for integration review.
-- **Backlog:** 89 entries, 22 open. Run #97: `BL-0084` filed, packaged, implemented, and flipped
+  packages `VERIFIED`. All six tranches/sets integration-reviewed (all clean, no Critical/High).**
+  `10-integration-review`'s own backlog is now fully drained, the same way `09-package-
+  verification`'s was after run #110.
+- **Backlog:** 90 entries, 23 open. Run #97: `BL-0084` filed, packaged, implemented, and flipped
   `DONE` all in one run (implementation directly re-verified against its own reported sequence,
   same as `BL-0076`/`BL-0078`'s own precedent — formal `09-package-verification` still pending
   separately); `BL-0085` filed and immediately `DONE` (gate resolution). Run #98: `BL-0086` filed,
@@ -234,22 +249,27 @@
   both `SCHEDULED`. Run #112: nine entries (`BL-0047`/`0048`/`0058`/`0059`/`0063`/`0049`/`0051`/
   `0052`/`0053`) flipped `DONE` (stale "pending verification" notes corrected); `BL-0075` corrected
   in place (stays `SCHEDULED` — `IP-1080`'s rendering half is still unshipped, the symptom
-  persists). Runs #113–114: no new findings. `BL-0071`/`BL-0073`/`BL-0080`, `BL-0081`/`BL-0082`
-  all unchanged from run #96.
-- **Next step:** No skill invocation is gated. **User has directed the manager to iterate
-  autonomously until every remaining item is blocked on a fresh session or user input** — this
-  loop continues at the next advance. **Recommend:** `10-integration-review` on the four
-  standalone-but-interacting remediation packages `IP-9110`/`9120`/`9130`/`9140` as one
-  explicitly-named set (real interaction surface: `9090`→`9120`→`9130`'s own `check_zone_
-  transition` chain, and `9110`'s PRNG change against `1070`'s maze pass, already partially
-  exercised by the maze-adjacency review) — the last remaining scope for `10-integration-review`.
-  Once that's done, every `VERIFIED` package in the tree has been integration-reviewed. `BL-0066`
-  (`NEEDS-USER`) awaits either a user decision or `BL-0082`'s research landing; `BL-0075`,
-  `BL-0081`/`BL-0082`, `BL-0086`, `BL-0088`, `BL-0089` all await their own future passes (none yet
-  scheduled to a specific run, none
-  user-blocked — the manager can schedule and run them itself once the integration-review sweep is
-  done).
-- **Open gates:** None.
+  persists). Runs #113–114: no new findings. Run #115: `BL-0090` filed, `SCHEDULED`. `BL-0071`/
+  `BL-0073`/`BL-0080`, `BL-0081`/`BL-0082` all unchanged from run #96.
+- **Next step:** **A gate — stopping to ask, per this skill's own Step 4 (a release-readiness
+  advance touches "spending judgment the user reserved" and, on a GO recommendation, would flip
+  baseline records).** Every `VERIFIED` implementation package (all 22) has now cleared both
+  `09-package-verification` and `10-integration-review`, all clean, no Critical/High findings
+  anywhere. The next pipeline stage is `11-release-readiness` — an evidence-based GO/NO-GO
+  assessment (advisory; the actual release decision is the user's, per this skill's own G4 scope
+  note) for whatever release bucket the user wants assessed. **Open question for the user:** which
+  scope should `11-release-readiness` assess — Release 2 alone (`IP-1020`/`1030`/`1031`/`1040`/
+  `1050`, the release bucket these packages were originally planned under), or Release 2 bundled
+  with the five post-ship remediation/fix tranches this session's own work also closed out
+  (post-ship remediation, maze-shaped adjacency, movement/pickup/UI, and the `IP-9110`/`9120`/
+  `9130`/`9140` set — all of which shipped *after* Release 2's original scope was authorized, as
+  bug fixes and small extensions, not as their own numbered release)? Separately, not blocking
+  that decision: `BL-0066` (`NEEDS-USER`) awaits either a user decision or `BL-0082`'s research
+  landing; `BL-0075`, `BL-0081`/`BL-0082`, `BL-0086`, `BL-0088`/`BL-0089`/`BL-0090` await their own
+  future doc/research passes (none yet scheduled to a specific run, none blocking the release
+  question above — the manager can schedule and run these itself independent of the release
+  decision, if the user would rather resolve those first or defer the release question).
+- **Open gates:** `11-release-readiness` scope selection — awaiting the user.
 
 ## Run log
 
@@ -372,3 +392,4 @@
 | 112 | 2026-07-12 | advance (user-directed iteration until blocked) | `10-integration-review` | Post-ship remediation tranche (IP-9050/9060/9070) | ✅ **Step 1 reconciliation:** no drift — all three packages confirmed `VERIFIED` before the review began. **Step 3/5:** invoked `10-integration-review` on the post-ship remediation tranche. Rebuilt (byte-identical) and ran the full suite (231/231). **Dimension 1:** the tranche's own real seam is `IP-9050`'s hard dependency on `IP-9070` (navigation makes `CUR_ZONE>8` reachable; storage generalization makes that safe) — exercised live: real button navigation at `seed=1`/`scale=9` from region 0 into region 9, no crash, `REGION_GRAPH` unaffected. **Dimension 2:** confirmed the WRAM allocation chain `SSE_CURSOR`→`SCOREITEM_FLAGS`(`IP-9070`)→`MM_JUST_ENTERED`(`IP-9060`)→`DRA_ROW`/`DRA_COL`(`IP-1080`)→`OAM_BUF` is contiguous with zero collisions across three different packages' own independent address choices. **Dimension 3:** the same live navigation drive doubles as behavioral-coherence evidence — no seam dead-end. **Dimension 4:** RTM/Master-Build-Plan/`ROADMAP.md` all consistent; **observation** (not a formal finding): the backlog's own `BL-0047`/`0048`/`0058`/`0059`/`0063` entries were still `SCHEDULED` with stale "pending independent verification" notes — routed to the manager's own harvest, not filed as a numbered finding. **Dimension 5:** the one GDS-07 clause touching this tranche (`KEYITEM_FLAGS`'s clear-loop widening, actually `IP-9050`'s own work) is already covered by `BL-0089`, not re-filed. Result: **Clean**, no new findings, no Critical/High. Report: [integration-review-post-ship-remediation-tranche.md](../reviews/integration-review-post-ship-remediation-tranche.md). `ROADMAP.md`'s `RV-INTEG` row/`docs/reviews/INDEX.md` updated. Committed (`c155676`) and pushed. **Manager-level backlog sync (same run):** flipped `BL-0047`/`0048`/`0058`/`0059`/`0063` (this tranche's own source bugs) and `BL-0049`/`0051`/`0052`/`0053` (movement/pickup/UI's, discovered stale via the same pattern while sweeping) to `DONE`, each citing its own VR. **`BL-0075` corrected the other direction** — its note assumed `IP-1080` shipping would resolve it, but `IP-1080` only shipped the classification-logic half; `VR-1080`'s own audit confirms AC-4 (visual rendering) still explicitly open, so the reported symptom persists — updated in place, stays `SCHEDULED`. Committed (`d058d9a`) and pushed. No open gates. | No skill invocation is gated — continuing the user-directed loop. **Recommend:** `10-integration-review` on the maze-shaped adjacency tranche (`IP-1070`/`1080`) next, then movement/pickup/UI (`IP-9080`/`9090`/`9100`), then the `IP-9110`/`9120`/`9130`/`9140` package set. After the sweep: the two `SCHEDULED` `02-research-*` passes (`BL-0081`/`BL-0082`), plus `BL-0075`/`BL-0086`/`BL-0088`/`BL-0089`. Stopping only at `BL-0066` (`NEEDS-USER`) or any new gate a step surfaces. |
 | 113 | 2026-07-12 | advance (user-directed iteration until blocked) | `10-integration-review` | Maze-shaped adjacency tranche (IP-1070/1080) | ✅ **Step 1 reconciliation:** no drift — both packages confirmed `VERIFIED` before the review began. **Step 3/5:** invoked `10-integration-review` on the maze-shaped adjacency tranche. Rebuilt (byte-identical) and ran the full suite (231/231). **Dimension 1/3 (interface/behavioral, exercised together):** found via the offline Python oracle a real, non-default case (`seed=1`, `scale=9`) where region 0's grid-right neighbor (region 1) exists but `IP-1070`'s braid pass didn't reopen the edge — drove this live: forced a redraw at region 0, `DRA_ROW`/`DRA_COL` correctly read `(0,0)`, `REGION_GRAPH[0]`'s own right neighbor byte reads `0xFF` — a genuine maze-pruned-but-grid-adjacent ("blocked") case, confirmed against a real generated world rather than a synthetic WRAM-forced fixture, the exact seam `IP-1080` exists to classify correctly. **Dimension 2:** `GW_MAZE_STATE` (`0xC3A0`–`0xC3F4`, `IP-1070`) and `DRA_ROW`/`DRA_COL` (`0xC2D8`–`0xC2D9`, `IP-1080`) confirmed disjoint by direct constant dump; `gw_prng_step` interaction with the not-yet-reviewed `IP-9110` named as a real surface, deferred to that future review. **Dimension 4/5:** Master Build Plan/RTM/GDS-07/GDS-08 all consistent, `IP-1080`'s own honestly-open AC-4 (rendering half) correctly reflected everywhere. Result: **Clean**, no findings. Report: [integration-review-maze-shaped-adjacency-tranche.md](../reviews/integration-review-maze-shaped-adjacency-tranche.md). `ROADMAP.md`'s `RV-INTEG` row/`docs/reviews/INDEX.md` updated. Committed (`24c6b57`) and pushed. Harvested: no new findings. No open gates. | No skill invocation is gated — continuing the user-directed loop. **Recommend:** `10-integration-review` on the movement/pickup/UI tranche (`IP-9080`/`9090`/`9100`) next, then the `IP-9110`/`9120`/`9130`/`9140` package set. After the sweep: the two `SCHEDULED` `02-research-*` passes (`BL-0081`/`BL-0082`), plus `BL-0075`/`BL-0086`/`BL-0088`/`BL-0089`. Stopping only at `BL-0066` (`NEEDS-USER`) or any new gate a step surfaces. |
 | 114 | 2026-07-12 | advance (user-directed iteration until blocked) | `10-integration-review` | Movement/pickup/UI tranche (IP-9080/9090/9100) | ✅ **Step 1 reconciliation:** no drift — all three packages confirmed `VERIFIED` before the review began. **Step 3/5:** invoked `10-integration-review` on the movement/pickup/UI tranche. Rebuilt (byte-identical) and ran the full suite (231/231). Confirmed all three packages' own "no shared file region" claims by direct read (`handle_play_input`/`check_collisions` are adjacent but disjoint routines; `IP-9080` touches only `tilemaps.py`). **Dimension 1/3 (exercised together, one continuous live session):** real, sustained RIGHT-held movement settled exactly at `PLAYER_X=152`; a synthetic item injected at `dx=7,dy=0` relative to that real position — the exact inclusive boundary the asymmetric point-in-box test allows — collected correctly (`SCORE` incremented); the SAVE screen opened immediately after showed the third-option label rendering (a real font glyph, not the blank tile) — all three packages' own corrected behavior chained with zero interference. **Dimension 2:** no new WRAM/SRAM/tiles/palettes introduced by any of the three; ROM byte-identical. **Dimension 4/5:** Master Build Plan/RTM/`ROADMAP.md` all consistent; no doc staleness attributable to any of the three (none touches byte-level data-model documentation). Result: **Clean**, no findings. Report: [integration-review-movement-pickup-ui-tranche.md](../reviews/integration-review-movement-pickup-ui-tranche.md). `ROADMAP.md`'s `RV-INTEG` row/`docs/reviews/INDEX.md` updated. Committed (`dbd73e3`) and pushed. Harvested: no new findings. No open gates. | No skill invocation is gated — continuing the user-directed loop. **Recommend:** `10-integration-review` on the `IP-9110`/`9120`/`9130`/`9140` package set — the last remaining scope for this stage. Once done, every `VERIFIED` package in the tree has been integration-reviewed; the loop then moves to the two `SCHEDULED` `02-research-*` passes (`BL-0081`/`BL-0082`), plus `BL-0075`/`BL-0086`/`BL-0088`/`BL-0089`. Stopping only at `BL-0066` (`NEEDS-USER`) or any new gate a step surfaces. |
+| 115 | 2026-07-12 | advance (user-directed iteration until blocked) | `10-integration-review` | IP-9110/9120/9130/9140 (explicit set) | ✅ **Step 1 reconciliation:** no drift — all four packages confirmed `VERIFIED` before the review began. **Step 3/5:** invoked `10-integration-review` on the explicit `IP-9110`/`9120`/`9130`/`9140` set, chosen for a real interaction surface (`IP-9120`/`9130` both edit `check_zone_transition`'s own RIGHT branch; `IP-9110` changes the PRNG stream the maze pass and biome assignment both depend on; `IP-9140` fixes the visual signal for the exact navigation behavior `9120`/`9130` correct). Rebuilt (byte-identical) and ran the full suite (231/231). **Dimension 1:** confirmed both `IP-9120`'s threshold (`CP_n(152)`) and `IP-9130`'s `JOY_CUR` gate coexist correctly in the shipped RIGHT branch, layered exactly as each package's own rationale describes. **Dimension 2:** no new WRAM from any of the four; confirmed a `seed=1`/`scale=9` world generated under `IP-9110`'s repaired PRNG is non-degenerate (25.9% Water). **Dimension 3:** drove all four live in one continuous session at that same non-default world — RIGHT-held settles blocked at region 0 exactly at `X=152`, DOWN-held transitions cleanly to region 9 with no spurious RIGHT re-trigger (the `BL-0078` sequence, at `scale=9` rather than `T7.12`'s own default `scale=3`), an extended settle window confirms no follow-on transition, and region 9's own right arrow renders visibly on a freshly-navigated, non-default-scale region. **Dimension 4:** RTM's `FR-2300` row correctly cites all three navigation packages together. **Dimension 5:** found GDS-07's `SAVE_VERSION_VAL` cell (§3 line 89, §7a line 227) still reads `0x03`/"third bump," one version behind the shipped `0x04` — distinct from `BL-0089`. Result: **Clean**, 1 Low, no Critical/High. Report: [integration-review-ip-9110-9120-9130-9140.md](../reviews/integration-review-ip-9110-9120-9130-9140.md). `ROADMAP.md`'s `RV-INTEG` row flipped to fully closed (✅)/`docs/reviews/INDEX.md` updated. Committed (`c2a5951`) and pushed. **This closes the `10-integration-review` sweep entirely.** Harvested: filed `BL-0090` (Low, `SCHEDULED`). **Gate:** the next pipeline stage, `11-release-readiness`, is a G4-adjacent decision point (advisory GO/NO-GO; the actual call and, on GO, the baseline-flip are the user's) — per this skill's own Step 4, stopping to ask the user which scope to assess (Release 2 alone, or Release 2 bundled with the five post-ship tranches/sets this session also closed) before invoking it. | **GATE:** awaiting the user's answer on `11-release-readiness`'s own scope (Release 2 alone vs. bundled with the post-ship remediation/maze-adjacency/movement-pickup-UI/`IP-9110`-`9140` work). Once answered: invoke `11-release-readiness` on that scope. Independently, not blocking: `BL-0066` (`NEEDS-USER`), and `BL-0075`/`BL-0081`/`BL-0082`/`BL-0086`/`BL-0088`/`BL-0089`/`BL-0090` (all `SCHEDULED`/`DEFERRED`, not yet run, none user-blocked — available for the manager to pick up independent of the release-scope answer). |
