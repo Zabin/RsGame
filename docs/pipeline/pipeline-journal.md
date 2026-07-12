@@ -14,7 +14,7 @@
 
 ## Position
 
-- **Updated:** 2026-07-12 (run #121)
+- **Updated:** 2026-07-12 (run #122)
 - **Increment:** Bootstrap baseline remains fully closed (01–11 ✅, GO recorded). Run #96
   implemented `IP-1080` (`COMPLETE`, 230/230), closing the maze-shaped region adjacency tranche's
   critical-path extent. **Run #97:** the user then directly reported a bug while reviewing that
@@ -340,14 +340,32 @@
   growth absorbs within existing section padding, no budget concern. Package → `COMPLETE`.
   Committed (`5569ba7`) and pushed. **Step 6 (harvest):** no new findings. `BL-0075` still
   `SCHEDULED` (not `DONE` — `IP-1082`, the actual rendering, hasn't shipped yet).
-- **Next step:** **GATE — same-session independence.** `IP-1081` was implemented this session, so
-  `09-package-verification` cannot verify it in this session (the skill's own hard rule). `IP-1082`
-  is `BLOCKED` on `IP-1081` reaching `VERIFIED` (not merely `COMPLETE`), so it cannot proceed
-  either until a fresh session runs `09-package-verification` on `IP-1081`. This does **not**
-  block the rest of the pipeline, though — other unblocked work continues: the `02-research-*`
-  gaps `BL-0081`/`BL-0082` remain available this session.
-- **Open gates:** None requiring the user. **Session-blocked:** `09-package-verification` on
-  `IP-1081` (needs a fresh session before `IP-1082` can build).
+- **Session-blocked (unchanged):** `09-package-verification` on `IP-1081` still needs a fresh
+  session before `IP-1082` can build. Not a full stop — picked up the next unblocked item instead.
+- **Run #122 (advance, user-directed iteration until blocked):** invoked `02-research-game-design`
+  on `BL-0081` (win-condition research, the highest-priority `SCHEDULED` item not session-blocked).
+  Authored **[R215](../research/encyclopedia/R215-procgen-win-condition-design.md)** — surveyed
+  fixed-goal-node (roguelike), percentage-completion (Metroidvania), and open-world exploration
+  conventions via live `WebSearch` (three queries, all cited), confirmed `FR-9140`'s spanning-tree
+  reachability guarantee makes every candidate viable (no unwinnable-world risk), and presented
+  four evidence-grounded candidates — A: scale-relative carrot count, B: percentage-of-collected
+  threshold, C: fixed generated goal region, D: hybrid of B+C — as a tradeoff table, deliberately
+  not picking one (research grounds, never decides). Cross-linked R201/R206/R213 bidirectionally
+  (all three now cite R215 in their own `Referenced By`). `docs/research/INDEX.md`/`ROADMAP.md`'s
+  research row updated. **`BL-0081` flipped `DONE`.** **`BL-0050`'s own revisit trigger fired**
+  ("`BL-0081` reaching a research conclusion") — re-dispositioned `DEFERRED`→`SCHEDULED`, riding a
+  future `04-requirements-engineering` pass that picks a candidate and derives the actual FR. No
+  code touched, ROM unchanged. Committed (`584233a`) and pushed. Harvested: no new findings beyond
+  the two backlog updates already made.
+- **Next step:** No skill invocation is gated. **Recommend:** `04-requirements-engineering` to
+  pick a win-condition candidate from `R215` and derive the FR `BL-0050`'s own screen redesign can
+  then build against — a genuine design decision (which of A/B/C/D) that `04` itself may need to
+  surface to the user rather than pick unilaterally, given the project owner's own explicit framing
+  ("replanning is needed"). Separately, still available: `BL-0082` (the second `02-research-*` gap,
+  streaming/infinite-world generation feasibility) and `BL-0066` (`NEEDS-USER`). Still
+  session-blocked: `09-package-verification` on `IP-1081`.
+- **Open gates:** None requiring the user this run. **Session-blocked:** `09-package-verification`
+  on `IP-1081` (needs a fresh session before `IP-1082` can build).
 
 ## Run log
 
@@ -477,3 +495,4 @@
 | 119 | 2026-07-12 | advance (user-directed iteration until blocked) | `06-feature-specification` | `FS-108` — specify `FEAT-2100`'s rendering half (`BL-0075`) | ✅ **Step 1/2:** dispositioned `BL-0091` (`DEFERRED`, trigger: `BL-0050`+`BL-0081` resolved). Caught and corrected a routing error on `BL-0075` — its prior disposition skipped `06`, but `FS-108` itself says the rendering half needs a spec pass first. **Step 3/5:** invoked `06-feature-specification` on `FS-108`. Revised it in place: new **Workflow C** (blocked-edge render branch, reusing `IP-1080`'s own `DRA_ROW`/`DRA_COL` plus `WORLD_SCALE` comparisons per direction, drawing one of 4 new tiles `0x1A`–`0x1D` — all already committed by `GDS-08` §10 — at the existing `ARROW_ADDR_*` position), closed AC-4, added AC-5 (open-case non-regression), extended `T20`'s own Verification Plan (no new suite), left the exact pixel bitmap an explicit non-question (content-authoring's job). `docs/features/INDEX.md`, `FEAT-2100`'s catalog forward-reference, `ROADMAP.md`'s `FS-101+` row all updated. No code touched, ROM byte-identical. Committed (`006fe5b`) and pushed. **Step 6:** `BL-0075` updated (still `SCHEDULED`, next step `07`). No open gates. | No skill invocation is gated. **Recommend:** `07-implementation-planning` to package `FS-108`'s now-complete rendering-half spec (`BL-0075`). Separately, not blocking: `BL-0081`/`BL-0082` (`02-research-*`), `BL-0066` (`NEEDS-USER`), `BL-0086`/`BL-0089`/`BL-0090`/`BL-0091` (`DEFERRED`/`SCHEDULED`). |
 | 120 | 2026-07-12 | advance (user-directed iteration until blocked) | `07-implementation-planning` | `FS-108` rendering half — package `BL-0075` | ✅ Invoked `07-implementation-planning`. Packaged as a code/content peer pair mirroring `IP-1030`/`IP-1031`'s own precedent: **`IP-1081`** (content, `08-content-authoring`, 4 new tiles `0x1A`-`0x1D` per `GDS-08` §10) → **`IP-1082`** (render, `08-code-implementation`, `draw_region_arrows`'s blocked-case branch, reuses `IP-1080`'s `DRA_ROW`/`DRA_COL`, corrects `T20.b`, adds `T20.e`) — ordering reversed from precedent since the render branch needs the content package's tile constants. TWBS, Master Build Plan, `packages/INDEX.md`, `FS-108`/`FEAT-2100` metadata, `ROADMAP.md` updated. No code touched, ROM byte-identical. Committed (`afc7606`) and pushed. Neither package authorized. | **GATE:** G3 authorization needed for `IP-1081`/`IP-1082` before `08-content-authoring` can begin. |
 | 121 | 2026-07-12 | advance (user-directed iteration until blocked) | `08-content-authoring` | `IP-1081` — maze-blocked edge indicator content | ✅ Added 4 new tile bitmaps (`TL_BLOCKED_U/D/L/R`, `0x1A`-`0x1D`), a broken/dashed-bar silhouette confirmed visually distinct from the arrow tiles (rendered comparison), registered via `build_tile_data()`'s `put()` convention. Zero new palette entries. `GDS-07` §4/`memory.md` updated. Suite unchanged at 231/231 (nothing calls the tiles yet). ROM modified (new tile data), rebuilt, byte growth absorbed within existing padding. `IP-1081` → `COMPLETE`. Committed (`5569ba7`) and pushed. Harvested: no new findings. | **GATE (session-blocked):** `09-package-verification` needs a fresh session (same-session independence rule) before `IP-1082` can build on `IP-1081`. |
+| 122 | 2026-07-12 | advance (user-directed iteration until blocked) | `02-research-game-design` | `BL-0081` — win-condition research for procgen worlds | ✅ Authored [R215](../research/encyclopedia/R215-procgen-win-condition-design.md) — surveyed fixed-goal-node/percentage-completion/open-world conventions via cited `WebSearch`, confirmed `FR-9140`'s reachability guarantee, presented 4 candidates (scale-relative count, percentage threshold, fixed goal region, hybrid) without picking one. Cross-linked R201/R206/R213. `BL-0081` → `DONE`; `BL-0050`'s revisit trigger fired, re-dispositioned `SCHEDULED`. No code touched, ROM unchanged. Committed (`584233a`) and pushed. Harvested: no new findings. | No skill invocation is gated. **Recommend:** `04-requirements-engineering` to pick a win-condition candidate from R215 and derive the FR — a real design decision that may itself need surfacing to the user. Separately available: `BL-0082` (streaming/infinite-world research), `BL-0066` (`NEEDS-USER`). Still session-blocked: `09-package-verification` on `IP-1081`. |
