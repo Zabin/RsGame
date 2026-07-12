@@ -1115,7 +1115,9 @@ check("T13.b Transition call-site audit: exactly one copy_screen call site in ds
 # correctness; this test isolates the rendering side, same as T13.a).
 def arrow_addr(x, y): return 0x9800 + y*32 + x
 ARROW_POS = {'up': arrow_addr(15, 1), 'down': arrow_addr(15, 16),
-             'left': arrow_addr(1, 9), 'right': arrow_addr(32-2, 9)}
+             'left': arrow_addr(1, 9), 'right': arrow_addr(20-2, 9)}   # IP-9140
+             # (BL-0084): right arrow moved from column 32-2=30 (off the
+             # true 20-column visible window, never rendered) to 20-2=18.
 ARROW_TILE = {'up': 0x18, 'down': 0x19, 'left': 0x17, 'right': 0x16}  # TL_ARROW_U/D/L/R
 
 pb = fresh_boot(180)
@@ -1136,6 +1138,24 @@ for region in range(9):
 pb.stop()
 check("T13.c Regression: scale=3 arrow placement matches shipped 3x3 grid, every region/direction",
       len(arrow_bad) == 0, f"bad={arrow_bad[:5]}")
+
+# T13.d — screen-visibility audit (the direct BL-0084 regression test):
+# each of the four arrow addresses must fall inside the true visible
+# background window (20 columns x 18 rows -- the fixed 160x144px GBC
+# display, SCX=SCY=0 always in this codebase, confirmed by direct code
+# read: asm_game.py never writes either register). A tilemap-byte-value
+# check alone (T13.a-c's own method) cannot distinguish a correctly
+# written but off-screen tile from a correctly written and visible one --
+# this is the check that would have caught BL-0084 (ARROW_ADDR_R at
+# column 32-2=30, never on-screen) before it shipped.
+visibility_bad = []
+for direction, addr in ARROW_POS.items():
+    col = (addr - 0x9800) % 32
+    row = (addr - 0x9800) // 32
+    if not (0 <= col <= 19 and 0 <= row <= 17):
+        visibility_bad.append((direction, col, row))
+check("T13.d Screen-visibility audit: every arrow address falls inside the true visible 20x18 window (BL-0084)",
+      len(visibility_bad) == 0, f"bad={visibility_bad}")
 
 # ══════════════════════════════════════════════════════
 # T14 — Main Menu & New-Game Flow (IP-1040)

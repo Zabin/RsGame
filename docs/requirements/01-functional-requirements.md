@@ -471,7 +471,7 @@
 - **Verification Method:** Test (tilemap inspection) / Inspection (visual).
 - **Source Documents:** GDS-05 C2; R203.
 - **Related ADRs:** None.
-- **Notes:** None.
+- **Notes:** **Defect found and fixed ([IP-9140](../implementation/packages/IP-9140-right-arrow-offscreen-position-fix.md), 2026-07-12, `BL-0084`):** the right-edge arrow's tilemap position (`ARROW_ADDR_R`) placed it at tilemap column 30 — outside the true 20-column visible background window (`SCX=0` always) — so it was written to VRAM correctly but never actually rendered on screen, on any build, since before this pipeline's own work began (inherited from the retired pre-procgen `_zone_arrows`). Fixed to column 18; new check `T13.d` (screen-visibility audit) closes the test-coverage gap that let a correctly-written-but-invisible tile pass every prior tilemap-byte-value check.
 
 ### FR-2330 — Three-state transition-edge signaling for a maze-shaped generated world (target — 2026-07-11)
 

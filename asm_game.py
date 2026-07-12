@@ -944,7 +944,15 @@ def build_game_asm(rom: ROM) -> dict:
     ARROW_ADDR_U = 0x9800 + 1*32 + 15
     ARROW_ADDR_D = 0x9800 + 16*32 + 15
     ARROW_ADDR_L = 0x9800 + 9*32 + 1
-    ARROW_ADDR_R = 0x9800 + 9*32 + (32-2)
+    ARROW_ADDR_R = 0x9800 + 9*32 + (20-2)   # IP-9140 (BL-0084): the true
+                          # visible background window is 20 tiles wide
+                          # (SCX=0 always in this codebase) x 18 tall, not
+                          # the full 32x32 tilemap -- (32-2)=column 30 has
+                          # never been on-screen, a defect inherited
+                          # unchanged from the retired pre-procgen
+                          # _zone_arrows. Column 18 mirrors ARROW_ADDR_L's
+                          # own column-1 margin symmetrically within the
+                          # true visible 0-19 column range.
 
     def _arrow_write(addr, tile):
         rom.XOR_A(); rom.LDH_n_A(VBK)

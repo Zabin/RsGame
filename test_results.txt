@@ -1,4 +1,4 @@
-BunnyQuest ROM Tests  PASS=230/230  FAIL=0
+BunnyQuest ROM Tests  PASS=231/231  FAIL=0
 ==================================================
 [PASS] T1.1 ROM size = 32768  (32768)
 [PASS] T1.2 Entry = NOP; JP
@@ -144,6 +144,7 @@ BunnyQuest ROM Tests  PASS=230/230  FAIL=0
 [PASS] T13.a Tile-family audit: each of the 5 biome-ids renders its own family's tiles (AC-1)  (bad=[])
 [PASS] T13.b Transition call-site audit: exactly one copy_screen call site in dsr_p (AC-2)  (1 call site(s))
 [PASS] T13.c Regression: scale=3 arrow placement matches shipped 3x3 grid, every region/direction  (bad=[])
+[PASS] T13.d Screen-visibility audit: every arrow address falls inside the true visible 20x18 window (BL-0084)  (bad=[])
 [PASS] T14.a1 Boot, no save -> MAIN MENU (GS=6)  (GS=6)
 [PASS] T14.a2 No save -> CONTINUE absent
 [PASS] T14.a3a Valid save present -> MAIN MENU, not auto-loaded PLAYING  (GS=6)
