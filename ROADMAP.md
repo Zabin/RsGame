@@ -100,7 +100,7 @@ build order.
 
 | ID | Document | Path | Depends on | Status |
 |---|---|---|---|---|
-| FS-101+ | One spec per approved Feature | `docs/features/FS-xxx-*.md` | FP catalog, RQ baseline | ✅ (FS-101 ✅ shipped/VERIFIED 2026-07-07; FS-102–106 ✅ specified 2026-07-10, all five Release-2 Features now implemented and VERIFIED — `IP-1020`/`1030`/`1031`/`1040`/`1050`; all 7 Open Questions resolved at `07-implementation-planning`'s 2026-07-10 pass; delta 2026-07-11 — FS-107 (`FEAT-9100`, fully specified, 3 OQs, all now resolved — `IP-1070` implemented `COMPLETE`) and FS-108 (`FEAT-2100` logic half only) added, `ADR-0012`; FS-108's own OQ1 (rendering-half `GDS-08` delta) resolved 2026-07-11 — the rendering half itself still awaits its own future spec pass) |
+| FS-101+ | One spec per approved Feature | `docs/features/FS-xxx-*.md` | FP catalog, RQ baseline | ✅ (FS-101 ✅ shipped/VERIFIED 2026-07-07; FS-102–106 ✅ specified 2026-07-10, all five Release-2 Features now implemented and VERIFIED — `IP-1020`/`1030`/`1031`/`1040`/`1050`; all 7 Open Questions resolved at `07-implementation-planning`'s 2026-07-10 pass; delta 2026-07-11 — FS-107 (`FEAT-9100`, fully specified, 3 OQs, all now resolved — `IP-1070` VERIFIED) and FS-108 (`FEAT-2100` logic half only) added, `ADR-0012`; **delta 2026-07-12 — FS-108 revised to fully specify the rendering half** (Workflow C, AC-4/5), closing its own last Open Question; logic half VERIFIED (`IP-1080`), rendering half specified but not yet implemented, `BL-0075`) |
 
 ## Theme: Implementation (`docs/implementation/`) — owners `07`/`08`/`09`
 

@@ -90,9 +90,12 @@
 ## FEAT-2100 — Maze-Aware Transition-Edge Signaling (new — not yet implemented)
 
 > **Forward reference (metadata only):** specified by
-> [FS-108](../features/FS-108-maze-aware-transition-edge-signaling.md) (2026-07-11) — **logic half
-> only**; the rendering half remains blocked on an unauthored `GDS-08` delta (FS-108 Open Question
-> 1, routed to `03-architecture-design-synthesis`).
+> [FS-108](../features/FS-108-maze-aware-transition-edge-signaling.md) (2026-07-11, revised
+> 2026-07-12) — **fully specified.** Logic half implemented and `VERIFIED`
+> ([IP-1080](../implementation/packages/IP-1080-maze-aware-edge-classification.md)/
+> [VR-1080](../implementation/verification/VR-1080-maze-aware-edge-classification.md)); rendering
+> half now specified (FS-108 §6 Workflow C, §15 AC-4/5) but **not yet implemented** — tracked as
+> `BL-0075`, awaits a `07-implementation-planning` package.
 
 - **Feature ID:** FEAT-2100
 - **Title:** Maze-Aware Transition-Edge Signaling
