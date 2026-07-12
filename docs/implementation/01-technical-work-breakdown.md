@@ -624,3 +624,88 @@ routine) and the blocked/unauthorized `IP-1080`.
 - **`BL-0076`** (Critical, RIGHT zone-transition regression — root-caused and reproduced this
   session): packaged as `IP-9120`.
 - **`BL-0071`** (supersession sweep must include `test_rom.py`): honored directly above.
+
+## Spurious zone-transition regression (`BL-0078`, planned 2026-07-12)
+
+One package: `check_zone_transition`'s own trigger model gains an intent gate. No FS — this
+repairs an already-shipped, already-`COMPLETE` routine's decision logic, not a new capability;
+its interface and every direction's *legitimate* transition behavior are unchanged.
+
+### Verb inventory
+
+Not applicable — a single-routine gating fix, not a multi-verb capability.
+
+### Supersession sweep
+
+Run directly, per this bug's own root-cause class (a routine whose trigger condition changed
+scope — position-only → position-and-intent — needs every caller of that routine, test or
+production, re-examined for an assumption the old, looser condition let slide). Confirmed by
+direct code read: `check_zone_transition`'s four branches (`asm_game.py:660-701`) are symmetric —
+none tests player input today, so the defect the user reported for RIGHT applies identically, by
+construction, to LEFT/UP/DOWN. The fix therefore gates all four uniformly, not just RIGHT.
+
+Swept `test_rom.py` for every `pb.memory[PLAYER_X] = …`/`pb.memory[PLAYER_Y] = …` write followed
+by ticking (a potential transition trigger) with **no accompanying `button_press`/`button_release`
+for the matching direction**:
+
+- **`T11.a2`** (`test_rom.py:784-798`): forces `PLAYER_X`/`PLAYER_Y` directly to a boundary value
+  and ticks, with no button held at all. **Needs updating.**
+- **`_t17_do_move`** (`test_rom.py:1601-1615`): the shared helper behind `T17.a`, `T17.b2`, and
+  `T17.b5` — teleports the player to a boundary and ticks, no button held. **Needs updating** (one
+  fix here covers all three call sites/every check that depends on it).
+- **`T17.c1`/`T17.c2`** (`test_rom.py:1675-1684`): force a boundary position with no open
+  neighbor (region 24, a true grid boundary), asserting *no* transition occurs. Correct under
+  either the old or the new gate (blocked by the missing neighbor either way) — **no update
+  needed**, confirmed by direct trace, not assumed.
+- Every other `PLAYER_X`/`PLAYER_Y` write in the file (item-pickup positions, save/load
+  round-trip checks, state-reset positions between test blocks — `test_rom.py:404, 456, 496, 507,
+  520, 527, 552, 593–625, 699, 729–730, 813, 1219–1239, 1307, 1368–1370, 1428, 1638, 1722–1727`)
+  either already accompanies a real button hold (`T7.9`–`T7.11`) or targets an interior,
+  non-boundary position with no transition in play — confirmed clean by direct read of each.
+  **Correction to this bug's own intake framing**: the intake report speculated "several `T16`
+  `CUR_ZONE`-forcing patterns" might be affected — direct sweep found `T16` uses
+  `force_region_redraw` (sets `CUR_ZONE`/`NEED_REDRAW` directly, never `PLAYER_X`/`PLAYER_Y`) for
+  an unrelated purpose (isolating collection behavior in a specific region), not transition
+  testing — `T16` is unaffected, not merely assumed clean.
+
+**Why `JOY_CUR`, not `JOY_NEW`**: `handle_play_input` itself gates continuous movement on
+`JOY_CUR` (held state), not `JOY_NEW` (edge-triggered, newly-pressed-this-frame) — a player
+walking into a boundary over several held-frames should transition on whichever frame position and
+input coincide, not only the literal first frame the direction was pressed (which may have
+happened many frames and pixels earlier). `check_zone_transition` runs every frame regardless of
+`NEED_REDRAW`, so this holds regardless of frame timing. Consistency with the movement routine it
+directly follows in `st_playing`'s own per-frame sequence is the deciding factor.
+
+**Test methodology fix, not a `JOY_CUR` memory poke**: `JOY_CUR` (`asm_game.py:32`) is written
+every frame by `read_joypad` (`asm_game.py:477`) from PyBoy's own real (virtual) hardware button
+state — a raw `pb.memory[JOY_CUR] = …` poke would be overwritten by the very next tick's joypad
+read, before `check_zone_transition` ever sees it, whenever more than one tick separates the poke
+from the check. The correct test-side fix is a real `pb.button_press(<dir>)` held across the
+teleport-and-settle window (exactly `T7.9`–`T7.11`'s own already-working pattern) — the teleport
+still gives instant positioning (no need to simulate pixel-by-pixel walking), the held button
+satisfies the new gate honestly.
+
+### Work unit and package cut
+
+| Work unit | Package | Owner |
+|---|---|---|
+| Gate `check_zone_transition`'s four branches on the corresponding `JOY_CUR` direction bit; update `T11.a2`/`_t17_do_move` to hold the matching button; add a direct `BL-0078` regression test (`BL-0078`) | [IP-9130](packages/IP-9130-zone-transition-intent-gate.md) | `08-code-implementation` |
+
+**No split** — one routine, one coherent Definition of Done ("a zone transition fires only when
+the player is actually pressing the corresponding direction, in addition to being positioned at
+the edge"), a single `asm_game.py`/`test_rom.py` change set with no independently-shippable
+sub-piece; the test-suite ripple is two call sites, not a separable body of work.
+
+### Sequencing summary
+
+No dependency on any other in-flight package this session — `check_zone_transition`'s only
+functional dependency is `IP-1010`'s own bootstrap (`VERIFIED`) and the already-`COMPLETE`
+`IP-9050`/`IP-9120` (both touch the same routine; this package's own diff is additive/corrective,
+not a conflict). Independent of `IP-9110` (`gw_prng_step`, disjoint) and the blocked/unauthorized
+`IP-1080`.
+
+### Backlog riders honored in this pass
+
+- **`BL-0078`** (High, spurious zone-transition regression — root-caused and reproduced at
+  intake): packaged as `IP-9130`.
+- **`BL-0071`** (supersession sweep must include `test_rom.py`): honored directly above.
