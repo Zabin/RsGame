@@ -23,6 +23,8 @@ section, 3–8 page band) is embedded in each `02-research-*` skill.
 | R109 | [Cartridge header, checksums & boot](encyclopedia/R109-cartridge-header-checksums.md) | header fields, checksum algorithms, GBC flag | ✅ |
 | R110 | [Interrupt model & ISR conventions](encyclopedia/R110-interrupt-model-isr.md) | IE/IF, vector table, RETI discipline, VBLANK_FLAG pattern | ✅ |
 | R111 | [CGB banked WRAM & SM83 PRNG determinism](encyclopedia/R111-wram-banking-sm83-prng.md) | SVBK mechanism and generated-world WRAM headroom; a deterministic xorshift-style PRNG in SM83 assembly, grounding MSTR-001 C10/A9 (filed via `BL-0031`/D3) | ✅ |
+| R112 | [Maze-generation algorithm hardware feasibility (spanning tree + braid)](encyclopedia/R112-maze-generation-hardware-feasibility.md) | SM83/WRAM cost of randomized Kruskal/Prim/recursive-backtracker spanning-tree generation plus a braid pass, replacing `REGION_GRAPH`'s current full-lattice adjacency (filed via `BL-0064`) | ✅ |
+| R113 | [SM83 PRNG degeneracy under repeated draws & mitigation options](encyclopedia/R113-sm83-prng-degeneracy-mitigation.md) | why `gw_prng_step`'s shipped mixing step collapses to a fixed point/short cycle under back-to-back calls, and the cheapest SM83-appropriate fixes (filed via `BL-0070`, the `IP-1070` Blocking Report) | ✅ |
 
 ## Tier R200 — Game Design (`02-research-game-design`)
 
@@ -51,7 +53,7 @@ section, 3–8 page band) is embedded in each `02-research-*` skill.
 | R302 | [Python-assembler codegen patterns](encyclopedia/R302-python-assembler-codegen-patterns.md) | label resolution, patch-point dicts, section layout | ✅ |
 | R303 | [2bpp tile encoding & palette data formats](encyclopedia/R303-2bpp-tile-encoding.md) | bitplanes, attribute maps, byte costs, the 256-tile budget | ✅ |
 | R304 | [ROM validation](encyclopedia/R304-rom-validation.md) | header checksum, size, cart-type fields; why T1 survives the BL-0006 rewrite | ✅ |
-| R305 | [Emulator-based test design](encyclopedia/R305-emulator-based-test-design.md) | memory vs. pixel assertions, frame determinism, save harnesses; **the concrete BL-0006 rewrite target**; extended 2026-07-09 for MSTR-001 C10's determinism-testing strategy (reference-generator oracle, multi-seed property tests) | ✅ |
+| R305 | [Emulator-based test design](encyclopedia/R305-emulator-based-test-design.md) | memory vs. pixel assertions, frame determinism, save harnesses; **the concrete BL-0006 rewrite target**; extended 2026-07-09 for MSTR-001 C10's determinism-testing strategy (reference-generator oracle, multi-seed property tests); extended 2026-07-11 with four testing-convention gaps a live bug batch exposed (fixture defaults masking untested parameter values, boundary-vs-directional assertions, menu state×action cross-product coverage, oracle-vs-runtime-path reachability) | ✅ |
 | R306 | [Toolchain portability](encyclopedia/R306-toolchain-portability.md) | path conventions; **the concrete BL-0005 rewrite target** | ✅ |
 
 The planned-topic lists are suggestions recorded at scaffold time — the owning skill adjusts them

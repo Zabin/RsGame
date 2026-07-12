@@ -5,12 +5,16 @@
   banking headroom), R111 (WRAM budget and SM83 PRNG implementation this recommendation assumes),
   R302 (Python-assembler codegen patterns), R305 (emulator-based test design)
 - **Referenced By:** R111 (grounds this topic's PRNG/WRAM feasibility in hardware terms), R305
-  (this topic's recommended algorithm is what the reference-generator oracle mirrors)
+  (this topic's recommended algorithm is what the reference-generator oracle mirrors), R112
+  (extends this topic's graph/mission-grammar family — specifically the "selective, not
+  necessarily full, grid-cell adjacency" variant this topic already named but the shipped
+  implementation didn't exercise — with a hardware-cost comparison of maze/spanning-tree
+  algorithms, per `BL-0064`)
 - **Produces:** a costed, evidence-grounded recommendation for the world-generation algorithm
   approach `03-architecture-design-synthesis` decides in its Phase 3 ADR (per MSTR-001 C10/D3 —
   the owner explicitly delegates the algorithm choice to this research, not to a fiat pick)
 - **Feature Mapping:** *(none yet)*
-- **Related Topics:** R212, R214, R106, R111, R302, R305
+- **Related Topics:** R212, R214, R106, R111, R112, R302, R305
 
 ## Purpose
 

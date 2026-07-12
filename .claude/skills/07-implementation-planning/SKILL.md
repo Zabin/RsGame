@@ -78,6 +78,29 @@ Decompose along real seams: module boundaries (`gbc_lib`/`tiles`/`tilemaps`/`mus
 and the code/content peer split. Right-size: one package = one focused stage-08 run against one
 coherent Definition of Done. Record every split decision.
 
+**Verb inventory (mandatory for any capability spanning more than one runtime concern).** Before
+cutting packages, list every verb the capability actually requires — typically some subset of
+*generate, render, navigate, persist, review*. For each verb, name the package that covers it, or
+record an explicit, deliberate deferral (with the reason). A capability is not fully decomposed
+until every verb has an owner or a named deferral — silence is not a deferral. (`BL-0054`: the
+procgen-world increment packaged *generate* and *render* but no package's Files-to-Modify ever
+named `check_zone_transition` — the *navigate* verb — so the shipped game generated a real
+variable-scale world and then ignored it at the one call site that mattered. Nothing in the TWBS
+would have caught this without an explicit verb-by-verb check.)
+
+**Supersession sweep (mandatory whenever a package retires or supersedes an existing model).**
+When a package's own framing is "generalizes X past its old fixed shape" or "supersedes Y," search
+the tree for *every* call site that still encodes the pattern being retired — not just the one
+call site the package's own Files-to-Modify names. A `grep` for the old model's literal signature
+(hardcoded index comparisons, magic constants tied to the old shape, fixed-count loops) across
+`asm_game.py`/`tilemaps.py`/`build_rom.py` is cheap and must be run before the package is
+considered complete-in-scope. Record what the sweep found — including "found nothing else,
+confirmed clean" as a real, positive result, not silence. (`BL-0047`/`BL-0050`: `IP-1030`
+generalized `ALL_SCREENS`'s *rendering* dispatch off the fixed 3×3 model, but `check_zone_transition`
+and `map_screen()` both still encoded it verbatim — a sweep for `CUR_ZONE`'s old grid-index
+arithmetic, or for the literal 3×3/9-zone shape, would have surfaced both before either package
+was called done.)
+
 ### Step 2 — Author the package(s)
 
 All 14 fields, grounded in the **current** source tree — verify every file, function, label, and
@@ -110,6 +133,10 @@ implementation rows, commit as `docs(implementation): IP-xxxx — <what was plan
 - [ ] No package `READY` whose dependencies aren't all `VERIFIED`; no package marked authorized
       without an explicit basis (user go-ahead or the G3 bootstrap carve-out, cited).
 - [ ] The TWBS records the rationale for every split/no-split decision.
+- [ ] For a multi-verb capability (generate/render/navigate/persist/review), every verb has a
+      named package or a recorded, deliberate deferral — the TWBS states this explicitly.
+- [ ] For a package that supersedes an existing model, the supersession sweep was run and its
+      result (clean, or what else it found) is recorded in the TWBS or the package itself.
 
 ## Gotchas
 

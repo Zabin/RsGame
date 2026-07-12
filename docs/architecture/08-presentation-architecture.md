@@ -167,6 +167,16 @@ tile art, zero new palette entries), dispatched at runtime by `REGION_GRAPH`'s g
 revision of it; the four remaining shipped zone screens (`village_screen`, `cave_screen`,
 `desert_screen`, `plains_screen`) remain unwired, available as future per-family variety.
 
+**Extended to spawn content by `IP-9070` (2026-07-11):** the identical five-way representative
+choice above now also governs `ZONE_COLLECTS` (`docs/architecture/07-data-model.md`
+`setup_zone_collects`) — reduced from 9 zone-named collectible lists to the same 5
+biome-family-representative lists (Water→old `Z3`/Lake, Sand→old `Z0`/Beach, Grass→old
+`Z1`/Forest, Stone→old `Z2`/Mountain, Brick→old `Z8`/Castle), reusing each list's original item
+positions verbatim. `setup_zone_collects` now reads `REGION_GRAPH`'s biome-id and indexes
+`zc_table` by it, mirroring `dsr_p`'s own screen dispatch exactly — spawn content and screen
+art now track the same biome-id, closing the gap `BL-0059` found (spawn content had been left on
+the old fixed `CUR_ZONE`-indexed model while screen art was already generalized by `IP-1030`).
+
 ### 9. Cross-reference: tile index budget (informational, per GDS-07's delta)
 
 [GDS-07](07-data-model.md)'s delta forward-referenced this section for the actual biome-family
@@ -176,7 +186,48 @@ free block `0xB8`) — a generated world's biome families draw from this same co
 however many distinct families the eventual content package defines, not a new tile-allocation
 scheme.
 
-## Merge gate
+### 10. Maze-blocked edge indicator — `GDS-08` delta for `BL-0068`/`FS-108` (decided 2026-07-11)
+
+`ADR-0012`'s maze pass (`IP-1070`, shipped) means a screen edge with no arrow is now ambiguous
+between two cases the player cannot otherwise distinguish: a true grid boundary (no candidate
+region exists in that direction) and a maze-blocked-but-grid-adjacent edge (a region exists there,
+but the maze doesn't connect to it). `FS-108`'s logic half (`FR-2330`) already specifies the
+render-time classification that tells them apart; this section decides the third visual state that
+classification needs to actually display, closing `FS-108`'s own Open Question 1.
+
+**Decision: a distinct tile shape, not a recolored arrow, on the existing arrow's palette.**
+`draw_region_arrows` (`asm_game.py:918`, `IP-1030`) already writes a directional arrow tile at one
+of four fixed screen-edge positions (`ARROW_ADDR_U`/`D`/`L`/`R`) with a hardcoded palette-2 (UI/gold)
+attribute whenever `REGION_GRAPH` has a neighbor in that direction. Two ways to add a third state:
+recolor the same arrowhead shape (cheapest — zero new tile-index cost, one new palette entry), or
+draw a genuinely different silhouette on the *same* palette-2 attribute the open arrow already
+uses. **This level decides the latter.** Per §7's tile-craft checklist above ("silhouette-first:
+recognizable as a solid shape before color is assigned," R209), a same-palette recolor asks the
+player to distinguish state by hue alone at 8×8 scale from three screen-edge tiles away — a weak
+signal, and one that degrades for any player with reduced color discrimination. A distinct shape
+(a short broken/dashed bar — two short segments with a visible gap, silhouette-distinct from the
+open arrow's solid filled triangle) reads as "interrupted path" against "open path" without relying
+on color at all, and costs nothing in palette budget: it reuses palette 2 verbatim, the same
+attribute byte `_arrow_write` already writes for the open state. **No new BG palette entry is
+spent** — palettes 6/7 (`tree/leaf`, `accent purple`, both currently unused as zone-terrain
+palettes per [GDS-07 §5](07-data-model.md)) remain free for a future need, not consumed here.
+
+**Tile-index placement:** 4 new tiles, one per direction (mirroring `TL_ARROW_R/L/U/D`'s own
+per-direction-tile pattern, not a single rotated tile), at `0x1A`–`0x1D` — the next 4 of the 6 free
+slots directly following the existing UI-icon block (`0x10`–`0x19`, [GDS-07 §4](07-data-model.md)),
+before the tile map's `Digits` block begins at `0x20`. This continues §4's existing "clean,
+8-tile-aligned block per icon family" convention rather than reaching into the `0xB6`+ terrain-block
+free space, since this is a UI icon, not a terrain tile. `0x1E`–`0x1F` (2 slots) remain free in the
+same block for one more future UI icon. Net cost: 4 tile-index slots (of 74 free), 0 new palette
+entries.
+
+**Not decided here (implementation-package-level, `06`/`07`/`08-content-authoring`):** the exact
+pixel silhouette (this level specifies the *concept* — a short broken/dashed bar, silhouette-
+distinct from the arrow — not a literal bitmap, per this skill's own no-production-code rule); the
+exact screen-position offset for each of the 4 directional tiles (the existing `ARROW_ADDR_*`
+constants are the natural default — same position as the open-arrow case, since only one of the
+two states is ever drawn per edge — but confirming that is a code-level detail for whoever
+implements `FS-108`'s rendering half).
 
 - [x] Stub body replaced with real content addressing the stated Purpose.
 - [x] Every "merges from" source consulted; the merge decision recorded in prose here.

@@ -1,11 +1,15 @@
 # FP-02 — Epic Catalog
 
 > **Status: ✅ Authored (bootstrap as-built, 2026-07-07); delta 2026-07-10 (procgen-world
-> increment).** Owned by `05-feature-decomposition`. Groups [FP-03](03-feature-catalog.md)'s
-> thirteen Features into five Epics. Every Feature belongs to exactly one Epic. **New Epic
-> EP-5000** holds the procgen-world increment's world-generation-and-narrative Features;
-> **FEAT-1100** joins EP-1000 (state-machine extension); **FEAT-5300** joins EP-3000
-> (save-system extension).
+> increment); delta 2026-07-11 (`ADR-0012` maze-adjacency remediation).** Owned by
+> `05-feature-decomposition`. Groups [FP-03](03-feature-catalog.md)'s fifteen Features into five
+> Epics. Every Feature belongs to exactly one Epic. **New Epic EP-5000** holds the procgen-world
+> increment's world-generation-and-narrative Features; **FEAT-1100** joins EP-1000
+> (state-machine extension); **FEAT-5300** joins EP-3000 (save-system extension). **2026-07-11:
+> `FEAT-9100`** (maze-shaped region adjacency) **joins EP-5000** (extends `FEAT-9000`'s
+> generation routine); **`FEAT-2100`** (maze-aware transition-edge signaling) **joins EP-1000**
+> (extends `FEAT-2000`'s arrow signaling, following `FEAT-1100`'s own precedent of a
+> generation-triggered Feature still living in EP-1000 rather than EP-5000).
 
 ## EP-1000 — Core Gameplay Loop
 
@@ -15,19 +19,25 @@
   moves, and how they collect and win.
 - **Features Included:** FEAT-1000 (Game State Machine & Menu Flow), FEAT-2000 (Player Movement &
   Zone Traversal), FEAT-3000 (Collectibles, Scoring & Victory), FEAT-1100 (Main Menu & New-Game
-  Flow, new — not yet implemented).
+  Flow, new — not yet implemented), FEAT-2100 (Maze-Aware Transition-Edge Signaling, new — not
+  yet implemented).
 - **Modules:** `asm_game.py` (all Features are primarily this module), `tilemaps.py`
-  (FEAT-2000's arrow signaling; FEAT-1100's new main-menu/seed-scale-entry screens).
-- **Estimated Scope:** Three of four Features already shipped in full. **FEAT-1100 is new work**
+  (FEAT-2000's arrow signaling; FEAT-1100's new main-menu/seed-scale-entry screens); `tiles.py`
+  (FEAT-2100's new blocked-edge indicator art, not yet designed — see its own Open Questions).
+- **Estimated Scope:** Three of five Features already shipped in full. **FEAT-1100 is new work**
   — extends the state machine with three new states, gated on EP-5000's world-generation routine
-  (FEAT-9000) existing to call into.
+  (FEAT-9000) existing to call into. **FEAT-2100 is new work** — extends `FEAT-2000`'s arrow
+  signaling to a 3-state form, gated on EP-5000's `FEAT-9100` (the maze itself) existing first.
 - **Risks:** `BL-0006`'s prior test-suite-currency risk is **resolved** (IP-9010 VERIFIED,
   2026-07-07) — no longer a live risk for this Epic. FEAT-1100 carries its own new-work risk:
   retiring FR-1120's auto-load bypass is a deliberate protected-baseline change needing careful
-  negative testing (see FP-03's FEAT-1100 entry).
+  negative testing (see FP-03's FEAT-1100 entry). FEAT-2100 carries a real open blocker of its
+  own: its tile art is undesigned, needing a `GDS-08` delta before full specification (see FP-03's
+  FEAT-2100 entry) — low logic risk, but not yet fully unblocked.
 - **Dependencies:** EP-2000 (World Content & Presentation) supplies the content this Epic operates
   on; EP-5000 (World Generation & Visual Narrative) — FEAT-1100 triggers FEAT-9000's generation
-  routine.
+  routine; FEAT-2100 depends on EP-5000's FEAT-9100 (the maze) existing before it has anything to
+  signal.
 
 ## EP-2000 — World Content & Presentation
 
@@ -91,31 +101,38 @@
   the next, with no text-dialogue requirement.
 - **Features Included:** FEAT-9000 (Procedural World Generation & Item-Agnostic Collection),
   FEAT-4100 (Generated-Region Screen Composition), FEAT-6100 (Aesthetic & Biome-Transition
-  Compliance). All three new — not yet implemented.
-- **Modules:** New `worldgen.py` (FEAT-9000); `tilemaps.py`, `tiles.py` (FEAT-4100, generalizing
-  the existing per-zone rendering pattern); no code module for FEAT-6100 (a review-process
-  capability).
-- **Estimated Scope:** This Epic is the aesthetics/visual-story-narrative/procgen-world-map
-  increment's entire new-construction scope — the largest body of genuinely new work in this
-  catalog. Its own requirements baseline (RQ-01…04 delta, 2026-07-09) and architecture (3 ADRs,
-  six GDS deltas) are both already authored and closed; nothing here is built yet.
+  Compliance), FEAT-9100 (Maze-Shaped Region Adjacency, new — not yet implemented, added
+  2026-07-11). All four new — not yet implemented.
+- **Modules:** New `worldgen.py` (FEAT-9000, extended by FEAT-9100's maze pass); `tilemaps.py`,
+  `tiles.py` (FEAT-4100, generalizing the existing per-zone rendering pattern); no code module for
+  FEAT-6100 (a review-process capability).
+- **Estimated Scope:** This Epic held the aesthetics/visual-story-narrative/procgen-world-map
+  increment's entire new-construction scope through 2026-07-10 — the largest body of genuinely
+  new work in this catalog. Its own requirements baseline (RQ-01…04 delta, 2026-07-09) and
+  architecture (3 ADRs, six GDS deltas) are both already authored and closed. **2026-07-11:
+  FEAT-9100 added** — a post-ship remediation to `FEAT-9000`'s own generation output
+  (`ADR-0012`), not part of the original increment plan, but structurally the same kind of work
+  (extends the same generation routine, same module, same PRNG/testing pattern) so it joins this
+  Epic rather than spinning up a new one.
 - **Risks:** FEAT-9000 is High complexity/Medium-High risk — a wholly new generation algorithm
   with no shipped precedent, depending on a new verification technique (the reference-generator-
   oracle pattern, R305) working correctly. FEAT-4100/FEAT-6100 carry comparatively low risk,
-  reusing existing rendering/review mechanisms.
-- **Dependencies:** EP-1000 (FEAT-1100 triggers FEAT-9000's routine); EP-2000 (FEAT-4100/FEAT-6100
-  extend EP-2000's existing rendering/presentation patterns); EP-3000 (FEAT-5300 persists this
-  Epic's output).
+  reusing existing rendering/review mechanisms. FEAT-9100 is Low-Medium risk — its own highest-
+  risk question (algorithm choice) is already resolved and evidenced (`R112`/`ADR-0012`) before
+  reaching this stage, unlike FEAT-9000's own open-ended risk at the time it was first cataloged.
+- **Dependencies:** EP-1000 (FEAT-1100 triggers FEAT-9000's routine; FEAT-2100 depends on
+  FEAT-9100's output); EP-2000 (FEAT-4100/FEAT-6100 extend EP-2000's existing rendering/
+  presentation patterns); EP-3000 (FEAT-5300 persists this Epic's output).
 
 ## Epic summary table
 
 | Epic | Title | Features | Primary Modules | Risk level |
 |---|---|---|---|---|
-| EP-1000 | Core Gameplay Loop | FEAT-1000, FEAT-2000, FEAT-3000, FEAT-1100 | `asm_game.py`, `tilemaps.py` | Low (shipped Features); Medium (FEAT-1100, new) |
+| EP-1000 | Core Gameplay Loop | FEAT-1000, FEAT-2000, FEAT-3000, FEAT-1100, FEAT-2100 | `asm_game.py`, `tilemaps.py`, `tiles.py` | Low (shipped Features); Medium (FEAT-1100, new); Low (FEAT-2100, new but blocked on a GDS-08 delta) |
 | EP-2000 | World Content & Presentation | FEAT-4000, FEAT-6000 | `tilemaps.py`, `tiles.py` | Low (both prior non-compliances resolved) |
 | EP-3000 | Persistence | FEAT-5000, FEAT-5100, FEAT-5300 | `asm_game.py` | Low (shipped Features); Medium (FEAT-5300, new) |
 | EP-4000 | Engineering Quality & Verification | FEAT-7000 | all six + `test_rom.py` | Low (both tracked non-compliances resolved) |
-| EP-5000 | World Generation & Visual Narrative | FEAT-9000, FEAT-4100, FEAT-6100 | new `worldgen.py`, `tilemaps.py`, `tiles.py` | **Medium-High** (FEAT-9000: new algorithm, no shipped precedent) |
+| EP-5000 | World Generation & Visual Narrative | FEAT-9000, FEAT-4100, FEAT-6100, FEAT-9100 | new `worldgen.py`, `tilemaps.py`, `tiles.py` | **Medium-High** (FEAT-9000: new algorithm, no shipped precedent); Low-Medium (FEAT-9100, new but algorithm choice already resolved) |
 
 Every Feature in [FP-03](03-feature-catalog.md) belongs to exactly one Epic above; no Feature
 required splitting across Epics.

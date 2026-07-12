@@ -1,8 +1,9 @@
 # FP-04 — Feature Dependency Graph
 
 > **Status: ✅ Authored (bootstrap as-built, 2026-07-07); delta 2026-07-10 (procgen-world
-> increment).** Owned by `05-feature-decomposition`. Analyzes dependencies among
-> [FP-03](03-feature-catalog.md)'s thirteen Features. **No circular dependency found.**
+> increment); delta 2026-07-11 (`ADR-0012` maze-adjacency remediation, `FEAT-9100`/`FEAT-2100`).**
+> Owned by `05-feature-decomposition`. Analyzes dependencies among [FP-03](03-feature-catalog.md)'s
+> fifteen Features. **No circular dependency found.**
 
 ## Graph
 
@@ -21,6 +22,8 @@ graph TD
     FEAT1100["FEAT-1100: Main Menu &<br/>New-Game Flow (NEW)"]
     FEAT5300["FEAT-5300: Generated-World<br/>Save Persistence (NEW)"]
     FEAT6100["FEAT-6100: Aesthetic &<br/>Biome-Transition Compliance (NEW)"]
+    FEAT9100["FEAT-9100: Maze-Shaped<br/>Region Adjacency (NEW)"]
+    FEAT2100["FEAT-2100: Maze-Aware<br/>Transition-Edge Signaling (NEW)"]
 
     FEAT1000 --> FEAT2000
     FEAT1000 --> FEAT3000
@@ -50,6 +53,9 @@ graph TD
     FEAT5100 --> FEAT5300
     FEAT4100 --> FEAT6100
     FEAT6000 --> FEAT6100
+    FEAT9000 --> FEAT9100
+    FEAT9100 --> FEAT2100
+    FEAT2000 --> FEAT2100
 
     FEAT7000 -.underpins.-> FEAT1000
     FEAT7000 -.underpins.-> FEAT2000
@@ -62,6 +68,8 @@ graph TD
     FEAT7000 -.underpins.-> FEAT1100
     FEAT7000 -.underpins.-> FEAT5300
     FEAT7000 -.underpins.-> FEAT6100
+    FEAT7000 -.underpins.-> FEAT9100
+    FEAT7000 -.underpins.-> FEAT2100
 
     style FEAT5100 fill:#9d9,stroke:#333,stroke-width:2px
     style FEAT9000 fill:#f9d,stroke:#333,stroke-width:2px
@@ -69,11 +77,16 @@ graph TD
     style FEAT1100 fill:#f9d,stroke:#333,stroke-width:2px
     style FEAT5300 fill:#f9d,stroke:#333,stroke-width:2px
     style FEAT6100 fill:#f9d,stroke:#333,stroke-width:2px
+    style FEAT9100 fill:#f96,stroke:#333,stroke-width:2px
+    style FEAT2100 fill:#f96,stroke:#333,stroke-width:2px
 ```
 
 *(FEAT-5100 highlighted green — shipped and VERIFIED since this graph's last version. The five
 procgen-world increment Features highlighted pink as not-yet-implemented. FEAT-7000 no longer
 highlighted red — both its tracked non-compliances (`NFR-1200`/`NFR-7100`) are now VERIFIED Met.
+FEAT-9100/FEAT-2100 highlighted orange — the 2026-07-11 `ADR-0012` post-ship remediation, a
+distinct thread from the original procgen-world increment's own pink Features (all of which are
+already `COMPLETE`/`VERIFIED` or awaiting only fresh-session verification).
 Solid arrows are hard dependencies (A → B means B depends on A); dotted arrows from FEAT-7000
 represent the non-blocking "underpins" relationship its cross-cutting NFRs have with every
 player-visible Feature.)*
@@ -84,58 +97,68 @@ player-visible Feature.)*
 |---|---|---|
 | FEAT-1000 | — (foundational) | FEAT-2000, FEAT-3000, FEAT-5000, FEAT-6000, FEAT-9000, FEAT-1100 |
 | FEAT-4000 | — (foundational) | FEAT-2000, FEAT-3000, FEAT-6000, FEAT-9000, FEAT-4100 |
-| FEAT-2000 | FEAT-1000, FEAT-4000 | FEAT-3000, FEAT-5000 |
+| FEAT-2000 | FEAT-1000, FEAT-4000 | FEAT-3000, FEAT-5000, FEAT-2100 |
 | FEAT-3000 | FEAT-1000, FEAT-2000, FEAT-4000 | FEAT-5000, FEAT-6000, FEAT-5100, FEAT-9000 |
 | FEAT-6000 | FEAT-1000, FEAT-3000, FEAT-4000 | FEAT-4100, FEAT-6100 |
 | FEAT-5000 | FEAT-1000, FEAT-2000, FEAT-3000 | FEAT-5100, FEAT-1100, FEAT-5300 |
 | FEAT-5100 | FEAT-3000, FEAT-5000 | FEAT-5300 |
 | FEAT-7000 | — (infrastructure floor) | all others, non-blocking |
-| **FEAT-9000** | FEAT-1000, FEAT-3000, FEAT-4000 | FEAT-4100, FEAT-1100, FEAT-5300 |
+| **FEAT-9000** | FEAT-1000, FEAT-3000, FEAT-4000 | FEAT-4100, FEAT-1100, FEAT-5300, FEAT-9100 |
 | **FEAT-4100** | FEAT-9000, FEAT-4000, FEAT-6000 | FEAT-6100 |
 | **FEAT-1100** | FEAT-1000, FEAT-9000, FEAT-5000 | — (nothing yet) |
 | **FEAT-5300** | FEAT-9000, FEAT-5000, FEAT-5100 | — (nothing yet) |
 | **FEAT-6100** | FEAT-4100, FEAT-6000 | — (nothing yet) |
+| **FEAT-9100** | FEAT-9000 | FEAT-2100 |
+| **FEAT-2100** | FEAT-9100, FEAT-2000 | — (nothing yet) |
 
 ## Critical path
 
 **Bootstrap increment (unchanged):** FEAT-1000 → FEAT-2000 → FEAT-3000 → FEAT-5000 → FEAT-5100
 (5 nodes) — fully built and VERIFIED end-to-end.
 
-**Procgen-world increment (new):** **FEAT-9000 → FEAT-4100 → FEAT-6100** (3 nodes) — the longest
-new-work dependency chain, and the one that matters for this increment's scheduling: world
-generation must exist before a generated region can be rendered, and a rendered region must exist
-before its aesthetic/palette-stepping compliance can be judged. FEAT-1100 and FEAT-5300 each
-depend only on FEAT-9000 (already the chain's root) plus already-shipped bootstrap Features
-(FEAT-1000/FEAT-5000/FEAT-5100), so neither adds length beyond FEAT-9000 — they can proceed in
-parallel with FEAT-4100/FEAT-6100 once FEAT-9000 lands.
+**Procgen-world increment (unchanged):** **FEAT-9000 → FEAT-4100 → FEAT-6100** (3 nodes) — the
+longest dependency chain in that increment: world generation must exist before a generated region
+can be rendered, and a rendered region must exist before its aesthetic/palette-stepping
+compliance can be judged. FEAT-1100 and FEAT-5300 each depend only on FEAT-9000 (already the
+chain's root) plus already-shipped bootstrap Features, so neither adds length beyond FEAT-9000.
+**All four procgen-world Features are now `COMPLETE`/`VERIFIED` or content-reviewed** — this
+chain is fully built, only fresh-session `09-package-verification` remains outstanding.
+
+**`ADR-0012` maze-adjacency remediation (new, 2026-07-11):** **FEAT-9000 → FEAT-9100 → FEAT-2100**
+(3 nodes, counting from the same already-shipped root) — the longest chain in this new thread.
+`FEAT-9100`'s own direct dependency is only `FEAT-9000` (already `COMPLETE`), so this thread's
+*effective* new-work critical path is 2 nodes (`FEAT-9100` → `FEAT-2100`), shorter than the
+original increment's 3-node chain, and does not extend it (a parallel, independent thread off
+the same root, not a continuation).
 
 ## Blocking Features (high fan-out)
 
-- **FEAT-1000** (6 direct dependents, was 4) — remains the single highest-fan-out Feature; now
-  also gates FEAT-9000 (generation is invoked during a state transition) and FEAT-1100.
-- **FEAT-9000** (3 direct dependents: FEAT-4100, FEAT-1100, FEAT-5300) — the new increment's own
-  highest-fan-out Feature; it is this increment's foundational node, exactly analogous to
-  FEAT-1000/FEAT-4000's role in the bootstrap graph. Any change to the generation algorithm's
-  output shape (the region-graph structure) ripples into rendering, the new-game flow, and save
-  persistence simultaneously.
-- **FEAT-4000** (5 direct dependents, was 3) — now also gates FEAT-9000 (generalizes the fixed
-  zone/screen model) and FEAT-4100.
+- **FEAT-1000** (6 direct dependents) — remains the single highest-fan-out Feature.
+- **FEAT-9000** (4 direct dependents: FEAT-4100, FEAT-1100, FEAT-5300, FEAT-9100) — the
+  procgen-world increment's own highest-fan-out Feature, now also gating this session's
+  remediation thread. Any change to the generation algorithm's output shape ripples into
+  rendering, the new-game flow, save persistence, *and* adjacency shape simultaneously — worth
+  noting since `FEAT-9000` is already `COMPLETE`/shipped, so this fan-out is now a
+  stability/regression concern for `FEAT-9100`'s implementation, not an open design risk.
+- **FEAT-4000** (5 direct dependents) — unchanged from the prior delta.
 
 ## Parallel opportunities
 
 - **FEAT-6000 (Presentation & HUD)** and **FEAT-5000/FEAT-5100 (Persistence)** — unchanged from
   the bootstrap graph, both already shipped.
-- **FEAT-1100, FEAT-5300** (both depend only on FEAT-9000 plus already-shipped bootstrap
-  Features) can proceed **in parallel with each other and with FEAT-4100/FEAT-6100** once
-  FEAT-9000 lands — none of the four depends on any of the others. This is the operative
-  scheduling fact for the procgen-world increment: only FEAT-9000 itself is a hard serialization
-  point.
+- **FEAT-1100, FEAT-5300, FEAT-9100** all depend only on the already-`COMPLETE` `FEAT-9000` (plus,
+  for FEAT-1100/FEAT-5300, already-shipped bootstrap Features) — all three can proceed
+  independently of each other; `FEAT-9100` in particular does not need to wait on
+  `FEAT-4100`/`FEAT-6100` at all (both already shipped and unaffected), only on `FEAT-9000`.
+- **FEAT-2100 is the one genuinely serialized new-work node this delta adds** — it cannot start
+  before `FEAT-9100` ships (there is nothing to signal yet), the same single-point-of-
+  serialization pattern the original increment had at `FEAT-9000`.
 - **FEAT-7000 (Engine Quality)**'s two prior tracked non-compliances are both now resolved
   (`NFR-1200`/`NFR-7100`, both VERIFIED) — it no longer represents an open scheduling choice.
 
 ## Circular dependency check
 
-**None found**, including after adding the five new Features. One near-miss was resolved during
+**None found**, including after adding the two `ADR-0012` remediation Features. One near-miss was resolved during
 this delta's own authoring, not left for the graph to surface: `FR-9130` ("exactly one KeyItem
 per generated region") and `FR-3220` ("item-agnostic KeyItem collection") name each other as
 dependencies at the *requirement* level (FR-9130 depends on the collection mechanism existing;

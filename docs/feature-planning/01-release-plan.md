@@ -2,13 +2,15 @@
 
 > **Status: ✅ Authored (bootstrap as-built, 2026-07-07); delta 2026-07-10 (procgen-world
 > increment + `BL-0036` correction); Baseline + Release 1 assessed **GO** 2026-07-10
-> ([release-assessment-bootstrap-tranche.md](../reviews/release-assessment-bootstrap-tranche.md)).**
-> Owned by `05-feature-decomposition`. Assigns every Feature
-> in [FP-03](03-feature-catalog.md) (now thirteen) to exactly one bucket, using
+> ([release-assessment-bootstrap-tranche.md](../reviews/release-assessment-bootstrap-tranche.md));
+> delta 2026-07-11 (`ADR-0012` maze-adjacency remediation, `FEAT-9100`/`FEAT-2100` join Release 2
+> as an addendum).** Owned by `05-feature-decomposition`. Assigns every Feature
+> in [FP-03](03-feature-catalog.md) (now fifteen) to exactly one bucket, using
 > [FP-04](04-feature-dependency-graph.md)'s dependency analysis. **Bootstrap framing: seven of
 > eight bootstrap-baseline Features are already shipped** (FEAT-5100 shipped and verified
 > 2026-07-07, correcting this document's prior "no shipped implementation" framing — `BL-0036`).
-> **Release 2** now holds the procgen-world increment's five new Features.
+> **Release 2** holds the procgen-world increment's five original Features (all now shipped) plus
+> two 2026-07-11 post-ship remediation Features.
 
 ## Bucket: Baseline (as-built)
 
@@ -42,7 +44,10 @@ scheduled.
 ## Bucket: Release 2 — Procedural World & Visual Narrative
 
 The aesthetics/visual-story-narrative/procgen-world-map increment's five new Features, per its
-2026-07-09 RQ-01…04 requirements delta. None yet implemented.
+2026-07-09 RQ-01…04 requirements delta. **All five have since shipped** (`IP-1020`/`1030`/`1031`/
+`1040`/`1050`, four `VERIFIED`, `FEAT-6100`'s content-review `COMPLETE`) — this bucket's original
+"None yet implemented" framing is stale and corrected here in passing, though re-verifying that
+state end-to-end is out of this delta's own scope.
 
 | Feature | Why here |
 |---|---|
@@ -54,6 +59,25 @@ The aesthetics/visual-story-narrative/procgen-world-map increment's five new Fea
 
 No Feature in this bucket is scheduled before a Feature it depends on (FEAT-9000 first; the
 remaining four in any order or in parallel, per FP-04's parallel-opportunities analysis).
+
+### Release 2 addendum — post-ship remediation (`ADR-0012`, added 2026-07-11)
+
+Two new Features, from a project-owner design request following up on this release's own shipped
+navigation fix (`BL-0047`/`IP-9050`) — not part of the original 2026-07-09 requirements delta,
+but structurally an extension of this same release's `FEAT-9000` generation routine, so they join
+this bucket rather than opening a new one (the fixed bucket vocabulary this stage uses has no
+"Release 3" — see this stage's own Step 4). **Neither yet implemented.**
+
+| Feature | Why here |
+|---|---|
+| FEAT-9100 (Maze-Shaped Region Adjacency) | Depends only on the already-shipped `FEAT-9000` (extends its generation routine with a second pass) — nothing blocks starting it now. `ADR-0012`'s algorithm choice (randomized DFS/recursive backtracker) and hardware-cost grounding (`R112`) are both already resolved, unlike `FEAT-9000`'s own open-ended risk when it first entered this catalog. |
+| FEAT-2100 (Maze-Aware Transition-Edge Signaling) | Depends on `FEAT-9100` (no "maze-blocked" case to signal before the maze exists) plus already-shipped `FEAT-2000` (extends its arrow-signaling logic). **Real open blocker, not resolved by this stage:** its own tile art needs a `GDS-08` delta not yet authored — named here, not silently assumed away. |
+
+`FEAT-9100` before `FEAT-2100` — the only ordering constraint in this addendum. Both are
+independent of the original five Features' own current state (already shipped) and independent
+of `BL-0066`'s still-open `NEEDS-USER` conflict (`CR-05`) — that item has no `FEAT-xxxx` row at
+all yet, per this stage's own rule against inventing a Feature for an unresolved requirements
+conflict.
 
 ## Bucket: Future (not yet decomposed into Features)
 
@@ -90,13 +114,15 @@ rule against inventing requirements:
   reconfirmed by `10-integration-review`, 2026-07-10) and no longer holds this title.
 - **Foundational:** FEAT-1000 and FEAT-4000 (Baseline); **FEAT-9000 (Release 2)** — the
   zero-upstream-Release-2-dependency Feature everything else in Release 2 is built on, mirroring
-  FEAT-1000/FEAT-4000's role in Baseline.
+  FEAT-1000/FEAT-4000's role in Baseline. **Within the 2026-07-11 addendum: `FEAT-9100`** plays
+  the same foundational role for `FEAT-2100` that `FEAT-9000` plays for the rest of Release 2.
 - **Optional:** None in the current baseline. `NFR-6510` (Release 2, biome-transition
   palette-stepping, part of `FEAT-6100`) is the one **"Should"**-priority requirement in this
   entire plan rather than "Must" — a design-quality guideline, not a hard functional gate; still
   scheduled since it rides the same Feature as `NFR-6500`, not split out. `CR-02`/`CR-03`/`CR-04`
-  (RQ-01/RQ-02's remaining Candidate
-  Requirements) remain un-baselined and therefore have no Feature row to mark optional.
+  (RQ-01/RQ-02's remaining Candidate Requirements) remain un-baselined and therefore have no
+  Feature row to mark optional. `CR-05` (`BL-0066`, biome-blob clustering — an `ADR-0012`
+  pass-ordering conflict, `NEEDS-USER`) joins them, added 2026-07-11.
 - **Deferred:** The Future bucket's one remaining item (C7's beyond-`WORLD_SCALE`-9 bank-switched
   growth — the test-suite remediation item is resolved, kept only as a historical note).
 
@@ -107,4 +133,6 @@ No Feature is scheduled before a Feature it depends on (verified against
 FEAT-5000 and FEAT-3000, both Baseline. Release 2's FEAT-9000 depends only on Baseline Features
 (FEAT-1000, FEAT-3000, FEAT-4000); FEAT-4100/FEAT-1100/FEAT-5300/FEAT-6100 each depend on FEAT-9000
 plus Baseline/Release-1 Features already scheduled or shipped earlier — no ordering violation
-anywhere in the plan.
+anywhere in the plan. **2026-07-11 addendum:** FEAT-9100 depends only on the now-shipped FEAT-9000;
+FEAT-2100 depends on FEAT-9100 plus the already-shipped FEAT-2000 — both schedule cleanly after
+their dependencies, no violation.

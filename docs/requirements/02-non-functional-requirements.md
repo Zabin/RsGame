@@ -1,8 +1,9 @@
 # RQ-02 — Non-Functional Requirements
 
 > **Status: ✅ Authored (bootstrap as-built, 2026-07-06; delta 2026-07-09 for the procgen-world
-> increment, NFR-1300/2200/4200/5300/6500/6510; delta 2026-07-11 — NFR-6500/6510 flipped to Met
-> — see Changelog).** Owned by
+> increment, NFR-1300/2200/4200/5300/6500/6510; delta 2026-07-11 — NFR-6500/6510 flipped to Met;
+> delta 2026-07-11 — NFR-4200 extended for ADR-0012's maze-generation WRAM cost — see
+> Changelog).** Owned by
 > `04-requirements-engineering`. Derives from
 > [GDS-06](../architecture/06-non-functional-requirements.md)'s five NFRs (N1–N5) — formalized
 > into numbered `NFR-xxxx` requirements per
@@ -40,6 +41,14 @@
   palette assignment either NFR had to judge. NFR-6500: clean, no findings. NFR-6510: Met with
   one Low/informational note (the Stone↔Brick pairing sits outside GDS-08 §8's worked example —
   does not fail the requirement, per its own "Should" priority). RTM rows for both updated.
+- **2026-07-11 — 04-delta for `ADR-0012`'s maze-shaped region adjacency** (`BL-0064`–`BL-0067`;
+  re-run Step 0 on the delta only, per this skill's own Gotchas). **NFR-4200**'s Notes field
+  extended with `R112`'s directly-measured maze-generation WRAM cost (81 bytes worst case, or 11
+  bit-packed, against 3168 bytes/3.09 KiB current free headroom) — WRAM budget does not gate
+  `FR-9140`. No new NFR category needed; no Performance/Reliability NFR text changes required
+  (the maze-generation pass stays within `generate_world`'s existing one-time, LCD-off-bracketed
+  cost class already covered by `NFR-1300`/`NFR-2200`'s existing wording, which does not name a
+  specific algorithm and needed no update).
 
 ## Performance
 
@@ -170,7 +179,12 @@
 - **Related ADRs:** ADR-0009.
 - **Notes:** This is what makes the Python reference-generator oracle (R305's extension) valid —
   an oracle can only predict SM83 output for a nondeterministic routine by accident, not by
-  design. Not yet implemented.
+  design. Not yet implemented. **2026-07-11 delta (`IP-9110`, `BL-0074`/`ADR-0014`):**
+  `gw_prng_step`'s mixing step was repaired (period-sound `7,9,8` shift triplet, replacing the
+  degenerate byteswap-XOR final step) — this NFR's own "no `DIV`/multiply" constraint remains
+  satisfied unchanged (the fix is shift/XOR-only, confirmed by `T12.h`'s unchanged static audit);
+  this NFR governs determinism and opcode discipline, not output *quality*, so the repair is
+  orthogonal to it, not a violation being fixed.
 
 ## Maintainability
 
@@ -234,7 +248,8 @@
   and vice versa — the two must be checked independently for any future zone/content addition, per
   GDS-06 N1's explicit caution.
 
-### NFR-4200 — Generated-world WRAM/SRAM headroom (WRAM half Met — 2026-07-10, `IP-1020`)
+### NFR-4200 — Generated-world WRAM/SRAM headroom (Met — WRAM half 2026-07-10 `IP-1020`; SRAM half
+2026-07-10 `IP-1050`, re-affirmed 2026-07-11 `IP-9070`)
 
 - **ID:** NFR-4200
 - **Title:** The generated world's WRAM working set and SRAM save-field additions shall stay
@@ -245,21 +260,33 @@
 - **Rationale:** GDS-07 delta §6/§7; R111; extends `BL-0019`'s ROM-headroom-watching convention
   to WRAM/SRAM specifically.
 - **Priority:** Must
-- **Status: WRAM half MET (`IP-1020`); SRAM half still NOT YET IMPLEMENTED (`FEAT-5300`/
-  `IP-1050`'s scope).** Measured against shipped code, not estimated: `SEED`–`GW_SCALE_SQ`
-  (`0xC069`–`0xC27C`, confirmed [GDS-07](../architecture/07-data-model.md) §6) stays entirely
-  inside bank-0 and the existing boot-time WRAM clear (`0xC000`–`0xC2FF`); `test_rom.py`'s
-  **T12.i** confirms this directly against the built ROM at `scale=9`. The SRAM half's proposed
-  figures (~84 bytes against 8 KiB) remain architecture-level estimates pending `IP-1050`.
+- **Status: MET, both halves.** WRAM half measured against shipped code, not estimated:
+  `SEED`–`GW_SCALE_SQ` (`0xC069`–`0xC27C`, confirmed [GDS-07](../architecture/07-data-model.md)
+  §6) stays entirely inside bank-0 and the existing boot-time WRAM clear (`0xC000`–`0xC2FF`);
+  `test_rom.py`'s **T12.i** confirms this directly against the built ROM at `scale=9`. SRAM half
+  implemented by `IP-1050` (`SEED`/`WORLD_SCALE`/`KEYITEM_FLAGS` mirrors, ~84 bytes) and further
+  grown by `IP-9070` (2026-07-11, `SRAM_SCOREITEM` widened 9→81 bytes, +72 bytes, relocated to
+  `0xA070`–`0xA0C0`) — net SRAM save-format footprint against the 8 KiB MBC1 SRAM budget remains
+  trivial; re-affirmed by direct build, not merely re-estimated.
 - **Acceptance Criteria:** At world scale 9, the built ROM's WRAM working set for the region
   graph plus KeyItemFlags fits within bank-0 (`0xC000`–`0xCFFF`) without requiring `SVBK`
   banking; the SRAM save-field additions plus existing save data remain under 8 KiB.
 - **Verification Method:** Inspection (WRAM/SRAM layout audit at implementation) / Test.
-- **Source Documents:** GDS-07 delta §6/§7; R111.
+- **Source Documents:** GDS-07 delta §6/§7, §7a; R111.
 - **Related ADRs:** ADR-0010.
 - **Notes:** Re-affirm this NFR's status the same way `BL-0019`'s convention already requires for
   ROM-growing packages — any package materially growing the WRAM/SRAM footprint should include a
-  checklist item re-checking headroom against this NFR's figures. Not yet implemented.
+  checklist item re-checking headroom against this NFR's figures, as `IP-9070` did. **2026-07-11
+  delta (`FR-9140`/`ADR-0012`):** the maze-generation pass's own worst-case WRAM cost was
+  measured directly against the shipped tree, not estimated — `R112` found 928 bytes used /
+  3168 bytes (3.09 KiB) free in bank 0 as of this delta, and the chosen algorithm (randomized
+  DFS/recursive backtracker) needs only an 81-byte visited-flag array (or 11 bytes bit-packed) at
+  `scale=9` worst case, comfortably inside that headroom — WRAM budget does not gate this feature.
+  **2026-07-11 delta, implemented (`IP-1070`):** actual measured cost is 85 bytes
+  (`GW_MAZE_STATE`–`GW_MAZE_DRAW_CTR`, `0xC3A0`–`0xC3F4`, [GDS-07 §7b](../architecture/07-data-model.md))
+  — within a byte of the estimate above — confirmed directly against the built ROM by `test_rom.py`'s
+  **T19.g**; no SRAM impact (this pass never persists its own state, `T15.d`'s non-persistence
+  invariant unaffected).
 
 ## Data Integrity
 
@@ -322,20 +349,23 @@
 - **Rationale:** ADR-0010; GDS-07 delta §7; R106's extension; the FS-101/`IP-1010` version-byte
   precedent this NFR extends.
 - **Priority:** Must (Met)
-- **Status: MET.** `SAVE_VERSION_VAL` bumped `0x01`→`0x02`; `check_save_valid` (`IP-1040`) and
-  `try_load_save`'s own version check (both consuming the same symbolic constant) now reject a
-  version-1 save from "continue" entirely — confirmed by `T15.b1`/`b2` (a synthetic IP-1010-vintage
-  fixture, following T11.d's exact pattern) and `T11.d1b` (the pre-upgrade case IP-1040 already
-  covers). No partial load of garbage seed/scale/region-flags bytes occurs in either case.
-- **Acceptance Criteria:** Given a save written under the prior version value, after boot that
+- **Status: MET.** `SAVE_VERSION_VAL` bumped `0x01`→`0x02` (`IP-1050`), then `0x02`→`0x03`
+  (`IP-9070`, 2026-07-11, `SRAM_SCOREITEM` relocation/widening); `check_save_valid` (`IP-1040`)
+  and `try_load_save`'s own version check (both consuming the same symbolic constant) reject any
+  save whose version byte doesn't match the current value from "continue" entirely — confirmed
+  by `T15.b1`/`b2` (a synthetic IP-1010-vintage fixture) and `T16.d1`/`d2` (a synthetic
+  IP-1050-vintage, version-2 fixture, extending the same pattern a third time). No partial load
+  of garbage seed/scale/region-flags/scoreitem bytes occurs in any case.
+- **Acceptance Criteria:** Given a save written under any prior version value, after boot that
   save is not offered as a "continue" option — verified by a synthetic pre-upgrade SRAM fixture,
   following the same test pattern `IP-1010`'s T11.d established for `SCOREITEM_FLAGS`.
-- **Verification Method:** Test (synthetic pre-upgrade fixture, `IP-1010`'s T11.d precedent).
-- **Source Documents:** GDS-07 delta §7; ADR-0010.
+- **Verification Method:** Test (synthetic pre-upgrade fixture, `IP-1010`'s T11.d precedent,
+  extended by `IP-1050`'s T15.b and `IP-9070`'s T16.d).
+- **Source Documents:** GDS-07 delta §7, §7a; ADR-0010.
 - **Related ADRs:** ADR-0010, ADR-0006.
-- **Notes:** Implemented 2026-07-10 (`IP-1050`). The version-value sequence (`0x01`→`0x02`) is now
-  strictly monotonic by convention — a future save-format extension must bump to `0x03`, never
-  reuse either prior value.
+- **Notes:** Implemented 2026-07-10 (`IP-1050`), extended 2026-07-11 (`IP-9070`). The
+  version-value sequence (`0x01`→`0x02`→`0x03`) is strictly monotonic by convention — a future
+  save-format extension must bump to `0x04`, never reuse a prior value.
 
 ## Portability
 

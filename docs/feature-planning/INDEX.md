@@ -9,8 +9,8 @@ templates.
 
 | # | Document | File | Status |
 |---|---|---|---|
-| 1 | Release Plan (buckets: Baseline (as-built) / MVP / Release 1 / Release 2 / Future) | `01-release-plan.md` | ✅ Authored (2026-07-07); delta 2026-07-10 |
-| 2 | Epic Catalog (EP-xxxx) | `02-epic-catalog.md` | ✅ Authored (2026-07-07); delta 2026-07-10 |
-| 3 | Feature Catalog (FEAT-xxxx) | `03-feature-catalog.md` | ✅ Authored (2026-07-07); delta 2026-07-10 |
-| 4 | Feature Dependency Graph (Mermaid) | `04-feature-dependency-graph.md` | ✅ Authored (2026-07-07); delta 2026-07-10 |
-| 5 | Feature Review | `05-feature-review.md` | ✅ Authored (2026-07-07); delta 2026-07-10 |
+| 1 | Release Plan (buckets: Baseline (as-built) / MVP / Release 1 / Release 2 / Future) | `01-release-plan.md` | ✅ Authored (2026-07-07); delta 2026-07-10; delta 2026-07-11 (ADR-0012) |
+| 2 | Epic Catalog (EP-xxxx) | `02-epic-catalog.md` | ✅ Authored (2026-07-07); delta 2026-07-10; delta 2026-07-11 (ADR-0012) |
+| 3 | Feature Catalog (FEAT-xxxx) | `03-feature-catalog.md` | ✅ Authored (2026-07-07); delta 2026-07-10; delta 2026-07-11 (ADR-0012) |
+| 4 | Feature Dependency Graph (Mermaid) | `04-feature-dependency-graph.md` | ✅ Authored (2026-07-07); delta 2026-07-10; delta 2026-07-11 (ADR-0012) |
+| 5 | Feature Review | `05-feature-review.md` | ✅ Authored (2026-07-07); delta 2026-07-10; delta 2026-07-11 (ADR-0012) |

@@ -41,14 +41,14 @@ TMP2           = 0xC014
 CARROT_FLAGS   = 0xC015   # 9 bytes — one per zone, 0/1
 COLL_DATA      = 0xC020
 COLL_COUNT     = 0xC050
-SCOREITEM_FLAGS = 0xC060  # 9 bytes — one bitfield per zone, bit = list-position (FR-5220)
 SEED           = 0xC069  # 2 bytes, C069-C06A — player-entered generation seed (IP-1020)
 WORLD_SCALE    = 0xC06B  # 1 byte — regions per grid axis, 2-9 (IP-1020)
 REGION_GRAPH   = 0xC070  # 5 bytes/region (1 biome-id + 4 neighbor-region-index), up to 81
                           # regions = 405 bytes worst case (IP-1020)
 KEYITEM_FLAGS  = 0xC220  # up to 81 bytes, one collected-flag per region — generalizes
-                          # CARROT_FLAGS (IP-1020); only indices 0-8 are live until FEAT-1100
-                          # wires up world generation, matching CUR_ZONE's current 0-8 range
+                          # CARROT_FLAGS (IP-1020). All 81 indices are live as of IP-9050
+                          # (CUR_ZONE reaches the full generated-world range); both reset
+                          # sites (st_intro/st_victory) widened to match (BL-0063)
 KEYITEM_COUNT  = CARROTS_COUNT  # same WRAM slot as CARROTS_COUNT — item-agnostic alias
                                   # for the running collected-count (IP-1020, FR-3220)
 GW_TOP_ROW     = 0xC271  # 9 bytes — generate_world's own transient scratch: the biome
@@ -68,12 +68,62 @@ SSE_DIGITS     = 0xC27F  # 5 bytes, C27F-C283 — SEED/SCALE ENTRY's 5 independe
 SSE_SCALE      = 0xC284  # 1 byte — SEED/SCALE ENTRY's scale value, 2-9, default 3 (IP-1040)
 SSE_CURSOR     = 0xC285  # 1 byte — SEED/SCALE ENTRY's cursor position, 0-4 = digit index
                           # (MSB first), 5 = scale slot (IP-1040)
-OAM_BUF        = 0xC300
+SCOREITEM_FLAGS = 0xC286  # up to 81 bytes, C286-C2D6 — one bitfield per region, bit =
+                          # list-position (FR-5220), generalized from the old fixed
+                          # 9-byte/9-zone array (IP-9070) the same way KEYITEM_FLAGS
+                          # generalized CARROT_FLAGS. Relocated (not grown in place at
+                          # its old 0xC060 address) to the confirmed-unused WRAM gap
+                          # between SSE_CURSOR and OAM_BUF — growing to 81 bytes in place
+                          # would have collided with REGION_GRAPH at 0xC070.
+MM_JUST_ENTERED = 0xC2D7  # 1 byte — set by every GAMESTATE -> GS_MAIN_MENU transition site
+                          # (boot, st_victory's A-press, st_save's SELECT option,
+                          # st_seed_scale_entry's B-cancel), cleared by mm_on_entry once
+                          # consumed. Lets mm_on_entry tell a genuine state entry (reset
+                          # MM_CURSOR to its default) apart from a same-state redraw the
+                          # player's own toggle causes (leave MM_CURSOR alone) — IP-9060,
+                          # BL-0048's fix. Sits in the confirmed-unused byte immediately
+                          # after SCOREITEM_FLAGS's own 81-byte extent.
+OAM_BUF        = 0xC300  # 160 bytes, C300-C39F, shadow OAM
+
+GW_MAZE_STATE  = 0xC3A0  # up to 81 bytes, one per region: bit 7 = visited, bits 1:0 =
+                          # parent-direction (0=up,1=down,2=left,3=right, matching
+                          # REGION_GRAPH's own neighbor-byte order), recorded at carve time.
+                          # The maze-generation pass's own backtracking state -- reuses
+                          # REGION_GRAPH's own already-written full-lattice candidate bytes
+                          # as the "does a grid-adjacent region exist here" test rather than
+                          # re-deriving grid adjacency (IP-1070, ADR-0012 point 3). First
+                          # unclaimed byte past OAM_BUF's own 160-byte extent (C300-C39F).
+                          # Transient, meaningless outside a generate_world call, like
+                          # GW_TOP_ROW.
+GW_CUR_REGION  = 0xC3F1  # 1 byte -- the maze pass's own current-region pointer during the
+                          # spanning-tree carve (IP-1070)
+GW_MAZE_DIR    = 0xC3F2  # 1 byte -- during carving: the starting-direction draw / direction
+                          # currently being tried (0-3). Repurposed, once carving completes,
+                          # as the canonical prune pass's own "current direction" (1=down,
+                          # 3=right) -- the two uses never overlap in time, the same
+                          # non-overlapping one-shot-scratch reuse pattern TMP1/TMP2 already
+                          # establish elsewhere in this routine (IP-1070).
+GW_BRAID_IDX   = 0xC3F3  # 1 byte -- during carving: the current region's own try-count
+                          # (0-3, how many of its 4 directions have been tried).
+                          # Repurposed, once carving completes, as the canonical prune
+                          # pass's own region-loop counter (0..scale²-1) -- same
+                          # non-overlapping reuse pattern as GW_MAZE_DIR above (IP-1070).
+GW_MAZE_DRAW_CTR = 0xC3F4  # 1 byte -- a monotonic, never-persisted per-draw counter, XORed
+                          # into every gw_prng_step draw the maze pass performs (both the
+                          # carve phase's direction draw and the braid phase's keep/prune
+                          # draw) before the drawn byte is used for a decision, per
+                          # ADR-0013 -- decorrelates this pass's own repeated draws without
+                          # touching gw_prng_step's own algorithm or any other call site
+                          # (R113: the shipped PRNG collapses to a degenerate fixed point/
+                          # short cycle under many back-to-back draws with no such
+                          # perturbation). Never fed back into TMP1/TMP2.
 
 SAVE_VERSION_ADDR = 0xA012   # save-format version guard (FR-5220 / Design Decision 2)
-SAVE_VERSION_VAL  = 0x02     # bumped 0x01->0x02 (IP-1050, second bump since ship — the
-                              # value sequence is strictly monotonic, never reused)
-SRAM_SCOREITEM    = 0xA013   # 9 bytes, SCOREITEM_FLAGS mirror
+SAVE_VERSION_VAL  = 0x04     # bumped 0x03->0x04 (IP-9110, fourth bump since ship — the
+                              # value sequence is strictly monotonic, never reused. Excludes
+                              # a pre-fix save from "continue" now that gw_prng_step's own
+                              # mixing step changed (BL-0074/ADR-0014), rather than silently
+                              # regenerating a different world with no signal to the player.
 SRAM_SEED          = 0xA01C  # 2 bytes, A01C-A01D — SEED mirror (IP-1050)
 SRAM_WORLD_SCALE   = 0xA01E  # 1 byte — WORLD_SCALE mirror (IP-1050)
 SRAM_KEYITEM_FLAGS = 0xA01F  # up to 81 bytes, A01F-A06F — KEYITEM_FLAGS mirror,
@@ -81,6 +131,11 @@ SRAM_KEYITEM_FLAGS = 0xA01F  # up to 81 bytes, A01F-A06F — KEYITEM_FLAGS mirro
                               # (IP-1050). REGION_GRAPH itself is never persisted —
                               # it regenerates deterministically from (SEED, WORLD_SCALE)
                               # via generate_world on load (ADR-0009).
+SRAM_SCOREITEM    = 0xA070   # up to 81 bytes, A070-A0C0 — SCOREITEM_FLAGS mirror,
+                              # generalized from the old fixed 9-byte/9-zone mirror at
+                              # A013-A01B (IP-9070). Relocated to immediately after
+                              # SRAM_KEYITEM_FLAGS's own end, leaving SRAM_SEED/
+                              # SRAM_WORLD_SCALE/SRAM_KEYITEM_FLAGS's addresses untouched.
 
 J_A=0; J_B=1; J_SELECT=2; J_START=3; J_RIGHT=4; J_LEFT=5; J_UP=6; J_DOWN=7
 
@@ -190,7 +245,7 @@ def build_game_asm(rom: ROM) -> dict:
     # moves to become MAIN MENU's "continue" action only (ADR-0009/GDS-01 §2a).
     rom.LD_A_n(GS_MAIN_MENU)
     rom.LD_nn_A(GAMESTATE); rom.LD_nn_A(TRANSITION_TO)
-    rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW)
+    rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW); rom.LD_nn_A(MM_JUST_ENTERED)
 
     rom.LD_A_n(0x97); rom.LDH_n_A(LCDC)   # 0x97 = LCD on + 8x16 OBJ
     rom.LD_A_n(0x01); rom.LD_nn_A(0xFFFF)
@@ -236,12 +291,16 @@ def build_game_asm(rom: ROM) -> dict:
     # reset run
     rom.XOR_A()
     rom.LD_nn_A(SCORE); rom.LD_nn_A(CARROTS_COUNT); rom.LD_nn_A(CUR_ZONE)
-    # clear KEYITEM_FLAGS (9 bytes — IP-1020, generalizes CARROT_FLAGS; only the
-    # first 9 slots are live until FEAT-1100 wires up world generation)
-    rom.LD_HL_nn(KEYITEM_FLAGS); rom.LD_B_n(9); rom.XOR_A()
+    # clear KEYITEM_FLAGS (81 bytes — IP-1020, generalizes CARROT_FLAGS; widened
+    # from the old 9-byte clear by IP-9050/BL-0063 now that CUR_ZONE can exceed
+    # 8 — a same-session "new game" replay after this fix would otherwise leave
+    # KEYITEM_FLAGS[9..80]'s prior-playthrough bits intact)
+    rom.LD_HL_nn(KEYITEM_FLAGS); rom.LD_B_n(81); rom.XOR_A()
     rom.label('si_clr'); rom.LD_HLI_A(); rom.DEC_B(); rom.JR_NZ('si_clr')
-    # clear SCOREITEM_FLAGS (9 bytes) — FR-5220 new-game reset
-    rom.LD_HL_nn(SCOREITEM_FLAGS); rom.LD_B_n(9); rom.XOR_A()
+    # clear SCOREITEM_FLAGS (81 bytes — IP-9070, generalized from the old fixed
+    # 9-byte/9-zone clear the same way KEYITEM_FLAGS's own boot-clear was sized
+    # for CARROT_FLAGS's 9-byte predecessor) — FR-5220 new-game reset
+    rom.LD_HL_nn(SCOREITEM_FLAGS); rom.LD_B_n(81); rom.XOR_A()
     rom.label('si_clr2'); rom.LD_HLI_A(); rom.DEC_B(); rom.JR_NZ('si_clr2')
     rom.LD_A_n(76); rom.LD_nn_A(PLAYER_X)
     rom.LD_A_n(80); rom.LD_nn_A(PLAYER_Y)
@@ -280,7 +339,7 @@ def build_game_asm(rom: ROM) -> dict:
     rom.BIT_b_B(J_SELECT); rom.JP_Z('end_frame')
     rom.CALL('save_to_sram')
     rom.LD_A_n(GS_MAIN_MENU); rom.LD_nn_A(TRANSITION_TO)
-    rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW)
+    rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW); rom.LD_nn_A(MM_JUST_ENTERED)
     rom.JP('end_frame')
 
     # ── State: MAP ───────────────────────────────────────
@@ -297,14 +356,16 @@ def build_game_asm(rom: ROM) -> dict:
     rom.JP_Z('end_frame')
     # IP-1040: target is now MAIN MENU, not the superseded TITLE state.
     rom.LD_A_n(GS_MAIN_MENU); rom.LD_nn_A(TRANSITION_TO)
-    rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW)
+    rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW); rom.LD_nn_A(MM_JUST_ENTERED)
     # clear progress
     rom.XOR_A(); rom.LD_nn_A(CARROTS_COUNT); rom.LD_nn_A(SCORE)
-    # clear KEYITEM_FLAGS (9 bytes — IP-1020, generalizes CARROT_FLAGS; see st_intro)
-    rom.LD_HL_nn(KEYITEM_FLAGS); rom.LD_B_n(9); rom.XOR_A()
+    # clear KEYITEM_FLAGS (81 bytes — IP-1020, generalizes CARROT_FLAGS; widened
+    # by IP-9050/BL-0063, see st_intro's identical widening)
+    rom.LD_HL_nn(KEYITEM_FLAGS); rom.LD_B_n(81); rom.XOR_A()
     rom.label('sv_clrf'); rom.LD_HLI_A(); rom.DEC_B(); rom.JR_NZ('sv_clrf')
-    # clear SCOREITEM_FLAGS (9 bytes) — FR-5220 victory progress-clear
-    rom.LD_HL_nn(SCOREITEM_FLAGS); rom.LD_B_n(9); rom.XOR_A()
+    # clear SCOREITEM_FLAGS (81 bytes — IP-9070, see st_intro's identical widening)
+    # — FR-5220 victory progress-clear
+    rom.LD_HL_nn(SCOREITEM_FLAGS); rom.LD_B_n(81); rom.XOR_A()
     rom.label('sv_clrf2'); rom.LD_HLI_A(); rom.DEC_B(); rom.JR_NZ('sv_clrf2')
     rom.JP('end_frame')
 
@@ -350,7 +411,11 @@ def build_game_asm(rom: ROM) -> dict:
 
     rom.BIT_b_B(J_B); rom.JP_Z('sse_no_b')
     rom.LD_A_n(GS_MAIN_MENU); rom.LD_nn_A(TRANSITION_TO)
-    rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW)
+    # IP-9060: also a genuine GAMESTATE -> GS_MAIN_MENU entry site (T18.c's
+    # own regression path) — not named in IP-9060's own §6 task list, but
+    # required for MM_CURSOR to reset correctly here too; caught during
+    # implementation, not silently left as a 4th unguarded entry point.
+    rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW); rom.LD_nn_A(MM_JUST_ENTERED)
     rom.JP('end_frame')
     rom.label('sse_no_b')
 
@@ -450,7 +515,7 @@ def build_game_asm(rom: ROM) -> dict:
     # RIGHT
     rom.BIT_b_B(J_RIGHT); rom.JR_Z('mv_nr')
     rom.LD_A_nn(PLAYER_X); rom.INC_A()
-    rom.CP_n(160); rom.JR_NC('mv_skip_r')
+    rom.CP_n(153); rom.JR_NC('mv_skip_r')
     rom.LD_nn_A(PLAYER_X)
     rom.label('mv_skip_r')
     rom.XOR_A(); rom.LD_nn_A(PLAYER_DIR)
@@ -467,7 +532,7 @@ def build_game_asm(rom: ROM) -> dict:
 
     # UP
     rom.BIT_b_B(J_UP); rom.JR_Z('mv_nu')
-    rom.LD_A_nn(PLAYER_Y); rom.CP_n(17); rom.JR_C('mv_skip_u')
+    rom.LD_A_nn(PLAYER_Y); rom.CP_n(8); rom.JR_C('mv_skip_u')
     rom.JR_Z('mv_skip_u'); rom.DEC_A(); rom.LD_nn_A(PLAYER_Y)
     rom.label('mv_skip_u')
     rom.LD_A_n(1); rom.LD_nn_A(TMP1)
@@ -505,15 +570,23 @@ def build_game_asm(rom: ROM) -> dict:
     rom.PUSH_BC(); rom.PUSH_HL()
     rom.OR_A(); rom.JR_Z('cc_skip')
 
-    # |player_x - E| < 10
-    rom.LD_A_nn(PLAYER_X); rom.SUB_E()
-    rom.JR_NC('cc_dx_p'); rom.CPL(); rom.INC_A()
-    rom.label('cc_dx_p'); rom.CP_n(10); rom.JR_NC('cc_skip')
+    # Item point (E=item_x) falls within the player's real 8x16 box:
+    # 0 <= (item_x - PLAYER_X) <= 7, computed as one unsigned subtract +
+    # compare (item_x < PLAYER_X wraps to a large unsigned value, correctly
+    # failing the CP_n(8)/JR_NC check the same as "too far right"). Uses H
+    # as scratch (not B/C — B is the live loop counter re-read at cc_loop's
+    # own COLL_COUNT-B arithmetic below, C is the item's own type, read
+    # again at the HIT branch below — both must survive this block; H is
+    # free here, HL's real value already stashed by this iteration's own
+    # PUSH_HL, not touched again until cc_skip/the HIT branch's POP_HL).
+    rom.LD_A_nn(PLAYER_X); rom.LD_H_A()
+    rom.LD_A_E(); rom.emit(0x94)          # SUB H
+    rom.CP_n(8); rom.JR_NC('cc_skip')
 
-    # |player_y - D| < 10
-    rom.LD_A_nn(PLAYER_Y); rom.SUB_D()
-    rom.JR_NC('cc_dy_p'); rom.CPL(); rom.INC_A()
-    rom.label('cc_dy_p'); rom.CP_n(10); rom.JR_NC('cc_skip')
+    # Same test on Y: 0 <= (item_y - PLAYER_Y) <= 15 (D=item_y)
+    rom.LD_A_nn(PLAYER_Y); rom.LD_H_A()
+    rom.LD_A_D(); rom.emit(0x94)          # SUB H
+    rom.CP_n(16); rom.JR_NC('cc_skip')
 
     # HIT — deactivate
     rom.POP_HL(); rom.XOR_A(); rom.LD_HL_A(); rom.INC_HL()
@@ -563,40 +636,74 @@ def build_game_asm(rom: ROM) -> dict:
     rom.POP_BC(); rom.DEC_B(); rom.JP_NZ('cc_loop'); rom.RET()
 
     # ── check_zone_transition ────────────────────────────
-    rom.label('check_zone_transition')
-    # right edge: x >= 156
-    rom.LD_A_nn(PLAYER_X); rom.CP_n(156); rom.JR_C('czt_left')
+    # czt_region_hl: HL = REGION_GRAPH + CUR_ZONE*5 (region base, biome-id
+    # byte) — the identical addressing dsr_p/draw_region_arrows (IP-1030)
+    # already perform, correct up to scale=9's 81 regions. check_zone_
+    # transition's 4 branches each add the fixed GDS-07 §6 offset for their
+    # own direction (+1 up, +2 down, +3 left, +4 right) after calling this.
+    rom.label('czt_region_hl')
     rom.LD_A_nn(CUR_ZONE)
-    rom.CP_n(2); rom.JR_Z('czt_left')
-    rom.CP_n(5); rom.JR_Z('czt_left')
-    rom.CP_n(8); rom.JR_Z('czt_left')
-    rom.INC_A(); rom.LD_nn_A(CUR_ZONE)
+    rom.LD_E_A(); rom.LD_D_n(0)
+    rom.LD_HL_nn(REGION_GRAPH)
+    rom.ADD_HL_DE(); rom.ADD_HL_DE(); rom.ADD_HL_DE()
+    rom.ADD_HL_DE(); rom.ADD_HL_DE()
+    rom.RET()
+
+    # IP-9050 (BL-0047): regeneralized from the pre-procgen hardcoded
+    # fixed-3x3 CUR_ZONE arithmetic to REGION_GRAPH neighbor-byte reads —
+    # 0xFF = no neighbor in that direction (blocked, clamp at the edge),
+    # otherwise the neighbor byte's own value is the new CUR_ZONE directly
+    # (no arithmetic). The branch-cascade control flow (right-blocked falls
+    # through to check the vertical edges; left/top/bottom-blocked RET
+    # immediately) is unchanged from the pre-fix shipped code (T17.b's own
+    # scale=3 regression requires bit-for-bit identical behavior there).
+    rom.label('check_zone_transition')
+    # right edge: x >= 152 (matches handle_play_input's own RIGHT clamp
+    # ceiling exactly -- IP-9090's corrected clamp (max X=152) fell below
+    # this threshold's old value of 156, making the RIGHT transition
+    # unreachable through normal play; fixed here, IP-9120/BL-0076)
+    # -- gated on RIGHT actually being held (IP-9130/BL-0078): the
+    # position test alone is not enough, since PLAYER_X persists across a
+    # transition on the OTHER axis -- entering a new region via DOWN/UP
+    # while still sitting at the RIGHT clamp ceiling from an earlier walk
+    # must not spuriously fire RIGHT here just because that new region
+    # happens to have an open right neighbor.
+    rom.LD_A_nn(JOY_CUR); rom.BIT_b_A(J_RIGHT); rom.JR_Z('czt_left')
+    rom.LD_A_nn(PLAYER_X); rom.CP_n(152); rom.JR_C('czt_left')
+    rom.CALL('czt_region_hl')
+    rom.INC_HL(); rom.INC_HL(); rom.INC_HL(); rom.INC_HL()   # HL -> +4 (right)
+    rom.LD_A_HL(); rom.CP_n(0xFF); rom.JR_Z('czt_left')
+    rom.LD_nn_A(CUR_ZONE)
     rom.LD_A_n(8); rom.LD_nn_A(PLAYER_X)
     rom.JP('czt_redraw')
 
     rom.label('czt_left')
+    rom.LD_A_nn(JOY_CUR); rom.BIT_b_A(J_LEFT); rom.JR_Z('czt_top')
     rom.LD_A_nn(PLAYER_X); rom.OR_A(); rom.JR_NZ('czt_top')
-    rom.LD_A_nn(CUR_ZONE)
-    rom.OR_A(); rom.RET_Z()
-    rom.CP_n(3); rom.RET_Z()
-    rom.CP_n(6); rom.RET_Z()
-    rom.DEC_A(); rom.LD_nn_A(CUR_ZONE)
+    rom.CALL('czt_region_hl')
+    rom.INC_HL(); rom.INC_HL(); rom.INC_HL()   # HL -> +3 (left)
+    rom.LD_A_HL(); rom.CP_n(0xFF); rom.RET_Z()
+    rom.LD_nn_A(CUR_ZONE)
     rom.LD_A_n(150); rom.LD_nn_A(PLAYER_X)
     rom.JP('czt_redraw')
 
     rom.label('czt_top')
+    rom.LD_A_nn(JOY_CUR); rom.BIT_b_A(J_UP); rom.JR_Z('czt_bot')
     rom.LD_A_nn(PLAYER_Y); rom.CP_n(18); rom.JR_NC('czt_bot')
-    rom.LD_A_nn(CUR_ZONE)
-    rom.CP_n(3); rom.RET_C()
-    rom.SUB_n(3); rom.LD_nn_A(CUR_ZONE)
+    rom.CALL('czt_region_hl')
+    rom.INC_HL()   # HL -> +1 (up)
+    rom.LD_A_HL(); rom.CP_n(0xFF); rom.RET_Z()
+    rom.LD_nn_A(CUR_ZONE)
     rom.LD_A_n(120); rom.LD_nn_A(PLAYER_Y)
     rom.JP('czt_redraw')
 
     rom.label('czt_bot')
+    rom.LD_A_nn(JOY_CUR); rom.BIT_b_A(J_DOWN); rom.RET_Z()
     rom.LD_A_nn(PLAYER_Y); rom.CP_n(128); rom.RET_C()
-    rom.LD_A_nn(CUR_ZONE)
-    rom.CP_n(6); rom.RET_NC()
-    rom.ADD_A_n(3); rom.LD_nn_A(CUR_ZONE)
+    rom.CALL('czt_region_hl')
+    rom.INC_HL(); rom.INC_HL()   # HL -> +2 (down)
+    rom.LD_A_HL(); rom.CP_n(0xFF); rom.RET_Z()
+    rom.LD_nn_A(CUR_ZONE)
     rom.LD_A_n(24); rom.LD_nn_A(PLAYER_Y)
 
     rom.label('czt_redraw')
@@ -852,18 +959,31 @@ def build_game_asm(rom: ROM) -> dict:
     rom.label('dra_no_right')
     rom.RET()
 
-    # ── mm_on_entry / draw_menu_cursor (IP-1040) ──────────
+    # ── mm_on_entry / draw_menu_cursor (IP-1040 / IP-9060) ────
     # Runs once each time MAIN MENU is (re)entered/redrawn (state entry, or
     # after a cursor toggle — a full LCD-off redraw either way, matching
     # this codebase's existing menu-screen convention): recomputes
     # save-validity, blanks the baked "CONTINUE" label if no valid save
     # exists, and draws the highlight cursor next to MM_CURSOR's selection.
+    # IP-9060 (BL-0048): MM_CURSOR's own reset-to-default only fires here on
+    # a genuine state entry (MM_JUST_ENTERED, set by every GAMESTATE ->
+    # GS_MAIN_MENU transition site) — a same-state redraw the player's own
+    # toggle (mm_toggle) causes leaves MM_CURSOR at its just-toggled value.
     MM_CONT_ADDR = 0x9800 + 7*32 + 8   # "CONTINUE" label start (8 chars)
     MM_CURSOR_CONT_ADDR = 0x9800 + 7*32 + 6
     MM_CURSOR_NEW_ADDR  = 0x9800 + 9*32 + 6
 
     rom.label('mm_on_entry')
     rom.CALL('check_save_valid')
+    rom.LD_A_nn(MM_JUST_ENTERED); rom.OR_A(); rom.JR_Z('mm_oe_no_reset')
+    rom.XOR_A(); rom.LD_nn_A(MM_JUST_ENTERED)
+    rom.LD_A_nn(MM_SAVE_VALID); rom.OR_A(); rom.JR_NZ('mm_oe_cur_cont')
+    rom.LD_A_n(1); rom.JR('mm_oe_cur_set')
+    rom.label('mm_oe_cur_cont')
+    rom.XOR_A()
+    rom.label('mm_oe_cur_set')
+    rom.LD_nn_A(MM_CURSOR)
+    rom.label('mm_oe_no_reset')
     rom.LD_A_nn(MM_SAVE_VALID); rom.OR_A(); rom.JR_NZ('mm_oe_have_save')
     rom.LD_HL_nn(MM_CONT_ADDR); rom.LD_B_n(8); rom.LD_A_n(TL_BG_BLANK)
     rom.label('mm_oe_blank'); rom.LD_HLI_A(); rom.DEC_B(); rom.JR_NZ('mm_oe_blank')
@@ -989,8 +1109,19 @@ def build_game_asm(rom: ROM) -> dict:
     rom.JP('scs_store')
 
     # ── setup_zone_collects ───────────────────────────────
+    # IP-9070: zc_table is now indexed by REGION_GRAPH's biome-id (0-4, the
+    # 5 biome-family-representative lists) instead of CUR_ZONE directly (a
+    # 9-entry-only ROM table could not survive CUR_ZONE values above 8, which
+    # IP-9050 makes reachable) -- mirrors dsr_p's own REGION_GRAPH read
+    # exactly (same region*5 addressing, same biome-id byte position).
     rom.label('setup_zone_collects')
-    rom.LD_A_nn(CUR_ZONE); rom.ADD_A_A()
+    rom.LD_A_nn(CUR_ZONE)
+    rom.LD_E_A(); rom.LD_D_n(0)        # DE = region index
+    rom.LD_HL_nn(REGION_GRAPH)
+    rom.ADD_HL_DE(); rom.ADD_HL_DE(); rom.ADD_HL_DE()
+    rom.ADD_HL_DE(); rom.ADD_HL_DE()   # HL = REGION_GRAPH + region*5
+    rom.LD_A_HL()                      # A = biome-id (0..4)
+    rom.ADD_A_A()                      # A = biome-id * 2 (zc_table index)
     rom.LD_E_A(); rom.LD_D_n(0)
     rom.LD_HL_nn(0); patches['zc_table'] = rom.pos - 2
     rom.ADD_HL_DE()
@@ -1081,21 +1212,50 @@ def build_game_asm(rom: ROM) -> dict:
     def _xor_d(): rom.emit(0xAA)          # XOR D  (not wrapped in gbc_lib.py)
     def _xor_e(): rom.emit(0xAB)          # XOR E
     def _cp_e():  rom.emit(0xBB)          # CP E
+    def _sla_e(): rom.emit(0xCB, 0x23)    # SLA E  (not wrapped in gbc_lib.py)
+    def _rl_d():  rom.emit(0xCB, 0x12)    # RL D
+    def _srl_d(): rom.emit(0xCB, 0x22)    # SRL D
+    def _rr_e():  rom.emit(0xCB, 0x1B)    # RR E
 
     rom.label('gw_prng_step')
     # 16-bit xorshift-style state in TMP1:TMP2 (hi:lo). Shift+XOR only, no
-    # multiply/divide (NFR-2200): x ^= x<<1; x ^= x>>1; x ^= byteswap(x).
-    rom.LD_A_nn(TMP2); rom.SLA_A(); rom.LD_E_A()
-    rom.LD_A_nn(TMP1); rom.RLA(); rom.LD_D_A()
-    rom.LD_A_nn(TMP2); _xor_e(); rom.LD_nn_A(TMP2)
-    rom.LD_A_nn(TMP1); _xor_d(); rom.LD_nn_A(TMP1)
-    rom.LD_A_nn(TMP1); rom.SRL_A(); rom.LD_D_A()
-    rom.LD_A_nn(TMP2); rom.RRA(); rom.LD_E_A()
-    rom.LD_A_nn(TMP1); _xor_d(); rom.LD_nn_A(TMP1)
-    rom.LD_A_nn(TMP2); _xor_e(); rom.LD_nn_A(TMP2)
+    # multiply/divide (NFR-2200): x ^= x<<7; x ^= x>>9; x ^= x<<8 -- the
+    # period-sound R111-cited shift triplet (ADR-0014/IP-9110/BL-0074). The
+    # previously-shipped x^=x<<1;x^=x>>1;x^=byteswap(x) sequence forced the
+    # state's high and low bytes equal on every call (R113) -- fixed here.
+    # Clobbers A, D, E only; HL/BC untouched, matching every existing call
+    # site's own contract (the biome-assignment loop needs HL to survive
+    # across CALL('gw_prng_step'); the maze pass explicitly brackets its own
+    # D-must-survive call in PUSH_DE/POP_DE, confirming D/E are fair game).
+
+    # x ^= x<<7. No cheap byte-move decomposition exists for a truncated
+    # 16-bit left-shift-by-7 ((x<<8)>>1 != x<<7 for ~half of all 16-bit
+    # values, verified exhaustively) -- 7 chained single-bit left shifts on
+    # a D:E scratch pair (SLA on the low byte, RL on the high byte to rotate
+    # the carry in, mirroring the routine's own original step-1 primitive).
     rom.LD_A_nn(TMP1); rom.LD_D_A()
-    rom.LD_A_nn(TMP2); _xor_d()
-    rom.LD_nn_A(TMP1); rom.LD_nn_A(TMP2)
+    rom.LD_A_nn(TMP2); rom.LD_E_A()
+    for _ in range(7):
+        _sla_e(); _rl_d()
+    rom.LD_A_nn(TMP1); _xor_d(); rom.LD_nn_A(TMP1)
+    rom.LD_A_nn(TMP2); _xor_e(); rom.LD_nn_A(TMP2)
+
+    # x ^= x>>9 == (x>>8)>>1 (verified exact for all 65536 values) -- a free
+    # byte-move (E := old TMP1, D := 0, i.e. x>>8) followed by one
+    # single-bit right shift on the D:E pair.
+    rom.LD_A_nn(TMP1); rom.LD_E_A()
+    rom.LD_D_n(0)
+    _srl_d(); _rr_e()
+    rom.LD_A_nn(TMP1); _xor_d(); rom.LD_nn_A(TMP1)
+    rom.LD_A_nn(TMP2); _xor_e(); rom.LD_nn_A(TMP2)
+
+    # x ^= x<<8 -- a straight byte-move (D := old TMP2; the shifted low byte
+    # is always 0, so it never changes TMP2) -- cheaper than the byte-swap
+    # step it replaces.
+    rom.LD_A_nn(TMP2); rom.LD_D_A()
+    rom.LD_A_nn(TMP1); _xor_d(); rom.LD_nn_A(TMP1)
+
+    rom.LD_A_nn(TMP2)             # A = new PRNG state's low byte
     rom.RET()
 
     rom.label('generate_world')
@@ -1251,6 +1411,203 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_nn(GW_REGION_IDX); rom.LD_E_A()
     rom.LD_A_nn(GW_SCALE_SQ); _cp_e()
     rom.JP_NZ('gw_loop')   # JR range (-128..127) is too short for this loop body
+    # (biome-assignment pass ends here, entirely unchanged -- ADR-0012 point 1)
+
+    # ── maze-generation pass (IP-1070, ADR-0012, ADR-0013) ────
+    # A second, independent pass over the same grid: a randomized DFS/recursive-
+    # backtracker spanning tree (reusing REGION_GRAPH's own already-written
+    # full-lattice candidate bytes above as the "does a grid-adjacent region
+    # exist here" test, per ADR-0012 point 3), then a canonical-edge (down/right
+    # only, so each undirected edge is decided exactly once) braid/prune pass.
+    # Every gw_prng_step draw in this pass is XORed against GW_MAZE_DRAW_CTR
+    # (incremented per draw, never fed back into TMP1/TMP2) before use, per
+    # ADR-0013 -- gw_prng_step's own algorithm and every other call site
+    # (the biome loop above) are completely unaffected.
+    # NOTE: gw_neighbor_hl/gw_maze_state_hl (called throughout below) are
+    # defined AFTER this pass's own final RET (before save_to_sram) -- placing
+    # a subroutine's body where normal fall-through execution would enter it
+    # before any CALL is a real bug (its own RET would then pop whatever the
+    # stack's top actually holds, not a legitimate return address); every
+    # subroutine in this file is reached only via CALL, defined past a RET.
+    GW_BRAID_THRESHOLD = 63   # ~63/255 -> reopen ~25% of pruned edges (FR-9150 default)
+
+    def _xor_c(): rom.emit(0xA9)          # XOR C  (not wrapped in gbc_lib.py)
+
+    def _perturb_draw():
+        # On entry: A = raw gw_prng_step output. On exit: A = perturbed byte
+        # (A XOR GW_MAZE_DRAW_CTR, pre-step), GW_MAZE_DRAW_CTR advanced.
+        # Clobbers C, E. Never touches D (the braid pass's own call site relies
+        # on D surviving across this, per its own PUSH_DE/POP_DE bracket below).
+        # The counter steps by 97 (odd, so it cycles through all 256 byte
+        # values before repeating) rather than 1: a handful of draws already
+        # scatters across the full 0-255 range, so XORing it against even a
+        # PRNG output stuck at a constant (R113's degenerate-cycle finding)
+        # still produces a well-spread perturbed byte relative to the
+        # braid-fraction threshold comparison below -- a plain +1 counter
+        # stays under any reasonable threshold for the first ~60 draws of a
+        # single generation event, which is not enough spread by itself.
+        rom.LD_E_A()
+        rom.LD_A_nn(GW_MAZE_DRAW_CTR)
+        rom.LD_C_A()
+        rom.ADD_A_n(97); rom.LD_nn_A(GW_MAZE_DRAW_CTR)
+        rom.LD_A_E()
+        _xor_c()
+
+    # ── maze_init: zero GW_MAZE_STATE (fixed 81-byte clear, mirroring the
+    # established KEYITEM_FLAGS/SCOREITEM_FLAGS convention exactly -- clearing
+    # past scale² is harmless, those indices are never read); zero the draw
+    # counter; mark region 0 (the tree's root) visited with no parent (root-
+    # ness is disambiguated by region index 0 at the backtrack-termination
+    # check, not a distinct bit).
+    rom.LD_HL_nn(GW_MAZE_STATE); rom.LD_B_n(81); rom.XOR_A()
+    rom.label('gwm_zero'); rom.LD_HLI_A(); rom.DEC_B(); rom.JR_NZ('gwm_zero')
+    rom.XOR_A(); rom.LD_nn_A(GW_MAZE_DRAW_CTR)
+    rom.LD_A_n(0x80); rom.LD_nn_A(GW_MAZE_STATE)   # region 0 == GW_MAZE_STATE base
+    rom.XOR_A(); rom.LD_nn_A(GW_CUR_REGION)
+
+    # ── maze_carve_top: fresh mod-4 starting-direction draw at GW_CUR_REGION
+    # (ADR-0012 point 3 -- a single AND 3 mask, no modulo-by-variable-count
+    # operation anywhere in this pass), perturbed per ADR-0013.
+    rom.label('maze_carve_top')
+    rom.CALL('gw_prng_step')
+    _perturb_draw()
+    rom.AND_n(3); rom.LD_nn_A(GW_MAZE_DIR)
+    rom.XOR_A(); rom.LD_nn_A(GW_BRAID_IDX)   # try-count, reset
+
+    rom.label('maze_try_loop')
+    rom.LD_A_nn(GW_MAZE_DIR); rom.LD_C_A()
+    rom.LD_A_nn(GW_CUR_REGION)
+    rom.CALL('gw_neighbor_hl')               # HL -> REGION_GRAPH[R].neighbor[dir]
+    rom.LD_A_HL()
+    rom.CP_n(0xFF); rom.JR_Z('maze_try_next')   # off-grid in this direction
+
+    rom.LD_D_A()                              # D = V (candidate region)
+    rom.LD_A_D()
+    rom.CALL('gw_maze_state_hl')              # HL -> GW_MAZE_STATE[V]
+    rom.LD_A_HL()
+    rom.BIT_b_A(7); rom.JR_NZ('maze_try_next')   # already visited
+
+    # carve: V.visited=1, V.parent_dir = opposite(dir); HL still -> GW_MAZE_STATE[V]
+    rom.LD_A_nn(GW_MAZE_DIR)
+    rom.XOR_n(1); rom.OR_n(0x80)
+    rom.LD_HL_A()
+    rom.LD_A_D(); rom.LD_nn_A(GW_CUR_REGION)  # advance: current region := V
+    rom.JP('maze_carve_top')
+
+    rom.label('maze_try_next')
+    rom.LD_A_nn(GW_MAZE_DIR); rom.INC_A(); rom.AND_n(3); rom.LD_nn_A(GW_MAZE_DIR)
+    rom.LD_A_nn(GW_BRAID_IDX); rom.INC_A(); rom.LD_nn_A(GW_BRAID_IDX)
+    rom.CP_n(4); rom.JP_NZ('maze_try_loop')
+
+    # all 4 directions exhausted at GW_CUR_REGION: backtrack, or done if root
+    rom.LD_A_nn(GW_CUR_REGION); rom.OR_A(); rom.JR_NZ('maze_backtrack')
+    rom.JP('maze_carve_done')
+
+    rom.label('maze_backtrack')
+    rom.LD_A_nn(GW_CUR_REGION)
+    rom.CALL('gw_maze_state_hl')              # HL -> GW_MAZE_STATE[GW_CUR_REGION]
+    rom.LD_A_HL(); rom.AND_n(3); rom.LD_C_A()  # C = this region's own parent-dir
+    rom.LD_A_nn(GW_CUR_REGION)
+    rom.CALL('gw_neighbor_hl')                # HL -> the parent's region index
+    rom.LD_A_HL(); rom.LD_nn_A(GW_CUR_REGION) # move to parent
+    rom.JP('maze_carve_top')
+
+    # ── maze_carve_done: spanning tree complete. Canonical-edge (down/right
+    # only, so each undirected edge is decided exactly once) braid/prune pass.
+    rom.label('maze_carve_done')
+    rom.XOR_A(); rom.LD_nn_A(GW_BRAID_IDX)    # repurposed: region-loop counter
+
+    rom.label('maze_prune_region')
+    rom.LD_A_n(1); rom.LD_nn_A(GW_MAZE_DIR)   # repurposed: current direction (down first)
+
+    rom.label('maze_prune_dir')
+    rom.LD_A_nn(GW_MAZE_DIR); rom.LD_C_A()
+    rom.LD_A_nn(GW_BRAID_IDX)                 # A = R
+    rom.CALL('gw_neighbor_hl')                # HL -> REGION_GRAPH[R].neighbor[dir]
+    rom.LD_A_HL()
+    rom.CP_n(0xFF); rom.JR_Z('maze_prune_next_dir')   # true boundary
+
+    rom.LD_D_A()                              # D = V
+
+    # Check 1: V is R's child? (V.parent_dir == opposite(dir))
+    rom.LD_A_D()
+    rom.CALL('gw_maze_state_hl')              # HL -> GW_MAZE_STATE[V]
+    rom.LD_A_HL(); rom.AND_n(3); rom.LD_E_A() # E = V.parent_dir
+    rom.LD_A_nn(GW_MAZE_DIR); rom.XOR_n(1)    # A = opposite(dir)
+    _cp_e(); rom.JR_Z('maze_prune_next_dir')  # tree edge -- leave both slots as-is
+
+    # Check 2: R is V's child? (R.parent_dir == dir)
+    rom.LD_A_nn(GW_BRAID_IDX)                 # A = R
+    rom.CALL('gw_maze_state_hl')              # HL -> GW_MAZE_STATE[R]
+    rom.LD_A_HL(); rom.AND_n(3); rom.LD_E_A() # E = R.parent_dir
+    rom.LD_A_nn(GW_MAZE_DIR)                  # A = dir
+    _cp_e(); rom.JR_Z('maze_prune_next_dir')  # tree edge -- leave both slots as-is
+
+    # Not a tree edge: braid decision. D (=V) must survive the PRNG call.
+    rom.PUSH_DE()
+    rom.CALL('gw_prng_step')
+    rom.POP_DE()                              # restore V into D; A (raw byte) untouched
+    _perturb_draw()
+    rom.CP_n(GW_BRAID_THRESHOLD + 1)
+    rom.JR_C('maze_prune_next_dir')           # perturbed byte <= threshold: reopen, leave as-is
+
+    # prune both directed slots of this undirected edge. Stash V into B BEFORE
+    # any gw_neighbor_hl call here -- that routine clobbers D (it computes its
+    # own 16-bit offset via LD_D_n(0)), so D can no longer be trusted to hold
+    # V once the first of these two calls has happened; B survives both.
+    rom.LD_A_D(); rom.LD_B_A()                # B = V (durable stash)
+    rom.LD_A_nn(GW_MAZE_DIR); rom.LD_C_A()
+    rom.LD_A_nn(GW_BRAID_IDX)
+    rom.CALL('gw_neighbor_hl')                # HL -> REGION_GRAPH[R].neighbor[dir]
+    rom.LD_A_n(0xFF); rom.LD_HL_A()
+    rom.LD_A_nn(GW_MAZE_DIR); rom.XOR_n(1); rom.LD_C_A()   # C = opposite(dir)
+    rom.LD_A_B()                              # A = V (from the durable stash)
+    rom.CALL('gw_neighbor_hl')                # HL -> REGION_GRAPH[V].neighbor[opposite(dir)]
+    rom.LD_A_n(0xFF); rom.LD_HL_A()
+
+    rom.label('maze_prune_next_dir')
+    rom.LD_A_nn(GW_MAZE_DIR); rom.CP_n(1); rom.JR_NZ('maze_prune_next_region')
+    rom.LD_A_n(3); rom.LD_nn_A(GW_MAZE_DIR)
+    rom.JP('maze_prune_dir')
+
+    rom.label('maze_prune_next_region')
+    rom.LD_A_nn(GW_BRAID_IDX); rom.INC_A(); rom.LD_nn_A(GW_BRAID_IDX)
+    rom.LD_E_A()
+    rom.LD_A_nn(GW_SCALE_SQ); _cp_e()
+    rom.JP_NZ('maze_prune_region')
+    rom.RET()
+
+    # gw_neighbor_hl: on entry A=region index (0-80), C=direction (0=up,1=down,
+    # 2=left,3=right). Returns HL -> REGION_GRAPH[region]'s neighbor byte for
+    # that direction. Clobbers A, D, E; preserves C. Generalizes czt_region_hl's
+    # addressing to an arbitrary region+direction rather than CUR_ZONE alone.
+    # Reached only via CALL (from the maze pass above) -- never fallen into.
+    rom.label('gw_neighbor_hl')
+    rom.LD_E_A(); rom.LD_D_n(0)
+    rom.LD_HL_nn(REGION_GRAPH)
+    rom.ADD_HL_DE(); rom.ADD_HL_DE(); rom.ADD_HL_DE()
+    rom.ADD_HL_DE(); rom.ADD_HL_DE()   # HL = REGION_GRAPH + region*5 (biome byte)
+    rom.INC_HL()                        # HL -> +1 (up slot, direction 0 base)
+    rom.LD_A_C()
+    rom.OR_A(); rom.JR_Z('gnh_done')            # dir 0 (up): already there
+    rom.CP_n(1); rom.JR_NZ('gnh_try2')
+    rom.INC_HL(); rom.JR('gnh_done')            # dir 1 (down)
+    rom.label('gnh_try2')
+    rom.CP_n(2); rom.JR_NZ('gnh_try3')
+    rom.INC_HL(); rom.INC_HL(); rom.JR('gnh_done')   # dir 2 (left)
+    rom.label('gnh_try3')
+    rom.INC_HL(); rom.INC_HL(); rom.INC_HL()    # dir 3 (right, only case left)
+    rom.label('gnh_done')
+    rom.RET()
+
+    # gw_maze_state_hl: on entry A=region index (0-80). Returns HL ->
+    # GW_MAZE_STATE[region]. Clobbers A only. No page-cross: base low byte
+    # 0xA0 + max index 80 (0x50) = 0xF0, stays within one page. Reached only
+    # via CALL -- never fallen into.
+    rom.label('gw_maze_state_hl')
+    rom.ADD_A_n(GW_MAZE_STATE & 0xFF)
+    rom.LD_L_A()
+    rom.LD_H_n(GW_MAZE_STATE >> 8)
     rom.RET()
 
     # ── save_to_sram ─────────────────────────────────────
@@ -1266,10 +1623,13 @@ def build_game_asm(rom: ROM) -> dict:
     # Save 9 carrot flags A009..A011
     for i in range(9):
         rom.LD_A_nn(CARROT_FLAGS + i); rom.LD_nn_A(0xA009 + i)
-    # FR-5220: save-format version guard + 9 ScoreItem flags A012..A01B
+    # FR-5220: save-format version guard
     rom.LD_A_n(SAVE_VERSION_VAL); rom.LD_nn_A(SAVE_VERSION_ADDR)
-    for i in range(9):
-        rom.LD_A_nn(SCOREITEM_FLAGS + i); rom.LD_nn_A(SRAM_SCOREITEM + i)
+    # IP-9070: ScoreItem flags, generalized from a 9-byte per-byte loop to an
+    # 81-byte memcpy (SCOREITEM_FLAGS widened the same way KEYITEM_FLAGS was
+    # by IP-1050 — see immediately below).
+    rom.LD_DE_nn(SCOREITEM_FLAGS); rom.LD_HL_nn(SRAM_SCOREITEM); rom.LD_BC_nn(81)
+    rom.CALL('memcpy')
     # FR-9200 (IP-1050): SEED/WORLD_SCALE mirrors + KEYITEM_FLAGS mirror
     # (up to 81 bytes). REGION_GRAPH itself is never written here — it
     # regenerates from (SEED, WORLD_SCALE) on load (ADR-0009).
@@ -1288,7 +1648,10 @@ def build_game_asm(rom: ROM) -> dict:
     # try_load_save's own magic-only gate, which still loads a mismatched
     # save with ScoreItem restore skipped, IP-1010's shipped behavior,
     # unchanged). Writes no game-state field, only the cached MM_SAVE_VALID
-    # flag and MM_CURSOR's entry default.
+    # flag — IP-9060 (BL-0048) removed this routine's own MM_CURSOR-reset
+    # tail, which used to fire on every call (i.e. every MAIN MENU redraw,
+    # including the player's own toggle), silently undoing it. The reset
+    # itself moved to mm_on_entry, gated on a genuine state-entry flag.
     rom.label('check_save_valid')
     rom.LD_A_n(0x0A); rom.LD_nn_A(0x0000)
     for addr, val in [(0xA000,0x42),(0xA001,0x55),(0xA002,0x4E),(0xA003,0x59)]:
@@ -1300,12 +1663,6 @@ def build_game_asm(rom: ROM) -> dict:
     rom.XOR_A(); rom.LD_nn_A(MM_SAVE_VALID)
     rom.label('csv_done')
     rom.XOR_A(); rom.LD_nn_A(0x0000)
-    rom.LD_A_nn(MM_SAVE_VALID); rom.OR_A(); rom.JR_NZ('csv_cur_cont')
-    rom.LD_A_n(1); rom.JR('csv_cur_set')
-    rom.label('csv_cur_cont')
-    rom.XOR_A()
-    rom.label('csv_cur_set')
-    rom.LD_nn_A(MM_CURSOR)
     rom.RET()
 
     # ── try_load_save ─────────────────────────────────────
@@ -1329,8 +1686,10 @@ def build_game_asm(rom: ROM) -> dict:
     # play (MM_SAVE_VALID gates it upstream) — kept as a defensive-correct
     # fallback matching tls_no's own precedent, not a live path.
     rom.LD_A_nn(SAVE_VERSION_ADDR); rom.CP_n(SAVE_VERSION_VAL); rom.JR_NZ('tls_si_skip')
-    for i in range(9):
-        rom.LD_A_nn(SRAM_SCOREITEM + i); rom.LD_nn_A(SCOREITEM_FLAGS + i)
+    # IP-9070: 81-byte memcpy, generalized from the old 9-byte per-byte loop
+    # (SCOREITEM_FLAGS widened the same way KEYITEM_FLAGS was by IP-1050).
+    rom.LD_DE_nn(SRAM_SCOREITEM); rom.LD_HL_nn(SCOREITEM_FLAGS); rom.LD_BC_nn(81)
+    rom.CALL('memcpy')
     # FR-9200 (IP-1050): restore SEED/WORLD_SCALE, regenerate REGION_GRAPH
     # via IP-1020's generate_world (never persisted itself — ADR-0009's
     # determinism guarantee), then restore KEYITEM_FLAGS onto the

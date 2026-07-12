@@ -1,14 +1,16 @@
 # R305 — Emulator-Based Test Design
 
-- **Document ID:** R305 · **Version:** 1.0 · **Status:** ✅
+- **Document ID:** R305 · **Version:** 1.1 · **Status:** ✅
 - **Dependencies:** R301 (the PyBoy API these tests are built on), R304 (the header-check class
   that stays stable across game-logic rewrites), R212/R213/R111 (the grammar/algorithm/PRNG this
   topic's C10 determinism-testing extension grounds test design against)
 - **Referenced By:** R213 (assumes this topic's reference-generator oracle pattern), R111
-  (same) — **this topic directly grounds the BL-0006/BL-0008 remediation and, as of 2026-07-09,
-  MSTR-001 C10's determinism-testing strategy**
+  (same) — **this topic directly grounds the BL-0006/BL-0008 remediation, MSTR-001 C10's
+  determinism-testing strategy (2026-07-09), and, as of 2026-07-11, the `BL-0047`/`BL-0048`/
+  `BL-0051`/`BL-0052`/`BL-0053` remediation packages' regression-test design**
 - **Produces:** grounds the rewrite `test_rom.py` needs against the current WRAM map; grounds the
-  future generated-world test suite's design
+  generated-world test suite's design; grounds four concrete testing-convention fixes for the
+  gaps a live bug batch exposed (2026-07-11)
 - **Feature Mapping:** *(none yet)*
 - **Related Topics:** R301, R304, R212, R213, R111, R302
 
@@ -179,11 +181,93 @@ research (R212's adjacency grammar, R213's generator recommendation, R111's PRNG
 `BL-0017`'s precedent invariant), per this skill's own guidance that the project's working code
 and tests are Tier-A evidence.
 
+## Testing-convention gaps confirmed by a live bug batch (2026-07-11, grounds `BL-0057`)
+
+**Six bugs (`BL-0047`/`BL-0048`/`BL-0051`/`BL-0052`/`BL-0053`, plus the `BL-0049` UI-affordance
+gap) all shipped through a suite reporting 180/180, and four of the six were in code
+`09-package-verification` had already marked `VERIFIED`.** This is the concrete evidence base for
+tightening the conventions above — the multi-seed/multi-scale section (immediately above) named
+the right shape in the abstract; these four gaps say precisely where the actual `test_rom.py`
+suite still falls short of it, cited to the exact lines.
+
+**Gap 1 — a shared fixture's fixed default silently opts every consumer out of the parameter it's
+supposed to test.** `advance_to_playing()` (`test_rom.py:115`) confirms new-game defaults at
+"seed=0 → normalized to 1, **scale=3**" — every suite that calls it (`T4`, `T5`, `T7`, `T8`, `T9`,
+`T10`, `T11`, `T13`, `T14`, `T15`, i.e. nearly the whole file) therefore plays at `WORLD_SCALE=3`
+and never any other value. `T9` (zone transitions) is the suite whose entire job is exercising
+navigation — but its own in-code comments (`T9.5`, "No right transition from col 2 (z2)") still
+speak in the pre-procgen fixed-3×3 vocabulary (zone *column* 2) rather than a generated
+`REGION_GRAPH` neighbor check, because at `scale=3` the old hardcoded `check_zone_transition`
+(`asm_game.py:566`) and a real generated 3×3 world are indistinguishable by any test that only
+plays at the default scale. `T12` (world generation, `test_rom.py:825`) *does* exercise a
+15-entry `(seed, scale)` corpus (`scale ∈ {2,3,9}`) — but only via `invoke_generate_world`'s
+direct PC-hijack call into `generate_world` itself (data-only), never through
+`advance_to_playing`'s actual gameplay path. **The corpus existed for generation; it was never
+threaded through to the suites that test *playing* the generated result.** Convention: any shared
+fixture that defaults a tunable/generated parameter must have at least one consuming suite that
+overrides the default to a non-trivial value from the same corpus already validated at the
+generation layer — a parameter tested only where it's generated, and never where it's *consumed*,
+is only half-tested.
+
+**Gap 2 — directional/existence assertions pass under a wrong boundary constant.** `T7.1`/`T7.5`
+assert `"RIGHT increases X"` / `"UP decreases Y"` — true for both the correct clamp and the actual
+shipped (wrong) one, since both move the sprite in the right direction, just to the wrong final
+value (`BL-0051`/`BL-0052`: the UP clamp's floor is `17` where the field's true top edge is `8`;
+the RIGHT clamp's ceiling is `159` where the screen-flush maximum is `152`). Likewise `T8.4`
+(collection) asserts a placed item *is* collected, using a placement inside the actual (wrong)
+±9px window — it never places an item at a boundary the wrong window and the correct bounding-box
+test would disagree on (`BL-0053`). Convention: for any spatial/numeric behavior with a known or
+derivable exact boundary (a screen edge, a sprite's bounding box, a clamp), the test must assert
+the **exact boundary value**, not just that the value moved in the expected direction or that some
+in-range placement worked — pick the assertion point specifically at (or just outside) the
+boundary, not comfortably inside it.
+
+**Gap 3 — a tested state machine's cells were covered per-state, not per-(state × entry-condition
+× action).** `T14.a1`–`a4` cover MAIN MENU's *presence* of "continue" (no save / valid save /
+version-mismatched save) and `T14.c1` covers SEED/SCALE ENTRY's B-cancel — but no `T14` check ever
+drives UP/DOWN *from* MAIN MENU *with a valid save present* and asserts the cursor actually moves
+(`BL-0048`: `check_save_valid`'s `MM_CURSOR` reset silently no-ops every toggle in exactly this
+cell). The menu is a 2×2 matrix (save present/absent × continue/new-game selectable) plus an input
+axis (UP/DOWN); the suite covered the presence axis exhaustively and the selection axis not at
+all. Convention: for a menu or state machine with more than one entry condition and more than one
+in-state action, enumerate the full (entry-condition × action) cross-product explicitly before
+writing checks, not just one check per reachable state — "the option is shown" and "the option is
+selectable" are different claims and need different assertions.
+
+**Gap 4 — a build-side oracle proves the data, not the runtime path that consumes it.** This
+topic's own "reference-generator oracle pattern" (above) is correct and necessary — `T12.b`'s
+oracle-parity check and `T12.c`'s BFS-over-the-oracle-graph reachability check are exactly right
+for proving `generate_world`'s *output* is correct. But `BL-0047` shows this is not sufficient for
+a player-facing reachability claim: `REGION_GRAPH` is generated correctly (confirmed, `T12.c`),
+and the *rendering* dispatch (`dsr_p`) correctly reads it (confirmed, `T13.a`) — but the
+*navigation* code path a player actually drives (`check_zone_transition`) reads neither, and no
+test drives a button-press-based traversal of a generated (non-default-scale) world to notice.
+Convention: **"the oracle says this region graph is fully reachable" and "a player can actually
+reach every region by pressing buttons" are two separate claims** — the first is a data-structure
+property, checkable once against the oracle; the second requires a runtime-driven check (hold
+DOWN/RIGHT, or systematically walk the graph via `PLAYER_X`/`PLAYER_Y` forcing plus real
+`check_zone_transition` execution) at a scale where the oracle and any stale hardcoded fallback
+would visibly disagree (`scale ≠ 3`, since `scale = 3` is exactly the value at which this
+project's retired fixed-grid model degenerates into a correct-looking coincidence).
+
+### Sources
+No new external citation — this section, like the one above it, grounds testing methodology
+directly in this project's own code and test suite (`test_rom.py:115`, `:580-601`, `:825-827`;
+`asm_game.py:566` `check_zone_transition`, `:450-483` the movement clamps, `:495-516`
+`check_collisions`) and the concrete bug batch (`BL-0047`/`BL-0048`/`BL-0051`/`BL-0052`/`BL-0053`,
+filed 2026-07-11) that exposed each gap, per this skill's own guidance that the project's working
+code and tests are Tier-A evidence.
+
 ## Feature Mapping
 
 *(No `FS-xxx` authored yet — this topic's primary consumer is expected to be a `07-implementation-
 planning` package for BL-0006/BL-0008, not a Feature Specification. The C10 extension above
-grounds a future package for the world-generation Feature instead.)*
+grounds a future package for the world-generation Feature instead. The 2026-07-11 gap analysis's
+primary consumers are the `07-implementation-planning` remediation packages for
+`BL-0047`/`BL-0048`/`BL-0051`/`BL-0052`/`BL-0053` themselves — each should cite the relevant gap
+above in its own `Tests to Add` field so the remediation's regression test actually closes the gap
+that let the bug ship, not just re-assert the fixed behavior the same way the original, insufficient
+check did.)*
 
 ## Related Topics
 

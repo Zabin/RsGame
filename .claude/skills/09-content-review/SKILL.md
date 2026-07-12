@@ -1,6 +1,6 @@
 ---
 name: 09-content-review
-description: Qualitatively review shipped game content against its spec — drive the built ROM in the emulator, screenshot every affected screen/state, and judge tile art readability, palette use, screen composition, spawn placement fairness, HUD correctness, and music correctness (note/tempo fidelity to the spec) — producing a Content Review report under docs/reviews/. The stage-09 peer of 09-package-verification: verification audits the ledger claims mechanically; this skill judges whether the rendered result actually satisfies the design intent the FS and R2xx research describe. Use after 08-content-authoring completes a package, or when asked to "review the new zone/tiles/song," "check the art," or "does this screen read well." Read-only with respect to code and content — findings route back to 08-content-authoring (or upstream); it never fixes anything.
+description: Qualitatively review shipped game content against its spec — drive the built ROM in the emulator, screenshot every affected screen/state, and judge tile art readability, palette use, screen composition, spawn placement fairness, HUD correctness, and music correctness (note/tempo fidelity to the spec) — producing a Content Review report under docs/reviews/. The stage-09 peer of 09-package-verification: verification audits the ledger claims mechanically; this skill judges whether the rendered result actually satisfies the design intent the FS and R2xx research describe. Use after ANY stage-08 package (08-content-authoring or 08-code-implementation) changes what's rendered on a screen — not only content-authoring packages; a menu or HUD authored inside a code package still needs this review — or when asked to "review the new zone/tiles/song/menu," "check the art," or "does this screen read well." Read-only with respect to code and content — findings route back to whichever stage-08 peer owns the reviewed content (or upstream); it never fixes anything.
 ---
 
 # Content Review
@@ -12,10 +12,19 @@ but its own report.
 
 ## Scope selection
 
-One content package (after its `08-content-authoring` run), one feature's content surface, or an
-explicitly named set of screens/tiles/songs. The reviewed content should already be `COMPLETE`
-(and ideally `VERIFIED`) — if the mechanical verification hasn't run, say so; this review doesn't
-substitute for it.
+**Trigger on the change, not on which stage-08 peer made it.** One package's rendered-screen
+change (after its `08-content-authoring` *or* `08-code-implementation` run — a menu, HUD, or
+status screen authored inside a code package is exactly as much this skill's business as new tile
+art), one feature's content surface, or an explicitly named set of screens/tiles/songs. The
+reviewed content should already be `COMPLETE` (and ideally `VERIFIED`) — if the mechanical
+verification hasn't run, say so; this review doesn't substitute for it. Before skipping a package
+because it "isn't a content package," check whether it changed what's on screen at all —
+`09-package-verification`'s own checklist confirms a screen's *mechanism* (does the input
+transition state correctly); it does not confirm what the screen actually *shows* the player, so
+a code package that adds/changes screen content is not "covered" just because its VR passed
+(`BL-0056`: `IP-1040`'s SAVE-menu third option was fully wired and its VR-confirmed state
+transition worked — but the screen never rendered any text for it, and no content review ever ran
+against it to catch that, because it shipped inside a code package).
 
 ## What to check (the review dimensions)
 
@@ -55,16 +64,18 @@ earn the "clean." Update `ROADMAP.md`'s reviews row if it tracks review document
 ## Pipeline position & completion summary (mandatory, every run)
 
 This skill is **Stage 09 — Content Review**, peer of `09-package-verification` (see
-[`.claude/skills/README.md`](../README.md)). Upstream: `08-content-authoring`. Downstream:
-`10-integration-review`, or back to `08-content-authoring` with findings.
+[`.claude/skills/README.md`](../README.md)). Upstream: whichever stage-08 peer authored the
+reviewed screen content — `08-content-authoring` or `08-code-implementation`. Downstream:
+`10-integration-review`, or back to that same stage-08 peer with findings.
 
 End **every** invocation with a chat summary containing exactly these three parts:
 
 1. **What changed** — the report written (path), scope, headline result (clean / N findings by
    severity), screenshots captured.
-2. **Recommendations** — each finding with its owner: content defects → `08-content-authoring`
-   (via a `07` remediation package if the fix isn't covered by an open package); spec-intent
-   ambiguity → `06-feature-specification`; design-convention gaps → `02-research-game-design`.
+2. **Recommendations** — each finding with its owner: content defects → whichever stage-08 peer
+   authored the reviewed screen (`08-content-authoring` or `08-code-implementation` — via a `07`
+   remediation package if the fix isn't covered by an open package); spec-intent ambiguity →
+   `06-feature-specification`; design-convention gaps → `02-research-game-design`.
 3. **Next step** — clean: continue the tranche (next stage-08 package, or
    `10-integration-review` if the tranche is done); findings: route them per above and name the
    first step.

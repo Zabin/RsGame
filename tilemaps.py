@@ -1,18 +1,12 @@
 """
 tilemaps.py — Bunny Quest screen layouts and per-zone collectibles.
-ZONE_COLLECTS is still 9 zones in a 3x3 world grid, index = row*3 + col
-(unchanged — IP-1030's scope is screen composition, not collectibles).
-ALL_SCREENS (IP-1030) is now 5 biome-family screen representatives +
-5 UI screens, dispatched at runtime by REGION_GRAPH's generated biome-id,
-not by a fixed per-zone table.
-
-Grid layout (ZONE_COLLECTS only):
-   col 0      col 1       col 2
-  +----------+-----------+----------+
-0 | BEACH    | FOREST    | MOUNTAIN |
-1 | LAKE     | VILLAGE   | CAVE     |
-2 | DESERT   | PLAINS    | CASTLE   |
-  +----------+-----------+----------+
+ALL_SCREENS (IP-1030) is 5 biome-family screen representatives + 5 UI
+screens, dispatched at runtime by REGION_GRAPH's generated biome-id.
+ZONE_COLLECTS (IP-9070) is now 5 biome-family-representative collectible
+lists, indexed by the same biome-id (0=Water 1=Sand 2=Grass 3=Stone
+4=Brick) instead of CUR_ZONE directly — the identical representative-zone
+choice ALL_SCREENS already made per family (setup_zone_collects reads
+REGION_GRAPH's biome-id first, then indexes zc_table by it).
 """
 from tiles import *
 
@@ -311,6 +305,12 @@ def save_screen():
     _str(t, a, 5, 5, "SAVE GAME?", 2)
     _str(t, a, 5, 9, "A: YES", 2)
     _str(t, a, 5, 11, "B: NO", 2)
+    # IP-9080 (BL-0049): the SELECT option (saves and exits to MAIN MENU,
+    # st_save's own already-correct behavior, IP-1040) had no on-screen
+    # label -- two short lines instead of one, since "SELECT: SAVE+EXIT"
+    # doesn't fit the column budget and '+' isn't in the font's char set.
+    _str(t, a, 5, 12, "SELECT: SAVE", 2)
+    _str(t, a, 5, 13, "AND EXIT", 2)
     for x in range(2, 18):
         _put(t, a, x, 3,  TL_BORDER_H, 2)
         _put(t, a, x, 14, TL_BORDER_H, 2)
@@ -405,39 +405,23 @@ ALL_SCREENS = [
 # Player spawns at (76, 72). Carrot positions chosen for zone variety.
 # Pixel space: x∈[8,151], y∈[24,128].
 ZONE_COLLECTS = [
-    # Z0 Beach
-    [(20, 32, 0), (52, 40, 1), (108, 32, 0), (140, 48, 1),
-     (32, 80, 0), (96, 88, 1),
-     (132, 88, 2)],
-    # Z1 Forest
-    [(28, 40, 1), (64, 32, 0), (120, 40, 1),
-     (40, 96, 0), (104, 96, 1), (140, 88, 0),
-     (84, 56, 2)],
-    # Z2 Mountain
-    [(24, 56, 0), (88, 48, 1), (140, 64, 0),
-     (32, 104, 1), (108, 96, 0),
-     (60, 88, 2)],
-    # Z3 Lake
+    # 0 Water (Lake) — reuses the old Z3 list verbatim
     [(28, 48, 1), (60, 88, 0), (96, 56, 1), (132, 88, 0),
      (40, 112, 1), (120, 112, 0),
      (140, 56, 2)],
-    # Z4 Village
-    [(32, 64, 0), (52, 96, 1), (108, 56, 0), (132, 96, 1),
-     (24, 32, 0), (140, 120, 1),
-     (88, 88, 2)],
-    # Z5 Cave
-    [(28, 56, 1), (88, 48, 0), (140, 72, 1),
-     (40, 104, 0), (108, 112, 1), (60, 88, 0),
-     (132, 32, 2)],
-    # Z6 Desert
-    [(28, 80, 0), (60, 32, 1), (96, 80, 0), (132, 32, 1),
-     (40, 112, 0), (108, 112, 1),
-     (140, 88, 2)],
-    # Z7 Plains
-    [(28, 40, 0), (60, 56, 1), (88, 32, 2),  # carrot here
-     (132, 56, 1), (28, 96, 0), (60, 112, 1),
-     (108, 88, 0), (140, 112, 1)],
-    # Z8 Castle
+    # 1 Sand (Beach) — reuses the old Z0 list verbatim
+    [(20, 32, 0), (52, 40, 1), (108, 32, 0), (140, 48, 1),
+     (32, 80, 0), (96, 88, 1),
+     (132, 88, 2)],
+    # 2 Grass (Forest) — reuses the old Z1 list verbatim
+    [(28, 40, 1), (64, 32, 0), (120, 40, 1),
+     (40, 96, 0), (104, 96, 1), (140, 88, 0),
+     (84, 56, 2)],
+    # 3 Stone (Mountain) — reuses the old Z2 list verbatim
+    [(24, 56, 0), (88, 48, 1), (140, 64, 0),
+     (32, 104, 1), (108, 96, 0),
+     (60, 88, 2)],
+    # 4 Brick (Castle) — reuses the old Z8 list verbatim
     [(20, 56, 0), (52, 88, 1), (140, 56, 0),
      (28, 32, 1), (108, 96, 0),
      (84, 64, 2)],
