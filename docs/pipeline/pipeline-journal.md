@@ -14,39 +14,33 @@
 
 ## Position
 
-- **Updated:** 2026-07-12 (run #93)
+- **Updated:** 2026-07-12 (run #93, gate resolved same run)
 - **Increment:** Bootstrap baseline remains fully closed (01–11 ✅, GO recorded). `IP-9120`
   (RIGHT zone-transition threshold fix, `BL-0076`/`BL-0077`) implemented and reached
   **`COMPLETE`** (224/224) — ten packages `COMPLETE` overall, zero `VERIFIED`. `IP-1080`
-  `BLOCKED`/unauthorized. **A third new user-reported finding this session, investigated directly
-  before filing:** `BL-0078` (High) — immediately after `IP-9120` shipped, the project owner
-  reported a *different* navigation bug: walking right (correctly blocked) then straight down
-  causes a spurious rightward warp in the new region, without ever pressing right there. Confirmed
-  directly via PyBoy with real, sustained button-press input at the literal default game start
-  (region 0→3→4, the exact reported symptom). Root cause: `check_zone_transition` tests only
-  position (`PLAYER_X`/`PLAYER_Y` vs. a threshold plus `REGION_GRAPH`'s neighbor byte), never
-  whether the corresponding direction is actually held — invisible under the old full-lattice
-  model (blocked-right was uniform per column) but reachable now that the maze pass (`IP-1070`)
-  makes open/blocked vary per-region. Likely fix (gating each of the four branches on its own
-  `JOY_CUR` bit, mirroring `handle_play_input`'s own gating) has a real, non-trivial ripple into
-  `test_rom.py`'s own memory-teleport-based transition tests (`T11.a2`, parts of `T16`/`T17`/
-  `T19`) — flagged explicitly as needing a proper supersession sweep, not an ad hoc patch.
-  `BL-0075` (High, maze legibility) and the two standing `NEEDS-USER` entries (`BL-0066`/
-  `BL-0050`) remain open, unrelated.
+  `BLOCKED`/unauthorized. **`BL-0078` (High, spurious zone transitions) — packaged this run as
+  [IP-9130](../implementation/packages/IP-9130-zone-transition-intent-gate.md), `READY`, and
+  authorized immediately.** Root cause: `check_zone_transition` tests only position
+  (`PLAYER_X`/`PLAYER_Y` vs. a threshold plus `REGION_GRAPH`'s neighbor byte), never whether the
+  corresponding direction is actually held — invisible under the old full-lattice model
+  (blocked-right was uniform per column) but reachable now that the maze pass (`IP-1070`) makes
+  open/blocked vary per-region. Fix: gate all four branches on their own `JOY_CUR` bit, confirmed
+  symmetric across all four directions by direct code read. Supersession sweep found exactly two
+  `test_rom.py` sites needing updates (`T11.a2`, the shared `_t17_do_move` helper) — `T16` was
+  swept and confirmed unaffected, correcting the intake report's own speculation. User authorized
+  shipping it ("Yes, ship the fix"), recorded as `BL-0079`. `BL-0075` (High, maze legibility) and
+  the two standing `NEEDS-USER` entries (`BL-0066`/`BL-0050`) remain open, unrelated.
 - **Pipeline state:** Bootstrap: stages 01–11 ✅ — complete, GO recorded. Ten `COMPLETE` packages
   await a fresh-session `09-package-verification`. `IP-1080` `BLOCKED`/unauthorized.
-  **`BL-0078` unblocked and ready for `07-implementation-planning`** — root cause diagnosed, fix
-  direction named, but scope/ripple genuinely needs planning judgment before packaging.
-- **Backlog:** 78 entries, 26 open. Run #93 (triage): `BL-0076` flipped `DONE` (`IP-9120`
-  `COMPLETE`). `BL-0078` dispositioned `SCHEDULED`, riding `07-implementation-planning` next —
-  outranks the standing `09-package-verification`/`NEEDS-USER` items (a real, reproducible
-  navigation bug with clear evidence, though not blocking play the way `BL-0076` did). `BL-0075`
-  remains `SCHEDULED` (rides the `IP-1070`→`IP-1080` chain, unchanged). `BL-0071`/`BL-0073` remain
-  `SCHEDULED`, low urgency, no active `07` pass to ride yet.
-- **Next step:** `07-implementation-planning` on **`BL-0078`** — scope and package the
-  `check_zone_transition` intent-gating fix (`JOY_CUR` bit test on all four direction branches),
-  including a mandatory `test_rom.py` supersession sweep to identify every memory-teleport-based
-  transition test that will need a simulated button hold added.
+  **`IP-9130` `READY` and authorized** — next `08-code-implementation` target.
+- **Backlog:** 79 entries, 26 open. Run #94 (triage + package + gate): `BL-0078` dispositioned
+  `SCHEDULED`, packaged as `IP-9130`, gate asked and resolved same run — `BL-0079` filed and
+  flipped `DONE`. `BL-0075` remains `SCHEDULED` (rides the `IP-1070`→`IP-1080` chain, unchanged).
+  `BL-0071`/`BL-0073` remain `SCHEDULED`, low urgency, no active `07` pass to ride yet.
+- **Next step:** `08-code-implementation` on **`IP-9130`** — gate `check_zone_transition`'s four
+  branches on `JOY_CUR`, update `T11.a2`/`_t17_do_move` to hold the matching button, add `T7.12`,
+  rebuild, run the full suite, and re-confirm via PyBoy with real sustained input that `BL-0078`'s
+  own reported sequence (right-then-down) no longer produces a spurious transition.
   Independently: `09-package-verification` on the ten `COMPLETE` packages remains blocked on a
   fresh session; `BL-0066`/`BL-0050` (both `NEEDS-USER`) await the user whenever convenient.
 - **Open gates:** None. Two standing, independent: `BL-0050` (MAP/status-screen redesign) and
@@ -151,4 +145,4 @@
 | 90 | 2026-07-11 | advance | `07-implementation-planning` | `BL-0074` | ✅ Packaged the `gw_prng_step` mixing-step repair as `IP-9110` (`7,9,8` shift-triplet, `SAVE_VERSION_VAL` bump, `worldgen.py` oracle lockstep, `T12.j`/`T12.k`), status `READY`. Authorization explicitly derived from `BL-0074`'s own "Yes, ship the fix" answer, reasoning stated in the package. Master Build Plan/index/ROADMAP updated. | `08-code-implementation` on `IP-9110`. |
 | 91 | 2026-07-11 | sync | — (harvest) | IP-9110 (08-code-implementation completion) | ✅ Reconciled the journal against the Master Build Plan: `IP-9110` reached `COMPLETE` (222/222 checks pass) since the journal's own run #90 entry. `BL-0074` flipped `DONE`, citing `T12.j`/`T12.k`'s direct confirmation of the fix. No new findings beyond the Outstanding Issues already reported (none). | `09-package-verification` on `IP-9110` (fresh session needed) — recorded as the standing next step, superseded this run by two new higher-priority user reports (`BL-0075`/`BL-0076`, filed via `00-intake` outside this run). |
 | 92 | 2026-07-12 | advance (gate resolved same run) | `07-implementation-planning` | BL-0076 (RIGHT zone-transition regression) | ✅ **Step 2 triage:** `BL-0075` (High, maze legibility) dispositioned `SCHEDULED` — no new work needed, already rides the existing `IP-1070`→`IP-1080` chain. `BL-0076` (Critical, RIGHT-transition regression) dispositioned `SCHEDULED`, riding this run — outranks all other open work (a live, universal navigation-breaking regression, root cause and fix already fully diagnosed at intake). **Step 3/5:** invoked `07-implementation-planning` on `BL-0076`. Packaged as **`IP-9120`** — the one-line `check_zone_transition` RIGHT-edge threshold fix (`CP_n(156)`→`CP_n(152)`), new check `T7.11` (real button-press-driven positive-transition regression test — the exact class of test missing that let this regression ship). Supersession sweep confirmed clean (exactly one other call site shares the stale constant class, `IP-9090`'s own already-correct clamp). `READY`, **not authorized** on entry. **Gate hit and resolved same run:** asked via `AskUserQuestion` given Critical severity rather than deferring to a later run; user authorized ("Yes, ship the fix (Recommended)"). Filed `BL-0077` (gate entry, immediately `DONE`); Master Build Plan/`packages/INDEX.md`/`ROADMAP.md` updated to authorized in the same pass. | `08-code-implementation` on **`IP-9120`** — now `READY` and authorized. Independently: `09-package-verification` on the nine `COMPLETE` packages remains blocked on a fresh session; `BL-0066`/`BL-0050` (both `NEEDS-USER`) await the user whenever convenient. |
-| 93 | 2026-07-12 | advance | `07-implementation-planning` | BL-0078 (spurious zone-transition regression) | ✅ **Step 1 reconciliation:** `IP-9120` confirmed `COMPLETE` (224/224) since run #92; `BL-0076` flipped `DONE`. **Step 2 triage:** `BL-0078` (High, spurious transitions from `check_zone_transition`'s purely position-based trigger — a real gap exposed by the maze pass, confirmed via real button input at the literal default game start) dispositioned `SCHEDULED`, riding this run — outranks the standing `09-package-verification`/`NEEDS-USER` items. `BL-0075` unchanged (still rides the `IP-1070`→`IP-1080` chain). **Step 3/5:** invoked `07-implementation-planning` on `BL-0078`. | (recorded by the invoked skill's own run) |
+| 93 | 2026-07-12 | advance (gate resolved same run) | `07-implementation-planning` | BL-0078 (spurious zone-transition regression) | ✅ **Step 1 reconciliation:** `IP-9120` confirmed `COMPLETE` (224/224) since run #92; `BL-0076` flipped `DONE`. **Step 2 triage:** `BL-0078` (High, spurious transitions from `check_zone_transition`'s purely position-based trigger — a real gap exposed by the maze pass, confirmed via real button input at the literal default game start) dispositioned `SCHEDULED`, riding this run — outranks the standing `09-package-verification`/`NEEDS-USER` items. `BL-0075` unchanged (still rides the `IP-1070`→`IP-1080` chain). **Step 3/5:** invoked `07-implementation-planning` on `BL-0078`. Packaged as **`IP-9130`** — gates all four `check_zone_transition` branches on their own `JOY_CUR` direction bit, confirmed symmetric across all four directions by direct code read (not just the reported RIGHT case). Supersession sweep of `test_rom.py` found exactly two sites needing updates (`T11.a2`, the shared `_t17_do_move` helper) — `T16` swept and confirmed unaffected, correcting the intake report's own speculation. New check `T7.12`. `READY`, **not authorized** on entry. **Gate hit and resolved same run:** asked via `AskUserQuestion`; user authorized ("Yes, ship the fix (Recommended)"). Filed `BL-0079` (gate entry, immediately `DONE`); Master Build Plan/`packages/INDEX.md`/`ROADMAP.md` updated to authorized in the same pass. | `08-code-implementation` on **`IP-9130`** — now `READY` and authorized. Independently: `09-package-verification` on the ten `COMPLETE` packages remains blocked on a fresh session; `BL-0066`/`BL-0050` (both `NEEDS-USER`) await the user whenever convenient. |
