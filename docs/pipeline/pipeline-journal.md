@@ -14,30 +14,44 @@
 
 ## Position
 
-- **Updated:** 2026-07-11 (run #90)
-- **Increment:** Bootstrap baseline remains fully closed (01–11 ✅, GO recorded). Movement/pickup/
-  UI bug-remediation tranche fully implemented end-to-end. Eight packages `COMPLETE` overall, zero
-  `VERIFIED`. `IP-1080` `BLOCKED`/unauthorized. **`BL-0074` (default-seed/effectively-all-seeds
-  biome flooding) — fully packaged as [IP-9110](../implementation/packages/IP-9110-gw-prng-step-mixing-step-repair.md),
-  `READY`, authorized.** `ADR-0014` confirmed the `7,9,8` shift-triplet repair as the correct fix
-  (0/2000 seeds degenerate under it, vs. 2000/2000 under the shipped version) and the user
-  explicitly authorized shipping it (run #89, "Yes, ship the fix (Recommended)") — `IP-9110`'s own
-  package records this as sufficient G3 authorization for its `08-code-implementation` run,
-  reasoning stated explicitly in the package rather than assumed. `BL-0066`/`BL-0050` remain the
-  two standing `NEEDS-USER` entries, unrelated, still open.
-- **Pipeline state:** Bootstrap: stages 01–11 ✅ — complete, GO recorded. Eight `COMPLETE`
-  packages await a fresh-session `09-package-verification`. `IP-1080` `BLOCKED`/unauthorized.
-  **`IP-9110` `READY` and authorized** — next `08-code-implementation` target.
-- **Backlog:** 74 entries, 24 open. Run #90: `BL-0074` updated in place (packaged as `IP-9110`,
-  still `SCHEDULED`, now riding `08-code-implementation`). `BL-0066`/`BL-0050` (both standing
-  `NEEDS-USER`) remain open. `BL-0071`/`BL-0073` remain `SCHEDULED`, low urgency, no active `07`
-  pass to ride yet.
-- **Next step:** `08-code-implementation` on **`IP-9110`** — implement the `gw_prng_step`
-  mixing-step repair (`7,9,8` shift triplet), bump `SAVE_VERSION_VAL` `0x03`→`0x04`, update
-  `worldgen.py`'s oracle in lockstep, add `T12.j`/`T12.k`, rebuild, run the full suite, and
-  re-verify `BL-0074`'s own original reproduction case (seed=0 at scale=9) no longer floods to
-  Water.
-  Independently: `09-package-verification` on the eight `COMPLETE` packages remains blocked on a
+- **Updated:** 2026-07-12 (run #92, gate resolved same run)
+- **Increment:** Bootstrap baseline remains fully closed (01–11 ✅, GO recorded). `IP-9110`
+  (`gw_prng_step` mixing-step repair, `BL-0074`/`ADR-0014`) implemented and reached **`COMPLETE`**
+  (222/222) — nine packages `COMPLETE` overall, zero `VERIFIED`. `IP-1080` `BLOCKED`/unauthorized.
+  **Two new user-reported findings this session, both investigated directly before filing:**
+  `BL-0075` (High) — after `IP-9110` shipped, the project owner reported the generated world at
+  `scale=9` still feels undersized (~6 screens vertically). Direct investigation (BFS via the
+  oracle) confirmed the world genuinely is fully connected (81/81 reachable, real path depth
+  16–25 moves) — the apparent smallness is a legibility gap: maze-blocked edges render identically
+  to true grid boundaries because `IP-1080` (`BL-0067`/`BL-0068`) hasn't shipped yet; dispositioned
+  `SCHEDULED`, no new work needed, already rides the existing `IP-1070`→`IP-1080` chain. `BL-0076`
+  (**Critical**) — the user pushed back correctly when pointed at specific "open" edges, reporting
+  they genuinely could not move right at any of them. Direct investigation with **real,
+  sustained button-press input** (not memory-forced teleport, which had missed this) confirmed a
+  genuine regression: `IP-9090`'s own correct RIGHT movement-clamp fix (`BL-0052`, max `X`
+  `159`→`152`) exposed a pre-existing latent inconsistency in `check_zone_transition`'s own
+  RIGHT-edge trigger (`X>=156`) — the two thresholds used to overlap by coincidence under the old,
+  buggy clamp, but no longer do, so **no player can transition rightward into a new zone at all,
+  for any seed/scale/region, as of `IP-9090`'s commit**. Root cause and one-line fix
+  (`CP_n(156)`→`CP_n(152)`) fully diagnosed. **Packaged this run as
+  [IP-9120](../implementation/packages/IP-9120-right-zone-transition-threshold-fix.md), `READY`,
+  and immediately gate-checked given the severity — user explicitly authorized shipping it
+  ("Yes, ship the fix (Recommended)"), recorded as `BL-0077`.** `BL-0066`/`BL-0050` remain the two
+  standing `NEEDS-USER` entries, unrelated, still open.
+- **Pipeline state:** Bootstrap: stages 01–11 ✅ — complete, GO recorded. Nine `COMPLETE` packages
+  await a fresh-session `09-package-verification`. `IP-1080` `BLOCKED`/unauthorized.
+  **`IP-9120` `READY` and authorized** — next `08-code-implementation` target, outranking the
+  standing verification/gate items (a live, universal navigation-breaking regression).
+- **Backlog:** 77 entries, 25 open. Run #91 (harvest): `BL-0074` flipped `DONE` (`IP-9110`
+  `COMPLETE`). Run #92 (triage + package + gate): `BL-0075` dispositioned `SCHEDULED` (no new work
+  needed, rides the existing `IP-1070`→`IP-1080` chain). `BL-0076` dispositioned `SCHEDULED`,
+  packaged as `IP-9120`, gate asked and resolved same run — `BL-0077` filed and flipped `DONE`.
+  `BL-0071`/`BL-0073` remain `SCHEDULED`, low urgency, no active `07` pass to ride yet.
+- **Next step:** `08-code-implementation` on **`IP-9120`** — fix `check_zone_transition`'s
+  RIGHT-edge threshold (`CP_n(156)`→`CP_n(152)`), add the real-button-press regression test
+  (`T7.11`), rebuild, run the full suite, and re-confirm via PyBoy with real sustained input that
+  a rightward transition now actually fires.
+  Independently: `09-package-verification` on the nine `COMPLETE` packages remains blocked on a
   fresh session; `BL-0066`/`BL-0050` (both `NEEDS-USER`) await the user whenever convenient.
 - **Open gates:** None. Two standing, independent: `BL-0050` (MAP/status-screen redesign) and
   `BL-0066` (biome-blob clustering pass-ordering conflict) — both ripe, neither urgent.
@@ -139,3 +153,5 @@
 | 88 | 2026-07-11 | advance | `03-architecture-design-synthesis` | BL-0074 (default-seed biome-flooding, gw_prng_step repair decision) | ✅ **No drift.** **Step 3/5:** invoked `03-architecture-design-synthesis` on `BL-0074`. Investigated directly before deciding (per this run's own judgment, mirroring `ADR-0012`/`ADR-0013`'s own precedent of grounding decisions in direct verification, not just citing prior research): traced `gw_prng_step`'s degeneracy across 2000 seeds, found **100% degenerate** (fixed point or short cycle within 20 draws) — not a "seed=0 is unlucky" bug, the shipped PRNG is essentially always degenerate. Measured real downstream impact: at `scale=9`, 55% of 200 tested seeds already produce a majority-Water world, 32% almost-entirely-Water — a defect that has existed since `IP-1020` shipped, never visually obvious until a large-scale biome map was actually inspected. Verified the R113-cited `7,9,8` shift-triplet fix directly: 0/2000 seeds degenerate under it, full 65535-state period from seed=1. Authored **[ADR-0014](../architecture/adr/ADR-0014-gw-prng-step-repair-needs-user-authorization.md)**: confirms the shift-triplet repair as the technically correct fix (not a close call), but explicitly declines to authorize shipping it — `REGION_GRAPH` regenerates from `(seed,scale)` on every save load, so this changes every existing save's world on next load, materially larger blast radius than `ADR-0013` anticipated when it declined the same fix for the (then brand-new) maze pass. Routed to the user, following `ADR-0013`'s own established precedent for this exact class of consequence. Updated `docs/architecture/adr/INDEX.md`, R113's Referenced By, `ROADMAP.md`'s ADR row. Committed (`a8583a4`) and pushed. Harvested: `BL-0074` re-dispositioned `SCHEDULED`→`NEEDS-USER`. No new backlog entries — the finding is recorded inside `BL-0074`'s own updated disposition and `ADR-0014` itself. **Gate hit:** ship the `gw_prng_step` repair? Asking this run. | **GATE: `BL-0074`/`ADR-0014`** — authorize shipping the `gw_prng_step` repair (every existing save regenerates a different world on next load) or decline (biome-assignment stays broken for ~55% of `scale=9` worlds, including the default seed, indefinitely). **Resolved same session (run #89) — user authorized shipping the fix.** |
 | 89 | 2026-07-11 | advance | — (gate resolution) | BL-0074 (ship gw_prng_step repair?) | ✅ Asked the user directly via `AskUserQuestion` whether to authorize shipping `ADR-0014`'s recommended `gw_prng_step` repair, given the confirmed save-compatibility consequence (every existing save regenerates a different world on next load). **User answered: "Yes, ship the fix (Recommended)."** Recorded the authorization in `BL-0074`'s own disposition (re-dispositioned `NEEDS-USER`→`SCHEDULED`, riding `07-implementation-planning` next). No code/architecture change this run — a pure gate-resolution step, per the manager's own `Step 4` convention (a gate stop/resolution is a complete run in its own right). | `07-implementation-planning` on **`BL-0074`** — package the `gw_prng_step` mixing-step repair per `ADR-0014`'s own recommended shape. Independently: `09-package-verification` on the eight `COMPLETE` packages remains blocked on a fresh session; `BL-0066`/`BL-0050` (both `NEEDS-USER`) await the user whenever convenient. |
 | 90 | 2026-07-11 | advance | `07-implementation-planning` | `BL-0074` | ✅ Packaged the `gw_prng_step` mixing-step repair as `IP-9110` (`7,9,8` shift-triplet, `SAVE_VERSION_VAL` bump, `worldgen.py` oracle lockstep, `T12.j`/`T12.k`), status `READY`. Authorization explicitly derived from `BL-0074`'s own "Yes, ship the fix" answer, reasoning stated in the package. Master Build Plan/index/ROADMAP updated. | `08-code-implementation` on `IP-9110`. |
+| 91 | 2026-07-11 | sync | — (harvest) | IP-9110 (08-code-implementation completion) | ✅ Reconciled the journal against the Master Build Plan: `IP-9110` reached `COMPLETE` (222/222 checks pass) since the journal's own run #90 entry. `BL-0074` flipped `DONE`, citing `T12.j`/`T12.k`'s direct confirmation of the fix. No new findings beyond the Outstanding Issues already reported (none). | `09-package-verification` on `IP-9110` (fresh session needed) — recorded as the standing next step, superseded this run by two new higher-priority user reports (`BL-0075`/`BL-0076`, filed via `00-intake` outside this run). |
+| 92 | 2026-07-12 | advance (gate resolved same run) | `07-implementation-planning` | BL-0076 (RIGHT zone-transition regression) | ✅ **Step 2 triage:** `BL-0075` (High, maze legibility) dispositioned `SCHEDULED` — no new work needed, already rides the existing `IP-1070`→`IP-1080` chain. `BL-0076` (Critical, RIGHT-transition regression) dispositioned `SCHEDULED`, riding this run — outranks all other open work (a live, universal navigation-breaking regression, root cause and fix already fully diagnosed at intake). **Step 3/5:** invoked `07-implementation-planning` on `BL-0076`. Packaged as **`IP-9120`** — the one-line `check_zone_transition` RIGHT-edge threshold fix (`CP_n(156)`→`CP_n(152)`), new check `T7.11` (real button-press-driven positive-transition regression test — the exact class of test missing that let this regression ship). Supersession sweep confirmed clean (exactly one other call site shares the stale constant class, `IP-9090`'s own already-correct clamp). `READY`, **not authorized** on entry. **Gate hit and resolved same run:** asked via `AskUserQuestion` given Critical severity rather than deferring to a later run; user authorized ("Yes, ship the fix (Recommended)"). Filed `BL-0077` (gate entry, immediately `DONE`); Master Build Plan/`packages/INDEX.md`/`ROADMAP.md` updated to authorized in the same pass. | `08-code-implementation` on **`IP-9120`** — now `READY` and authorized. Independently: `09-package-verification` on the nine `COMPLETE` packages remains blocked on a fresh session; `BL-0066`/`BL-0050` (both `NEEDS-USER`) await the user whenever convenient. |
