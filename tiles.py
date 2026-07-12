@@ -37,6 +37,10 @@ TL_ARROW_R      = 0x16
 TL_ARROW_L      = 0x17
 TL_ARROW_U      = 0x18
 TL_ARROW_D      = 0x19
+TL_BLOCKED_U    = 0x1A   # IP-1081 (FS-108/FR-2330): maze-blocked edge indicator,
+TL_BLOCKED_D    = 0x1B   # a broken/dashed bar (silhouette-distinct from the solid
+TL_BLOCKED_L    = 0x1C   # arrowhead), one per direction per GDS-08 section 10.
+TL_BLOCKED_R    = 0x1D   # 0x1E-0x1F remain free.
 
 # Digits 0x20-0x29
 TL_DIGIT_0      = 0x20
@@ -822,6 +826,36 @@ def arrow_down():    return enc([
     [0,0,1,2,1,0,0,0],[0,0,0,1,0,0,0,0],
 ])
 
+# IP-1081 (FS-108/FR-2330, GDS-08 section 10): maze-blocked edge indicator -- a short
+# broken/dashed bar, two segments with a visible gap, silhouette-distinct from
+# the solid filled-triangle arrows above (not a recolor). Reuses palette 2
+# (UI/gold) via the same _arrow_write-shaped write IP-1082's render branch
+# performs -- these functions supply pixel pattern only, no palette here.
+def blocked_up():    return enc([
+    [0,0,1,1,1,1,0,0],[0,0,1,2,2,1,0,0],
+    [0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],
+    [0,0,1,2,2,1,0,0],[0,0,1,1,1,1,0,0],
+])
+def blocked_down():  return enc([
+    [0,0,1,1,1,1,0,0],[0,0,1,2,2,1,0,0],
+    [0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],
+    [0,0,1,2,2,1,0,0],[0,0,1,1,1,1,0,0],
+])
+def blocked_left():  return enc([
+    [0,0,0,0,0,0,0,0],[1,1,0,0,0,0,1,1],
+    [1,2,0,0,0,0,2,1],[0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0],[1,2,0,0,0,0,2,1],
+    [1,1,0,0,0,0,1,1],[0,0,0,0,0,0,0,0],
+])
+def blocked_right(): return enc([
+    [0,0,0,0,0,0,0,0],[1,1,0,0,0,0,1,1],
+    [1,2,0,0,0,0,2,1],[0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0],[1,2,0,0,0,0,2,1],
+    [1,1,0,0,0,0,1,1],[0,0,0,0,0,0,0,0],
+])
+
 # Digits 0-9
 _DIG = [
     [[0,1,1,1,1,0,0,0],[1,2,2,2,2,1,0,0],[1,2,1,1,2,1,0,0],[1,2,1,1,2,1,0,0],
@@ -917,6 +951,10 @@ def build_tile_data():
     put(TL_ARROW_L,      arrow_left())
     put(TL_ARROW_U,      arrow_up())
     put(TL_ARROW_D,      arrow_down())
+    put(TL_BLOCKED_U,    blocked_up())
+    put(TL_BLOCKED_D,    blocked_down())
+    put(TL_BLOCKED_L,    blocked_left())
+    put(TL_BLOCKED_R,    blocked_right())
 
     # Digits + font
     for n in range(10):

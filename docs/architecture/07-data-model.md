@@ -94,14 +94,18 @@ ScoreItem state is no longer absent — `A012`–`A01B` now cover it (per the us
 decision recorded at [RQ-01](../requirements/01-functional-requirements.md) FR-5220). `PLAYER_DIR`/
 `PLAYER_FRAME` remain absent, per the same decision (explicitly rejected as "not important").
 
-### 4. Tile index map (`0x00`–`0xFF`, 83 of 256 slots used)
+### 4. Tile index map (`0x00`–`0xFF`, 87 of 256 slots used)
 
-Confirmed directly against `tiles.py`'s 83 `TL_*` constants:
+Confirmed directly against `tiles.py`'s 87 `TL_*` constants (updated by
+[IP-1081](../implementation/packages/IP-1081-maze-blocked-edge-indicator-content.md), 2026-07-12
+— 4 new tiles, `0x1A`–`0x1D`):
 
 | Range | Content |
 |---|---|
 | `0x00`–`0x09` | OBJ sprites: bunny frames (8×16 pairs `00/01`, `02/03`), carrot (`04`+blank `05`), star (`06`+blank `07`), flower (`08`+blank `09`) |
 | `0x10`–`0x19` | UI icons: BG blank, heart full/empty, carrot icon, star icon, border, 4 direction arrows |
+| `0x1A`–`0x1D` | **Maze-blocked edge indicator** (`IP-1081`/`FS-108`) — 4 directional broken/dashed-bar tiles, palette 2 reused, drawn by `IP-1082`'s render branch wherever `draw_region_arrows` classifies an edge `blocked` |
+| `0x1E`–`0x1F` | Free — 2 slots unused (next free slot in this block) |
 | `0x20`+ | Digits |
 | `0x40`–`0x61` | Font: A–Z + punctuation |
 | `0x70`–`0x76` | **Beach** terrain (sand, water edge, palm, shell) |

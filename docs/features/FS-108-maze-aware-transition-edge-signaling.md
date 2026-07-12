@@ -32,8 +32,9 @@
 > AC-4/5), planned 2026-07-12 as
 > [IP-1081](../implementation/packages/IP-1081-maze-blocked-edge-indicator-content.md) (content)
 > and
-> [IP-1082](../implementation/packages/IP-1082-maze-blocked-edge-indicator-render.md) (render) —
-> both `NOT STARTED`/`BLOCKED`, not yet authorized, tracked by `BL-0075`.
+> [IP-1082](../implementation/packages/IP-1082-maze-blocked-edge-indicator-render.md) (render).
+> Both authorized 2026-07-12 (user G3, `BL-0092`). `IP-1081` `COMPLETE` (2026-07-12, 231/231),
+> awaiting verification; `IP-1082` `BLOCKED` on it. Tracked by `BL-0075`.
 
 ## 1. Feature ID
 
