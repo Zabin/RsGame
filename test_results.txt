@@ -1,4 +1,4 @@
-BunnyQuest ROM Tests  PASS=226/226  FAIL=0
+BunnyQuest ROM Tests  PASS=230/230  FAIL=0
 ==================================================
 [PASS] T1.1 ROM size = 32768  (32768)
 [PASS] T1.2 Entry = NOP; JP
@@ -226,3 +226,7 @@ BunnyQuest ROM Tests  PASS=226/226  FAIL=0
 [PASS] T19.e Braid-fraction statistical check: aggregate reopen fraction within a reasonable band of ~25% target  (reopened=84/345 (24.35%))
 [PASS] T19.f Static audit: no LDH (hardware register, incl. DIV) read in the maze-generation pass (NFR-2200)  (source-scanned)
 [PASS] T19.g WRAM headroom: GW_MAZE_STATE..GW_MAZE_DRAW_CTR extent stays inside bank-0 (NFR-4200)  (GW_MAZE_STATE=0xc3a0 extent_end=0xc3f4)
+[PASS] T20.a Open classification: arrow renders wherever REGION_GRAPH shows a live neighbor, every corpus entry (AC-1)  (bad=[])
+[PASS] T20.b Blocked classification: grid-adjacent-but-maze-pruned edges re-derive the correct (row,col) and draw no arrow, every corpus entry (AC-2)  (n=120 bad=[])
+[PASS] T20.c Absent classification: true grid-boundary edges re-derive the correct (row,col) and draw no arrow, every corpus entry (AC-3)  (n=68 bad=[])
+[PASS] T20.d Static audit: row/col re-derivation precedes the neighbor-byte loads it would otherwise clobber (AC-2/AC-3 precondition)  (source-scanned)

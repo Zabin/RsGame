@@ -511,13 +511,7 @@
   the blocked-edge indicator's own tile art has not been designed; see Notes).
 - **Source Documents:** `BL-0067`; `ADR-0012` point 2.
 - **Related ADRs:** ADR-0009, ADR-0012.
-- **Notes:** Not yet implemented. **`FR-2320` is left unmodified** — it accurately describes the
-  currently shipped 2-state behavior; this FR supersedes it only once `FR-9140` actually ships,
-  following this project's established `FR-1120`→`FR-1170`-`1190` coexistence precedent (`RQ-03`
-  finding #7). **A `GDS-08` (presentation architecture) delta is needed** for the new
-  blocked-edge indicator's actual tile art/palette assignment — flagged here as a dependency,
-  not decided by this requirements pass (out of this stage's scope; routed to
-  `03-architecture-design-synthesis`).
+- **Notes:** **Logic half implemented ([IP-1080](../implementation/packages/IP-1080-maze-aware-edge-classification.md), 2026-07-12):** `draw_region_arrows` (`asm_game.py`) now re-derives `(row, col)` from `CUR_ZONE`/`WORLD_SCALE` at render time and independently confirms whether a grid-adjacent region exists in each direction — the classification arithmetic this requirement's AC-(b)/(c) clause describes, verified by `T20.a`–`d`. **The rendering half remains open**, tracked by `BL-0068`: `GDS-08` §10 has since decided the blocked-edge indicator's tile art/palette (4 new tiles at `0x1A`–`0x1D`, reusing the open arrow's own palette 2), but no package yet wires that art in — today, both the "blocked" and "absent" cases remain visually identical no-ops (AC-(b)'s "blocked-edge indicator renders" clause is not yet satisfied; only the underlying classification decision is). `FR-2320` is left unmodified — it accurately describes the currently shipped 2-state *rendered* behavior, unchanged by this requirement's own logic-half implementation; this FR supersedes it only once the rendering half ships too, following this project's established `FR-1120`→`FR-1170`-`1190` coexistence precedent (`RQ-03` finding #7).
 
 ## FR-3000 — Collectibles, score & victory
 

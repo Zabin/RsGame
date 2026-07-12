@@ -83,6 +83,21 @@ MM_JUST_ENTERED = 0xC2D7  # 1 byte — set by every GAMESTATE -> GS_MAIN_MENU tr
                           # player's own toggle causes (leave MM_CURSOR alone) — IP-9060,
                           # BL-0048's fix. Sits in the confirmed-unused byte immediately
                           # after SCOREITEM_FLAGS's own 81-byte extent.
+DRA_ROW        = 0xC2D8  # 1 byte -- draw_region_arrows' own re-derived row (CUR_ZONE /
+DRA_COL        = 0xC2D9  # 1 byte -- WORLD_SCALE) / col (CUR_ZONE MOD WORLD_SCALE), IP-1080
+                          # (FR-2330). Transient, meaningless outside a draw_region_arrows
+                          # call, same convention as the GW_* family below. Added mid-
+                          # implementation, not named in IP-1080's own package text (which
+                          # suggested reusing TMP1/TMP2): TMP1 turned out to double as
+                          # handle_play_input's own per-frame "did the player move" flag,
+                          # clobbered on the very next frame after draw_region_arrows sets
+                          # it -- confirmed by a real T20.b/c test failure (row/col reading
+                          # back as the FIRST region's stale values), not assumed. TMP2 is
+                          # not similarly touched (only generate_world uses it, which never
+                          # runs during PLAYING), but both moved here together for a self-
+                          # contained, unambiguously-safe pair rather than mixing TMP2 with
+                          # a new dedicated byte. Sits in the same confirmed-unused gap
+                          # MM_JUST_ENTERED's own comment already names (SSE_CURSOR..OAM_BUF).
 OAM_BUF        = 0xC300  # 160 bytes, C300-C39F, shadow OAM
 
 GW_MAZE_STATE  = 0xC3A0  # up to 81 bytes, one per region: bit 7 = visited, bits 1:0 =
@@ -940,6 +955,37 @@ def build_game_asm(rom: ROM) -> dict:
         rom.XOR_A(); rom.LDH_n_A(VBK)
 
     rom.label('draw_region_arrows')
+    # IP-1080 (FR-2330): re-derive grid adjacency from (row, col, WORLD_SCALE)
+    # arithmetic before the four REGION_GRAPH neighbor bytes below claim
+    # B-E -- row/col must survive all four direction tests, and B-E are
+    # about to be repurposed. row = CUR_ZONE / WORLD_SCALE, col = CUR_ZONE
+    # MOD WORLD_SCALE via repeated subtraction (WORLD_SCALE is 2-9, CUR_ZONE
+    # is 0-80, at most 9 iterations -- same repeated-subtraction style as
+    # generate_world's own gw_mod3, parameterized by a runtime WORLD_SCALE
+    # via CP_B rather than a compile-time CP_n). Stashed in DRA_ROW/DRA_COL
+    # -- dedicated transient scratch, not TMP1/TMP2 as originally suggested
+    # (this package's own §6 text) -- TMP1 collides with handle_play_input's
+    # own per-frame "did the player move" flag, see DRA_ROW's own WRAM
+    # comment above for the discovery. This is what lets a maze-pruned edge
+    # (a grid-neighbor genuinely exists here, REGION_GRAPH just says 0xFF
+    # because IP-1070's braid pass pruned it -- "blocked") be distinguished
+    # from a true grid boundary (no grid-neighbor at all -- "absent") --
+    # REGION_GRAPH's own neighbor byte alone cannot tell the two apart once
+    # the maze pass has run (ADR-0012 point 2). Both remain no-op render-
+    # wise for this package's own scope (BL-0068's future rendering-half
+    # package draws the blocked-edge indicator); row/col are directly
+    # testable via DRA_ROW/DRA_COL (T20.b/c), the classification arithmetic
+    # FR-2330 requires.
+    rom.LD_A_nn(WORLD_SCALE); rom.LD_B_A()
+    rom.LD_A_nn(CUR_ZONE); rom.LD_C_n(0)
+    rom.label('dra_div_loop')
+    rom.CP_B(); rom.JR_C('dra_div_done')
+    rom.SUB_B(); rom.INC_C()
+    rom.JR('dra_div_loop')
+    rom.label('dra_div_done')
+    rom.LD_nn_A(DRA_COL)                 # A = col (remainder)
+    rom.LD_A_C(); rom.LD_nn_A(DRA_ROW)   # C = row (quotient)
+
     rom.LD_A_HLI(); rom.LD_B_A()       # B = up
     rom.LD_A_HLI(); rom.LD_C_A()       # C = down
     rom.LD_A_HLI(); rom.LD_D_A()       # D = left
