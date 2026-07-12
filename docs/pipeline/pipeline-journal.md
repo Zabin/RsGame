@@ -14,53 +14,48 @@
 
 ## Position
 
-- **Updated:** 2026-07-12 (run #94)
-- **Increment:** Bootstrap baseline remains fully closed (01–11 ✅, GO recorded). **Step 1
-  reconciliation this run found drift**: `IP-9130` (zone-transition intent gate, `BL-0078`) had
-  reached `COMPLETE` (226/226) via `08-code-implementation` run in a separate, already-merged
-  session/PR that never went through this manager — the journal's own run #93 Position still
-  described it as merely `READY`/authorized. Corrected: `BL-0078` flipped `DONE` in the backlog,
-  citing the drift and the package's own direct PyBoy re-verification of its reported sequence.
-  With `IP-9130` no longer an open implementation step, and `09-package-verification` having
-  stood blocked on "a fresh session" for many consecutive runs, this session (which implemented
-  none of the ten then-`COMPLETE` packages) qualified as that fresh session — the highest-leverage
-  available move. **Invoked `09-package-verification` on `IP-1070`** (the maze-shaped region
-  adjacency pass), chosen over the other nine `COMPLETE` packages because it sits on the only
-  live critical path (`IP-1070`→`IP-1080`, `IP-1080` explicitly `BLOCKED` on `IP-1070` reaching
-  `VERIFIED`). Result: **`IP-1070` → `VERIFIED`** ([VR-1070](../implementation/verification/VR-1070-maze-shaped-region-adjacency.md)) —
-  226/226 pass (current suite size), all seven FS-107 ACs confirmed, oracle/SM83 lockstep
-  reconfirmed (T19.c + direct code read), `dsr_p`/`draw_region_arrows`/`check_zone_transition`
-  confirmed zero-diff via a commit-scoped `git diff`. One Low finding (`BL-0080`): `IP-1070`'s own
-  §6 prose describes the prune-pass tree-edge test as a single check when the shipped code and
-  `worldgen.py` oracle both correctly implement two (a real, necessary property — a randomized
-  DFS can carve an edge in either direction) — a documentation-accuracy gap only, not a code
-  defect, routed to a future `07` touch. `IP-1080` is now `READY` (hard prerequisite satisfied)
-  but remains **unauthorized** — a live, not-yet-asked G3 decision. `BL-0075`'s own standing
-  disposition ("re-check when `IP-1070` reaches `VERIFIED`") has now fired, updated to point at
-  that same authorization decision. `BL-0066`/`BL-0050` (both `NEEDS-USER`) remain open,
-  unrelated, neither ripe/urgent enough to force this run.
-- **Pipeline state:** Bootstrap: stages 01–11 ✅ — complete, GO recorded. Ten packages `VERIFIED`
-  overall (`IP-1070` newly added), ten `COMPLETE` still await a fresh-session
-  `09-package-verification` (including `IP-9130`, drift-reconciled this run), one (`IP-1080`)
-  `READY`/unauthorized. Twenty-one packages total.
-- **Backlog:** 80 entries, 26 open. Run #94 (drift reconciliation + verification): `BL-0078`
-  flipped `DONE` (drift-corrected implementation harvest); `BL-0075` re-triaged (trigger fired,
-  now points at `IP-1080`'s authorization decision); new `BL-0080` filed (Low, `finding`,
-  `SCHEDULED`, `IP-1070`'s own §6 documentation-accuracy gap). `BL-0071`/`BL-0073` remain
+- **Updated:** 2026-07-12 (run #95, gate resolved same run)
+- **Increment:** Bootstrap baseline remains fully closed (01–11 ✅, GO recorded). Run #94
+  reconciled drift (`IP-9130` → `DONE`) and verified `IP-1070` → `VERIFIED`, leaving `IP-1080`
+  `READY` but unauthorized and three standing decisions open (`IP-1080`'s own G3, `BL-0050`,
+  `BL-0066`). **This run the user answered all three directly, unprompted** (not via
+  `AskUserQuestion` — volunteered in a single message): (1) **`IP-1080` approved** — filed as
+  gate-resolution `BL-0083`, `IP-1080`'s Master Build Plan/`packages/INDEX.md`/`ROADMAP.md`
+  `Authorized?` cells flipped to **YES**; `IP-1080` is now `READY` and cleared for
+  `08-code-implementation`. (2) **`BL-0050`** (MAP/status-screen redesign) — the user identified
+  its real blocker themselves: the shipped win condition (`CARROTS_COUNT==9`) is an unexamined
+  holdover from the pre-procgen 9-zone map, doesn't scale with `WORLD_SCALE`, and lets a player
+  win without meaningfully exploring the generated world — none of `BL-0050`'s own candidate
+  screen designs can be chosen until win conditions are redesigned. Filed via `00-intake` as new
+  research-gap **`BL-0081`** (`02-research-game-design`); `BL-0050` re-dispositioned
+  `NEEDS-USER`→`DEFERRED`, revisit trigger: `BL-0081` reaching a research conclusion `04` can
+  build a requirement from. (3) **`BL-0066`** (biome-blob clustering) — user said **hold as-is**,
+  no path chosen; separately filed via `00-intake` as new research-gap **`BL-0082`** (spans
+  `02-research-gbc-hardware`/`02-research-game-design`): whether the procgen architecture could
+  generate the world lazily/on-demand as the player moves (seed-derived per-region state) toward
+  a theoretically unbounded map, rather than one upfront pass bounded by `WORLD_SCALE<=9` — the
+  user explicitly connected this to both `BL-0081` (win conditions) and `BL-0066` (blob
+  clustering), since an unbounded world changes what either question even means. `BL-0066` stays
+  `NEEDS-USER`, cross-referenced to `BL-0082`, not re-triggered by it. `BL-0075`'s own resolution
+  chain (`IP-1070`→`VERIFIED`→`IP-1080` authorize→implement) now rides `08-code-implementation`
+  on `IP-1080` directly, its last remaining link.
+- **Pipeline state:** Bootstrap: stages 01–11 ✅ — complete, GO recorded. Ten packages `VERIFIED`,
+  ten `COMPLETE` awaiting fresh-session `09-package-verification`, one (`IP-1080`)
+  **`READY` and authorized** — next `08-code-implementation` target. Twenty-one packages total.
+- **Backlog:** 83 entries, 28 open. Run #95: `BL-0081`/`BL-0082` filed (`00-intake`) and triaged
+  `SCHEDULED` (riding future `02-research-*` passes); `BL-0050` `NEEDS-USER`→`DEFERRED`
+  (blocked on `BL-0081`); `BL-0066` reconfirmed `NEEDS-USER`, cross-referenced to `BL-0082`;
+  `BL-0083` filed and immediately `DONE` (gate resolution); `BL-0075` updated (its chain's last
+  link, `IP-1080`'s authorization, now resolved). `BL-0071`/`BL-0073`/`BL-0080` remain
   `SCHEDULED`, low urgency, no active `07` pass to ride yet.
-- **Next step:** No skill invocation is unblocked without a user decision. **Recommend**: a G3
-  authorization decision for `IP-1080` (maze-aware transition-edge classification, logic half —
-  now `READY`), which the user has not yet been asked about; on "authorize" →
-  `08-code-implementation` on `IP-1080`. Independently and without a gate: `09-package-verification`
-  on any of the remaining ten `COMPLETE` packages (`IP-9010`-family already `VERIFIED`; the ten
-  are `IP-1031`, `IP-9050`, `IP-9060`, `IP-9070`, `IP-9080`, `IP-9090`, `IP-9100`, `IP-9110`,
-  `IP-9120`, `IP-9130` — no critical-path package remains among them, so any order is fine;
-  oldest-first is a reasonable default). `BL-0066`/`BL-0050` (both `NEEDS-USER`) await the user
-  whenever convenient.
-- **Open gates:** None asked this run. One newly ripe, not yet asked: **`IP-1080`'s G3
-  authorization** (maze-aware transition-edge classification, logic half — now `READY`). Two
-  standing, independent: `BL-0050` (MAP/status-screen redesign) and `BL-0066` (biome-blob
-  clustering pass-ordering conflict) — both ripe, neither urgent.
+- **Next step:** `08-code-implementation` on **`IP-1080`** — now `READY` and authorized
+  (`BL-0083`). Implement the maze-aware open/blocked/absent classification inside
+  `draw_region_arrows` per the package's own §6/§7, add suite `T20`, rebuild, run the full suite,
+  and directly re-check (per `BL-0075`'s own original complaint) that a maze-blocked edge now
+  reads distinctly from a true world-edge during real play. Independently: `09-package-verification`
+  on any of the ten `COMPLETE` packages remains available without a gate (no critical path among
+  them); `BL-0066` (`NEEDS-USER`) awaits either a user decision or `BL-0082`'s research landing.
+- **Open gates:** None open. `IP-1080`'s G3 resolved this run (`BL-0083`, approved).
 
 ## Run log
 
@@ -163,3 +158,4 @@
 | 92 | 2026-07-12 | advance (gate resolved same run) | `07-implementation-planning` | BL-0076 (RIGHT zone-transition regression) | ✅ **Step 2 triage:** `BL-0075` (High, maze legibility) dispositioned `SCHEDULED` — no new work needed, already rides the existing `IP-1070`→`IP-1080` chain. `BL-0076` (Critical, RIGHT-transition regression) dispositioned `SCHEDULED`, riding this run — outranks all other open work (a live, universal navigation-breaking regression, root cause and fix already fully diagnosed at intake). **Step 3/5:** invoked `07-implementation-planning` on `BL-0076`. Packaged as **`IP-9120`** — the one-line `check_zone_transition` RIGHT-edge threshold fix (`CP_n(156)`→`CP_n(152)`), new check `T7.11` (real button-press-driven positive-transition regression test — the exact class of test missing that let this regression ship). Supersession sweep confirmed clean (exactly one other call site shares the stale constant class, `IP-9090`'s own already-correct clamp). `READY`, **not authorized** on entry. **Gate hit and resolved same run:** asked via `AskUserQuestion` given Critical severity rather than deferring to a later run; user authorized ("Yes, ship the fix (Recommended)"). Filed `BL-0077` (gate entry, immediately `DONE`); Master Build Plan/`packages/INDEX.md`/`ROADMAP.md` updated to authorized in the same pass. | `08-code-implementation` on **`IP-9120`** — now `READY` and authorized. Independently: `09-package-verification` on the nine `COMPLETE` packages remains blocked on a fresh session; `BL-0066`/`BL-0050` (both `NEEDS-USER`) await the user whenever convenient. |
 | 93 | 2026-07-12 | advance (gate resolved same run) | `07-implementation-planning` | BL-0078 (spurious zone-transition regression) | ✅ **Step 1 reconciliation:** `IP-9120` confirmed `COMPLETE` (224/224) since run #92; `BL-0076` flipped `DONE`. **Step 2 triage:** `BL-0078` (High, spurious transitions from `check_zone_transition`'s purely position-based trigger — a real gap exposed by the maze pass, confirmed via real button input at the literal default game start) dispositioned `SCHEDULED`, riding this run — outranks the standing `09-package-verification`/`NEEDS-USER` items. `BL-0075` unchanged (still rides the `IP-1070`→`IP-1080` chain). **Step 3/5:** invoked `07-implementation-planning` on `BL-0078`. Packaged as **`IP-9130`** — gates all four `check_zone_transition` branches on their own `JOY_CUR` direction bit, confirmed symmetric across all four directions by direct code read (not just the reported RIGHT case). Supersession sweep of `test_rom.py` found exactly two sites needing updates (`T11.a2`, the shared `_t17_do_move` helper) — `T16` swept and confirmed unaffected, correcting the intake report's own speculation. New check `T7.12`. `READY`, **not authorized** on entry. **Gate hit and resolved same run:** asked via `AskUserQuestion`; user authorized ("Yes, ship the fix (Recommended)"). Filed `BL-0079` (gate entry, immediately `DONE`); Master Build Plan/`packages/INDEX.md`/`ROADMAP.md` updated to authorized in the same pass. | `08-code-implementation` on **`IP-9130`** — now `READY` and authorized. Independently: `09-package-verification` on the ten `COMPLETE` packages remains blocked on a fresh session; `BL-0066`/`BL-0050` (both `NEEDS-USER`) await the user whenever convenient. |
 | 94 | 2026-07-12 | advance | `09-package-verification` | IP-1070 (maze-shaped region adjacency) | ✅ **Step 1 reconciliation found drift:** `IP-9130` had reached `COMPLETE` (226/226, commit `dd314c4`) via an `08-code-implementation` run in a separate, already-merged session/PR (PR #16) that never went through this manager — journal run #93's own Position still described it as merely `READY`/authorized. Corrected: `BL-0078` flipped `DONE` in the backlog, citing the drift and the package's own direct PyBoy re-verification of its originally reported sequence; no code was touched to correct this, only the ledgers. **Step 2 triage:** no other `NEW` entries pending; `BL-0075`/`BL-0071`/`BL-0073` re-confirmed unchanged; `BL-0066`/`BL-0050` re-confirmed not ripe/urgent enough to force this run. With `IP-9130` no longer an open implementation step and `09-package-verification` having stood blocked on "a fresh session" for many consecutive runs, this session (uninvolved in implementing any of the ten then-`COMPLETE` packages) qualified as that fresh session — judged the highest-leverage available move over continuing the `07`→`08` bug-fix cadence. **Step 3/5:** invoked `09-package-verification` on **`IP-1070`**, selected over the other nine `COMPLETE` packages as the only one sitting on a live critical path (`IP-1070`→`IP-1080`, `IP-1080` explicitly `BLOCKED` on `IP-1070` reaching `VERIFIED`). Result: **`VERIFIED`** ([VR-1070](../implementation/verification/VR-1070-maze-shaped-region-adjacency.md)) — installed PyBoy 2.7.0 fresh this session, rebuilt the ROM (32768 bytes, valid header), ran the full suite (226/226 pass), independently confirmed all seven FS-107 ACs via T19.a–g, confirmed oracle/SM83 lockstep both by T19.c (0 mismatches) and a direct side-by-side code read of `asm_game.py`'s maze pass against `worldgen.py`'s `_carve_maze`, and confirmed the DoD's "zero diff" claim on `dsr_p`/`draw_region_arrows`/`check_zone_transition` via a commit-scoped `git diff` (`f9ecbc7~1..f9ecbc7`). One Low finding: `IP-1070`'s own §6 task 4 describes the prune-pass tree-edge test as a single check, but the shipped code and the `worldgen.py` oracle (which explicitly comments on this) both correctly implement two — a real, necessary property since a randomized DFS spanning tree can carve an edge in either direction, not just from lower-index to higher-index regions; confirmed necessary, not redundant, by direct reasoning about DFS traversal order, and empirically corroborated by T19.b/T19.c both passing. Not a code defect — filed as `BL-0080` (Low, documentation-accuracy only). Master Build Plan/`packages/INDEX.md`/`ROADMAP.md`/verification `INDEX.md` updated (`IP-1070` → `VERIFIED`; `IP-1080` → `READY`, still unauthorized); committed (`a3f0247`) and pushed. Harvested: `BL-0078` → `DONE` (drift); `BL-0075` re-triaged (its own "re-check when `IP-1070` reaches `VERIFIED`" trigger fired, now points at `IP-1080`'s authorization decision); new `BL-0080` filed (`SCHEDULED`). No open gates asked this run — `IP-1080`'s authorization is newly ripe but was not asked, since it wasn't produced by this run's own invoked step (kept to one step per advance, per the manager's own guardrail). | No skill invocation is unblocked without a user decision. **Recommend:** ask the user to authorize (or decline) `IP-1080` (maze-aware transition-edge classification, logic half, now `READY`) — on "authorize" → `08-code-implementation` on `IP-1080`. Independently and without a gate: `09-package-verification` on any of the remaining ten `COMPLETE` packages (`IP-1031`, `IP-9050`, `IP-9060`, `IP-9070`, `IP-9080`, `IP-9090`, `IP-9100`, `IP-9110`, `IP-9120`, `IP-9130` — no critical path among them, any order is fine). `BL-0066`/`BL-0050` (both `NEEDS-USER`) await the user whenever convenient. |
+| 95 | 2026-07-12 | advance (gate resolved same run) | `00-intake` (harvest ×2) → triage | BL-0081/BL-0082 (research intake) + IP-1080 gate + BL-0050/BL-0066 dispositions | ✅ **Step 1 reconciliation:** no drift — run #94's ledgers matched exactly. **User volunteered all three standing decisions in a single message, unprompted** (recorded here as `AskUserQuestion` was not used — the user answered before being asked): (1) "IP-1080 approved"; (2) on `BL-0050` — "the solution must be researched and it is blocked by a need to update win conditions… Win conditions must be a new BL item requiring research"; (3) on `BL-0066` — "hold on this as-is," plus a new, separately-stated research request about streaming/on-the-fly (theoretically infinite) procgen. **Step 3/5 (intake):** invoked `00-intake` for the two new research topics — filed **`BL-0081`** (win-condition research for a scalable world, `02-research-game-design`, blocks `BL-0050`) and **`BL-0082`** (streaming/on-demand procgen toward an unbounded map, spans `02-research-gbc-hardware`/`02-research-game-design`, cross-referenced to `BL-0081` and `BL-0066` per the user's own stated connection). No duplicates found in the existing backlog. **Manager actions (not a separate skill invocation — gate resolution + triage, per the manager's own Step 4/2 conventions):** `IP-1080` authorization recorded as gate-resolution `BL-0083` (`DONE` on entry, "IP-1080 approved"); Master Build Plan/`packages/INDEX.md`/`ROADMAP.md` `Authorized?` cells and narrative sections flipped to **YES**, `IP-1080` now `READY` and cleared for `08-code-implementation`. `BL-0050` re-dispositioned `NEEDS-USER`→`DEFERRED` (trigger: `BL-0081` reaching a research conclusion). `BL-0066` reconfirmed `NEEDS-USER` (user explicitly declined to pick a path), cross-referenced to `BL-0082`, not re-triggered by it — the underlying (a)-vs-(b) pass-ordering question is unchanged. `BL-0075` updated: its own resolution chain's last link (`IP-1080`'s authorization) is now resolved, remains `SCHEDULED` riding `08-code-implementation` directly. `BL-0081`/`BL-0082` triaged `SCHEDULED` against future `02-research-*` passes. Committed in two passes (`00-intake`'s own commit for `BL-0081`/`BL-0082`, then the manager's own commit for the gate resolution + remaining dispositions) and pushed. | `08-code-implementation` on **`IP-1080`** — now `READY` and authorized (`BL-0083`). Independently: `09-package-verification` on any of the ten `COMPLETE` packages remains available without a gate; `BL-0066` (`NEEDS-USER`) awaits either a user decision or `BL-0082`'s research landing; `BL-0081`/`BL-0082` await a future `02-research-*` pass. |
