@@ -14,7 +14,7 @@
 
 ## Position
 
-- **Updated:** 2026-07-12 (run #122)
+- **Updated:** 2026-07-12 (run #123)
 - **Increment:** Bootstrap baseline remains fully closed (01–11 ✅, GO recorded). Run #96
   implemented `IP-1080` (`COMPLETE`, 230/230), closing the maze-shaped region adjacency tranche's
   critical-path extent. **Run #97:** the user then directly reported a bug while reviewing that
@@ -357,13 +357,33 @@
   future `04-requirements-engineering` pass that picks a candidate and derives the actual FR. No
   code touched, ROM unchanged. Committed (`584233a`) and pushed. Harvested: no new findings beyond
   the two backlog updates already made.
+- **User resolved the win-condition candidate directly in chat (same run, continued):** reviewing
+  `R215`'s tradeoff table and the measured dead-end data, the owner chose a fifth shape not among
+  candidates A–D — dead-end-priority placement at a `WORLD_SCALE`-sized target count, with a
+  random-fill fallback, win at collecting all of them. Also scoped a deferred infinite-world
+  variant (dead-end-only placement, top-3 high score, no name-entry) and a standing
+  "re-check at major releases" instruction. Filed **`BL-0093`** (finite, implement now — routes to
+  `03`), **`BL-0094`** (infinite variant, `DEFERRED` pending `BL-0082`), **`BL-0095`** (standing
+  release-checkpoint reminder). `BL-0081` cross-referenced.
+- **Run #123 (advance, user-directed iteration until blocked):** invoked
+  `03-architecture-design-synthesis` on `BL-0093`. Authored
+  **[ADR-0015](../architecture/adr/ADR-0015-dead-end-anchored-treasure-and-win-condition.md)** —
+  records the placement algorithm (pre-braid spanning-tree leaf priority, `WORLD_SCALE`-sized
+  target, random-fill fallback) and the new win condition (`KeyItemCount == WORLD_SCALE`) as a
+  binding decision, names the new generation-pass interaction (item placement must now read
+  `GW_MAZE_STATE`'s leaf structure at `maze_carve_done`, before the braid pass runs) without
+  specifying code. Corrected `GDS-04`'s "exactly one `KeyItem` per `Region`" domain rule
+  (superseded in place, not left silently stale) and added `GDS-07` §7c naming the new per-region
+  treasure-presence data-model concept, deliberately leaving the byte-level encoding choice
+  (widen `KEYITEM_FLAGS`'s value domain vs. a new bitmap) to `07`/`08`. `docs/architecture/INDEX.md`/
+  `ROADMAP.md`/the ADR index all updated. No code touched, ROM unchanged. Committed (`b201694`)
+  and pushed. Harvested: no new findings — `BL-0093` updated in place, still `SCHEDULED`.
 - **Next step:** No skill invocation is gated. **Recommend:** `04-requirements-engineering` to
-  pick a win-condition candidate from `R215` and derive the FR `BL-0050`'s own screen redesign can
-  then build against — a genuine design decision (which of A/B/C/D) that `04` itself may need to
-  surface to the user rather than pick unilaterally, given the project owner's own explicit framing
-  ("replanning is needed"). Separately, still available: `BL-0082` (the second `02-research-*` gap,
-  streaming/infinite-world generation feasibility) and `BL-0066` (`NEEDS-USER`). Still
-  session-blocked: `09-package-verification` on `IP-1081`.
+  derive/update the FR `ADR-0015` grounds (the `KeyItemCount == WORLD_SCALE` win condition and the
+  selective-placement requirement), then `06-feature-specification` to update `FS-102`'s own
+  workflow/AC accordingly, then `07`/`08` to implement. Separately, still available: `BL-0082`
+  (streaming/infinite-world research) and `BL-0066` (`NEEDS-USER`). Still session-blocked:
+  `09-package-verification` on `IP-1081`.
 - **Open gates:** None requiring the user this run. **Session-blocked:** `09-package-verification`
   on `IP-1081` (needs a fresh session before `IP-1082` can build).
 
@@ -496,3 +516,4 @@
 | 120 | 2026-07-12 | advance (user-directed iteration until blocked) | `07-implementation-planning` | `FS-108` rendering half — package `BL-0075` | ✅ Invoked `07-implementation-planning`. Packaged as a code/content peer pair mirroring `IP-1030`/`IP-1031`'s own precedent: **`IP-1081`** (content, `08-content-authoring`, 4 new tiles `0x1A`-`0x1D` per `GDS-08` §10) → **`IP-1082`** (render, `08-code-implementation`, `draw_region_arrows`'s blocked-case branch, reuses `IP-1080`'s `DRA_ROW`/`DRA_COL`, corrects `T20.b`, adds `T20.e`) — ordering reversed from precedent since the render branch needs the content package's tile constants. TWBS, Master Build Plan, `packages/INDEX.md`, `FS-108`/`FEAT-2100` metadata, `ROADMAP.md` updated. No code touched, ROM byte-identical. Committed (`afc7606`) and pushed. Neither package authorized. | **GATE:** G3 authorization needed for `IP-1081`/`IP-1082` before `08-content-authoring` can begin. |
 | 121 | 2026-07-12 | advance (user-directed iteration until blocked) | `08-content-authoring` | `IP-1081` — maze-blocked edge indicator content | ✅ Added 4 new tile bitmaps (`TL_BLOCKED_U/D/L/R`, `0x1A`-`0x1D`), a broken/dashed-bar silhouette confirmed visually distinct from the arrow tiles (rendered comparison), registered via `build_tile_data()`'s `put()` convention. Zero new palette entries. `GDS-07` §4/`memory.md` updated. Suite unchanged at 231/231 (nothing calls the tiles yet). ROM modified (new tile data), rebuilt, byte growth absorbed within existing padding. `IP-1081` → `COMPLETE`. Committed (`5569ba7`) and pushed. Harvested: no new findings. | **GATE (session-blocked):** `09-package-verification` needs a fresh session (same-session independence rule) before `IP-1082` can build on `IP-1081`. |
 | 122 | 2026-07-12 | advance (user-directed iteration until blocked) | `02-research-game-design` | `BL-0081` — win-condition research for procgen worlds | ✅ Authored [R215](../research/encyclopedia/R215-procgen-win-condition-design.md) — surveyed fixed-goal-node/percentage-completion/open-world conventions via cited `WebSearch`, confirmed `FR-9140`'s reachability guarantee, presented 4 candidates (scale-relative count, percentage threshold, fixed goal region, hybrid) without picking one. Cross-linked R201/R206/R213. `BL-0081` → `DONE`; `BL-0050`'s revisit trigger fired, re-dispositioned `SCHEDULED`. No code touched, ROM unchanged. Committed (`584233a`) and pushed. Harvested: no new findings. | No skill invocation is gated. **Recommend:** `04-requirements-engineering` to pick a win-condition candidate from R215 and derive the FR — a real design decision that may itself need surfacing to the user. Separately available: `BL-0082` (streaming/infinite-world research), `BL-0066` (`NEEDS-USER`). Still session-blocked: `09-package-verification` on `IP-1081`. |
+| 123 | 2026-07-12 | advance (user-directed iteration until blocked) | `03-architecture-design-synthesis` | `BL-0093` — win-condition redesign ADR | ✅ Authored [ADR-0015](../architecture/adr/ADR-0015-dead-end-anchored-treasure-and-win-condition.md) — records the owner's own resolved decision (dead-end-priority placement, `WORLD_SCALE`-sized target, random-fill fallback, `KeyItemCount==WORLD_SCALE` win condition) as a binding decision, names the new generation-pass interaction (placement reads `GW_MAZE_STATE` at `maze_carve_done`, before the braid pass) without specifying code. Corrected `GDS-04`'s "exactly one `KeyItem` per `Region`" rule in place; added `GDS-07` §7c naming the new data-model concept, leaving byte encoding to `07`/`08`. `docs/architecture/INDEX.md`/`ROADMAP.md`/ADR index updated. No code touched, ROM unchanged. Committed (`b201694`) and pushed. Harvested: no new findings. | No skill invocation is gated. **Recommend:** `04-requirements-engineering` to derive/update the FR `ADR-0015` grounds, then `06` to update `FS-102`, then `07`/`08` to implement. Separately available: `BL-0082`, `BL-0066` (`NEEDS-USER`). Still session-blocked: `09-package-verification` on `IP-1081`. |
