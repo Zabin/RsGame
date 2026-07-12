@@ -43,7 +43,7 @@
 | FR-5100 | Explicit player-initiated save | R106; R205 | GDS-05 C5; GDS-06 N3 | ADR-0006 | `asm_game.py` | UNASSIGNED | UNASSIGNED | T10.3–T10.5, T10.13/T10.14 |
 | FR-5200 | Restore save-field set on valid-save boot | R106 | GDS-05 C5; GDS-06 N3 | ADR-0006 | `asm_game.py` | UNASSIGNED | UNASSIGNED | T10.6–T10.12 |
 | FR-5210 | Fields explicitly outside the persisted save set (facing/frame only, as of 2026-07-07) | — | GDS-05 C5; BL-0018 (resolved) | — | `asm_game.py` | UNASSIGNED | UNASSIGNED | UNASSIGNED |
-| FR-5220 | Persist per-zone ScoreItem collected-state (new, 2026-07-07) | — | user decision 2026-07-07; BL-0018 (resolved) | ADR-0006 | `asm_game.py` | FS-101 | IP-1010 | **T11.a–e** — trustworthy, 125/125 pass |
+| FR-5220 | Persist per-zone ScoreItem collected-state (new, 2026-07-07; storage generalized to the full generated-region range 2026-07-11) | — | user decision 2026-07-07; BL-0018 (resolved); BL-0058 (resolved) | ADR-0006 | `asm_game.py` | FS-101 | IP-1010, IP-9070 | **T11.a–e**, **T16.a–e** — trustworthy, 231/231 pass |
 | FR-6100 | Zone screen composition | R203 | GDS-05 C6; GDS-08 §1 | — | `tilemaps.py` | UNASSIGNED | UNASSIGNED | T5.9 |
 | FR-6200 | Persistent row-0 HUD | R204 | GDS-05 C6; GDS-08 §3 | — | `asm_game.py`/`tilemaps.py` | UNASSIGNED | UNASSIGNED | T5.4–T5.8 |
 | FR-6300 | Five non-zone UI screens | — | GDS-05 C6; GDS-04 | — | `tilemaps.py` | UNASSIGNED | UNASSIGNED | T5.1–T5.3, T4.4/T4.6/T4.8 (screens reached) |
