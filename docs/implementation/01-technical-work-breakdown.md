@@ -709,3 +709,75 @@ not a conflict). Independent of `IP-9110` (`gw_prng_step`, disjoint) and the blo
 - **`BL-0078`** (High, spurious zone-transition regression — root-caused and reproduced at
   intake): packaged as `IP-9130`.
 - **`BL-0071`** (supersession sweep must include `test_rom.py`): honored directly above.
+
+## Maze-blocked edge indicator — rendering half (`FS-108`/`FEAT-2100`/`BL-0075`, planned 2026-07-12)
+
+`FS-108`'s own last Open Question closed 2026-07-12 (`06-feature-specification`): the rendering
+half's workflow and Acceptance Criteria (Workflow C, AC-4/AC-5) are now fully specified. This
+tranche packages that spec — `IP-1080`'s own classification logic (`VERIFIED`) is untouched;
+this pass wires the visible result.
+
+### Verb inventory
+
+Pure **render** — `generate` is `FS-107`'s own closed scope; the classification decision this
+rendering consumes is `IP-1080`'s own closed scope (`navigate` doesn't apply); `persist` doesn't
+apply (no new WRAM/SRAM entity, `FS-108` §10); `review` **does** apply this time (unlike
+`IP-1080`'s own logic-only pass) — new visible tile art ships, so a `09-content-review` pass is
+owed after implementation, mirroring `IP-1031`'s own precedent as `FEAT-6100`'s exercise.
+
+### Supersession sweep
+
+Not applicable in the retirement sense — this pass adds a third rendered state, it retires
+nothing. Confirmed by direct code read: `draw_region_arrows`'s existing open-edge branch
+(`asm_game.py:1002-1013`) and `_arrow_write` helper are unchanged targets, not superseded;
+`TL_ARROW_U/D/L/R`'s own tile-index block (`tiles.py:36-39`) is untouched, the new tiles land at
+the confirmed-free `0x1A`-`0x1D` slots immediately after it. Swept `test_rom.py`'s existing `T20`
+suite (`T20.a`/`b`/`c`) for any assumption that would break once a `blocked` edge starts drawing a
+non-blank tile: `T20.b`/`T20.c` both currently assert `not arrow_present` (`ARROW_POS[direction]
+== ARROW_TILE[direction]`, the *open*-tile constant) for blocked/absent — that assertion remains
+correct unchanged (a blocked tile is not the open tile), but needs a **new**, additive assertion
+for the blocked case specifically (the tile now *is* the new blocked-tile constant, not blank) —
+recorded as this package's own `Tests to Add`, not a rewrite of the existing check.
+
+### Work units and package cut
+
+| Work unit | Package | Owner |
+|---|---|---|
+| 4 new tile bitmaps (`TL_BLOCKED_U`/`D`/`L`/`R`, `0x1A`-`0x1D`, a short broken/dashed bar per `GDS-08` §10's silhouette concept) registered via `build_tile_data()`'s existing `put()` convention | [IP-1081](packages/IP-1081-maze-blocked-edge-indicator-content.md) | `08-content-authoring` |
+| `draw_region_arrows`'s blocked-case render branch: for each direction already classified `blocked` by `IP-1080`'s own arithmetic (`DRA_ROW`/`DRA_COL` vs. `WORLD_SCALE`), write the direction's new tile at the existing `ARROW_ADDR_*` position (palette 2, reusing `_arrow_write`'s own write shape) instead of the current no-op | [IP-1082](packages/IP-1082-maze-blocked-edge-indicator-render.md) | `08-code-implementation` |
+
+**Split rationale:**
+
+- **Two packages, mirroring `IP-1030`/`IP-1031`'s own code/content peer-split precedent** for the
+  same FS (`FS-103`) — different stage-08 peers own different files (`tiles.py` vs. `asm_game.py`),
+  and the tile art half genuinely needs its own `09-content-review` pass this time (unlike
+  `IP-1080`, which shipped no visible art at all).
+- **Content package first, reversing `IP-1030`→`IP-1031`'s own ordering** — there, the code half
+  established the interface the content half plugged into; here, the *code* half's new render
+  branch needs the *content* half's new tile-index constants (`TL_BLOCKED_U`/`D`/`L`/`R`) to exist
+  before it can reference them, so the dependency runs content→code this time. Named explicitly so
+  the reversal isn't mistaken for an inconsistency.
+- **Not fused into one package** despite the small combined size — the code branch's own
+  Definition of Done ("draws the correct tile for a `blocked` classification") is independently
+  statable and testable from the content package's own DoD ("4 new tiles exist, registered, cost
+  0 new palette entries") once the tile constants exist as a dependency, mirroring the same
+  Feature-boundary-respecting logic `IP-1070`/`IP-1080`'s own split rationale used (here it's a
+  code/content boundary, not a Feature boundary, but the same "don't fuse for convenience"
+  principle applies).
+
+### Sequencing summary
+
+**Critical path: `IP-1081` → `IP-1082`** (2 packages). `IP-1082` depends on `IP-1081` reaching
+`VERIFIED` (this skill's own `READY` convention — `COMPLETE` is not sufficient) for the tile
+constants to exist; both also depend on `IP-1080` (`VERIFIED`, already shipped) for the
+classification arithmetic/WRAM bytes they read. No parallel-eligible package this pass — the
+dependency is a hard sequencing constraint, not a convenience ordering.
+
+### Backlog riders honored in this pass
+
+- **`BL-0075`** (High, maze dead-end indistinguishable from a true world edge): packaged as
+  `IP-1081`→`IP-1082`, the pair that closes it — not `DONE` until `IP-1082` ships and is
+  `VERIFIED`.
+- **`BL-0068`** (the `GDS-08` tile-art delta this rendering half needed): already resolved
+  (2026-07-11); this pass is the implementation package `BL-0068`'s own resolution note named as
+  still owed.

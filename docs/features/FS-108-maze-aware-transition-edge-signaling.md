@@ -28,8 +28,12 @@
 > [IP-1080](../implementation/packages/IP-1080-maze-aware-edge-classification.md) (2026-07-12,
 > `VERIFIED`), which resolves this document's Open Question 2 (see §19). Open Question 1 (the
 > rendering half's tile art) **resolved 2026-07-11** — see §19; `BL-0068` closed. **The rendering
-> half's own workflow/behavior contract is now specified by this revision** (§6 Workflow C, §15
-> AC-4) — it remains unimplemented (no `IP-xxxx` package yet), tracked by `BL-0075`.
+> half's own workflow/behavior contract is specified by this revision** (§6 Workflow C, §15
+> AC-4/5), planned 2026-07-12 as
+> [IP-1081](../implementation/packages/IP-1081-maze-blocked-edge-indicator-content.md) (content)
+> and
+> [IP-1082](../implementation/packages/IP-1082-maze-blocked-edge-indicator-render.md) (render) —
+> both `NOT STARTED`/`BLOCKED`, not yet authorized, tracked by `BL-0075`.
 
 ## 1. Feature ID
 

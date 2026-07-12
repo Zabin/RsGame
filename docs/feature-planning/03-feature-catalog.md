@@ -94,8 +94,10 @@
 > 2026-07-12) — **fully specified.** Logic half implemented and `VERIFIED`
 > ([IP-1080](../implementation/packages/IP-1080-maze-aware-edge-classification.md)/
 > [VR-1080](../implementation/verification/VR-1080-maze-aware-edge-classification.md)); rendering
-> half now specified (FS-108 §6 Workflow C, §15 AC-4/5) but **not yet implemented** — tracked as
-> `BL-0075`, awaits a `07-implementation-planning` package.
+> half specified (FS-108 §6 Workflow C, §15 AC-4/5) and planned 2026-07-12 as
+> [IP-1081](../implementation/packages/IP-1081-maze-blocked-edge-indicator-content.md)/
+> [IP-1082](../implementation/packages/IP-1082-maze-blocked-edge-indicator-render.md) — **not yet
+> authorized or implemented**, tracked as `BL-0075`.
 
 - **Feature ID:** FEAT-2100
 - **Title:** Maze-Aware Transition-Edge Signaling
