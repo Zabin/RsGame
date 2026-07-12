@@ -113,13 +113,29 @@ staleness found is Low/Medium and already filed, not newly surfaced here.
   including whether `FEAT-2100`'s partial state is acceptable to baseline now versus holding the
   whole bucket for its completion — belongs to the user.
 
+## User decision
+
+**GO — user-confirmed 2026-07-12**, accepting the recommendation exactly as stated: Release 2
+(bundled) is baselined now, with `FEAT-2100`'s partial delivery (logic half `VERIFIED`, rendering
+half not yet built) carried forward explicitly rather than marked fully delivered. `BL-0075`
+remains open, routed to `07-implementation-planning` for a future rendering-half package — this
+GO does not close it.
+
+## Baseline update (Step 5, this GO)
+
+Flipped: `docs/feature-planning/01-release-plan.md` (Release 2 bucket header + `FEAT-2100`'s
+addendum row, both now record shipped/`VERIFIED`-with-partial-exception rather than "not yet
+implemented"), `ROADMAP.md` (`RV-RELEASE` row, `FP-01` status line), `Claude.md` (status heading
++ an explicit staleness flag on the still-pre-Release-2 behavior list, filed as new `BL-0091`
+rather than rewritten inline — out of this step's own trackers-only scope), and
+`docs/features/INDEX.md` (`FS-103`/`FS-107`/`FS-108` rows corrected to their current `VERIFIED`
+state, resolving `BL-0088` as a rider). `docs/reviews/INDEX.md`'s own row for this assessment
+updated to record the confirmed GO.
+
 ## Next step
 
-Awaiting the user's explicit GO/NO-GO decision on the recommendation above (including whether to
-accept `FEAT-2100`'s partial-delivery framing as stated, or to hold for its rendering half first).
-On GO: Step 5 — flip `01-release-plan.md`'s Release-2 bucket state, `ROADMAP.md`, `Claude.md`'s
-status line, and affected `INDEX.md` files, explicitly recording `FEAT-2100`'s partial state
-rather than marking it fully delivered; commit as `docs(release): release-2-bundled — assessment
-+ baseline update`. On NO-GO: route to the blocking item's owning skill (for `FEAT-2100`,
-`07-implementation-planning` to scope the rendering-half package; `09-package-verification` once
-built).
+Baseline flip complete. Next increment: `00-pipeline-manager` to survey the tree and determine
+the next step — likely candidates: `07-implementation-planning` for `BL-0075`'s rendering-half
+package (the one open item from this release), or the `02-research-*` gaps (`BL-0081`/`BL-0082`)
+now that the release itself is closed. `BL-0066` remains `NEEDS-USER`, independent of this
+release's own closure.

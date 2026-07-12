@@ -76,10 +76,23 @@ per zone, victory at `CARROTS_COUNT == 9`. `CUR_ZONE` is `0–8`; `CARROT_FLAGS`
 
 ---
 
-## Known Good Behavior (Baseline + Release 1 — assessed GO 2026-07-10)
+## Known Good Behavior (Baseline + Release 1 — assessed GO 2026-07-10; Release 2 — assessed GO 2026-07-12)
 
-> Release readiness: **GO** ([release-assessment-bootstrap-tranche.md](docs/reviews/release-assessment-bootstrap-tranche.md)).
+> Release readiness: **GO** ([release-assessment-bootstrap-tranche.md](docs/reviews/release-assessment-bootstrap-tranche.md));
+> **Release 2 (procedural world + visual narrative, bundled with all post-ship remediation):
+> GO, user-confirmed 2026-07-12**
+> ([release-assessment-release-2-bundled.md](docs/reviews/release-assessment-release-2-bundled.md))
+> — one named exception carried forward: `FEAT-2100`'s maze-aware edge-signaling shipped its
+> classification logic only, the visual rendering half is not yet built (`BL-0075`).
 > Everything below is shipped, `VERIFIED`, and integration-reviewed clean.
+>
+> **Staleness flagged, not fixed here:** the bulleted behavior list immediately below still
+> describes the pre-Release-2 fixed-9-zone/9-carrot/3×3-map model. Release 2 replaced world
+> layout with a seed/scale-driven procedurally generated world (`FEAT-9000`/FS-102), the win
+> condition and map screen were **not** updated to match (see `BL-0050`, `BL-0081`), and this
+> section's own prose was never re-authored against that shipped reality. A full refresh is
+> filed as `BL-0091` (new, this run) rather than attempted inline here — this baseline flip's
+> own scope is trackers/status only, not a content rewrite.
 
 Confirmed by the current `test_rom.py` suite (125/125 checks pass;
 [`docs/architecture/01-concept-of-play.md`](docs/architecture/01-concept-of-play.md) (GDS-01) is
