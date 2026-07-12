@@ -367,9 +367,13 @@
 ## FEAT-9000 — Procedural World Generation & Item-Agnostic Collection (new — not yet implemented)
 
 > **Forward reference (metadata only):** specified by
-> [FS-102](../features/FS-102-procedural-world-generation.md) (2026-07-10). 3 Open Questions
-> recorded there (grammar-table contents, algorithm implementation detail, ROM-pointer need),
-> all routed to `07-implementation-planning`.
+> [FS-102](../features/FS-102-procedural-world-generation.md) (2026-07-10; revised 2026-07-12,
+> `FR-9160`/`ADR-0015`). 3 original Open Questions (grammar-table contents, algorithm
+> implementation detail, ROM-pointer need), all routed to `07-implementation-planning`, resolved
+> at `IP-1020`. **2 new Open Questions from the 2026-07-12 revision:** OQ4 (this entry's own
+> Included Requirements cites `FR-9130`, not `FR-9160`, its direct successor — routed to
+> `05-feature-decomposition`, this stage's own owner) and OQ5 (the per-region tri-state encoding,
+> routed to `07-implementation-planning`).
 
 - **Feature ID:** FEAT-9000
 - **Title:** Procedural World Generation & Item-Agnostic Collection
