@@ -14,7 +14,7 @@
 
 ## Position
 
-- **Updated:** 2026-07-12 (run #104)
+- **Updated:** 2026-07-12 (run #105)
 - **Increment:** Bootstrap baseline remains fully closed (01–11 ✅, GO recorded). Run #96
   implemented `IP-1080` (`COMPLETE`, 230/230), closing the maze-shaped region adjacency tranche's
   critical-path extent. **Run #97:** the user then directly reported a bug while reviewing that
@@ -106,10 +106,18 @@
   `T5.10–T5.12` pass; `asm_game.py` confirmed untouched. Suite 231/231, ROM byte-identical. No
   findings. `IP-9080` → `VERIFIED`
   ([VR-9080](../implementation/verification/VR-9080-save-screen-third-option-labeling.md)).
-  Ledgers updated in sync. Committed (`9082edc`) and pushed.
+  Ledgers updated in sync. Committed (`9082edc`) and pushed. **Run #105 (this run):**
+  `09-package-verification` on **`IP-9090`** (movement clamp boundary fix). Confirmed the UP floor
+  reads exactly `Y=8` and the RIGHT ceiling exactly `X=152` by direct code read, DOWN/LEFT
+  confirmed unchanged, `T7.8`/`T7.8b`/`T7.10`/`T7.10b` all `[PASS]` via genuine button-held
+  movement. Cross-checked that the `X=152` ceiling this package establishes is exactly what
+  `IP-9120`'s own already-verified `check_zone_transition` threshold consumes — consistent, not
+  contradictory. Suite 231/231, ROM byte-identical. No findings. `IP-9090` → `VERIFIED`
+  ([VR-9090](../implementation/verification/VR-9090-movement-clamp-boundary-fix.md)). Ledgers
+  updated in sync. Committed (`9109d96`) and pushed.
 - **Pipeline state:** Bootstrap: stages 01–11 ✅ — complete, GO recorded. Post-ship remediation,
-  Release 2, and maze-shaped adjacency tranches all fully `VERIFIED`. Sixteen packages `VERIFIED`,
-  six `COMPLETE` (`IP-9090`/`9100`/`9110`/`9120`/`9130`/`9140`) awaiting fresh-session
+  Release 2, and maze-shaped adjacency tranches all fully `VERIFIED`. Seventeen packages
+  `VERIFIED`, five `COMPLETE` (`IP-9100`/`9110`/`9120`/`9130`/`9140`) awaiting fresh-session
   `09-package-verification`. Twenty-two packages total, zero `READY`/unauthorized/blocked.
 - **Backlog:** 87 entries, 29 open. Run #97: `BL-0084` filed, packaged, implemented, and flipped
   `DONE` all in one run (implementation directly re-verified against its own reported sequence,
@@ -117,18 +125,18 @@
   separately); `BL-0085` filed and immediately `DONE` (gate resolution). Run #98: `BL-0086` filed,
   `DEFERRED` (revisit trigger: the graphics/aesthetics overhaul being scheduled). Run #99:
   `BL-0087` filed and immediately `DONE` (a stale RTM cell found and corrected in place by the
-  verification run itself). Runs #100–104: no new findings. `BL-0075`, `BL-0071`/`BL-0073`/
+  verification run itself). Runs #100–105: no new findings. `BL-0075`, `BL-0071`/`BL-0073`/
   `BL-0080`, `BL-0081`/`BL-0082` all unchanged from run #96.
 - **Next step:** No skill invocation is gated. **User has directed the manager to iterate
   autonomously until every remaining item is blocked on a fresh session or user input** — this
-  loop continues at the next advance. **Recommend:** `09-package-verification` on one of the six
-  remaining `COMPLETE` packages (`IP-9090`, `IP-9100`, `IP-9110`, `IP-9120`, `IP-9130`, `IP-9140`
-  — all confirmed independence-clean for this session, including `IP-9140` per run #100's
-  session-hash check). Per the pipeline's own ordering rule ("the per-feature loop 06→07→08→09
-  drains before the per-release stages 10→11 run"), the manager should keep draining
-  `09-package-verification` across all six before running `10-integration-review` on any tranche,
-  even a tranche (like the now-fully-`VERIFIED` remediation, Release-2, and maze-adjacency
-  tranches) that's individually ready for it. `BL-0066` (`NEEDS-USER`)
+  loop continues at the next advance. **Recommend:** `09-package-verification` on one of the five
+  remaining `COMPLETE` packages (`IP-9100`, `IP-9110`, `IP-9120`, `IP-9130`, `IP-9140` — all
+  confirmed independence-clean for this session, including `IP-9140` per run #100's session-hash
+  check). Per the pipeline's own ordering rule ("the per-feature loop 06→07→08→09 drains before
+  the per-release stages 10→11 run"), the manager should keep draining `09-package-verification`
+  across all five before running `10-integration-review` on any tranche, even a tranche (like the
+  now-fully-`VERIFIED` remediation, Release-2, and maze-adjacency tranches) that's individually
+  ready for it. `BL-0066` (`NEEDS-USER`)
   awaits either a
   user decision or `BL-0082`'s research landing; `BL-0081`/`BL-0082` and `BL-0086` await their own
   future passes (`02` and the graphics-overhaul work respectively — neither yet scheduled, but not
@@ -247,3 +255,4 @@
 | 102 | 2026-07-12 | advance (user-directed iteration until blocked) | `09-package-verification` | IP-1031 (generated-region screen composition, content half) | ✅ **Step 1 reconciliation:** no drift. **Step 2 triage:** nothing ripe or newly fired. **Step 3/5:** invoked `09-package-verification` on **`IP-1031`**, the last unverified Release-2 package. Rebuilt ROM (byte-identical, `sha256` match), ran full suite (**231/231 pass**, up from 180/180 at implementation time). Confirmed `ALL_SCREENS`'s exact 5-family `(family, fn)` mapping by direct read; `git diff --stat` against `IP-1030`'s own implementing commit confirmed `tiles.py` fully unchanged and `build_rom.py`'s only diff is `IP-1040`'s unrelated later patch additions — zero new tile art, zero new palette entries, exactly as claimed; `T13.a` (tile-family audit) `[PASS]`. Relied on the pre-existing, independently-produced content review (`content-review-IP-1031.md`, a separate prior session — clean, one Low informational finding) as this content package's own required re-drive evidence, since the tree is byte-identical to what that review already screenshotted. Result: **`VERIFIED`** ([VR-1031](../implementation/verification/VR-1031-generated-region-screen-composition-content.md)). One Low finding: `FR-4300` (the requirement `IP-1031`'s own §3 cites) was never promoted to the global RTM — a pre-existing gap, not introduced here, routed to a future `04` pass rather than corrected in place (unlike the RTM *cell* corrections in runs #99/#101 — this is a missing row, not a stale one, outside this run's own "correct proven-wrong cells" allowance). **This closes Release 2's full package set end-to-end** — `IP-1020`/`1030`/`1031`/`1040`/`1050` all now `VERIFIED`. Master Build Plan/verification `INDEX.md`/`ROADMAP.md` updated in sync. Committed (`a7c46bc`) and pushed. Harvested: no new backlog entries (the `FR-4300` finding is a routed forward-pointer already stated in the VR itself, mirroring several prior packages' own "Notes" precedent rather than a fresh `BL-xxxx`). No open gates. | No skill invocation is gated — continuing the user-directed loop. **Recommend:** `09-package-verification` on **`IP-1080`** next (maze-shaped adjacency tranche's remaining package — confirmed independence-clean per run #100), then any of `IP-9080`/`IP-9090`/`IP-9100`/`IP-9110`/`IP-9120`/`IP-9130`/`IP-9140`. Once every `COMPLETE` package is `VERIFIED`, the loop moves to `10-integration-review` on the closed tranches, then the two `SCHEDULED` `02-research-*` passes (`BL-0081`/`BL-0082`), stopping only at `BL-0066` (`NEEDS-USER`) or any new gate a step surfaces. |
 | 103 | 2026-07-12 | advance (user-directed iteration until blocked) | `09-package-verification` | IP-1080 (maze-aware transition-edge classification, logic half) | ✅ **Step 1 reconciliation:** no drift. **Step 2 triage:** nothing ripe or newly fired. **Step 3/5:** invoked `09-package-verification` on **`IP-1080`**, confirmed independence-clean (implemented under `session_01XDaz5d1SMBGi8cee1FUu5v` per run #100's check, not this one). Rebuilt ROM (byte-identical, `sha256` match), ran full suite (**231/231 pass**, up from 230/230 at implementation time). Confirmed `DRA_ROW`/`DRA_COL`'s repeated-subtraction division by direct code read, matching `generate_world`'s own `gw_mod3` technique — the package's implementation-time-corrected citation, not its original stale `check_zone_transition` reference (that drift was found and fixed during implementation itself, per the Master Build Plan's own row, not left for this run to catch). Confirmed the open-edge branch is byte-for-byte unchanged (the new row/col computation touches none of the four neighbor-byte registers the open branch consumes). All four `T20.*` checks `[PASS]`, AC-4 confirmed still honestly open (no suite claims to cover the rendering half, tracked as `BL-0068`). Result: **`VERIFIED`** ([VR-1080](../implementation/verification/VR-1080-maze-aware-edge-classification.md)). Master Build Plan/verification `INDEX.md`/`ROADMAP.md` updated in sync. Committed (`ad07009`) and pushed. Harvested: no new findings. No open gates. | No skill invocation is gated — continuing the user-directed loop. **Recommend:** `09-package-verification` on **`IP-9080`** next (movement/pickup/UI tranche), then any of `IP-9090`/`IP-9100`/`IP-9110`/`IP-9120`/`IP-9130`/`IP-9140`. Once every `COMPLETE` package is `VERIFIED`, the loop moves to `10-integration-review` on the closed tranches, then the two `SCHEDULED` `02-research-*` passes (`BL-0081`/`BL-0082`), stopping only at `BL-0066` (`NEEDS-USER`) or any new gate a step surfaces. |
 | 104 | 2026-07-12 | advance (user-directed iteration until blocked) | `09-package-verification` | IP-9080 (SAVE screen third-option labeling) | ✅ **Step 1 reconciliation:** no drift. **Step 2 triage:** nothing ripe or newly fired. **Step 3/5:** invoked `09-package-verification` on **`IP-9080`**. No prior `09-content-review` exists for this content package (unlike `IP-1031`), so this run's own PyBoy re-drive was the primary visual evidence rather than corroborating a separate report — installed Pillow (missing at session start), fresh-booted the built ROM, advanced through MAIN MENU → new game → PLAYING → START → SAVE screen (`GS=3` confirmed), and screenshotted it directly: the label "SELECT: SAVE"/"AND EXIT" renders cleanly at rows 12–13, no overlap with "A: YES"/"B: NO" or the border. `T5.10–T5.12` `[PASS]`; `asm_game.py` confirmed untouched (content-only, per the package's own scope). Rebuilt ROM (byte-identical), full suite **231/231 pass** (up from 220/220 at implementation time). Result: **`VERIFIED`** ([VR-9080](../implementation/verification/VR-9080-save-screen-third-option-labeling.md)). Master Build Plan/verification `INDEX.md` updated in sync. Committed (`9082edc`) and pushed. Harvested: no new findings. No open gates. | No skill invocation is gated — continuing the user-directed loop. **Recommend:** `09-package-verification` on **`IP-9090`** next (movement clamp boundary fix), then any of `IP-9100`/`IP-9110`/`IP-9120`/`IP-9130`/`IP-9140`. Once every `COMPLETE` package is `VERIFIED`, the loop moves to `10-integration-review` on the closed tranches, then the two `SCHEDULED` `02-research-*` passes (`BL-0081`/`BL-0082`), stopping only at `BL-0066` (`NEEDS-USER`) or any new gate a step surfaces. |
+| 105 | 2026-07-12 | advance (user-directed iteration until blocked) | `09-package-verification` | IP-9090 (movement clamp boundary fix) | ✅ **Step 1 reconciliation:** no drift. **Step 2 triage:** nothing ripe or newly fired. **Step 3/5:** invoked `09-package-verification` on **`IP-9090`**. Rebuilt ROM (byte-identical), full suite **231/231 pass** (up from 213/213 at implementation time). Confirmed by direct code read: UP clamp's `CP_n(8)`/`JR_C`/`JR_Z` shape floors exactly at `Y=8`; RIGHT clamp's `CP_n(153)` ceilings exactly at `X=152`; DOWN (`CP_n(129)`)/LEFT (`OR_A`/`JR_Z`) byte-for-byte unchanged. `T7.8`/`T7.8b`/`T7.10`/`T7.10b` all `[PASS]`, `T7.8`/`T7.10b` specifically driving genuine button-held movement (not a forced WRAM value) to reach each boundary. Cross-checked the `X=152` ceiling against `IP-9120`'s own already-verified `check_zone_transition` threshold (`VR-9050`) — the two values agree exactly. Result: **`VERIFIED`** ([VR-9090](../implementation/verification/VR-9090-movement-clamp-boundary-fix.md)). Master Build Plan/verification `INDEX.md` updated in sync. Committed (`9109d96`) and pushed. Harvested: no new findings. No open gates. | No skill invocation is gated — continuing the user-directed loop. **Recommend:** `09-package-verification` on **`IP-9100`** next (collectible pickup hitbox fix — closes the movement/pickup/UI tranche end-to-end alongside `IP-9080`/`9090`), then any of `IP-9110`/`IP-9120`/`IP-9130`/`IP-9140`. Once every `COMPLETE` package is `VERIFIED`, the loop moves to `10-integration-review` on the closed tranches, then the two `SCHEDULED` `02-research-*` passes (`BL-0081`/`BL-0082`), stopping only at `BL-0066` (`NEEDS-USER`) or any new gate a step surfaces. |
