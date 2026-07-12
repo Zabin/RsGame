@@ -407,7 +407,13 @@
   delta): as of `IP-9050` (2026-07-11), generated-world navigation (`check_zone_transition`
   reading `REGION_GRAPH`'s neighbor bytes, `ADR-0009`) honors this FR's intent for the full
   `scale`×`scale` region graph, not just the 3×3 case its Description/Acceptance Criteria still
-  name verbatim.
+  name verbatim. **2026-07-12 delta (`IP-9120`, `BL-0076`):** this FR's own RIGHT-direction
+  case regressed to fully broken (no rightward transition could ever fire through normal
+  gameplay input) when `IP-9090`'s own correct RIGHT movement-clamp fix lowered the reachable
+  `PLAYER_X` ceiling below `check_zone_transition`'s own RIGHT-edge trigger threshold — a code
+  defect, not a requirement-text problem; fixed by aligning the threshold to the corrected
+  clamp (`152`). `T7.11` added as a real-button-press-driven positive-transition regression
+  test, the class of check missing across all four directions that let this ship undetected.
 
 ### FR-2310 — No transition at grid boundary
 

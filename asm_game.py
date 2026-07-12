@@ -658,8 +658,11 @@ def build_game_asm(rom: ROM) -> dict:
     # immediately) is unchanged from the pre-fix shipped code (T17.b's own
     # scale=3 regression requires bit-for-bit identical behavior there).
     rom.label('check_zone_transition')
-    # right edge: x >= 156
-    rom.LD_A_nn(PLAYER_X); rom.CP_n(156); rom.JR_C('czt_left')
+    # right edge: x >= 152 (matches handle_play_input's own RIGHT clamp
+    # ceiling exactly -- IP-9090's corrected clamp (max X=152) fell below
+    # this threshold's old value of 156, making the RIGHT transition
+    # unreachable through normal play; fixed here, IP-9120/BL-0076)
+    rom.LD_A_nn(PLAYER_X); rom.CP_n(152); rom.JR_C('czt_left')
     rom.CALL('czt_region_hl')
     rom.INC_HL(); rom.INC_HL(); rom.INC_HL(); rom.INC_HL()   # HL -> +4 (right)
     rom.LD_A_HL(); rom.CP_n(0xFF); rom.JR_Z('czt_left')

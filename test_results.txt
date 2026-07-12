@@ -1,4 +1,4 @@
-BunnyQuest ROM Tests  PASS=222/222  FAIL=0
+BunnyQuest ROM Tests  PASS=224/224  FAIL=0
 ==================================================
 [PASS] T1.1 ROM size = 32768  (32768)
 [PASS] T1.2 Entry = NOP; JP
@@ -74,6 +74,8 @@ BunnyQuest ROM Tests  PASS=222/222  FAIL=0
 [PASS] T7.9 X=0 in zone 0: no move, no zone change  (x=0 zone=0)
 [PASS] T7.10 X=159 in zone 2: no overflow, no zone change  (x=159 zone=2)
 [PASS] T7.10b RIGHT clamp floors exactly at X=152 via genuine movement (IP-9090/BL-0052 fix)  (x=152 zone=2)
+[PASS] T7.11 setup: zone 3's oracle-confirmed right neighbor is zone 4  (neighbor=4)
+[PASS] T7.11 Real, sustained RIGHT button-press input crosses into the open neighbor zone (BL-0076 direct regression test)  (zone=4 x=8)
 [PASS] T8.1 Score starts 0  (0)
 [PASS] T8.2 Carrots start 0  (0)
 [PASS] T8.3 COLL_COUNT = 7 in zone 0  (count=7)

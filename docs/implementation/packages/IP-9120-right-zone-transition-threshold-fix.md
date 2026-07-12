@@ -20,11 +20,14 @@ back into agreement with the corrected clamp — a one-constant change, no algor
 
 ## 3. Requirements Covered
 
-No FR/NFR text change — this is a defect in the shipped implementation of `FR-2310` (zone
-transitions on edge crossing, already baselined). `FR-2310`'s Notes gain an entry recording this
-regression and its fix; no requirement text is wrong, the *code* drifted out of agreement with
-itself across two sibling packages (`IP-9050`'s own `check_zone_transition` rewrite and this
-session's `IP-9090`).
+No FR/NFR text change — this is a defect in the shipped implementation of `FR-2300` (zone-boundary
+transition on a valid neighbor, already baselined; `FR-2310` is the *negative* case, "no transition
+at a true grid boundary," and is unaffected by this bug). **Correction (2026-07-12, discovered
+during `08-code-implementation`):** this field originally cited `FR-2310` — corrected to `FR-2300`,
+the actual positive-transition requirement this regression breaks. `FR-2300`'s Notes gain an entry
+recording this regression and its fix; no requirement text is wrong, the *code* drifted out of
+agreement with itself across two sibling packages (`IP-9050`'s own `check_zone_transition` rewrite
+and this session's `IP-9090`).
 
 ## 4. Architecture Components
 
@@ -79,24 +82,29 @@ Extends the existing **`T7: Joypad and Movement`** suite (`test_rom.py`) — no 
 placed immediately after the existing `T7.10b` (RIGHT clamp boundary check) it directly builds on:
 
 - **T7.11 — Real button-press-driven RIGHT transition (the direct `BL-0076` regression test).**
-  Using a fixture region confirmed (via `worldgen.py`, the live oracle) to have an open RIGHT
-  neighbor at the default `(seed, scale)` fixture — or a freshly-created known-`(seed, scale)`
-  game if the default fixture's own region 0 lacks one — drive the player rightward via **real,
-  repeated `button_press('right')`/tick/`button_release('right')` cycles** (not
-  `pb.memory[PLAYER_X] = <value>` teleportation), sustained long enough to reach the movement
-  clamp's own ceiling (mirroring `T7.10b`'s own drive pattern), then assert **both**: (a)
-  `PLAYER_X` settles at the corrected clamp ceiling (`152`) at the moment of crossing, and (b)
-  `CUR_ZONE` has actually changed to the expected neighbor region (per the oracle) — the exact
-  combination (real movement clamp behavior *and* a live transition) no existing check exercises
-  together. This is the check that would have caught `BL-0076` before it shipped.
+  **Correction (2026-07-12, discovered during `08-code-implementation`):** the default fixture's
+  own region 0 (`seed=0`→`1`, `scale=3`) has no open RIGHT neighbor — region 3 does (confirmed via
+  `worldgen.py`, right neighbor = region 4), so the test forces `CUR_ZONE=3` directly (the same
+  established convention `T7.10`/`T16.a` already use to isolate a specific region for testing)
+  rather than replaying a full navigation path. Drives the player rightward via **real, sustained
+  `button_press('right')`/tick cycles** (not `pb.memory[PLAYER_X] = <value>` teleportation),
+  releasing the button the instant `CUR_ZONE` changes — held past that point, RIGHT keeps moving
+  the player inside the *new* zone too (an interaction the original plan didn't account for; a
+  fixed-tick-count hold like `T7.10b`'s own dead-end case caused overshoot here since a real
+  transition fires partway through). Asserts `CUR_ZONE == 4` (the transition fired) and
+  `PLAYER_X <= 20` (settled near the new zone's own left-entry position, tolerant of a couple of
+  residual movement ticks) — the exact combination (real movement clamp behavior *and* a live
+  transition) no existing check exercises together. This is the check that would have caught
+  `BL-0076` before it shipped.
 
 ## 9. Documentation Updates
 
-- `docs/requirements/01-functional-requirements.md`: add a Notes entry to `FR-2310` recording
-  this regression (citing `BL-0076`) and its fix — the requirement's own text was never wrong,
-  the implementation drifted out of internal agreement across `IP-9050`/`IP-9090`.
-- `docs/requirements/04-requirements-traceability-matrix.md`: update `FR-2310`'s Test cell to
-  cite the new `T7.11` check.
+- `docs/requirements/01-functional-requirements.md`: add a Notes entry to `FR-2300` (corrected
+  from this field's own original, wrong `FR-2310` citation — see §3) recording this regression
+  (citing `BL-0076`) and its fix — the requirement's own text was never wrong, the implementation
+  drifted out of internal agreement across `IP-9050`/`IP-9090`.
+- `docs/requirements/04-requirements-traceability-matrix.md`: update `FR-2300`'s Test cell to
+  cite the new `T7.11` check and this package.
 - Master Build Plan status row.
 
 ## 10. Definition of Done

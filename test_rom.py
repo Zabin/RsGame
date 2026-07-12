@@ -530,6 +530,39 @@ pb.button_press('right'); [pb.tick() for _ in range(90)]; pb.button_release('rig
 check("T7.10b RIGHT clamp floors exactly at X=152 via genuine movement (IP-9090/BL-0052 fix)",
       pb.memory[PLAYER_X] == 152, f"x={pb.memory[PLAYER_X]} zone={pb.memory[CUR_ZONE]}")
 
+# T7.11 — real button-press-driven RIGHT transition (the direct BL-0076
+# regression test). Zone 3, at this default (seed=0->1, scale=3) fixture's
+# own oracle-confirmed graph, has a genuinely open right neighbor (zone 4)
+# -- unlike zone 2 (T7.10/T7.10b, a true grid boundary, used deliberately
+# there to isolate the clamp from any transition). check_zone_transition
+# runs every frame immediately after handle_play_input, so the instant
+# PLAYER_X reaches the (now-corrected) threshold the transition fires in
+# the same tick and resets PLAYER_X to 8 (the new zone's own left-entry
+# position) -- held past that tick, RIGHT keeps moving the player inside
+# the *new* zone too, so the button is released the moment CUR_ZONE flips
+# rather than after a fixed tick count (unlike T7.10b's own dead-end case,
+# where no transition ever fires so overshoot past the clamp can't occur).
+# Asserting CUR_ZONE==4 and a small entry-side PLAYER_X together is
+# exactly the combination (real movement clamp + a live transition) no
+# existing check exercises -- BL-0076 pre-fix, CUR_ZONE stayed 3 and
+# PLAYER_X stuck at 152 forever, no matter how long RIGHT was held.
+_t711_expected_right = worldgen.generate(1, 3)[3]['neighbors'][3]
+check("T7.11 setup: zone 3's oracle-confirmed right neighbor is zone 4",
+      _t711_expected_right == 4, f"neighbor={_t711_expected_right}")
+pb.memory[CUR_ZONE] = 3; pb.memory[PLAYER_X] = 80; pb.memory[PLAYER_Y] = 72
+pb.memory[NEED_REDRAW] = 0
+[pb.tick() for _ in range(3)]
+pb.button_press('right')
+for _ in range(120):
+    pb.tick()
+    if pb.memory[CUR_ZONE] == 4:
+        break
+pb.button_release('right')
+[pb.tick() for _ in range(2)]
+check("T7.11 Real, sustained RIGHT button-press input crosses into the open neighbor zone (BL-0076 direct regression test)",
+      pb.memory[CUR_ZONE] == 4 and pb.memory[PLAYER_X] <= 20,
+      f"zone={pb.memory[CUR_ZONE]} x={pb.memory[PLAYER_X]}")
+
 pb.stop()
 
 # ══════════════════════════════════════════════════════
