@@ -15,8 +15,11 @@
 > **Revision (2026-07-12, `ADR-0015`/`BL-0093`):** `FR-9130` (the "exactly one `KeyItem` per
 > region" rule this document's own §5/§6/§15 AC-5 originally specified and `IP-1020` shipped) is
 > **superseded by `FR-9160`**. §6 Workflow A step 5 and §15 AC-5 below are updated to describe the
-> new target behavior. **No `IP-xxxx` package yet exists for this FS-102 revision** — it is not
-> yet implemented. §6 Workflow B step 4's victory-condition forward reference is also corrected
+> new target behavior. **Planned 2026-07-12 as
+> [IP-1021](../implementation/packages/IP-1021-win-condition-redesign.md)** (`NOT STARTED`, not
+> yet authorized) — resolves this document's own Open Question 5 (the per-region encoding, decided
+> as a widened `KEYITEM_FLAGS` value domain). §6 Workflow B step 4's victory-condition forward
+> reference is also corrected
 > (it previously stated a formula — `KeyItemCount == WorldScale²`, i.e. full 100% collection —
 > that was never actually decided by any binding artifact and is now superseded by `FR-9161`'s
 > `KeyItemCount == WorldScale`; see the correction below and Open Question 4).

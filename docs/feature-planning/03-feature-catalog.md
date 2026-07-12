@@ -372,8 +372,9 @@
 > implementation detail, ROM-pointer need), all routed to `07-implementation-planning`, resolved
 > at `IP-1020`. **2 new Open Questions from the 2026-07-12 revision:** OQ4 (this entry's own
 > Included Requirements cites `FR-9130`, not `FR-9160`, its direct successor — routed to
-> `05-feature-decomposition`, this stage's own owner) and OQ5 (the per-region tri-state encoding,
-> routed to `07-implementation-planning`).
+> `05-feature-decomposition`, this stage's own owner) and **OQ5 resolved same day** — planned as
+> [IP-1021](../implementation/packages/IP-1021-win-condition-redesign.md) (`NOT STARTED`, not
+> authorized), which decides the per-region tri-state encoding against the real code.
 
 - **Feature ID:** FEAT-9000
 - **Title:** Procedural World Generation & Item-Agnostic Collection

@@ -1,7 +1,8 @@
 # Master Build Plan
 
-> **Status: 22 of 24 packages VERIFIED (2026-07-12); `IP-1081` (`FS-108` rendering half — content,
-> `BL-0075`) `COMPLETE` same day, awaiting verification; `IP-1082` (render) `BLOCKED` on it.**
+> **Status: 22 of 25 packages VERIFIED (2026-07-12); `IP-1081` (`FS-108` rendering half — content,
+> `BL-0075`) `COMPLETE` same day, awaiting verification; `IP-1082` (render) `BLOCKED` on it;
+> `IP-1021` (win-condition redesign, `BL-0093`) planned same day, `NOT STARTED`, not authorized.**
 > **Bootstrap tranche fully VERIFIED (2026-07-10) — all five packages VERIFIED.**
 > **Release 2 tranche (procgen-world increment): authorized 2026-07-10 (user G3, `BL-0040`, all
 > five packages) — `IP-1020` (foundational, dependency-root) VERIFIED 2026-07-10
@@ -153,6 +154,14 @@ deliberately left open. Closes `BL-0075` once `IP-1082` reaches `VERIFIED`.
 
 | [IP-1081](packages/IP-1081-maze-blocked-edge-indicator-content.md) | Maze-blocked edge indicator — content (FS-108 / FEAT-2100 / BL-0075) | `08-content-authoring` | **COMPLETE — 231/231 checks pass** | IP-1080 (VERIFIED, cited for completeness, not a build dependency) | **YES — explicit user G3, 2026-07-12 (BL-0092, "Yes, build both")** | **Implemented 2026-07-12.** 4 new tile bitmaps (`TL_BLOCKED_U/D/L/R`, `0x1A`-`0x1D`, per `GDS-08` §10's already-decided silhouette/palette) — a broken/dashed-bar silhouette, confirmed visually distinct from the solid-triangle arrow tiles (rendered comparison, not merely asserted) — registered via `build_tile_data()`'s existing `put()` convention. Zero new palette entries confirmed by diff (`build_rom.py` untouched). GDS-07 §4 tile-index table and `memory.md`'s quick-ref both updated (87 of 256 slots used, up from 83). Full suite unchanged at 231/231 (no new checks — nothing calls the new tiles yet, per this package's own scope). Awaits independent (fresh-session) verification, then unblocks `IP-1082`. Owed a `09-content-review` pass after `IP-1082` ships (new visible art). |
 | [IP-1082](packages/IP-1082-maze-blocked-edge-indicator-render.md) | Maze-blocked edge indicator — render (FS-108 / FEAT-2100 / BL-0075) | `08-code-implementation` | **BLOCKED** (on IP-1081 → VERIFIED) | IP-1081 (must be VERIFIED, not merely COMPLETE), IP-1080 (VERIFIED) | **YES — explicit user G3, 2026-07-12 (BL-0092, "Yes, build both")** | Planned 2026-07-12. `draw_region_arrows`'s blocked-case render branch, reusing `IP-1080`'s own `DRA_ROW`/`DRA_COL` arithmetic and the existing `ARROW_ADDR_*`/`_arrow_write` machinery — no new WRAM, no new patch-point kind. Corrects `T20.b`'s own now-stale "no arrow" assertion, adds `T20.e`. Closes `BL-0075` and FR-2330 in full once `VERIFIED`. |
+
+## Win-condition redesign tranche (`FS-102` revision, `BL-0093`, planned 2026-07-12)
+
+The project owner's own resolved decision ([ADR-0015](../architecture/adr/ADR-0015-dead-end-anchored-treasure-and-win-condition.md)):
+`KeyItem` placement becomes selective (`WORLD_SCALE` total, dead-end-prioritized, random-fill
+fallback), win condition becomes `KeyItemCount == WORLD_SCALE`. Closes `BL-0093` once `VERIFIED`.
+
+| [IP-1021](packages/IP-1021-win-condition-redesign.md) | Win-condition redesign — dead-end-anchored treasure placement (FS-102 / FEAT-9000 / BL-0093) | `08-code-implementation` | **NOT STARTED** | IP-1020 (VERIFIED), IP-1070 (VERIFIED) | **NOT authorized — no G3 on record** | Planned 2026-07-12. `generate_world`'s new placement pass (inserted between `maze_carve_done` and the braid pass, reusing `IP-1070`'s own `GW_MAZE_STATE` for leaf classification), `KEYITEM_FLAGS`'s value domain widened to a tri-state (no new WRAM/SRAM — confirmed both real consumers, `setup_zone_collects`/`check_collisions`, already handle any nonzero value correctly), `check_complete`'s comparison operand corrected to a runtime `WORLD_SCALE` read, `worldgen.py` oracle mirror. Supersedes `FR-9130`/`FR-3300` once `VERIFIED`. |
 
 ## Post-ship remediation tranche (playtesting bugs, planned 2026-07-11)
 
@@ -507,3 +516,13 @@ first-in-critical-path package.)*
   Closes `BL-0075` and `FR-2330` in full once `VERIFIED`. `BLOCKED` on `IP-1081` reaching
   `VERIFIED` (not merely `COMPLETE`).
 - **Authorization state: both authorized** (user G3, `BL-0092`, "Yes, build both," 2026-07-12).
+
+### Win-condition redesign tranche (`FS-102` revision, planned 2026-07-12)
+
+- **No critical path — a single package, `IP-1021`, no split** (placement and the victory-check
+  correction are one coherent Definition of Done, per the TWBS's own split rationale).
+- **`IP-1021`**: `generate_world`'s new placement pass + `check_complete`'s corrected comparison
+  operand + `worldgen.py` oracle mirror. Depends on `IP-1020`/`IP-1070` (both `VERIFIED`) — no
+  blocking dependency. Independent of `IP-1081`/`IP-1082` (disjoint files). `NOT STARTED`.
+- **Authorization state: not authorized** — no G3 on record. Forward-design package, not
+  bootstrap-carve-out eligible.
