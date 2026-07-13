@@ -1,4 +1,4 @@
-BunnyQuest ROM Tests  PASS=233/233  FAIL=0
+BunnyQuest ROM Tests  PASS=234/234  FAIL=0
 ==================================================
 [PASS] T1.1 ROM size = 32768  (32768)
 [PASS] T1.2 Entry = NOP; JP
@@ -47,7 +47,7 @@ BunnyQuest ROM Tests  PASS=233/233  FAIL=0
 [PASS] T5.6 Zone: col 2 = carrot-count digit  (0x20)
 [PASS] T5.7 Zone: col 7 = star icon (0x14)  (0x14)
 [PASS] T5.8 Zone: score digits at cols 8-10  (['20', '20', '20'])
-[PASS] T5.9 Region 0 (seed=1,scale=3 -> biome-id 2) uses its own tile family  (299 tiles in 0x78-0x7D)
+[PASS] T5.9 Region 0 (seed=1,scale=3 -> biome-id 2) uses its own tile family  (298 tiles in 0x78-0x7D)
 [PASS] T5.10 SAVE screen reached (GS=3)  (GS=3)
 [PASS] T5.11 SAVE screen SELECT-option label present (rows 12-13)  (font_tiles=20)
 [PASS] T5.12 SELECT-option label doesn't collide with A/B rows (9/11) or bottom border (14)  (existing rows unaffected)
@@ -230,6 +230,7 @@ BunnyQuest ROM Tests  PASS=233/233  FAIL=0
 [PASS] T19.f Static audit: no LDH (hardware register, incl. DIV) read in the maze-generation pass (NFR-2200)  (source-scanned)
 [PASS] T19.g WRAM headroom: GW_MAZE_STATE..GW_MAZE_DRAW_CTR extent stays inside bank-0 (NFR-4200)  (GW_MAZE_STATE=0xc3a0 extent_end=0xc3f4)
 [PASS] T20.a Open classification: arrow renders wherever REGION_GRAPH shows a live neighbor, every corpus entry (AC-1)  (bad=[])
-[PASS] T20.b Blocked classification: grid-adjacent-but-maze-pruned edges re-derive the correct (row,col) and draw no arrow, every corpus entry (AC-2)  (n=120 bad=[])
-[PASS] T20.c Absent classification: true grid-boundary edges re-derive the correct (row,col) and draw no arrow, every corpus entry (AC-3)  (n=68 bad=[])
+[PASS] T20.b Blocked classification: grid-adjacent-but-maze-pruned edges re-derive the correct (row,col) and draw the blocked-tile indicator, every corpus entry (AC-2/AC-4)  (n=120 bad=[])
+[PASS] T20.c Absent classification: true grid-boundary edges re-derive the correct (row,col) and draw no arrow/blocked tile, every corpus entry (AC-3)  (n=68 bad=[])
+[PASS] T20.e Open-case non-regression: live-neighbor edges still render the existing open-arrow tile, unaffected by the new blocked-branch addition, every corpus entry (AC-5)  (bad=[])
 [PASS] T20.d Static audit: row/col re-derivation precedes the neighbor-byte loads it would otherwise clobber (AC-2/AC-3 precondition)  (source-scanned)

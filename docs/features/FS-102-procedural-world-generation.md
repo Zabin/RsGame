@@ -21,8 +21,9 @@
 > `FR-9161`'s `KeyItemCount == WorldScale`; see the correction below and Open Question 4).
 >
 > **Implemented 2026-07-13 as
-> [IP-1021](../implementation/packages/IP-1021-win-condition-redesign.md)** (`COMPLETE`;
-> `VERIFIED` pending, same-session-independence rule) — resolves this document's own **Open
+> [IP-1021](../implementation/packages/IP-1021-win-condition-redesign.md)**, **`VERIFIED`
+> 2026-07-13 ([VR-1021](../implementation/verification/VR-1021-win-condition-redesign.md))** —
+> resolves this document's own **Open
 > Question 5** (the per-region encoding: `KEYITEM_FLAGS`'s existing value domain widened in place
 > to a tri-state, 0=present/uncollected, 1=present/collected, 2=absent, rather than a new bitmap).
 > `test_rom.py` T12.e (revised)/T12.n; `worldgen.py` oracle-mirrored, zero mismatches across the

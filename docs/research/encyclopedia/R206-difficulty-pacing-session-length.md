@@ -2,10 +2,12 @@
 
 - **Document ID:** R206 · **Version:** 1.0 · **Status:** ✅
 - **Dependencies:** R201 (goal density directly drives pacing)
-- **Referenced By:** R215 (pacing bounds on how large a win-condition threshold can grow, `BL-0081`)
+- **Referenced By:** R215 (pacing bounds on how large a win-condition threshold can grow, `BL-0081`),
+  R216 (2026-07-13 — extends this topic's short-loop preference to a mode with no generation-
+  defined end, `BL-0082`/`BL-0094`)
 - **Produces:** grounds zone sizing/collectible density decisions in `tilemaps.py`
 - **Feature Mapping:** *(none yet)*
-- **Related Topics:** R201, R215
+- **Related Topics:** R201, R215, R216
 
 ## Purpose
 

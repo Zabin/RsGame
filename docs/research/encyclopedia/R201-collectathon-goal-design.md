@@ -3,7 +3,9 @@
 - **Document ID:** R201 · **Version:** 1.0 · **Status:** ✅
 - **Dependencies:** none
 - **Referenced By:** R206 (pacing depends on goal density), R211 (case studies share this structure),
-  R215 (re-examines this topic's own goal structure under `WORLD_SCALE` scaling, `BL-0081`)
+  R215 (re-examines this topic's own goal structure under `WORLD_SCALE` scaling, `BL-0081`), R216
+  (2026-07-13 — the infinite-mode case departs from this topic's "fully enumerable, individually
+  meaningful" scarce-tier property in favor of density-tuned score-chasing, `BL-0082`/`BL-0094`)
 - **Produces:** grounds `tilemaps.py`'s `ZONE_COLLECTS` structure and `asm_game.py`'s victory logic
 - **Feature Mapping:** *(none yet)*
 - **Related Topics:** R206, R211, R215

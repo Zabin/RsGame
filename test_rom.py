@@ -1148,6 +1148,7 @@ ARROW_POS = {'up': arrow_addr(15, 1), 'down': arrow_addr(15, 16),
              # (BL-0084): right arrow moved from column 32-2=30 (off the
              # true 20-column visible window, never rendered) to 20-2=18.
 ARROW_TILE = {'up': 0x18, 'down': 0x19, 'left': 0x17, 'right': 0x16}  # TL_ARROW_U/D/L/R
+BLOCKED_TILE = {'up': 0x1A, 'down': 0x1B, 'left': 0x1C, 'right': 0x1D}  # TL_BLOCKED_U/D/L/R (IP-1081)
 
 pb = fresh_boot(180)
 advance_to_playing(pb)
@@ -2042,15 +2043,13 @@ check("T19.g WRAM headroom: GW_MAZE_STATE..GW_MAZE_DRAW_CTR extent stays inside 
       f"GW_MAZE_STATE={hex(GW_MAZE_STATE_ADDR)} extent_end={hex(GW_MAZE_DRAW_CTR_ADDR)}")
 
 # ══════════════════════════════════════════════════════
-# T20 — Maze-Aware Transition-Edge Classification (IP-1080) — render-time
-#       open/blocked/absent classification inside draw_region_arrows,
-#       distinguishing a maze-pruned edge from a true grid boundary once
-#       REGION_GRAPH's own neighbor byte alone can no longer tell them
-#       apart (FR-2330, FS-108). AC-4 (visual rendering of the blocked
-#       state) is explicitly NOT exercised here -- no suite section covers
-#       it, per FS-108 §16/§15 item 4; that gap stays open pending
-#       BL-0068's own future rendering-half package, not silently treated
-#       as covered by the checks below.
+# T20 — Maze-Aware Transition-Edge Classification (IP-1080/IP-1082) —
+#       render-time open/blocked/absent classification inside
+#       draw_region_arrows, distinguishing a maze-pruned edge from a true
+#       grid boundary once REGION_GRAPH's own neighbor byte alone can no
+#       longer tell them apart (FR-2330, FS-108). AC-4 (visual rendering of
+#       the blocked state, IP-1082) and AC-5 (open-case non-regression) are
+#       both exercised here as of IP-1082.
 # ══════════════════════════════════════════════════════
 print("\n=== T20: Maze-Aware Transition-Edge Classification ===")
 
@@ -2100,38 +2099,44 @@ for seed, scale in T20_CORPUS:
         for d, direction in enumerate(('up', 'down', 'left', 'right')):
             nb = r['neighbors'][d]
             full_cand = _t19_full_lattice_neighbor(i, d, scale)
-            arrow_present = pb.memory[ARROW_POS[direction]] == ARROW_TILE[direction]
+            tile_at_pos = pb.memory[ARROW_POS[direction]]
+            arrow_present = tile_at_pos == ARROW_TILE[direction]
+            blocked_present = tile_at_pos == BLOCKED_TILE[direction]
             if nb is not None:
-                # open (AC-1): REGION_GRAPH shows a live neighbor -- arrow
-                # must render, unchanged from today's shipped behavior.
+                # open (AC-1/AC-5): REGION_GRAPH shows a live neighbor --
+                # arrow must render, unchanged from today's shipped behavior.
                 if not arrow_present:
                     t20_open_bad.append((seed, scale, i, direction))
             elif full_cand is not None:
-                # blocked (AC-2): grid-adjacent but maze-pruned. No-op
-                # render-wise (rendering half is BL-0068's own future
-                # scope) -- but the re-derivation arithmetic that DRIVES
-                # the classification must be correct and no arrow drawn.
+                # blocked (AC-2/AC-4, IP-1082): grid-adjacent but maze-pruned
+                # -- the re-derivation arithmetic that DRIVES the
+                # classification must be correct AND the new blocked-tile
+                # indicator (IP-1081's TL_BLOCKED_<dir>) must render, not the
+                # open-edge arrow and not a blank tile.
                 t20_blocked_n += 1
-                if not row_col_ok or arrow_present:
+                if not row_col_ok or not blocked_present:
                     t20_blocked_bad.append((seed, scale, i, direction,
-                                             (got_row, got_col), (row, col), arrow_present))
+                                             (got_row, got_col), (row, col), tile_at_pos))
             else:
                 # absent (AC-3): true grid boundary -- identical to
                 # today's shipped no-op, no arrow drawn.
                 t20_absent_n += 1
-                if not row_col_ok or arrow_present:
+                if not row_col_ok or arrow_present or blocked_present:
                     t20_absent_bad.append((seed, scale, i, direction,
-                                            (got_row, got_col), (row, col), arrow_present))
+                                            (got_row, got_col), (row, col), tile_at_pos))
     pb.stop()
 
 check("T20.a Open classification: arrow renders wherever REGION_GRAPH shows a live neighbor, every corpus entry (AC-1)",
       len(t20_open_bad) == 0, f"bad={t20_open_bad[:3]}")
-check("T20.b Blocked classification: grid-adjacent-but-maze-pruned edges re-derive the correct (row,col) and draw no arrow, every corpus entry (AC-2)",
+check("T20.b Blocked classification: grid-adjacent-but-maze-pruned edges re-derive the correct (row,col) and draw the blocked-tile indicator, every corpus entry (AC-2/AC-4)",
       t20_blocked_n > 0 and len(t20_blocked_bad) == 0,
       f"n={t20_blocked_n} bad={t20_blocked_bad[:3]}")
-check("T20.c Absent classification: true grid-boundary edges re-derive the correct (row,col) and draw no arrow, every corpus entry (AC-3)",
+check("T20.c Absent classification: true grid-boundary edges re-derive the correct (row,col) and draw no arrow/blocked tile, every corpus entry (AC-3)",
       t20_absent_n > 0 and len(t20_absent_bad) == 0,
       f"n={t20_absent_n} bad={t20_absent_bad[:3]}")
+check("T20.e Open-case non-regression: live-neighbor edges still render the existing open-arrow tile, unaffected by the new blocked-branch addition, every corpus entry (AC-5)",
+      len(t20_open_bad) == 0,
+      f"bad={t20_open_bad[:3]}")
 
 # T20.d -- static audit (Inspection): the row/col re-derivation sits before
 # the four REGION_GRAPH neighbor bytes are loaded into B-E (must, since
