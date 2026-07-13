@@ -10,7 +10,8 @@
   necessarily full, grid-cell adjacency" variant this topic already named but the shipped
   implementation didn't exercise — with a hardware-cost comparison of maze/spanning-tree
   algorithms, per `BL-0064`), R215 (leans on this topic's spanning-tree reachability guarantee for
-  its win-condition candidates, `BL-0081`)
+  its win-condition candidates, `BL-0081`), R114 (2026-07-13 — evaluates whether this topic's
+  graph-on-a-grid family survives a streaming/local-generation model, per `BL-0082`)
 - **Produces:** a costed, evidence-grounded recommendation for the world-generation algorithm
   approach `03-architecture-design-synthesis` decides in its Phase 3 ADR (per MSTR-001 C10/D3 —
   the owner explicitly delegates the algorithm choice to this research, not to a fiat pick)

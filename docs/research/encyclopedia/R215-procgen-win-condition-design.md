@@ -5,7 +5,11 @@
   scaling), R213 (the spanning-tree-plus-braid generator whose reachability guarantee this
   topic's recommendations lean on), R206 (session-length/pacing constraints a win condition must
   respect)
-- **Referenced By:** none yet
+- **Referenced By:** R114 (2026-07-13 — finds `IP-1021`'s shipped dead-end-anchored candidate's own
+  global full-graph leaf sweep is not streaming-compatible as written, and that the cheapest
+  streaming-compatible maze algorithm found (Binary Tree) has a structural dead-end distribution
+  bias directly relevant to `BL-0094`'s already-deferred infinite-mode design, which carries the
+  same dead-end-only placement rule forward)
 - **Produces:** the citation-grounded evidence and empirical data behind the project owner's
   resolved decision (below) — the direct input to the `03`/`04`/`06` passes that turn it into an
   ADR/FR/FS; unblocked `BL-0050` (the MAP/status-screen redesign)

@@ -11,7 +11,10 @@
   (2026-07-11 — found the shipped `gw_prng_step` deviates from this topic's own cited precedent
   and degenerates under repeated back-to-back draws; this topic's own PRNG characterization was
   accurate for the biome-loop's single-draw-per-region usage but incomplete against that usage
-  pattern, never previously exercised or tested)**
+  pattern, never previously exercised or tested)**, **R114 (2026-07-13 — reuses this topic's
+  shift/XOR-only xorshift construction and `SVBK` banked-WRAM path as the concrete SM83-compatible
+  building blocks for per-region positional PRNG reseeding, grounding `BL-0082`'s streaming-
+  generation feasibility question)**
 - **Produces:** grounds `asm_game.py`'s future WRAM working-set for a generated world and its
   future PRNG routine; grounds strategic assumption **A9** (seed is the sole determinism input)
 - **Feature Mapping:** *(none yet)*

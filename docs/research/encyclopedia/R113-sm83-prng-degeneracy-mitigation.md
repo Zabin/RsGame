@@ -8,7 +8,9 @@
 - **Referenced By:** [ADR-0013](../../architecture/adr/ADR-0013-maze-pass-prng-decorrelation.md)
   (the maze-pass-scoped fix, `BL-0070`), [ADR-0014](../../architecture/adr/ADR-0014-gw-prng-step-repair-needs-user-authorization.md)
   (confirms the `7,9,8` shift-triplet fix this topic named as fully correcting the degeneracy —
-  0/2000 seeds degenerate vs. the shipped routine's 100/100% — for `BL-0074`, routed `NEEDS-USER`)
+  0/2000 seeds degenerate vs. the shipped routine's 100/100% — for `BL-0074`, routed `NEEDS-USER`),
+  **R114 (2026-07-13 — flags that any new per-region PRNG-reseeding scheme for streaming generation
+  must not reintroduce a similar degeneracy defect)**
 - **Produces:** grounds the fix `03-architecture-design-synthesis` must choose before `IP-1070`
   (Maze-Shaped Region Adjacency) can re-attempt implementation
 - **Feature Mapping:** *(none yet — `FEAT-9100`/`IP-1070` consume this topic's findings once a

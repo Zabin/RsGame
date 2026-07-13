@@ -8,8 +8,10 @@
   recommended graph generation "on a 2D grid of cells where each cell can be connected from any of
   the four main directions," a framing that already permits selective, not-necessarily-full,
   adjacency; this topic grounds the hardware cost of actually exercising that selectivity)
-- **Referenced By:** *(none yet — grounds `BL-0064`'s pending `03-architecture-design-synthesis`
-  ADR-0009-amending decision)*
+- **Referenced By:** **R114 (2026-07-13 — extends this topic's hardware-cost framing from "generate
+  the spanning tree once, globally, at new-game creation" to "generate it lazily, locally, per
+  region," grounding `BL-0082`'s streaming-generation feasibility question; also notes this topic's
+  own WRAM-headroom figure has since drifted stale post-`IP-1070`/`IP-1021`)**
 - **Produces:** a costed, evidence-grounded comparison of three spanning-tree-maze algorithm
   candidates (randomized Kruskal, randomized Prim, randomized depth-first search / recursive
   backtracker) plus a braid pass, for `03-architecture-design-synthesis` to decide between when it
