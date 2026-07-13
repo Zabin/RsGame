@@ -90,9 +90,15 @@
 ## FEAT-2100 — Maze-Aware Transition-Edge Signaling (new — not yet implemented)
 
 > **Forward reference (metadata only):** specified by
-> [FS-108](../features/FS-108-maze-aware-transition-edge-signaling.md) (2026-07-11) — **logic half
-> only**; the rendering half remains blocked on an unauthored `GDS-08` delta (FS-108 Open Question
-> 1, routed to `03-architecture-design-synthesis`).
+> [FS-108](../features/FS-108-maze-aware-transition-edge-signaling.md) (2026-07-11, revised
+> 2026-07-12) — **fully specified.** Logic half implemented and `VERIFIED`
+> ([IP-1080](../implementation/packages/IP-1080-maze-aware-edge-classification.md)/
+> [VR-1080](../implementation/verification/VR-1080-maze-aware-edge-classification.md)); rendering
+> half specified (FS-108 §6 Workflow C, §15 AC-4/5) and planned 2026-07-12 as
+> [IP-1081](../implementation/packages/IP-1081-maze-blocked-edge-indicator-content.md)/
+> [IP-1082](../implementation/packages/IP-1082-maze-blocked-edge-indicator-render.md) — both
+> authorized 2026-07-12 (`BL-0092`); `IP-1081` **`COMPLETE`**, `IP-1082` `BLOCKED` on it, tracked
+> as `BL-0075`.
 
 - **Feature ID:** FEAT-2100
 - **Title:** Maze-Aware Transition-Edge Signaling
@@ -361,9 +367,14 @@
 ## FEAT-9000 — Procedural World Generation & Item-Agnostic Collection (new — not yet implemented)
 
 > **Forward reference (metadata only):** specified by
-> [FS-102](../features/FS-102-procedural-world-generation.md) (2026-07-10). 3 Open Questions
-> recorded there (grammar-table contents, algorithm implementation detail, ROM-pointer need),
-> all routed to `07-implementation-planning`.
+> [FS-102](../features/FS-102-procedural-world-generation.md) (2026-07-10; revised 2026-07-12,
+> `FR-9160`/`ADR-0015`). 3 original Open Questions (grammar-table contents, algorithm
+> implementation detail, ROM-pointer need), all routed to `07-implementation-planning`, resolved
+> at `IP-1020`. **2 new Open Questions from the 2026-07-12 revision:** OQ4 (this entry's own
+> Included Requirements cites `FR-9130`, not `FR-9160`, its direct successor — routed to
+> `05-feature-decomposition`, this stage's own owner) and **OQ5 resolved same day** — planned as
+> [IP-1021](../implementation/packages/IP-1021-win-condition-redesign.md) (`NOT STARTED`, not
+> authorized), which decides the per-region tri-state encoding against the real code.
 
 - **Feature ID:** FEAT-9000
 - **Title:** Procedural World Generation & Item-Agnostic Collection

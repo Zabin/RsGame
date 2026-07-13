@@ -301,16 +301,24 @@ shoot(pb, "T4_map")
 pb.button('b'); [pb.tick() for _ in range(40)]
 check("T4.7 B in MAP -> PLAYING (GS=2)",   pb.memory[GAMESTATE] == 2)
 
-# Force victory: the game's check_complete reads CARROTS_COUNT == 9.
+# Force victory: check_complete now reads CARROTS_COUNT == WORLD_SCALE
+# (IP-1021, FR-9161/ADR-0015 — was a hardcoded 9, replaced by a runtime
+# WORLD_SCALE read). Read whatever WORLD_SCALE this fixture's own
+# SEED/SCALE ENTRY "confirm defaults" step actually set (the shipped
+# default is 3, per SSE_SCALE's own default — read live rather than
+# hardcoding, so this test stays correct if that default ever changes)
+# and force CARROTS_COUNT/KEYITEM_FLAGS to match it, not a literal 9.
 # Per R305's dual-assertion rule, set the flags AND the count so the forced
 # state is internally consistent with what save/zone logic reads. IP-1020
 # generalized the live flags array to KEYITEM_FLAGS (CARROT_FLAGS is orphaned
 # — check_collisions/setup_zone_collects no longer touch it; only the save
 # routines still mirror it, pending IP-1050).
-for i in range(9): pb.memory[KEYITEM_FLAGS + i] = 1
-pb.memory[CARROTS_COUNT] = 9
+t4_scale = pb.memory[WORLD_SCALE]
+for i in range(t4_scale): pb.memory[KEYITEM_FLAGS + i] = 1
+pb.memory[CARROTS_COUNT] = t4_scale
 [pb.tick() for _ in range(40)]
-check("T4.8 CARROTS=9 -> VICTORY (GS=5)",  pb.memory[GAMESTATE] == 5, f"GS={pb.memory[GAMESTATE]}")
+check("T4.8 CARROTS=WORLD_SCALE -> VICTORY (GS=5)",  pb.memory[GAMESTATE] == 5,
+      f"GS={pb.memory[GAMESTATE]} scale={t4_scale}")
 shoot(pb, "T4_victory")
 
 pb.button('a'); [pb.tick() for _ in range(60)]
@@ -318,7 +326,7 @@ check("T4.9 A in VICTORY -> MAIN MENU (GS=6)", pb.memory[GAMESTATE] == 6,
       f"GS={pb.memory[GAMESTATE]}")
 check("T4.10 Victory exit clears progress",
       pb.memory[CARROTS_COUNT] == 0 and pb.memory[SCORE] == 0
-      and all(pb.memory[KEYITEM_FLAGS + i] == 0 for i in range(9)),
+      and all(pb.memory[KEYITEM_FLAGS + i] == 0 for i in range(t4_scale)),
       f"carrots={pb.memory[CARROTS_COUNT]} score={pb.memory[SCORE]}")
 
 pb.stop()
@@ -692,11 +700,15 @@ check("T8.13 Map heart z1 = EMPTY (0x12)", h_z1 == TL_HEART_EMPTY, f"0x{h_z1:02X
 shoot(pb, "T8_map_hearts")
 pb.button('b'); [pb.tick() for _ in range(40)]
 
-# Victory at 9 carrots (dual-assert per R305: flags + count)
-for i in range(9): pb.memory[CARROT_FLAGS + i] = 1
-pb.memory[CARROTS_COUNT] = 9
+# Victory at WORLD_SCALE carrots (IP-1021, FR-9161/ADR-0015 — was a
+# hardcoded 9; dual-assert per R305: flags + count, matching whatever
+# WORLD_SCALE this fixture's own default new-game flow actually set)
+t8_scale = pb.memory[WORLD_SCALE]
+for i in range(t8_scale): pb.memory[CARROT_FLAGS + i] = 1
+pb.memory[CARROTS_COUNT] = t8_scale
 [pb.tick() for _ in range(40)]
-check("T8.14 CARROTS_COUNT=9 -> VICTORY", pb.memory[GAMESTATE] == 5, f"GS={pb.memory[GAMESTATE]}")
+check("T8.14 CARROTS_COUNT=WORLD_SCALE -> VICTORY", pb.memory[GAMESTATE] == 5,
+      f"GS={pb.memory[GAMESTATE]} scale={t8_scale}")
 
 pb.stop()
 
@@ -931,6 +943,8 @@ oracle_mismatches = []
 bad_count = []
 unreachable = []
 bad_grammar = []
+treasure_mismatches = []
+bad_treasure_count = []
 for seed, scale in T12_CORPUS:
     if not invoke_generate_world(pb, seed, scale):
         oracle_mismatches.append((seed, scale, "did not complete"))
@@ -954,16 +968,31 @@ for seed, scale in T12_CORPUS:
         for nb in r['neighbors']:
             if nb is not None and abs(r['biome_id'] - actual[nb]['biome_id']) > 1:
                 bad_grammar.append((seed, scale, i, nb))
+    # IP-1021 (FR-9160/ADR-0015): KEYITEM_FLAGS placement-pass output —
+    # dead-end-priority with random-fill fallback, exactly `scale` present.
+    n = scale * scale
+    actual_ki = [pb.memory[KEYITEM_FLAGS + i] for i in range(n)]
+    _, expected_ki = worldgen.generate(seed, scale, _with_treasure=True)
+    if actual_ki != expected_ki:
+        bad_idx = [i for i in range(n) if actual_ki[i] != expected_ki[i]][:3]
+        treasure_mismatches.append((seed, scale, f"regions {bad_idx}"))
+    present = sum(1 for v in actual_ki if v == 0)
+    if present != scale:
+        bad_treasure_count.append((seed, scale, present))
 pb.stop()
 
 check("T12.b Oracle parity: worldgen.py matches SM83 output, every corpus entry (AC-2 lockstep)",
       len(oracle_mismatches) == 0, f"mismatches={oracle_mismatches[:3]}")
-check("T12.e One KeyItem per region: exactly scale^2 regions, every corpus entry (AC-5)",
+check("T12.m Region count: exactly scale^2 regions, every corpus entry",
       len(bad_count) == 0, f"bad={bad_count[:3]}")
 check("T12.c Reachability: every region reachable from region 0, every corpus entry (AC-3)",
       len(unreachable) == 0, f"unreachable={unreachable[:3]}")
 check("T12.d Grammar-validity: every generated edge legal (|biome_a-biome_b|<=1), every corpus entry (AC-4)",
       len(bad_grammar) == 0, f"bad_edges={bad_grammar[:3]}")
+check("T12.e KeyItem placement: dead-end-priority + fallback, oracle parity, every corpus entry (FR-9160/ADR-0015)",
+      len(treasure_mismatches) == 0, f"mismatches={treasure_mismatches[:3]}")
+check("T12.n Exactly WORLD_SCALE KeyItems placed, every corpus entry (FR-9160/FR-9161)",
+      len(bad_treasure_count) == 0, f"bad={bad_treasure_count[:3]}")
 
 # T12.a — determinism: two separate PyBoy instances, same (seed, scale)
 det_mismatches = []

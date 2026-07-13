@@ -1,4 +1,4 @@
-BunnyQuest ROM Tests  PASS=231/231  FAIL=0
+BunnyQuest ROM Tests  PASS=233/233  FAIL=0
 ==================================================
 [PASS] T1.1 ROM size = 32768  (32768)
 [PASS] T1.2 Entry = NOP; JP
@@ -35,7 +35,7 @@ BunnyQuest ROM Tests  PASS=231/231  FAIL=0
 [PASS] T4.5 B in SAVE -> PLAYING (GS=2)
 [PASS] T4.6 SELECT -> MAP (GS=4)
 [PASS] T4.7 B in MAP -> PLAYING (GS=2)
-[PASS] T4.8 CARROTS=9 -> VICTORY (GS=5)  (GS=5)
+[PASS] T4.8 CARROTS=WORLD_SCALE -> VICTORY (GS=5)  (GS=5 scale=3)
 [PASS] T4.9 A in VICTORY -> MAIN MENU (GS=6)  (GS=6)
 [PASS] T4.10 Victory exit clears progress  (carrots=0 score=0)
 [PASS] T5.1 Main menu: border row 2 (0x15)  (row2[2]=0x15)
@@ -97,7 +97,7 @@ BunnyQuest ROM Tests  PASS=231/231  FAIL=0
 [PASS] T8.11 SELECT -> MAP
 [PASS] T8.12 Map heart z0 = FULL (0x11)  (0x11)
 [PASS] T8.13 Map heart z1 = EMPTY (0x12)  (0x12)
-[PASS] T8.14 CARROTS_COUNT=9 -> VICTORY  (GS=5)
+[PASS] T8.14 CARROTS_COUNT=WORLD_SCALE -> VICTORY  (GS=5 scale=3)
 [PASS] T10.1 No save -> MAIN MENU (GS=6)  (GS=6)
 [PASS] T10.2 PLAYING after new-game flow
 [PASS] T10.3 START -> SAVE menu
@@ -132,9 +132,11 @@ BunnyQuest ROM Tests  PASS=231/231  FAIL=0
 [PASS] T11.d2 SCOREITEM_FLAGS all zero (fresh new-game default)  (flags=[0, 0, 0, 0, 0, 0, 0, 0, 0])
 [PASS] T11.d3 Every region-0 collectible loads active (fresh new-game default)  (count=7 actives=[1, 1, 1, 1, 1, 1, 1])
 [PASS] T12.b Oracle parity: worldgen.py matches SM83 output, every corpus entry (AC-2 lockstep)  (mismatches=[])
-[PASS] T12.e One KeyItem per region: exactly scale^2 regions, every corpus entry (AC-5)  (bad=[])
+[PASS] T12.m Region count: exactly scale^2 regions, every corpus entry  (bad=[])
 [PASS] T12.c Reachability: every region reachable from region 0, every corpus entry (AC-3)  (unreachable=[])
 [PASS] T12.d Grammar-validity: every generated edge legal (|biome_a-biome_b|<=1), every corpus entry (AC-4)  (bad_edges=[])
+[PASS] T12.e KeyItem placement: dead-end-priority + fallback, oracle parity, every corpus entry (FR-9160/ADR-0015)  (mismatches=[])
+[PASS] T12.n Exactly WORLD_SCALE KeyItems placed, every corpus entry (FR-9160/FR-9161)  (bad=[])
 [PASS] T12.a Determinism: same (seed,scale) across two fresh boots -> byte-identical REGION_GRAPH (AC-2)  (mismatches=[])
 [PASS] T12.f seed=0 normalizes to a nonzero PRNG state, direct WRAM inspection (AC-7 precondition)  (state=(0,1))
 [PASS] T12.h Static audit: no LDH (hardware register, incl. DIV) read in generate_world/gw_prng_step (NFR-2200)  (source-scanned)
@@ -165,13 +167,13 @@ BunnyQuest ROM Tests  PASS=231/231  FAIL=0
 [PASS] T14.d2c Restored state matches exactly what was present at exit (AC-6)  (x=90 y=100 score=4 carrots=1)
 [PASS] T14.e1 Static audit: SEED/WORLD_SCALE written only inside sse_compose_seed/try_load_save (FR-9110)  (seed_writes=0 scale_writes=0)
 [PASS] T14.e2 Runtime sweep (PLAYING/SAVE/MAP, every input branch) leaves SEED/WORLD_SCALE unchanged  (seed 0->0 scale 3->3)
-[PASS] T15.a0 KeyItem collected (KEYITEM_FLAGS[0] set)  (flags=[1, 0, 0, 0, 0, 0, 0, 0, 0])
+[PASS] T15.a0 KeyItem collected (KEYITEM_FLAGS[0] set)  (flags=[1, 0, 2, 2, 0, 2, 2, 2, 2])
 [PASS] T15.a1 Reload -> MAIN MENU, CONTINUE present (version-2 save)
 [PASS] T15.a2 Continue -> PLAYING  (GS=2)
 [PASS] T15.a3 SEED round-trips exactly  (54321->54321)
 [PASS] T15.a4 WORLD_SCALE round-trips exactly  (3->3)
 [PASS] T15.a5 Regenerated region graph matches pre-save graph (AC-1, ADR-0009 determinism)
-[PASS] T15.a6 KEYITEM_FLAGS round-trips exactly  ([1, 0, 0, 0, 0, 0, 0, 0, 0]->[1, 0, 0, 0, 0, 0, 0, 0, 0])
+[PASS] T15.a6 KEYITEM_FLAGS round-trips exactly  ([1, 0, 2, 2, 0, 2, 2, 2, 2]->[1, 0, 2, 2, 0, 2, 2, 2, 2])
 [PASS] T15.b1 Boot with IP-1010-vintage (version=1) save -> MAIN MENU  (GS=6)
 [PASS] T15.b2 Version-1 save -> CONTINUE absent (AC-2, ADR-0010)
 [PASS] T15.b3 New game still reaches PLAYING cleanly despite the old version-1 save  (GS=2)

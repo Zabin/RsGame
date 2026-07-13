@@ -4,13 +4,18 @@
 > increment + `BL-0036` correction); Baseline + Release 1 assessed **GO** 2026-07-10
 > ([release-assessment-bootstrap-tranche.md](../reviews/release-assessment-bootstrap-tranche.md));
 > delta 2026-07-11 (`ADR-0012` maze-adjacency remediation, `FEAT-9100`/`FEAT-2100` join Release 2
-> as an addendum).** Owned by `05-feature-decomposition`. Assigns every Feature
+> as an addendum); **Release 2 assessed GO 2026-07-12, user-confirmed**
+> ([release-assessment-release-2-bundled.md](../reviews/release-assessment-release-2-bundled.md))
+> — **with `FEAT-2100` explicitly carried forward as partially delivered** (logic half shipped
+> and `VERIFIED`; rendering half not yet built, tracked as `BL-0075`).** Owned by
+> `05-feature-decomposition`. Assigns every Feature
 > in [FP-03](03-feature-catalog.md) (now fifteen) to exactly one bucket, using
 > [FP-04](04-feature-dependency-graph.md)'s dependency analysis. **Bootstrap framing: seven of
 > eight bootstrap-baseline Features are already shipped** (FEAT-5100 shipped and verified
 > 2026-07-07, correcting this document's prior "no shipped implementation" framing — `BL-0036`).
-> **Release 2** holds the procgen-world increment's five original Features (all now shipped) plus
-> two 2026-07-11 post-ship remediation Features.
+> **Release 2** holds the procgen-world increment's five original Features (all shipped and
+> `VERIFIED`) plus two 2026-07-11 post-ship remediation Features (`FEAT-9100` shipped/`VERIFIED`;
+> `FEAT-2100` partially shipped — see above).
 
 ## Bucket: Baseline (as-built)
 
@@ -41,13 +46,19 @@ exists, not a plan for what to build.
 Release 1 is closed — its sole Feature shipped and was independently verified the same day it was
 scheduled.
 
-## Bucket: Release 2 — Procedural World & Visual Narrative
+## Bucket: Release 2 — Procedural World & Visual Narrative (✅ shipped; **GO 2026-07-12**)
+
+> **Release-readiness: GO (2026-07-12, user-confirmed)** — see
+> [release-assessment-release-2-bundled.md](../reviews/release-assessment-release-2-bundled.md),
+> assessed together with the addendum below plus 15 non-Feature remediation packages (post-ship
+> navigation/menu fixes, movement/pickup/UI fixes, `IP-9110`/`9120`/`9130`/`9140`) per the user's
+> own bundled-scope selection. **One named exception, not silently absorbed into this GO:**
+> `FEAT-2100` (addendum, below) shipped only its logic half.
 
 The aesthetics/visual-story-narrative/procgen-world-map increment's five new Features, per its
-2026-07-09 RQ-01…04 requirements delta. **All five have since shipped** (`IP-1020`/`1030`/`1031`/
-`1040`/`1050`, four `VERIFIED`, `FEAT-6100`'s content-review `COMPLETE`) — this bucket's original
-"None yet implemented" framing is stale and corrected here in passing, though re-verifying that
-state end-to-end is out of this delta's own scope.
+2026-07-09 RQ-01…04 requirements delta. **All five have shipped and are `VERIFIED`**
+(`IP-1020`/`1030`/`1031`/`1040`/`1050`, all five `VERIFIED`, `FEAT-6100`'s content-review
+`Clean`) — this bucket's original "None yet implemented" framing is stale and corrected here.
 
 | Feature | Why here |
 |---|---|
@@ -66,12 +77,13 @@ Two new Features, from a project-owner design request following up on this relea
 navigation fix (`BL-0047`/`IP-9050`) — not part of the original 2026-07-09 requirements delta,
 but structurally an extension of this same release's `FEAT-9000` generation routine, so they join
 this bucket rather than opening a new one (the fixed bucket vocabulary this stage uses has no
-"Release 3" — see this stage's own Step 4). **Neither yet implemented.**
+"Release 3" — see this stage's own Step 4). **`FEAT-9100` fully shipped and `VERIFIED`.
+`FEAT-2100` partially shipped** — see its own row.
 
 | Feature | Why here |
 |---|---|
-| FEAT-9100 (Maze-Shaped Region Adjacency) | Depends only on the already-shipped `FEAT-9000` (extends its generation routine with a second pass) — nothing blocks starting it now. `ADR-0012`'s algorithm choice (randomized DFS/recursive backtracker) and hardware-cost grounding (`R112`) are both already resolved, unlike `FEAT-9000`'s own open-ended risk when it first entered this catalog. |
-| FEAT-2100 (Maze-Aware Transition-Edge Signaling) | Depends on `FEAT-9100` (no "maze-blocked" case to signal before the maze exists) plus already-shipped `FEAT-2000` (extends its arrow-signaling logic). **Real open blocker, not resolved by this stage:** its own tile art needs a `GDS-08` delta not yet authored — named here, not silently assumed away. |
+| FEAT-9100 (Maze-Shaped Region Adjacency) | **Shipped and `VERIFIED`** ([IP-1070](../implementation/packages/IP-1070-maze-shaped-region-adjacency.md)/[VR-1070](../implementation/verification/VR-1070-maze-shaped-region-adjacency.md)). Depended only on the already-shipped `FEAT-9000` (extends its generation routine with a second pass). `ADR-0012`'s algorithm choice (randomized DFS/recursive backtracker) and hardware-cost grounding (`R112`) both held. |
+| FEAT-2100 (Maze-Aware Transition-Edge Signaling) | **Partially shipped — logic half only.** [IP-1080](../implementation/packages/IP-1080-maze-aware-edge-classification.md)/[VR-1080](../implementation/verification/VR-1080-maze-aware-edge-classification.md) deliver correct maze-blocked-edge *classification*, `VERIFIED` 2026-07-12. The `GDS-08` tile-art delta this Feature originally named as its blocker (`BL-0068`) has since landed, but **the visual rendering itself — the actual arrow/indicator a player sees — was never implemented**; `VR-1080`'s own audit leaves AC-4 explicitly open. Player-facing symptom (a maze-pruned dead end still looks identical to a true world edge) tracked as `BL-0075`, deliberately kept open, routed `07-implementation-planning` for a follow-on package. Recorded here as a genuine, uncorrected scope gap — not an authorized descope — per the 2026-07-12 Release Assessment's Deviation #1. |
 
 `FEAT-9100` before `FEAT-2100` — the only ordering constraint in this addendum. Both are
 independent of the original five Features' own current state (already shipped) and independent

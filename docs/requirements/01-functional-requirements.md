@@ -2,7 +2,8 @@
 
 > **Status: ✅ Authored (bootstrap as-built, 2026-07-06; delta 2026-07-09 for the procgen-world
 > increment, FR-1170–9200; delta 2026-07-11 for `ADR-0012`'s maze-shaped region adjacency,
-> FR-9140/9150/2330 — see Changelog).** Owned by `04-requirements-engineering`.
+> FR-9140/9150/2330; delta 2026-07-12 for `ADR-0015`'s win-condition redesign, FR-9160/9161 — see
+> Changelog).** Owned by `04-requirements-engineering`.
 > Derives from [GDS-05](../architecture/05-functional-requirements.md)'s six capability groupings
 > (C1–C6) — this document formalizes each into numbered, testable `FR-xxxx` requirements per
 > [GDS-10](../architecture/10-requirements-traceability-matrix.md) §3's stated contract: *cite
@@ -62,6 +63,19 @@
   **FR-9100** (cross-references `FR-9140`), **FR-9120** (reachability now a structural spanning-
   tree guarantee, `ADR-0012`), and **FR-4310** (confirmed: still holds unchanged, since biome
   generation is grid-wide and maze-connectivity-independent per `ADR-0012` point 1).
+- **2026-07-12 — Delta for `ADR-0015`'s win-condition redesign** (`BL-0093`, project-owner direct
+  decision resolving `BL-0081`/`R215`; re-run Step 0 on the delta only, per this skill's own
+  Gotchas — not a wholesale regeneration). **Two new FRs added:** **FR-9160** (scale-relative,
+  dead-end-prioritized KeyItem placement — supersedes `FR-9130`'s "exactly one per region" rule)
+  and **FR-9161** (scale-relative victory condition — supersedes `FR-3300`'s fixed "reaches 9"
+  threshold), both target — not yet implemented, per this project's established
+  `FR-1120`→`FR-1170`-`1190` coexistence precedent: the superseded FRs are left with their
+  substantive text unmodified (they remain accurate for the currently shipped game) and gain only
+  a Notes forward-pointer. **`FR-9130` Notes also corrected** for an unrelated, pre-existing
+  documentation-staleness finding: its own text claimed "Not yet implemented," but `IP-1020`
+  actually shipped and independently verified the original one-per-region rule (`VR-1020`,
+  `T12.e`) before `ADR-0015` superseded it — a factual correction, not a behavior-text edit, made
+  in passing while this FR was already open for its own supersession note.
 
 ## FR-1000 — Game states & transitions
 
@@ -633,7 +647,11 @@
 - **Verification Method:** Test.
 - **Source Documents:** GDS-05 C4.
 - **Related ADRs:** None.
-- **Notes:** None.
+- **Notes:** **Superseded (2026-07-13, `IP-1021`):** this fixed threshold's implementation has
+  now shipped over — `check_complete` no longer compares against a hardcoded `9`; **FR-9161** is
+  the authoritative requirement for the victory condition going forward. This FR's text above is
+  left unmodified as an accurate historical record of the rule as it stood through `IP-1020`'s
+  lifetime, per the `FR-1120`→`FR-1170`/`1180`/`1190` precedent's own second step.
 
 ### FR-3220 — Item-agnostic KeyItem collection (target — 2026-07-09, generalizes FR-3210)
 
@@ -1097,7 +1115,15 @@ FR-6000 for the presentation half)*
 - **Related ADRs:** ADR-0009.
 - **Notes:** Unlike BL-0017's shipped-baseline finding (the one-carrot-per-zone rule holds only
   by convention, not code-level enforcement), this requirement is **generator-guaranteed by
-  construction** (ADR-0009) — a stronger guarantee than the shipped model's. Not yet implemented.
+  construction** (ADR-0009) — a stronger guarantee than the shipped model's. **Correction
+  (2026-07-12): this rule was in fact implemented and independently verified** — `IP-1020`
+  shipped it, confirmed by `VR-1020`'s own audit (`T12.e`) — this document's prior "Not yet
+  implemented" framing was stale, a documentation-only correction unrelated to the point below.
+  **Superseded (2026-07-13, `IP-1021`):** this rule's implementation has now shipped over —
+  `generate_world` no longer places exactly one `KeyItem` per region; **FR-9160** is the
+  authoritative requirement for `KeyItem` placement going forward. This FR's text above is left
+  unmodified as an accurate historical record of the rule as it stood through `IP-1020`'s
+  lifetime, per the `FR-1120`→`FR-1170`/`1180`/`1190` precedent's own second step.
 
 ### FR-9140 — Maze-shaped region adjacency (implemented — 2026-07-11)
 
@@ -1186,6 +1212,78 @@ FR-6000 for the presentation half)*
   `(seed,scale)`-combination corpus (T19.e). The UI-exposure question (a new SEED/SCALE ENTRY
   field, a derived value, or the fixed non-exposed default this FR shipped with) remains
   undecided, as this FR's own text always allowed.
+
+### FR-9160 — Scale-relative, dead-end-prioritized KeyItem placement (implemented — 2026-07-13)
+
+- **ID:** FR-9160
+- **Title:** The system shall generate exactly `WORLD_SCALE` KeyItems per generated world,
+  prioritizing pre-braid maze dead-end regions, with any shortfall filled by randomly-selected
+  additional regions.
+- **Description:** Supersedes `FR-9130`'s "exactly one per region" rule. At the exact point the
+  spanning-tree carve completes and before the braid pass runs (`FR-9140`), the system shall
+  identify every region whose spanning-tree degree is exactly 1 (a leaf — no other region's
+  parent points to it, and it is not the root). If the leaf count is `>= WORLD_SCALE`, the system
+  shall place a `KeyItem` in `WORLD_SCALE` of those leaf regions. If the leaf count is
+  `< WORLD_SCALE`, the system shall place a `KeyItem` in every leaf region, then place the
+  remainder in additional regions chosen randomly (excluding regions already selected) until
+  exactly `WORLD_SCALE` regions hold a `KeyItem`. Every other region holds none.
+- **Rationale:** `ADR-0015` (`BL-0093`, project-owner direct decision resolving `BL-0081`/`R215`).
+- **Priority:** Must (implemented by `IP-1021`, `COMPLETE`; `VERIFIED` pending)
+- **Inputs:** `WORLD_SCALE`; the pre-braid spanning tree's own per-region degree (`GDS-07` §7c).
+- **Outputs:** Exactly `WORLD_SCALE` regions marked as holding a `KeyItem`; every other region
+  marked as holding none.
+- **Preconditions:** The spanning-tree carve (`FR-9140`) has completed; the braid pass has not yet
+  run.
+- **Postconditions:** Exactly `WORLD_SCALE` regions hold a `KeyItem`, snapshotted from pre-braid
+  leaf status and therefore unaffected by which edges the braid pass subsequently reopens.
+- **Acceptance Criteria:** For any `(seed, scale)` in a test corpus: (a) exactly `WORLD_SCALE`
+  regions are marked as holding a `KeyItem`; (b) every pre-braid leaf region is marked as holding
+  one, up to `WORLD_SCALE`; (c) when pre-braid leaf count is below `WORLD_SCALE` (a confirmed
+  common case at `WORLD_SCALE` ≤ 7, per `R215`'s measured data), the shortfall is filled by
+  additional regions until the total reaches exactly `WORLD_SCALE`; (d) the placement decision is
+  unchanged by which edges the braid pass reopens (verifiable by comparing the pre-braid and
+  post-braid `REGION_GRAPH` state against the same placement result).
+- **Dependencies:** FR-9100, FR-9140, FR-3220 (the item-agnostic collection mechanic this
+  placement feeds — unaffected by this FR).
+- **Verification Method:** Test (property test across a `(seed, scale)` corpus, extending
+  `FR-9130`'s retired T1.11/T12.e pattern) / Inspection (static check that the placement decision
+  is made before the braid pass's own call site, mirroring `T20.d`'s established static-audit
+  precedent for a similar pipeline-ordering requirement).
+- **Source Documents:** `ADR-0015`; `GDS-04` delta (2026-07-12 correction); `GDS-07` §7c.
+- **Related ADRs:** ADR-0015, ADR-0012 (the maze pass this decision's leaf data comes from),
+  ADR-0009.
+- **Notes:** Supersedes `FR-9130` (see that FR's own Notes for the reverse pointer). The exact
+  per-region data representation `GDS-07` §7c names as needed was resolved by `IP-1021` §6: the
+  existing `KEYITEM_FLAGS` value domain was widened in place to a tri-state (0=present/
+  uncollected, 1=present/collected, 2=absent) rather than adding a new bitmap — implemented
+  2026-07-13, `test_rom.py` T12.e (revised)/T12.n, oracle-mirrored in `worldgen.py`.
+
+### FR-9161 — Scale-relative victory condition (implemented — 2026-07-13)
+
+- **ID:** FR-9161
+- **Title:** The system shall trigger victory the instant `KeyItemCount` reaches `WORLD_SCALE`.
+- **Description:** Supersedes `FR-3300`'s fixed "reaches 9" threshold. During PLAYING, the instant
+  `KeyItemCount` equals `WORLD_SCALE` (read directly), the system shall trigger the PLAYING →
+  VICTORY transition (`FR-1160`).
+- **Rationale:** `ADR-0015` (`BL-0093`).
+- **Priority:** Must (implemented by `IP-1021`, `COMPLETE`; `VERIFIED` pending)
+- **Inputs:** `KeyItemCount` value; `WORLD_SCALE` value.
+- **Outputs:** Victory transition trigger (`FR-1160`).
+- **Preconditions:** State is PLAYING; `KeyItemCount == WORLD_SCALE`.
+- **Postconditions:** The victory transition fires.
+- **Acceptance Criteria:** For any `WORLD_SCALE` in `{2..9}`, victory fires the instant
+  `KeyItemCount` reaches that world's own `WORLD_SCALE` value — not before, and not requiring a
+  fixed count independent of `WORLD_SCALE`.
+- **Dependencies:** FR-9160 (the placement rule that makes `WORLD_SCALE` always achievable),
+  FR-1160, FR-3220.
+- **Verification Method:** Test.
+- **Source Documents:** `ADR-0015`.
+- **Related ADRs:** ADR-0015.
+- **Notes:** Supersedes `FR-3300` (see that FR's own Notes for the reverse pointer). Always
+  achievable by construction: `FR-9160` guarantees exactly `WORLD_SCALE` `KeyItem`s exist, and
+  `FR-9120`'s full-reachability guarantee (unaffected by this decision) ensures every one of them
+  is reachable. Implemented 2026-07-13 (`IP-1021`): `check_complete` reads `WORLD_SCALE` at
+  runtime in place of the old hardcoded `9`; `test_rom.py` T4.8 (corrected)/T12.n.
 
 ### FR-9200 — Save-format extension: seed, scale, and per-region flags
 

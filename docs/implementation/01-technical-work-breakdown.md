@@ -709,3 +709,158 @@ not a conflict). Independent of `IP-9110` (`gw_prng_step`, disjoint) and the blo
 - **`BL-0078`** (High, spurious zone-transition regression — root-caused and reproduced at
   intake): packaged as `IP-9130`.
 - **`BL-0071`** (supersession sweep must include `test_rom.py`): honored directly above.
+
+## Maze-blocked edge indicator — rendering half (`FS-108`/`FEAT-2100`/`BL-0075`, planned 2026-07-12)
+
+`FS-108`'s own last Open Question closed 2026-07-12 (`06-feature-specification`): the rendering
+half's workflow and Acceptance Criteria (Workflow C, AC-4/AC-5) are now fully specified. This
+tranche packages that spec — `IP-1080`'s own classification logic (`VERIFIED`) is untouched;
+this pass wires the visible result.
+
+### Verb inventory
+
+Pure **render** — `generate` is `FS-107`'s own closed scope; the classification decision this
+rendering consumes is `IP-1080`'s own closed scope (`navigate` doesn't apply); `persist` doesn't
+apply (no new WRAM/SRAM entity, `FS-108` §10); `review` **does** apply this time (unlike
+`IP-1080`'s own logic-only pass) — new visible tile art ships, so a `09-content-review` pass is
+owed after implementation, mirroring `IP-1031`'s own precedent as `FEAT-6100`'s exercise.
+
+### Supersession sweep
+
+Not applicable in the retirement sense — this pass adds a third rendered state, it retires
+nothing. Confirmed by direct code read: `draw_region_arrows`'s existing open-edge branch
+(`asm_game.py:1002-1013`) and `_arrow_write` helper are unchanged targets, not superseded;
+`TL_ARROW_U/D/L/R`'s own tile-index block (`tiles.py:36-39`) is untouched, the new tiles land at
+the confirmed-free `0x1A`-`0x1D` slots immediately after it. Swept `test_rom.py`'s existing `T20`
+suite (`T20.a`/`b`/`c`) for any assumption that would break once a `blocked` edge starts drawing a
+non-blank tile: `T20.b`/`T20.c` both currently assert `not arrow_present` (`ARROW_POS[direction]
+== ARROW_TILE[direction]`, the *open*-tile constant) for blocked/absent — that assertion remains
+correct unchanged (a blocked tile is not the open tile), but needs a **new**, additive assertion
+for the blocked case specifically (the tile now *is* the new blocked-tile constant, not blank) —
+recorded as this package's own `Tests to Add`, not a rewrite of the existing check.
+
+### Work units and package cut
+
+| Work unit | Package | Owner |
+|---|---|---|
+| 4 new tile bitmaps (`TL_BLOCKED_U`/`D`/`L`/`R`, `0x1A`-`0x1D`, a short broken/dashed bar per `GDS-08` §10's silhouette concept) registered via `build_tile_data()`'s existing `put()` convention | [IP-1081](packages/IP-1081-maze-blocked-edge-indicator-content.md) | `08-content-authoring` |
+| `draw_region_arrows`'s blocked-case render branch: for each direction already classified `blocked` by `IP-1080`'s own arithmetic (`DRA_ROW`/`DRA_COL` vs. `WORLD_SCALE`), write the direction's new tile at the existing `ARROW_ADDR_*` position (palette 2, reusing `_arrow_write`'s own write shape) instead of the current no-op | [IP-1082](packages/IP-1082-maze-blocked-edge-indicator-render.md) | `08-code-implementation` |
+
+**Split rationale:**
+
+- **Two packages, mirroring `IP-1030`/`IP-1031`'s own code/content peer-split precedent** for the
+  same FS (`FS-103`) — different stage-08 peers own different files (`tiles.py` vs. `asm_game.py`),
+  and the tile art half genuinely needs its own `09-content-review` pass this time (unlike
+  `IP-1080`, which shipped no visible art at all).
+- **Content package first, reversing `IP-1030`→`IP-1031`'s own ordering** — there, the code half
+  established the interface the content half plugged into; here, the *code* half's new render
+  branch needs the *content* half's new tile-index constants (`TL_BLOCKED_U`/`D`/`L`/`R`) to exist
+  before it can reference them, so the dependency runs content→code this time. Named explicitly so
+  the reversal isn't mistaken for an inconsistency.
+- **Not fused into one package** despite the small combined size — the code branch's own
+  Definition of Done ("draws the correct tile for a `blocked` classification") is independently
+  statable and testable from the content package's own DoD ("4 new tiles exist, registered, cost
+  0 new palette entries") once the tile constants exist as a dependency, mirroring the same
+  Feature-boundary-respecting logic `IP-1070`/`IP-1080`'s own split rationale used (here it's a
+  code/content boundary, not a Feature boundary, but the same "don't fuse for convenience"
+  principle applies).
+
+### Sequencing summary
+
+**Critical path: `IP-1081` → `IP-1082`** (2 packages). `IP-1082` depends on `IP-1081` reaching
+`VERIFIED` (this skill's own `READY` convention — `COMPLETE` is not sufficient) for the tile
+constants to exist; both also depend on `IP-1080` (`VERIFIED`, already shipped) for the
+classification arithmetic/WRAM bytes they read. No parallel-eligible package this pass — the
+dependency is a hard sequencing constraint, not a convenience ordering.
+
+### Backlog riders honored in this pass
+
+- **`BL-0075`** (High, maze dead-end indistinguishable from a true world edge): packaged as
+  `IP-1081`→`IP-1082`, the pair that closes it — not `DONE` until `IP-1082` ships and is
+  `VERIFIED`.
+- **`BL-0068`** (the `GDS-08` tile-art delta this rendering half needed): already resolved
+  (2026-07-11); this pass is the implementation package `BL-0068`'s own resolution note named as
+  still owed.
+
+## Win-condition redesign (`FS-102` revision, `FR-9160`/`FR-9161`, `ADR-0015`, `BL-0093`, planned 2026-07-12)
+
+The owner's own resolved decision: `KeyItem` placement becomes selective (`WORLD_SCALE` total,
+dead-end-prioritized, random-fill fallback), win condition becomes `KeyItemCount == WORLD_SCALE`.
+Grounded by `FS-102`'s 2026-07-12 revision.
+
+### Verb inventory
+
+Spans **generate** (the new placement decision, inserted into `generate_world`'s maze-carve
+pipeline) and **navigate/persist** only in the narrow sense that the victory *check*
+(`check_complete`) reads live `WORLD_SCALE` state — not a new verb, an existing one (`FR-1160`'s
+own victory-transition trigger, unchanged in mechanism) fed a corrected comparison operand.
+`render`/`review` are explicitly deferred-not-applicable: this is pure logic and WRAM-state data,
+no new tile/screen/palette content ships (confirmed by direct `KEYITEM_FLAGS` consumer read, see
+Supersession sweep below) — nothing for `09-content-review` to judge.
+
+### Supersession sweep
+
+`FR-9160` supersedes `FR-9130`'s "exactly one `KeyItem` per region, always" assumption. Swept
+every `KEYITEM_FLAGS` reader in `asm_game.py` for that assumption baked in:
+
+- **`setup_zone_collects`** (`asm_game.py:1194-1207`): already treats any *nonzero*
+  `KEYITEM_FLAGS[region]` value as "mark this region's `KeyItem` inactive" (suppress render/
+  pickup) — confirmed by direct read, this is exactly the behavior an "absent" region needs too.
+  **No change needed** — a genuine "found nothing to fix" result, not silence.
+- **`check_collisions`** (`asm_game.py:578-620`): the `KeyItem`-pickup branch (line 609-619) only
+  ever executes for an item whose `active` field (`COLL_DATA`) is already 1 — and
+  `setup_zone_collects` never sets `active=1` for a region `KEYITEM_FLAGS` marks nonzero (the
+  point above). **Confirmed unreachable for an absent region by construction** — no defensive
+  check needed, **no change required**.
+- **`save_to_sram`/`try_load_save`** (`asm_game.py:1683-1694`, `1743-1758`): both `memcpy` the
+  full 81-byte `KEYITEM_FLAGS` array byte-for-byte, value-agnostic. **No change needed** if the
+  chosen encoding (below) reuses `KEYITEM_FLAGS` itself rather than adding a new array.
+- **`check_complete`** (`asm_game.py:728-732`): the one real hit — `CP_n(9)`, the literal
+  constant this whole redesign exists to replace. **Change required** (§ package below).
+- **`st_intro`/`st_victory`'s own `KEYITEM_FLAGS` reset loops**: zero the array to all-0 (meaning
+  "present, uncollected" under the chosen encoding, below) — the new placement pass must
+  explicitly overwrite the *absent* regions' bytes after this reset, or every region would default
+  to "present" regardless of the placement decision. **Change required** (§ package below,
+  Files to Modify — this is `generate_world`'s own new pass writing after the existing reset, not
+  a change to the reset routines themselves).
+- **`worldgen.py`'s oracle**: mirrors `generate_world` step-for-step; needs the equivalent Python
+  function added. **Change required.**
+
+### Per-region encoding decision (`GDS-07` §7c, resolved against the real code this pass)
+
+**Decision: widen `KEYITEM_FLAGS`'s existing value domain to a tri-state (`0` = present,
+uncollected; `1` = present, collected; `2` = absent) — no new WRAM/SRAM address.** Not a new,
+separate presence bitmap. Grounded directly in the Supersession sweep above: both real consumers
+(`setup_zone_collects`, `check_collisions`) already treat *any nonzero* value as "no active item
+here," which is exactly correct for both the existing "collected" (`1`) and the new "absent"
+(`2`) cases — confirmed by direct code read, not assumed. `save_to_sram`/`try_load_save` need zero
+changes (value-agnostic byte copy). This is the cheaper of `GDS-07` §7c's two named candidates by
+a wide margin (zero new WRAM, zero new SRAM field, zero new memcpy call) and carries none of that
+section's own flagged re-audit risk, since the audit is now actually done, not merely predicted.
+
+### Work unit and package cut
+
+| Work unit | Package | Owner |
+|---|---|---|
+| `generate_world`'s new placement pass (leaf classification + `WORLD_SCALE`-count selection + random-fill fallback, inserted between `maze_carve_done` and the braid pass), `KEYITEM_FLAGS` tri-state encoding, `check_complete`'s corrected comparison operand, `worldgen.py`'s equivalent oracle mirror | [IP-1021](packages/IP-1021-win-condition-redesign.md) | `08-code-implementation` |
+
+**No split.** Placement and the victory-check correction are two small, tightly-coupled pieces of
+one coherent Definition of Done ("the shipped game generates exactly `WORLD_SCALE`
+dead-end-prioritized `KeyItem`s and wins at exactly that count") from a single ADR/FS revision —
+splitting them would let one ship without the other, silently reintroducing the exact class of
+defect `BL-0054`'s own precedent (this skill's own verb-inventory rule) warns against: a
+`generate`-side change landing with no corresponding `navigate`/consume-side update. Unlike
+`IP-1070`→`IP-1080` (split because they crossed a Feature boundary, `FEAT-9100`→`FEAT-2100`),
+this work stays entirely within `FEAT-9000`/`FS-102`'s own scope.
+
+### Sequencing summary
+
+**No critical path — a single package, `IP-1021`.** Depends on `IP-1020` (`VERIFIED`, the
+routine this extends) and `IP-1070` (`VERIFIED`, the maze-carve pass whose `GW_MAZE_STATE` this
+placement decision reads) — both already shipped, no blocking dependency. Independent of the
+in-flight `IP-1081`/`IP-1082` pair (disjoint files: this touches `asm_game.py`'s `generate_world`/
+`check_complete` and `worldgen.py`; `IP-1081`/`IP-1082` touch `tiles.py`/`draw_region_arrows`).
+
+### Backlog riders honored in this pass
+
+- **`BL-0093`** (High, resolved win-condition redesign): packaged as `IP-1021`.

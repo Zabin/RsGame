@@ -44,6 +44,7 @@ section, 3–8 page band) is embedded in each `02-research-*` skill.
 | R212 | [Wordless environmental storytelling & biome-adjacency grammar](encyclopedia/R212-wordless-environmental-storytelling-biome-grammar.md) | narrative-through-world-structure technique; the adjacency-grammar rule set grounding MSTR-001 C9 (filed via `BL-0030`/D2) | ✅ |
 | R213 | [Procedural map generation algorithms under 8-bit/GBC constraints](encyclopedia/R213-procedural-map-generation-algorithms.md) | random-walk/cellular-automata/WFC/graph-grammar survey; costed recommendation for MSTR-001 C10's generator (filed via `BL-0031`/D3) | ✅ |
 | R214 | [GBC homebrew & era titles using procedural map generation](encyclopedia/R214-gbc-homebrew-procgen-case-studies.md) | Roguecraft GB, Azure Dreams, Dragon Crystal — feasibility precedent for C10 (filed via `BL-0031`/D3) | ✅ |
+| R215 | [Win-condition design for procedurally generated, variable-size worlds](encyclopedia/R215-procgen-win-condition-design.md) | scarce-tier scaling, percentage-completion, fixed-goal-node conventions; grounds `BL-0081`'s win-condition research (filed via `BL-0081`) | ✅ |
 
 ## Tier R300 — Tooling, Emulation & Verification (`02-research-tooling-and-testing`)
 

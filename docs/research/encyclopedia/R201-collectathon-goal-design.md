@@ -2,10 +2,11 @@
 
 - **Document ID:** R201 · **Version:** 1.0 · **Status:** ✅
 - **Dependencies:** none
-- **Referenced By:** R206 (pacing depends on goal density), R211 (case studies share this structure)
+- **Referenced By:** R206 (pacing depends on goal density), R211 (case studies share this structure),
+  R215 (re-examines this topic's own goal structure under `WORLD_SCALE` scaling, `BL-0081`)
 - **Produces:** grounds `tilemaps.py`'s `ZONE_COLLECTS` structure and `asm_game.py`'s victory logic
 - **Feature Mapping:** *(none yet)*
-- **Related Topics:** R206, R211
+- **Related Topics:** R206, R211, R215
 
 ## Purpose
 
