@@ -1,11 +1,13 @@
 # Master Build Plan
 
-> **Status (corrected 2026-07-13, `09-package-verification` on `IP-1090`): 25 of 26 packages
-> VERIFIED; `IP-1082` (`FS-108` rendering half, `BL-0075`) `COMPLETE` 2026-07-13, still awaiting
-> independent verification (same-session-independence rule — implemented in the same session that
-> would verify it); `IP-1090` (SELECT Menu & Edge-Indicator Legend Screen, `BL-0100`) `VERIFIED`
-> 2026-07-13 ([VR-1090](verification/VR-1090-select-menu-edge-indicator-legend-screen.md)),
-> independently verified in a genuinely fresh session.**
+> **Status (corrected 2026-07-13, `09-package-verification` on `IP-1082`): 26 of 26 packages
+> VERIFIED.** `IP-1090` (SELECT Menu & Edge-Indicator Legend Screen, `BL-0100`) `VERIFIED`
+> 2026-07-13 ([VR-1090](verification/VR-1090-select-menu-edge-indicator-legend-screen.md));
+> `IP-1082` (`FS-108` rendering half, `BL-0075`) `VERIFIED` 2026-07-13
+> ([VR-1082](verification/VR-1082-maze-blocked-edge-indicator-render.md)), both independently
+> verified in a genuinely fresh session. Every implementation package in the tree is now
+> `VERIFIED` — a `09-content-review` pass is still owed on `IP-1081`/`IP-1082`'s shipped tile art
+> (`BL-0097`), and the `IP-1081`/`IP-1082` set still needs its own `10-integration-review` pass.
 > **Bootstrap tranche fully VERIFIED (2026-07-10) — all five packages VERIFIED.**
 > **Release 2 tranche (procgen-world increment): authorized 2026-07-10 (user G3, `BL-0040`, all
 > five packages) — `IP-1020` (foundational, dependency-root) VERIFIED 2026-07-10
@@ -153,10 +155,10 @@ via an Implementation Package.
 
 `FS-108`'s own last Open Question closed 2026-07-12 (`06-feature-specification`) — Workflow C and
 Acceptance Criteria 4/5 fully specify the rendering half `IP-1080` (logic half, `VERIFIED`)
-deliberately left open. Closes `BL-0075` once `IP-1082` reaches `VERIFIED`.
+deliberately left open. Closed `BL-0075` — `IP-1082` reached `VERIFIED` 2026-07-13 ([VR-1082](verification/VR-1082-maze-blocked-edge-indicator-render.md)).
 
 | [IP-1081](packages/IP-1081-maze-blocked-edge-indicator-content.md) | Maze-blocked edge indicator — content (FS-108 / FEAT-2100 / BL-0075) | `08-content-authoring` | **VERIFIED** ([VR-1081](verification/VR-1081-maze-blocked-edge-indicator-content.md), 2026-07-13) | IP-1080 (VERIFIED, cited for completeness, not a build dependency) | **YES — explicit user G3, 2026-07-12 (BL-0092, "Yes, build both")** | **Implemented 2026-07-12.** 4 new tile bitmaps (`TL_BLOCKED_U/D/L/R`, `0x1A`-`0x1D`, per `GDS-08` §10's already-decided silhouette/palette) — a broken/dashed-bar silhouette, confirmed visually distinct from the solid-triangle arrow tiles (rendered comparison, not merely asserted) — registered via `build_tile_data()`'s existing `put()` convention. Zero new palette entries confirmed by diff (`build_rom.py` untouched). GDS-07 §4 tile-index table and `memory.md`'s quick-ref both updated (87 of 256 slots used, up from 83). Full suite unchanged at 231/231 (no new checks — nothing calls the new tiles yet, per this package's own scope). **Independently verified 2026-07-13 (fresh session)**: 233/233 re-confirmed (the +2 is `IP-1021`'s own, landed separately), all DoD/checklist items confirmed by direct diff/code read. One Medium finding (`BL-0097`): `blocked_up()`/`blocked_down()` are pixel-identical, as are `blocked_left()`/`blocked_right()` — the package's own §6 text called for 4 directional glyphs "the same way the arrow tiles are," but the shipped tiles collapse to 2 distinct bitmaps reused across direction pairs. Does not block `VERIFIED` (deferred to `09-content-review` per the package's own §13 Risks); routed there. Unblocks `IP-1082` → `READY`. Owed a `09-content-review` pass after `IP-1082` ships (new visible art) — that review should weigh `BL-0097` directly. |
-| [IP-1082](packages/IP-1082-maze-blocked-edge-indicator-render.md) | Maze-blocked edge indicator — render (FS-108 / FEAT-2100 / BL-0075) | `08-code-implementation` | **COMPLETE — 234/234 checks pass** | IP-1081 (VERIFIED), IP-1080 (VERIFIED) | **YES — explicit user G3, 2026-07-12 (BL-0092, "Yes, build both")** | **Implemented 2026-07-13.** `draw_region_arrows`'s four `dra_no_*` (0xFF) branches each extended with a blocked-vs-absent test (`DRA_ROW`/`DRA_COL` vs `WORLD_SCALE`, the exact per-direction grid-adjacency arithmetic FS-108 §6/§7 specifies) — blocked draws `IP-1081`'s `TL_BLOCKED_<dir>` via the existing `_arrow_write` helper at the same `ARROW_ADDR_<dir>` position; absent stays a no-op. Open-edge branches confirmed byte-for-byte unchanged (only new code added after each `dra_no_*` label, gated behind a jump on the open-arrow-write path). Found and fixed a same-package defect during implementation: the first draft ran the new blocked-test unconditionally after each `dra_no_*` label, including on the open-arrow fallthrough path, silently overwriting a just-drawn open arrow whenever the blocked-side condition also happened to hold — fixed by adding an explicit `JR` past the blocked-test block right after each open-arrow write. `T20.b` corrected to assert the positive blocked-tile index (not "no arrow"); new `T20.e` (open-case non-regression). Full suite 234/234 (+3 net: `T20.e` new, `T20.b`/`T20.c` semantics corrected in place, no suite-count change from those two). Independently re-driven via PyBoy screenshot at `(seed=0, scale=3)` region 0 (default new-game world, right edge grid-adjacent to region 1 but maze-pruned): the blocked tile (`0x1D`) renders at the right-edge position, confirmed both by direct WRAM tile-index read and visual screenshot. Closes `BL-0075` and `FR-2330` in full. Owed a `09-content-review` pass (first exercise of this art as live, rendered content — should weigh `BL-0097` directly). Awaits independent (fresh-session) verification. |
+| [IP-1082](packages/IP-1082-maze-blocked-edge-indicator-render.md) | Maze-blocked edge indicator — render (FS-108 / FEAT-2100 / BL-0075) | `08-code-implementation` | **VERIFIED** ([VR-1082](verification/VR-1082-maze-blocked-edge-indicator-render.md), 2026-07-13) | IP-1081 (VERIFIED), IP-1080 (VERIFIED) | **YES — explicit user G3, 2026-07-12 (BL-0092, "Yes, build both")** | **Implemented 2026-07-13.** `draw_region_arrows`'s four `dra_no_*` (0xFF) branches each extended with a blocked-vs-absent test (`DRA_ROW`/`DRA_COL` vs `WORLD_SCALE`, the exact per-direction grid-adjacency arithmetic FS-108 §6/§7 specifies) — blocked draws `IP-1081`'s `TL_BLOCKED_<dir>` via the existing `_arrow_write` helper at the same `ARROW_ADDR_<dir>` position; absent stays a no-op. Open-edge branches confirmed byte-for-byte unchanged (only new code added after each `dra_no_*` label, gated behind a jump on the open-arrow-write path). Found and fixed a same-package defect during implementation: the first draft ran the new blocked-test unconditionally after each `dra_no_*` label, including on the open-arrow fallthrough path, silently overwriting a just-drawn open arrow whenever the blocked-side condition also happened to hold — fixed by adding an explicit `JR` past the blocked-test block right after each open-arrow write. `T20.b` corrected to assert the positive blocked-tile index (not "no arrow"); new `T20.e` (open-case non-regression). Full suite 234/234 (+3 net: `T20.e` new, `T20.b`/`T20.c` semantics corrected in place, no suite-count change from those two). Closes `BL-0075` and `FR-2330` in full. **Independently verified 2026-07-13 (fresh session)**: 246/246 re-confirmed (`T20.a`–`e` all pass), open-edge branches and `IP-1080`'s classification arithmetic both reconfirmed byte-for-byte unchanged by direct diff. Independently re-driven via PyBoy at a non-corpus `(seed=42, scale=9)` — the blocked tile (`0x1B`, DOWN) confirmed rendering at region 0's grid-adjacent-but-maze-pruned edge, both by direct WRAM tile-index read and visual screenshot; the open case (RIGHT, `0x16`) confirmed unaffected. No findings blocking `VERIFIED`. A `09-content-review` pass is now owed (first exercise of this art as live, rendered content — should weigh `BL-0097` directly), and the `IP-1081`/`IP-1082` set still needs its own `10-integration-review` pass. |
 
 ## Win-condition redesign tranche (`FS-102` revision, `BL-0093`, planned 2026-07-12)
 
@@ -318,14 +320,14 @@ graph TD
 
     style IP9130 fill:#cfc,stroke:#333,stroke-width:2px
 
-    IP1081["IP-1081 maze-blocked edge<br/>indicator, content<br/>(COMPLETE)"]
-    IP1082["IP-1082 maze-blocked edge<br/>indicator, render<br/>(BLOCKED)"]
+    IP1081["IP-1081 maze-blocked edge<br/>indicator, content<br/>(VERIFIED)"]
+    IP1082["IP-1082 maze-blocked edge<br/>indicator, render<br/>(VERIFIED)"]
     IP1080 --> IP1081
     IP1081 -->|hard prerequisite| IP1082
     IP1080 --> IP1082
 
-    style IP1081 fill:#eee,stroke:#333,stroke-width:2px
-    style IP1082 fill:#eee,stroke:#333,stroke-width:2px
+    style IP1081 fill:#cfc,stroke:#333,stroke-width:2px
+    style IP1082 fill:#cfc,stroke:#333,stroke-width:2px
 
     IP1090["IP-1090 SELECT menu &<br/>legend screen<br/>(VERIFIED)"]
     IP1040 --> IP1090
@@ -529,15 +531,14 @@ first-in-critical-path package.)*
 ### Maze-blocked edge indicator tranche (`FS-108` rendering half, planned 2026-07-12)
 
 - **Critical path: `IP-1081` → `IP-1082`** (2 packages, no parallel-eligible package — `IP-1082`
-  hard-depends on `IP-1081` reaching `VERIFIED` for the tile constants its own render branch
-  references).
+  hard-depended on `IP-1081` reaching `VERIFIED` for the tile constants its own render branch
+  references). Both now `VERIFIED` — critical path closed.
 - **`IP-1081`** (content): 4 new tile bitmaps (`TL_BLOCKED_U/D/L/R`, `0x1A`-`0x1D`), registered
   via `build_tile_data()`'s existing `put()` convention, per `GDS-08` §10's already-decided
-  silhouette/palette. **`COMPLETE` (2026-07-12, 231/231)** — awaits independent verification.
+  silhouette/palette. **`VERIFIED`** ([VR-1081](verification/VR-1081-maze-blocked-edge-indicator-content.md), 2026-07-13).
 - **`IP-1082`** (render): `draw_region_arrows`'s blocked-case render branch, reusing `IP-1080`'s
   own `DRA_ROW`/`DRA_COL` arithmetic and the existing `ARROW_ADDR_*`/`_arrow_write` machinery.
-  Closes `BL-0075` and `FR-2330` in full once `VERIFIED`. `BLOCKED` on `IP-1081` reaching
-  `VERIFIED` (not merely `COMPLETE`).
+  Closes `BL-0075` and `FR-2330` in full. **`VERIFIED`** ([VR-1082](verification/VR-1082-maze-blocked-edge-indicator-render.md), 2026-07-13). A `09-content-review` pass and a `10-integration-review` pass on the `IP-1081`/`IP-1082` set are both still owed.
 - **Authorization state: both authorized** (user G3, `BL-0092`, "Yes, build both," 2026-07-12).
 
 ### Win-condition redesign tranche (`FS-102` revision, planned 2026-07-12, implemented 2026-07-13)
@@ -546,8 +547,8 @@ first-in-critical-path package.)*
   correction are one coherent Definition of Done, per the TWBS's own split rationale).
 - **`IP-1021`**: `generate_world`'s new placement pass + `check_complete`'s corrected comparison
   operand + `worldgen.py` oracle mirror. Depends on `IP-1020`/`IP-1070` (both `VERIFIED`) — no
-  blocking dependency. Independent of `IP-1081`/`IP-1082` (disjoint files). `COMPLETE`, awaiting
-  `09-package-verification` in a fresh session (same-session-independence rule).
+  blocking dependency. Independent of `IP-1081`/`IP-1082` (disjoint files). **`VERIFIED`**
+  ([VR-1021](verification/VR-1021-win-condition-redesign.md), 2026-07-13).
 - **Authorization state: authorized** — user G3, `BL-0096`, "Yes, build it" (2026-07-12).
 
 ### SELECT Menu & Edge-Indicator Legend Screen tranche (`FS-109`/`FEAT-1200`/`BL-0100`, planned 2026-07-13)
