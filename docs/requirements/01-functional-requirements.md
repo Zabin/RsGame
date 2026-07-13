@@ -1376,3 +1376,30 @@ excluded from the numbered baseline above; marked `CANDIDATE — NOT BASELINED` 
   `03-architecture-design-synthesis` (or directly to the user, if the owner has a preference
   between "revisit `ADR-0012`'s pass ordering to allow dead-end-seeding" vs. "keep the ordering,
   use flood-fill instead") — see `RQ-03`'s finding for the full conflict write-up.
+
+### CR-06 — Edge-indicator legend/help screen, reachable via SELECT (`BL-0100`)
+
+- **Description:** A read-only screen explaining the on-screen transition-edge indicator tiles to
+  the player — the open-arrow (a valid, maze-connected neighbor exists, `FR-2320`) versus the
+  blocked-edge indicator (a grid-adjacent region exists but the generated maze doesn't connect to
+  it, `FR-2330`) versus no indicator at all (a true grid boundary) — reachable via the SELECT
+  button, per the owner's own request.
+- **Why excluded:** **No traceable architecture source, not a gap this pass can close by
+  rewording.** [GDS-01](../architecture/01-concept-of-play.md) §4's game-state machine names
+  exactly six states (`TITLE`/`INTRO`/`PLAYING`/`SAVE`/`MAP`/`VICTORY`), with §4a's own delta
+  list (the only mechanism this document uses to add new states — it already added `MAIN MENU`/
+  `SEED SCALE ENTRY` this way, per `BL-0031`'s own `01→02→03→04` routing precedent) naming
+  nothing resembling a legend/help screen or a SELECT sub-menu. `MAP` is documented as SELECT's
+  *sole* destination ("reachable only from PLAYING (SELECT)") — there is currently no state-
+  machine node this new screen could occupy, and no GDS-08 presentation-layer description of its
+  layout/content. Per this skill's own rule ("a wrong/ambiguous/self-contradictory architecture
+  statement is a Review finding, never patched by writing around it" — the same standard `CR-05`
+  above applies to a direct `ADR-0012` conflict, applied here to a missing-concept gap instead of
+  a conflicting one), inventing a new `GAMESTATE` value or a SELECT-menu restructuring here would
+  be originating an architecture decision, not deriving a requirement from one.
+- **Disposition:** Routed to `03-architecture-design-synthesis` first — a GDS-01 §4/§4a delta
+  (new state, or a redefinition of what SELECT reaches) and a GDS-08 delta (the new screen's own
+  layout/content) are both needed before a clean, implementation-independent FR can be written.
+  `04-requirements-engineering` returns to derive the actual FR once that lands, mirroring
+  `BL-0031`'s own `01→02→03→04` precedent for `MAIN MENU`/`SEED SCALE ENTRY`. See `RQ-03`'s
+  finding for the full write-up.

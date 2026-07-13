@@ -6,7 +6,9 @@
 > `06`/`07` have run, NFR-6100/NFR-1200/NFR-7100/NFR-5200 Test cells refreshed; delta 2026-07-11
 > — NFR-6500/6510 Test cells filled with real evidence, `BL-0045`; delta 2026-07-11 —
 > FR-9140/9150/2330 and CR-05 added for `ADR-0012`'s maze-adjacency decision, `BL-0064`–`BL-0067`;
-> delta 2026-07-12 — FR-9160/9161 added for `ADR-0015`'s win-condition redesign, `BL-0093`).**
+> delta 2026-07-12 — FR-9160/9161 added for `ADR-0015`'s win-condition redesign, `BL-0093`;
+> delta 2026-07-13 — CR-06 added for the edge-indicator legend screen request, `BL-0100`, un-
+> baselined pending a `03-architecture-design-synthesis` pass).**
 > Owned by `04-requirements-engineering`.
 > One row per [RQ-01](01-functional-requirements.md)/[RQ-02](02-non-functional-requirements.md)
 > requirement (Candidates marked). Populates the row-level matrix
@@ -52,6 +54,7 @@
 | CR-01 | Full save-field persistence — **RESOLVED/SPLIT 2026-07-07**: facing/frame half REJECTED (no row — see FR-5210); ScoreItem half APPROVED → see **FR-5220** row above | — | GDS-05 C5; BL-0018 (resolved) | — | `asm_game.py` | `RESOLVED — SEE FR-5220` | `RESOLVED — SEE FR-5220` | `RESOLVED — SEE FR-5220` |
 | CR-02 | Carrot-invariant enforcement | — | GDS-04; BL-0017 | — | `tilemaps.py` | `CANDIDATE — NOT BASELINED` | `CANDIDATE — NOT BASELINED` | `CANDIDATE — NOT BASELINED` |
 | CR-05 | Biome-blob clustering seeded from maze dead-ends (`BL-0066`) — conflicts with `ADR-0012` point 1's fixed biome-first pass ordering, per RQ-03 finding #13 | — | GDS-04; BL-0066 | ADR-0012 | `worldgen.py` | `CANDIDATE — NOT BASELINED` | `CANDIDATE — NOT BASELINED` | `CANDIDATE — NOT BASELINED` |
+| CR-06 | Edge-indicator legend/help screen, reachable via SELECT (`BL-0100`) — no architecture concept exists yet (no GDS-01 §4/§4a state, no GDS-08 layout), per RQ-03 finding #15 | — | GDS-01 §4/§4a; GDS-08; BL-0100 | — | `asm_game.py`/`tilemaps.py` (prospective) | `CANDIDATE — NOT BASELINED` | `CANDIDATE — NOT BASELINED` | `CANDIDATE — NOT BASELINED` |
 | FR-1170 | MAIN MENU state (Met, 2026-07-10; cursor-reset regression fixed 2026-07-11) | — | GDS-01 §2a/§4a | ADR-0010 | `asm_game.py` | FS-104 | IP-1040, IP-9060 | T14.a1–a4, T18.a–d — 231/231 pass |
 | FR-1180 | New-game seed/scale entry + generation trigger (Met) | R111 | GDS-01 §4a | ADR-0009, ADR-0010 | `asm_game.py` | FS-104 | IP-1040 | T14.b1–b3, T14.c1 — 180/180 pass (T14 sub-total 20/20) |
 | FR-1190 | Exit-to-main-menu with auto-save (Met) | — | GDS-01 §4a | — | `asm_game.py`, `tilemaps.py` | FS-104 | IP-1040, IP-9080 | T14.d1–d2 (behavior), T5.10–T5.12 (on-screen label, IP-9080) |
