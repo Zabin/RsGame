@@ -11,8 +11,10 @@
   streaming generation is adopted), `IP-1021`/`ADR-0015` (the just-shipped dead-end-anchored win
   condition, whose own global full-graph sweep this topic finds is not streaming-compatible as
   written)
-- **Referenced By:** *(none yet — grounds `BL-0082`'s pending `02-research-game-design` follow-on
-  and, if adopted, a future `03-architecture-design-synthesis` ADR)*
+- **Referenced By:** **R216 (2026-07-13 — resolves this topic's own dead-end-bias-vs-`BL-0094`
+  conflict by decoupling treasure placement from maze structure entirely, reusing this topic's
+  `hash(SEED, row, col)` positional-determinism technique for treasure density instead)**; if
+  streaming generation is adopted, a future `03-architecture-design-synthesis` ADR
 - **Produces:** a direct answer to whether `generate_world`'s two load-bearing global algorithms
   (sequential biome-anchor-clamp, backtracking spanning-tree carve) are representable in a
   streaming/local form at all; concrete SM83-compatible alternatives where they are; WRAM/ROM/

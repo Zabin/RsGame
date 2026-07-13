@@ -9,7 +9,10 @@
   global full-graph leaf sweep is not streaming-compatible as written, and that the cheapest
   streaming-compatible maze algorithm found (Binary Tree) has a structural dead-end distribution
   bias directly relevant to `BL-0094`'s already-deferred infinite-mode design, which carries the
-  same dead-end-only placement rule forward)
+  same dead-end-only placement rule forward), R216 (2026-07-13 — extends this topic's finite-world
+  Decision to the infinite/streaming case per `BL-0094`, reusing this topic's own measured
+  dead-end-density table as the density-tuning anchor for a proposed structure-independent treasure
+  placement)
 - **Produces:** the citation-grounded evidence and empirical data behind the project owner's
   resolved decision (below) — the direct input to the `03`/`04`/`06` passes that turn it into an
   ADR/FR/FS; unblocked `BL-0050` (the MAP/status-screen redesign)

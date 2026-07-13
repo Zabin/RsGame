@@ -46,6 +46,7 @@ section, 3–8 page band) is embedded in each `02-research-*` skill.
 | R213 | [Procedural map generation algorithms under 8-bit/GBC constraints](encyclopedia/R213-procedural-map-generation-algorithms.md) | random-walk/cellular-automata/WFC/graph-grammar survey; costed recommendation for MSTR-001 C10's generator (filed via `BL-0031`/D3) | ✅ |
 | R214 | [GBC homebrew & era titles using procedural map generation](encyclopedia/R214-gbc-homebrew-procgen-case-studies.md) | Roguecraft GB, Azure Dreams, Dragon Crystal — feasibility precedent for C10 (filed via `BL-0031`/D3) | ✅ |
 | R215 | [Win-condition design for procedurally generated, variable-size worlds](encyclopedia/R215-procgen-win-condition-design.md) | scarce-tier scaling, percentage-completion, fixed-goal-node conventions; grounds `BL-0081`'s win-condition research (filed via `BL-0081`) | ✅ |
+| R216 | [What "infinite" means for win conditions, session length & treasure placement](encyclopedia/R216-infinite-mode-win-condition-design.md) | score-chasing as the genre-correct replacement for a fixed win condition once the world is streaming/unbounded; resolves R114's dead-end-bias-vs-treasure-placement conflict; what "infinite" actually means given a bounded SRAM ledger (filed via `BL-0082`) | ✅ |
 
 ## Tier R300 — Tooling, Emulation & Verification (`02-research-tooling-and-testing`)
 
