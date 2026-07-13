@@ -14,470 +14,46 @@
 
 ## Position
 
-- **Updated:** 2026-07-13 (run #127)
-- **Increment:** Bootstrap baseline remains fully closed (01–11 ✅, GO recorded). Run #96
-  implemented `IP-1080` (`COMPLETE`, 230/230), closing the maze-shaped region adjacency tranche's
-  critical-path extent. **Run #97:** the user then directly reported a bug while reviewing that
-  delivery ("if the bunny starts at the first screen then goes down one, there should be an arrow
-  pointing right but there is not," default seed=0/scale=3). Investigated directly:
-  `draw_region_arrows`'s `ARROW_ADDR_R` places the right arrow at tilemap column 30; the true
-  visible background window is only 20 tiles wide (`SCX=0` always, confirmed by direct code read
-  and empirically). Traced via `git show 3479dba~1:tilemaps.py` to the *retired pre-procgen*
-  `_zone_arrows` (`W-2` with `W=32`, the full tilemap width, not the 20-tile visible width) — a
-  defect present since before this pipeline's own work began, faithfully preserved by `IP-1030`'s
-  runtime port, never caught because no existing check verified screen-window visibility, only the
-  tilemap byte value. Confirmed `IP-1080`'s own classification logic not implicated. Filed
-  `BL-0084` (High), packaged and implemented as
-  **[IP-9140](../implementation/packages/IP-9140-right-arrow-offscreen-position-fix.md)**
-  (gate resolved same session, `BL-0085`): `ARROW_ADDR_R` column `30`→`18`, new check `T13.d`
-  (screen-visibility audit). Full suite: 231/231 pass. Committed (`6c42bca`) and pushed. **Run #98
-  (this run):** the user asked why the tilemap extends past the visible 20 columns at all, and
-  whether other off-screen areas exist. Investigated directly: the 32-column buffer width itself
-  is a deliberate, sound trade-off (native VRAM row stride, enables `copy_screen`'s simple
-  flat-copy loop — not a defect). But a full source audit of every `*_screen()` function in
-  `tilemaps.py` found a **real, widespread** issue distinct from `BL-0084`: every one of the nine
-  zone screens places some of its hand-authored decorative landmarks (trees, crystals, houses,
-  banners, bats, etc. — not the deliberate full-width terrain filler) at column ≥20, permanently
-  invisible — each screen losing roughly a third to half of its designed landmark density.
-  **User's explicit direction: do not fix now** — file it to be captured by the planned
-  graphics/aesthetics-overhaul work, ensuring that work reviews the existing aesthetics research
-  (`R209`/`R210`/`R211`, `BL-0013`) and normative standard (`BL-0029`/`GDS-08` §7) first. Filed
-  **`BL-0086`**, `DEFERRED` against that future overhaul being scheduled. No code changed this run
-  — pure backlog filing, per the user's own instruction. Committed (`e8f3619`) and pushed. **Run
-  #99 (this run):** advanced per the recommendation — `09-package-verification` on `IP-9070`
-  (`CUR_ZONE`-indexed structure generalization, one of the twelve `COMPLETE` packages, none of
-  which have any critical-path or gate blocker). Independently confirmed: `SCOREITEM_FLAGS`/
-  `SRAM_SCOREITEM` relocated to 81 bytes each at non-colliding addresses, `ZONE_COLLECTS` reduced
-  to 5 biome-family lists with `zc_table` now biome-keyed (not `CUR_ZONE`-keyed), `SAVE_VERSION_VAL`
-  v3 guard confirmed, all directly re-derived from source (not the Implementation Summary) and
-  driven at non-default region indices (up to 80, `scale=7`) per this skill's own tunable-parameter
-  rule. Fresh suite run: 231/231 pass (up from 193/193 at implementation time), ROM rebuild
-  byte-identical (confirmed by `sha256sum`). One Low finding (`BL-0087`): the RTM's `FR-5220` row
-  had never been updated to cite `IP-9070`/`T16` — corrected in place by this run (within
-  `09-package-verification`'s own allowance to correct proven-wrong cells), filed and immediately
-  `DONE`. `IP-9070` → `VERIFIED` ([VR-9070](../implementation/verification/VR-9070-cur-zone-indexed-structures-generalization.md));
-  Master Build Plan, verification `INDEX.md`, and `ROADMAP.md` all updated in sync. Committed
-  (`31917ed`) and pushed. **Run #100 (this run, part of a user-directed "iterate until blocked"
-  loop):** `09-package-verification` on **`IP-9050`** (generated-world navigation fix). Confirmed
-  `check_zone_transition` fully `REGION_GRAPH`-driven via the shared `czt_region_hl` subroutine
-  (addressing byte-for-byte identical to `dsr_p`'s own), zero hardcoded `CUR_ZONE` arithmetic
-  remains, `T17.a`/`b` pass at both a genuine `scale=5` world (25/25 regions reached via real
-  button-driven navigation, oracle-cross-checked) and the `scale=3` regression, `T9` confirmed
-  fully retired. Suite: 231/231 pass, ROM byte-identical. No findings — the RIGHT-edge threshold
-  now reading `152` instead of the package's own cited `156` is expected, already-documented drift
-  from the later `IP-9120` package. `IP-9050` → `VERIFIED`
-  ([VR-9050](../implementation/verification/VR-9050-generated-world-navigation-fix.md)); ledgers
-  updated in sync. Committed (`1b12f77`) and pushed. **Run #101 (this run, continuing the
-  user-directed loop):** `09-package-verification` on **`IP-9060`** (main menu cursor fix).
-  Confirmed `check_save_valid` writes no `MM_CURSOR` value, `mm_on_entry`'s reset gated on
-  `MM_JUST_ENTERED` with exactly 4 real transition sites plus the consuming clear (no bypass),
-  all 12 `T18.*` checks pass. Suite 231/231, ROM byte-identical. One Low finding: RTM's `FR-1170`
-  row cited only `IP-1040`/`T14` — corrected in place, now cites `IP-1040, IP-9060` /
-  `T14.a1–a4, T18.a–d`. `IP-9060` → `VERIFIED`
-  ([VR-9060](../implementation/verification/VR-9060-main-menu-cursor-fix.md)) — **this closes the
-  post-ship remediation tranche end-to-end: `IP-9050`/`9060`/`9070` all now `VERIFIED`.** Ledgers
-  updated in sync. Committed (`c589961`) and pushed. **Run #102 (this run):**
-  `09-package-verification` on **`IP-1031`** (generated-region screen composition, content half —
-  the last unverified Release-2 package). Confirmed `ALL_SCREENS`'s exact 5-family mapping,
-  `tiles.py`/`build_rom.py` diff-clean since `IP-1030`'s own commit (zero new tile art/palette
-  entries), `T13.a` tile-family audit passing, and relied on the pre-existing independent content
-  review (`content-review-IP-1031.md`, produced by a separate prior session — clean, one Low
-  informational finding) as this package's own required content-package re-drive evidence, since
-  no code/content changed since that review (byte-identical rebuild confirms it). Suite 231/231.
-  One Low finding: `FR-4300` never promoted to the global RTM (pre-existing gap). `IP-1031` →
-  `VERIFIED` ([VR-1031](../implementation/verification/VR-1031-generated-region-screen-composition-content.md))
-  — **this closes Release 2's full package set: all five (`IP-1020`/`1030`/`1031`/`1040`/`1050`)
-  now `VERIFIED`.** Ledgers updated in sync. Committed (`a7c46bc`) and pushed. **Run #103 (this
-  run):** `09-package-verification` on **`IP-1080`** (maze-aware transition-edge classification,
-  logic half). Confirmed `DRA_ROW`/`DRA_COL` re-derivation via repeated-subtraction division
-  (mirrors `generate_world`'s own `gw_mod3`, matching the citation the implementation itself
-  already corrected mid-flight, not the stale `check_zone_transition` one the package's original
-  text cited), open-edge branch confirmed byte-for-byte unchanged, all four `T20.*` checks
-  confirmed passing including AC-4 confirmed still honestly open (no suite claims to cover the
-  rendering half). Suite 231/231, ROM byte-identical. No findings. `IP-1080` → `VERIFIED`
-  ([VR-1080](../implementation/verification/VR-1080-maze-aware-edge-classification.md)) — **this
-  closes the maze-shaped region adjacency tranche's full critical path: `IP-1070`/`1080` both now
-  `VERIFIED`.** Ledgers updated in sync. Committed (`ad07009`) and pushed. **Run #104 (this run):**
-  `09-package-verification` on **`IP-9080`** (SAVE screen third-option labeling). No prior
-  `09-content-review` exists for this package (unlike `IP-1031`), so this run installed Pillow
-  (not present at session start) and independently re-drove the built ROM in PyBoy (fresh boot →
-  MAIN MENU → new game → PLAYING → START → SAVE screen, `GS=3` confirmed), screenshotting the
-  SAVE screen directly — the label "SELECT: SAVE"/"AND EXIT" renders cleanly, no overlap.
-  `T5.10–T5.12` pass; `asm_game.py` confirmed untouched. Suite 231/231, ROM byte-identical. No
-  findings. `IP-9080` → `VERIFIED`
-  ([VR-9080](../implementation/verification/VR-9080-save-screen-third-option-labeling.md)).
-  Ledgers updated in sync. Committed (`9082edc`) and pushed. **Run #105 (this run):**
-  `09-package-verification` on **`IP-9090`** (movement clamp boundary fix). Confirmed the UP floor
-  reads exactly `Y=8` and the RIGHT ceiling exactly `X=152` by direct code read, DOWN/LEFT
-  confirmed unchanged, `T7.8`/`T7.8b`/`T7.10`/`T7.10b` all `[PASS]` via genuine button-held
-  movement. Cross-checked that the `X=152` ceiling this package establishes is exactly what
-  `IP-9120`'s own already-verified `check_zone_transition` threshold consumes — consistent, not
-  contradictory. Suite 231/231, ROM byte-identical. No findings. `IP-9090` → `VERIFIED`
-  ([VR-9090](../implementation/verification/VR-9090-movement-clamp-boundary-fix.md)). Ledgers
-  updated in sync. Committed (`9109d96`) and pushed. **Run #106 (this run):**
-  `09-package-verification` on **`IP-9100`** (collectible pickup hitbox fix). Confirmed the
-  asymmetric point-in-box test (`asm_game.py`'s `check_collisions`) by direct code read — an
-  unsigned-subtract range check per axis, not the originally-planned symmetric formula the
-  package's own §6 documents as found wrong mid-implementation. All four boundary checks
-  (`T8.x`/`T8.y`/`T8.z1`/`T8.z2`) `[PASS]` at the exact `BL-0053` reproduction points and boundary
-  values. Confirmed `FR-3100`'s Notes field honestly flags the text-vs-implementation divergence
-  without silently rewriting the baselined AC text. Suite 231/231, ROM byte-identical. No
-  findings. `IP-9100` → `VERIFIED`
-  ([VR-9100](../implementation/verification/VR-9100-collectible-pickup-hitbox-fix.md)) — **this
-  closes the movement/pickup/UI bug-remediation tranche end-to-end: `IP-9080`/`9090`/`9100` all
-  now `VERIFIED`.** Ledgers updated in sync. Committed (`4076f26`) and pushed. **Run #107 (this
-  run):** `09-package-verification` on **`IP-9110`** (`gw_prng_step` mixing-step repair). Confirmed
-  the `7,9,8` shift-triplet ships exactly as `ADR-0014` specified and `worldgen.py`'s `_step`
-  mirrors it in lockstep (zero oracle mismatches across `T12.a`/`T12.b`/`T19.c`); `T12.j`/`T12.k`
-  confirmed `[PASS]`, both driving the live SM83-built ROM directly (not just the Python oracle).
-  The package's own Verification Checklist named the pre-upgrade-save exclusion check as "ad hoc,
-  not a permanent test" — this run performed that exact check itself, live: a synthetic
-  `version=0x03` SRAM fixture boots with CONTINUE genuinely blank (`TL_BG_BLANK` tile), an
-  identical `version=0x04` fixture shows it offered. Suite 231/231, ROM byte-identical. No
-  findings. `IP-9110` → `VERIFIED`
-  ([VR-9110](../implementation/verification/VR-9110-gw-prng-step-mixing-step-repair.md)). Ledgers
-  updated in sync. Committed (`b0b81b1`) and pushed. **Run #108 (this run):**
-  `09-package-verification` on **`IP-9120`** (RIGHT zone-transition threshold fix). Confirmed
-  `check_zone_transition`'s RIGHT-edge comparison reads `CP_n(152)`, exactly matching
-  `handle_play_input`'s own RIGHT clamp ceiling (independently confirmed in `VR-9090`); `T7.11`
-  confirmed `[PASS]` via real, sustained button-press input (not a memory teleport) — the exact
-  discipline that missed this regression the first time. Suite 231/231, ROM byte-identical. No
-  findings. `IP-9120` → `VERIFIED`
-  ([VR-9120](../implementation/verification/VR-9120-right-zone-transition-threshold-fix.md)).
-  Ledgers updated in sync. Committed (`19ff9f6`) and pushed.
-- **Pipeline state:** Bootstrap: stages 01–11 ✅ — complete, GO recorded. Post-ship remediation,
-  Release 2, maze-shaped adjacency, movement/pickup/UI tranches, `IP-9110`, `IP-9120`, and now
-  `IP-9130` all fully `VERIFIED`. **Run #109 (this run):** `09-package-verification` on
-  **`IP-9130`** (zone-transition intent gate). Confirmed all four `check_zone_transition` branches
-  gate on their own `JOY_CUR` direction bit (correct bit, correct branch target per direction) by
-  direct code read; `T7.12` confirmed `[PASS]` via the exact `BL-0078` reproduction sequence (real
-  RIGHT-held-until-blocked, then real DOWN-only, region 0→3, no spurious follow-on transition);
-  `T11.a2`/`_t17_do_move` confirmed holding real buttons around their teleport windows, matching
-  §6's own specified fix. Suite 231/231, ROM byte-identical. No findings. `IP-9130` → `VERIFIED`
-  ([VR-9130](../implementation/verification/VR-9130-zone-transition-intent-gate.md)). Ledgers
-  updated in sync. Committed (`8a7f96f`) and pushed. **Run #110 (this run):**
-  `09-package-verification` on **`IP-9140`** (right-arrow off-screen position fix) — the last
-  remaining `COMPLETE` package in the tree. Confirmed `ARROW_ADDR_R` reads tilemap column 18 by
-  direct code read; `T13.d` confirmed `[PASS]`; independently re-drove the built ROM in PyBoy at
-  `BL-0084`'s own exact reproduction sequence (default seed/scale, walk down from region 0 to
-  region 3) and screenshotted the result — the right arrow renders visibly at region 3's own right
-  edge. Suite 231/231, ROM byte-identical. No findings. `IP-9140` → `VERIFIED`
-  ([VR-9140](../implementation/verification/VR-9140-right-arrow-offscreen-position-fix.md)).
-  Ledgers updated in sync. Committed (`92d48ef`) and pushed. **This is the milestone this
-  user-directed loop was driving toward for the `09-package-verification` stage: every
-  implementation package in the tree (all 22) is now `VERIFIED`.** **Run #111 (this run):**
-  `10-integration-review` on **the Release 2 tranche** (`IP-1020`/`1030`/`1031`/`1040`/`1050`, all
-  `VERIFIED`) — the first integration review since the bootstrap tranche's own (run #? / 2026-07-10).
-  Rebuilt (byte-identical) and ran the full suite (231/231). Cross-referenced every `patches[...]`
-  key between `asm_game.py` and `build_rom.py` (zero orphans on either side, including the
-  helper-generated keys `_dsr_screen`/`_dsr_family` produce). Drove the full cross-package player
-  workflow live in PyBoy: new game → world generation (`IP-1020`) → screen render (`IP-1030`/
-  `1031`) → collect → save (`IP-1050`) → reboot → MAIN MENU correctly offers "continue" (`IP-1040`)
-  → world regenerates identically, score restored — no seam dead-ends. **Result: Clean**, two
-  findings, neither Critical/High: `docs/features/INDEX.md`'s `FS-103` row still says `IP-1031`'s
-  own verification is pending (stale since `VR-1031`); GDS-07's `SEED`/`KEYITEM_FLAGS` table rows
-  describe `FEAT-1100` as not-yet-shipped and misattribute a clear-loop widening actually done by
-  `IP-9050`. Report:
-  [integration-review-release-2-tranche.md](../reviews/integration-review-release-2-tranche.md).
-  `ROADMAP.md`'s `RV-INTEG` row and `docs/reviews/INDEX.md` updated. Committed (`a7c6375`) and
-  pushed. Harvested: filed **`BL-0088`** (Low, `SCHEDULED`) and **`BL-0089`** (Medium, `SCHEDULED`).
-  **Run #112 (this run):** `10-integration-review` on **the post-ship remediation tranche**
-  (`IP-9050`/`9060`/`9070`, all `VERIFIED`). Rebuilt (byte-identical), full suite 231/231.
-  Confirmed the tranche's own hard sequencing dependency (`IP-9050` makes `CUR_ZONE>8` reachable;
-  `IP-9070` makes `SCOREITEM_FLAGS`/`ZONE_COLLECTS` safe for that range) by driving real button
-  navigation at `seed=1`/`scale=9` from region 0 into region 9 — no crash, no corruption. Confirmed
-  the shared WRAM allocation chain (`SCOREITEM_FLAGS`→`MM_JUST_ENTERED`→`DRA_ROW`/`DRA_COL`) is
-  contiguous, zero collisions, across three different packages. **Result: Clean**, no new findings
-  (the one GDS-07 clause touching this tranche is already covered by `BL-0089`). Report:
-  [integration-review-post-ship-remediation-tranche.md](../reviews/integration-review-post-ship-remediation-tranche.md).
-  Committed (`c155676`) and pushed. **Manager-level backlog sync (same run, not the skill's own
-  scope):** the review's own Dimension 4 surfaced that `BL-0047`/`0048`/`0058`/`0059`/`0063` (this
-  tranche's own source bugs) and `BL-0049`/`0051`/`0052`/`0053` (the movement/pickup/UI tranche's)
-  were all still `SCHEDULED` with stale "pending independent verification"/"pending G3
-  authorization" notes that outlived the actual verification — flipped all nine to `DONE`, citing
-  their own VRs. **`BL-0075` corrected the other direction**: its own note claimed resolution
-  would follow once `IP-1080` shipped, but `IP-1080` (now `VERIFIED`, `VR-1080`) only shipped the
-  classification-*logic* half — AC-4 (the actual visual rendering) remains explicitly open per
-  `VR-1080`'s own audit, so the player-facing symptom `BL-0075` reports is genuinely unresolved;
-  corrected in place, stays `SCHEDULED`. Committed (`d058d9a`) and pushed. **Run #113 (this run):**
-  `10-integration-review` on **the maze-shaped adjacency tranche** (`IP-1070`/`1080`, both
-  `VERIFIED`). Rebuilt (byte-identical), full suite 231/231. Exercised the tranche's own real seam
-  live at `seed=1`/`scale=9` (non-default): forced a redraw at region 0, confirmed `DRA_ROW`/
-  `DRA_COL` correctly re-derive `(0,0)`, then confirmed `REGION_GRAPH[0]`'s own right neighbor byte
-  reads `0xFF` — a genuine maze-pruned-but-grid-adjacent edge per the offline oracle, exactly the
-  "blocked" case `IP-1080` exists to classify, confirmed against a real generated world rather than
-  a synthetic fixture. Confirmed `GW_MAZE_STATE` (`IP-1070`) and `DRA_ROW`/`DRA_COL` (`IP-1080`)
-  occupy disjoint WRAM ranges. **Result: Clean**, no findings. Report:
-  [integration-review-maze-shaped-adjacency-tranche.md](../reviews/integration-review-maze-shaped-adjacency-tranche.md).
-  `ROADMAP.md`'s `RV-INTEG` row/`docs/reviews/INDEX.md` updated. Committed (`24c6b57`) and pushed.
-  **Run #114 (this run):** `10-integration-review` on **the movement/pickup/UI tranche**
-  (`IP-9080`/`9090`/`9100`, all `VERIFIED`). Rebuilt (byte-identical), full suite 231/231.
-  Confirmed disjoint file regions across all three (`handle_play_input` vs `check_collisions` vs
-  `save_screen`). Exercised the real seam live, one continuous session: real RIGHT-held movement
-  settled exactly at `PLAYER_X=152` (`IP-9090`); a synthetic item injected at the exact `dx=7`
-  inclusive boundary relative to that real, clamp-derived position collected correctly (`IP-9100`);
-  the SAVE screen's third-option label rendered immediately after (`IP-9080`) — all three chained
-  with zero interference. **Result: Clean**, no findings. Report:
-  [integration-review-movement-pickup-ui-tranche.md](../reviews/integration-review-movement-pickup-ui-tranche.md).
-  `ROADMAP.md`'s `RV-INTEG` row/`docs/reviews/INDEX.md` updated. Committed (`dbd73e3`) and pushed.
-  **Run #115 (this run):** `10-integration-review` on **the `IP-9110`/`9120`/`9130`/`9140`
-  package set** — the last remaining integration-review scope. Rebuilt (byte-identical), full
-  suite 231/231. Confirmed `check_zone_transition`'s RIGHT branch carries both `IP-9120`'s
-  threshold fix and `IP-9130`'s `JOY_CUR` gate correctly layered. Drove all four packages together
-  live at `seed=1`/`scale=9`: RIGHT-held settles blocked at region 0 (`IP-9090`/`9120`), DOWN-held
-  transitions cleanly to region 9 with no spurious RIGHT re-trigger (`IP-9130`, `BL-0078`'s own
-  sequence exercised at scale=9 rather than `T7.12`'s own default scale=3), region 9's own right
-  arrow renders visibly (`IP-9140`) — and confirmed the whole world is non-degenerate (25.9%
-  Water) under `IP-9110`'s repaired PRNG. **Result: Clean**, one Low finding: GDS-07's
-  `SAVE_VERSION_VAL` cell still reads `0x03`, one version behind the shipped `0x04`
-  (`IP-9110`'s own bump) — filed as `BL-0090`, distinct from `BL-0089`. Report:
-  [integration-review-ip-9110-9120-9130-9140.md](../reviews/integration-review-ip-9110-9120-9130-9140.md).
-  `ROADMAP.md`'s `RV-INTEG` row (flipped to ✅, fully closed)/`docs/reviews/INDEX.md` updated.
-  Committed (`c2a5951`) and pushed. **This closes the `10-integration-review` sweep — every
-  `VERIFIED` package in the tree now belongs to a reviewed tranche or set.**
-- **Pipeline state:** Bootstrap: stages 01–11 ✅ — complete, GO recorded. **All 22 implementation
-  packages `VERIFIED`. All six tranches/sets integration-reviewed (all clean, no Critical/High).**
-  `10-integration-review`'s own backlog is now fully drained, the same way `09-package-
-  verification`'s was after run #110.
-- **Backlog:** 90 entries, 23 open. Run #97: `BL-0084` filed, packaged, implemented, and flipped
-  `DONE` all in one run (implementation directly re-verified against its own reported sequence,
-  same as `BL-0076`/`BL-0078`'s own precedent — formal `09-package-verification` still pending
-  separately); `BL-0085` filed and immediately `DONE` (gate resolution). Run #98: `BL-0086` filed,
-  `DEFERRED` (revisit trigger: the graphics/aesthetics overhaul being scheduled). Run #99:
-  `BL-0087` filed and immediately `DONE` (a stale RTM cell found and corrected in place by the
-  verification run itself). Runs #100–110: no new findings. Run #111: `BL-0088`/`BL-0089` filed,
-  both `SCHEDULED`. Run #112: nine entries (`BL-0047`/`0048`/`0058`/`0059`/`0063`/`0049`/`0051`/
-  `0052`/`0053`) flipped `DONE` (stale "pending verification" notes corrected); `BL-0075` corrected
-  in place (stays `SCHEDULED` — `IP-1080`'s rendering half is still unshipped, the symptom
-  persists). Runs #113–114: no new findings. Run #115: `BL-0090` filed, `SCHEDULED`. `BL-0071`/
-  `BL-0073`/`BL-0080`, `BL-0081`/`BL-0082` all unchanged from run #96.
-- **Run #116 (gate resolution):** asked the user via `AskUserQuestion` which scope
-  `11-release-readiness` should assess. **User answered: "Release 2 bundled with all post-ship
-  work (Recommended)"** — assess Release 2 (`IP-1020`/`1030`/`1031`/`1040`/`1050`) together with
-  the post-ship remediation, maze-shaped adjacency, movement/pickup/UI tranches, and the
-  `IP-9110`/`9120`/`9130`/`9140` set — i.e. everything actually shipped in the tree today. No code
-  change this run — a pure gate-resolution step, per the manager's own Step 4 convention.
-- **Run #117 (advance):** ran `11-release-readiness` on the bundled scope. Reconstructed Release
-  2's promise from `01-release-plan.md`'s own 7-Feature bucket (5 original + the 2026-07-11
-  addendum's `FEAT-9100`/`FEAT-2100`), cross-checked package→Feature ownership by direct package
-  read (each package's own §1 FS citation), then audited delivery feature-by-feature. 6/7
-  Features fully delivered (`VERIFIED` + clean integration/content review). **`FEAT-2100` found
-  genuinely partial**: `IP-1080` shipped only its logic half (its own package title says so;
-  `VR-1080`'s own audit confirms AC-4, the visual rendering, still explicitly open) — recorded as
-  Deviation #1, not glossed over, and tied to `BL-0075` (kept `SCHEDULED`, not closed). The 15
-  bundled non-Feature remediation packages (post-ship, movement/pickup/UI,
-  `IP-9110`/`9120`/`9130`/`9140`) have no `FEAT-xxxx` row to audit against — represented in a
-  supplementary Scope Audit section citing their own VRs/integration reviews instead. Evidence
-  re-run fresh: ROM byte-identical rebuild, 231/231 tests. Wrote
-  **[release-assessment-release-2-bundled.md](../reviews/release-assessment-release-2-bundled.md)**
-  — recommendation **GO, with `FEAT-2100`'s partial state carried forward explicitly, not
-  absorbed**. `docs/reviews/INDEX.md` updated. Per this skill's own G4 rule, no baseline record
-  touched — the GO/NO-GO call, and whether `FEAT-2100`'s partial delivery is acceptable to
-  baseline now, is the user's decision, not yet given. No drift found this run.
-- **Run #118 (gate resolution):** asked the user directly via
-  `AskUserQuestion`. **User answered: "GO now, FEAT-2100 partial (Recommended)"** — baseline
-  Release 2 as shipped today, `FEAT-2100`'s rendering half recorded as not-yet-delivered rather
-  than silently marked done. **Step 5 (baseline flip) executed:** `01-release-plan.md` (Release 2
-  bucket header + `FEAT-2100`'s addendum row, both now record shipped/GO with the partial-delivery
-  exception spelled out), `ROADMAP.md` (`RV-RELEASE` row, `FP-01` status line), `Claude.md` (status
-  heading updated to record the Release 2 GO; the still-pre-Release-2 behavior list below it
-  flagged as stale rather than rewritten in place — a full rewrite is out of this step's own
-  trackers-only scope, filed as new **`BL-0091`**), `docs/features/INDEX.md` (`FS-107`/`FS-108`
-  rows corrected to `VERIFIED`; `FS-103`'s own already-filed staleness, `BL-0088`, fixed as a
-  natural rider while the same file was open — flipped `DONE`), `docs/reviews/INDEX.md` and the
-  assessment document itself both updated to record the confirmed GO. ROM confirmed byte-identical
-  throughout (no code touched — this run is trackers/docs only, as the skill's own scope requires).
-  **This closes `11-release-readiness`'s own invocation for Release 2 (bundled) end-to-end.**
-- **Run #119 (advance, user-directed iteration until blocked):** Step 1/2 reconciliation +
-  triage: dispositioned `BL-0091` (`DEFERRED`, revisit trigger `BL-0050`+`BL-0081` both resolved).
-  **Caught a routing error on `BL-0075`** while re-checking its chain against `FS-108`'s own text:
-  the entry's prior disposition said "`09 → 07`, no new `06` work needed," but `FS-108` §14/§19
-  OQ2 explicitly state the rendering half's own FR/AC still need a future `06-feature-specification`
-  pass before `07`/`08` can touch it — corrected in place. **Step 3:** with that correction, the
-  highest-leverage unblocked step is `06-feature-specification` on `FS-108`'s rendering half (High
-  severity, `BL-0075`'s own resolution path, no gate — spec-writing needs no G3). **Step 4:** no
-  gate (06 writes specs only). **Step 5:** invoked `06-feature-specification`. It revised `FS-108`
-  in place — dropped the "(logic half)" qualifier, added **Workflow C** (the blocked-edge render
-  branch: reuse `DRA_ROW`/`DRA_COL` + `WORLD_SCALE` to test `row>0`/`row<SCALE-1`/`col>0`/
-  `col<SCALE-1` per direction, draw one of 4 new tiles `0x1A`–`0x1D` at the existing `ARROW_ADDR_*`
-  position on palette 2 — all already committed by `GDS-08` §10, nothing invented), closed AC-4 and
-  added AC-5 (open-case non-regression), extended the Verification Plan to ride the existing `T20`
-  suite (no new suite number), and left the exact pixel bitmap an explicit non-question (content-
-  authoring's job, consistent with every other tile-bearing FS in the tree). `docs/features/INDEX.md`,
-  the `FEAT-2100` catalog forward-reference metadata, and `ROADMAP.md`'s `FS-101+` row updated to
-  match. No code touched, ROM confirmed byte-identical. Committed (`006fe5b`) and pushed. **Step 6
-  (harvest):** no new findings beyond what's already tracked — `BL-0075` updated in place (still
-  `SCHEDULED`, next step `07`, not yet `DONE` since the rendering half remains unimplemented). No
-  open gates.
-- **Run #120 (advance, user-directed iteration until blocked):** Step 3: with `FS-108`'s spec
-  closed, the highest-leverage unblocked step is `07-implementation-planning` on the rendering
-  half — no gate (planning writes no code, authorization is a separate question decided at the
-  *next* step). **Step 5:** invoked `07-implementation-planning`. Packaged as a code/content peer
-  pair mirroring `IP-1030`/`IP-1031`'s own precedent for the same FS: **`IP-1081`**
-  (`08-content-authoring` — 4 new tile bitmaps, `TL_BLOCKED_U/D/L/R` at `0x1A`–`0x1D`, per
-  `GDS-08` §10) and **`IP-1082`** (`08-code-implementation` — `draw_region_arrows`'s blocked-case
-  render branch, reusing `IP-1080`'s own `DRA_ROW`/`DRA_COL` arithmetic, corrects `T20.b`'s own
-  now-stale assertion, adds `T20.e`). Ordering reversed from the `IP-1030`/`IP-1031` precedent
-  (content first this time) since the render branch needs the content package's own tile
-  constants to exist. Critical path: `IP-1081` → `IP-1082`, `IP-1082` `BLOCKED` until `IP-1081`
-  reaches `VERIFIED`. TWBS, Master Build Plan (status table/dependency graph/critical path),
-  `packages/INDEX.md`, `FS-108`/`FEAT-2100` forward-reference metadata, `ROADMAP.md` all updated.
-  No code touched, ROM byte-identical. Committed (`afc7606`) and pushed. **Step 6:** `BL-0075`
-  updated (still `SCHEDULED`, next step: G3 authorization, then `08-content-authoring` on
-  `IP-1081`).
-- **Run #120 gate resolved (same run continued):** asked the user via `AskUserQuestion`.
-  **User answered: "Yes, build both (Recommended)"** — filed as **`BL-0092`**, `DONE` same run.
-  `IP-1081`/`IP-1082` flipped to authorized in the Master Build Plan/`packages/INDEX.md`; `IP-1081`
-  flips `NOT STARTED`→`READY`.
-- **Run #121 (advance, user-directed iteration until blocked):** with `IP-1081` `READY` and
-  authorized, invoked `08-content-authoring` on it (the critical-path package). Added 4 new tile
-  bitmaps (`TL_BLOCKED_U/D/L/R`, `0x1A`–`0x1D`) — a broken/dashed-bar silhouette, rendered and
-  visually compared against the existing arrow tiles to confirm distinctness (not merely
-  asserted) — registered via `build_tile_data()`'s `put()` convention. Zero new palette entries
-  confirmed by diff. GDS-07 §4/`memory.md` tile-index quick-refs updated (87 of 256 slots, up
-  from 83). Full suite unchanged at 231/231 (no new checks — nothing calls the new tiles yet, per
-  this package's own scope). **ROM modified** (new tile data) — rebuilt, confirmed the byte
-  growth absorbs within existing section padding, no budget concern. Package → `COMPLETE`.
-  Committed (`5569ba7`) and pushed. **Step 6 (harvest):** no new findings. `BL-0075` still
-  `SCHEDULED` (not `DONE` — `IP-1082`, the actual rendering, hasn't shipped yet).
-- **Session-blocked (unchanged):** `09-package-verification` on `IP-1081` still needs a fresh
-  session before `IP-1082` can build. Not a full stop — picked up the next unblocked item instead.
-- **Run #122 (advance, user-directed iteration until blocked):** invoked `02-research-game-design`
-  on `BL-0081` (win-condition research, the highest-priority `SCHEDULED` item not session-blocked).
-  Authored **[R215](../research/encyclopedia/R215-procgen-win-condition-design.md)** — surveyed
-  fixed-goal-node (roguelike), percentage-completion (Metroidvania), and open-world exploration
-  conventions via live `WebSearch` (three queries, all cited), confirmed `FR-9140`'s spanning-tree
-  reachability guarantee makes every candidate viable (no unwinnable-world risk), and presented
-  four evidence-grounded candidates — A: scale-relative carrot count, B: percentage-of-collected
-  threshold, C: fixed generated goal region, D: hybrid of B+C — as a tradeoff table, deliberately
-  not picking one (research grounds, never decides). Cross-linked R201/R206/R213 bidirectionally
-  (all three now cite R215 in their own `Referenced By`). `docs/research/INDEX.md`/`ROADMAP.md`'s
-  research row updated. **`BL-0081` flipped `DONE`.** **`BL-0050`'s own revisit trigger fired**
-  ("`BL-0081` reaching a research conclusion") — re-dispositioned `DEFERRED`→`SCHEDULED`, riding a
-  future `04-requirements-engineering` pass that picks a candidate and derives the actual FR. No
-  code touched, ROM unchanged. Committed (`584233a`) and pushed. Harvested: no new findings beyond
-  the two backlog updates already made.
-- **User resolved the win-condition candidate directly in chat (same run, continued):** reviewing
-  `R215`'s tradeoff table and the measured dead-end data, the owner chose a fifth shape not among
-  candidates A–D — dead-end-priority placement at a `WORLD_SCALE`-sized target count, with a
-  random-fill fallback, win at collecting all of them. Also scoped a deferred infinite-world
-  variant (dead-end-only placement, top-3 high score, no name-entry) and a standing
-  "re-check at major releases" instruction. Filed **`BL-0093`** (finite, implement now — routes to
-  `03`), **`BL-0094`** (infinite variant, `DEFERRED` pending `BL-0082`), **`BL-0095`** (standing
-  release-checkpoint reminder). `BL-0081` cross-referenced.
-- **Run #123 (advance, user-directed iteration until blocked):** invoked
-  `03-architecture-design-synthesis` on `BL-0093`. Authored
-  **[ADR-0015](../architecture/adr/ADR-0015-dead-end-anchored-treasure-and-win-condition.md)** —
-  records the placement algorithm (pre-braid spanning-tree leaf priority, `WORLD_SCALE`-sized
-  target, random-fill fallback) and the new win condition (`KeyItemCount == WORLD_SCALE`) as a
-  binding decision, names the new generation-pass interaction (item placement must now read
-  `GW_MAZE_STATE`'s leaf structure at `maze_carve_done`, before the braid pass runs) without
-  specifying code. Corrected `GDS-04`'s "exactly one `KeyItem` per `Region`" domain rule
-  (superseded in place, not left silently stale) and added `GDS-07` §7c naming the new per-region
-  treasure-presence data-model concept, deliberately leaving the byte-level encoding choice
-  (widen `KEYITEM_FLAGS`'s value domain vs. a new bitmap) to `07`/`08`. `docs/architecture/INDEX.md`/
-  `ROADMAP.md`/the ADR index all updated. No code touched, ROM unchanged. Committed (`b201694`)
-  and pushed. Harvested: no new findings — `BL-0093` updated in place, still `SCHEDULED`.
-- **Run #124 (advance, user-directed iteration until blocked):** invoked
-  `04-requirements-engineering` on `ADR-0015`'s delta. Authored **FR-9160** (scale-relative,
-  dead-end-prioritized `KeyItem` placement — supersedes `FR-9130`) and **FR-9161** (scale-relative
-  victory condition — supersedes `FR-3300`), both target/not-yet-implemented. `FR-9130`/`FR-3300`
-  left textually unmodified, each gained a Notes forward-pointer only, per the established
-  `FR-1120`→`FR-1170`-`1190` coexistence precedent (now a fourth instance). Corrected an
-  unrelated, pre-existing staleness in `FR-9130`'s own Notes (falsely claimed "Not yet
-  implemented" — `IP-1020`/`VR-1020` had already shipped and verified it) while the FR was
-  already open. Added finding #14 to the Requirements Review (delta reviewed as a set, clean —
-  `FR-9160`/`FR-9161` confirmed consistent with `FR-9120`/`FR-3220`, both unaffected) and two new
-  `UNASSIGNED` rows to the traceability matrix. `docs/requirements/INDEX.md`/`ROADMAP.md` updated.
-  No code touched, ROM unchanged. Committed (`0874ce7`) and pushed. Harvested: no new findings —
-  `BL-0093` updated in place, still `SCHEDULED`.
-- **Run #125 (advance, user-directed iteration until blocked):** invoked
-  `06-feature-specification` on `FS-102`. Updated Workflow A step 5 (scale-relative, dead-end-
-  prioritized placement, supersedes the original one-per-region text), Workflow B step 4 (also
-  corrected a genuine drift: FS-102's own prior victory-condition forward-reference stated
-  `KeyItemCount == WorldScale²`, a formula never actually decided by any binding artifact —
-  now correctly cites `FR-9161`'s `WORLD_SCALE` threshold), Data Model Changes (§7c's new
-  tri-state concept, encoding left open), Acceptance Criteria (AC-5 revised, AC-9 new),
-  Verification Plan, Dependencies (new: `FR-9140`/`FS-107`), Related ADRs. Filed 2 new Open
-  Questions, both explicitly non-blocking: OQ4 (`FEAT-9000`'s own catalog entry still cites
-  `FR-9130`, not its successor `FR-9160` — routed to `05-feature-decomposition`, out of this
-  skill's own edit authority) and OQ5 (the per-region encoding choice — routed to `07`, per
-  `GDS-07` §7c's own deferral). `docs/features/INDEX.md`/`FEAT-9000`'s forward-reference metadata/
-  `ROADMAP.md` updated. No code touched, ROM unchanged. Committed (`4b20a85`) and pushed.
-  Harvested: no new findings beyond the two Open Questions already recorded in the spec itself —
-  `BL-0093` updated in place, still `SCHEDULED`.
-- **Run #126 (advance, user-directed iteration until blocked):** invoked
-  `07-implementation-planning` on `FS-102`'s revised behavior. Packaged as a single package,
-  **`IP-1021`** (`08-code-implementation`) — `generate_world`'s new placement pass (inserted
-  between `maze_carve_done` and the braid pass, reusing `IP-1070`'s own `GW_MAZE_STATE` for leaf
-  classification), `check_complete`'s corrected `WORLD_SCALE` comparison, `worldgen.py`'s oracle
-  mirror. **Resolved `FS-102`'s Open Question 5**, the per-region encoding: widened
-  `KEYITEM_FLAGS`'s existing value domain to a tri-state, not a new bitmap — confirmed by direct
-  code read that both real consumers (`setup_zone_collects`, `check_collisions`) already treat any
-  nonzero value as "no active item here," a genuine "found nothing to fix" Supersession-sweep
-  result, zero new WRAM/SRAM, no save-format bump. Recommends (not mandates) a no-new-PRNG-draw
-  fixed-order fallback fill for the "too few dead ends" case, avoiding the same
-  modulo-by-variable-count problem `ADR-0012` already ruled out for the maze algorithm itself.
-  TWBS, Master Build Plan, `packages/INDEX.md`, `FS-102`/`FEAT-9000` metadata, `ROADMAP.md`
-  updated. No code touched, ROM byte-identical. Committed (`aeacf85`) and pushed. Harvested: no
-  new findings — `BL-0093` updated in place, still `SCHEDULED`. **`IP-1021` is not authorized.**
-  **User authorized `IP-1021`** ("Yes, build it (Recommended)," `BL-0096` → `DONE`).
-- **Run #127 (advance, user-directed iteration until blocked):** invoked
-  `08-code-implementation` on `IP-1021`. Implemented `generate_world`'s new two-pass placement
-  algorithm (leaf classification reusing `maze_prune_dir`'s own "Check 1" test across all 4
-  directions; Pass A places up to `WORLD_SCALE` leaves, Pass B fills any shortfall from the first
-  non-leaf regions in index order — no new PRNG draws), inserted between `maze_carve_done` and
-  `maze_prune_region`. `check_complete` now reads `WORLD_SCALE` at runtime instead of a hardcoded
-  `9`. Hit and fixed a `JR oor` assembly error (two long loop back-edges converted to `JP_NZ`,
-  matching the codebase's own existing convention). Direct PyBoy verification then surfaced a
-  genuine defect introduced by this package's own change: `st_intro`'s unconditional 81-byte
-  `KEYITEM_FLAGS` clear ran *after* `generate_world` (called earlier, from the SEED/SCALE ENTRY
-  confirm handler) and silently destroyed the placement pass's output — every region showed
-  "present" across 4 tested seed/scale combinations. In scope to fix per this skill's own rule
-  (a failure caused by this package's changes). Fixed by relocating the clear to immediately
-  before `CALL('generate_world')` in the SEED/SCALE ENTRY confirm handler, leaving `st_intro`'s
-  `SCOREITEM_FLAGS` clear untouched. Re-verified via PyBoy across 4 seed/scale pairs (0/3, 1/9,
-  42/2, 7/5): `present == WORLD_SCALE` and forcing `CARROTS_COUNT` to that value correctly
-  triggers `GS_VICTORY` in every case. Added `worldgen.py`'s oracle mirror (`_carve_maze`,
-  reusing its already-built `parent_dir` array for the leaf test) — confirmed 0 mismatches against
-  real SM83 output across the full 15-entry `(seed,scale)` corpus. Revised `T12.e` (was a stale
-  "one KeyItem per region" check that was actually testing region count, not placement — the
-  region-count assertion renamed to `T12.m`, `T12.e` now asserts the real placement-rule/oracle
-  parity), added new `T12.n` (exactly `WORLD_SCALE` placed, every corpus entry). Full suite:
-  233/233 pass (+2 net new checks). Supersession sweep re-confirmed clean against the current
-  tree: `setup_zone_collects`/`check_collisions` both already treat any nonzero `KEYITEM_FLAGS`
-  value as "no active item," correct for the new "absent" (`2`) value too;
-  `save_to_sram`/`try_load_save` are value-agnostic 81-byte memcpys, unaffected. `IP-1021` →
-  `COMPLETE`. Documentation updated: `FR-9160`/`FR-9161` flipped to implemented, citing `IP-1021`;
-  `FR-9130`/`FR-3300` formally superseded in their own Notes (the `FR-1120` precedent's second
-  step); RTM rows filled (`FS-102`/`IP-1021`/tests, replacing `UNASSIGNED`); `FS-102` metadata
-  updated with the implemented-by pointer and Open Question 5 marked resolved; `GDS-07` §7c given
-  a confirming note; Master Build Plan, `packages/INDEX.md`, `ROADMAP.md` updated in sync.
-- **Next step:** **`09-package-verification` on `IP-1021`** — but this session cannot perform it
-  (same-session-independence rule: `IP-1021` was implemented in this same session). Falls back to
-  the next unblocked item. Separately available: `BL-0082` (streaming/infinite-world research).
-  Still session-blocked: `09-package-verification` on `IP-1081`.
-- **Direct backlog triage (2026-07-13, user instruction, no skill invocation):** the user directed
-  that `BL-0066` (biome-blob clustering) be formally blocked on `BL-0082` (streaming/infinite-world
-  research), not left as an independent `NEEDS-USER` (a)-vs-(b) pick — because neither of
-  `BL-0066`'s two candidate seeding strategies (dead-end seeding, N-random-point flood-fill) is
-  guaranteed to survive a lazy/on-demand streaming generation model, since both currently assume a
-  known, bounded grid extent. `BL-0066` re-dispositioned `NEEDS-USER` → `DEFERRED` (revisit
-  trigger: `BL-0082`'s own `02-research-*` step closing with a concrete streaming model).
-  `BL-0082`'s own scope widened to explicitly evaluate blob-clustering viability under whatever
-  streaming model it lands on, not just the hardware-feasibility/WRAM questions already named.
-- **Direct ledger fix (2026-07-13, no skill invocation):** while closing out this session, found
-  `packages/INDEX.md` had drifted from the Master Build Plan — 12 packages (`IP-1031`, `IP-9070`,
-  `IP-9050`, `IP-9060`, `IP-1080`, `IP-9090`, `IP-9100`, `IP-9080`, `IP-9110`, `IP-9120`, `IP-9130`,
-  `IP-9140`) were independently verified in earlier runs (real `VR-xxxx` files exist for all
-  twelve, and the Master Build Plan already correctly reads `VERIFIED`), but the index still
-  showed them `COMPLETE`/"awaits independent verification" — a stale copy from before those
-  verification runs, never synced. Corrected all twelve rows to `VERIFIED`, each citing its real
-  VR file. The index and the plan must never disagree (this project's own stated rule) — this was
-  a genuine integrity gap in the ledger the next session would otherwise have inherited.
-- **Open gates:** none — `IP-1021` is authorized and `COMPLETE`. **Session-blocked:**
-  `09-package-verification` on `IP-1081` and now also `IP-1021` (both implemented this session,
-  both need a fresh session to verify).
+- **Updated:** 2026-07-13 (run #132)
+- **Increment:** Bootstrap baseline remains fully closed (01–11 ✅, GO recorded). Release 2
+  (bundled with all post-ship remediation) is baselined GO, with `FEAT-2100`'s partial-delivery
+  exception now closed (see below). **This session (runs #128–132):** picked up exactly where the
+  prior session's own same-session-independence block left off — verified `IP-1021` (win-condition
+  redesign) and `IP-1081` (maze-blocked edge indicator, content half) in a fresh session, then
+  implemented `IP-1082` (the paired render half, unblocked by `IP-1081` reaching `VERIFIED`), ran
+  `10-integration-review` on `IP-1021` (clean, 2 non-blocking findings), and completed a full
+  backlog triage sweep that caught two genuinely stale rows (`BL-0064`/`BL-0065`) never flipped
+  `DONE` despite their work having shipped as `IP-1070` long ago.
+- **Pipeline state:** Bootstrap: stages 01–11 ✅. **24 of 25 implementation packages `VERIFIED`**
+  (`IP-1082` is `COMPLETE`, session-blocked from its own verification this session — needs a fresh
+  session next). `IP-1021` integration-reviewed clean, standalone (post-dates the six-tranche
+  sweep that closed run #115). `IP-1081`/`IP-1082` (maze-blocked edge indicator set) **not yet**
+  integration-reviewed — `IP-1082` must reach `VERIFIED` first; a `09-content-review` pass on the
+  shipped tile art is also owed once `IP-1082` verifies (weighing `BL-0097`'s pixel-identical
+  direction-pair finding).
+- **Backlog:** 99 entries, 25 open (19 `SCHEDULED`, 6 `DEFERRED`). This session: `BL-0097` filed
+  (`IP-1081`'s content finding, `DEFERRED` pending `IP-1082`'s own `09-content-review`); `BL-0098`/
+  `BL-0099` filed by the integration review (`DEFERRED`→`SCHEDULED` at triage, both routed
+  upstream, neither blocking); `BL-0064`/`BL-0065`/`BL-0093` flipped `DONE` (stale or newly
+  resolved); `BL-0075`/`BL-0067`/`BL-0050`/`BL-0091` refreshed with current status. All other open
+  rows re-checked and confirmed still correctly dispositioned.
+- **Next step:** **`02-research-gbc-hardware` on `BL-0082`** (streaming/on-the-fly world
+  generation feasibility) — the user's own explicit priority for this session, recommended entry
+  point per their own instruction: WRAM/ROM/compute feasibility of region-by-region lazy
+  generation on real SM83 hardware, since `generate_world` currently assumes a global upfront pass
+  and `GW_MAZE_STATE`'s spanning-tree carve assumes global visited-state. Scope explicitly widened
+  (2026-07-13, direct user/session instruction, no skill invocation) to also evaluate `BL-0066`'s
+  biome-blob-clustering seeding strategies under whatever streaming model emerges — `BL-0066`
+  re-dispositioned `NEEDS-USER`→`DEFERRED` accordingly, revisit trigger: this research landing with
+  a concrete streaming model. If hardware feasibility confirms viability: `02-research-game-design`
+  next (what "infinite" means for win conditions, since `BL-0094`'s own deferred design depends on
+  this). Separately available, not session-blocked: `BL-0050` (MAP/status-screen redesign, now
+  fully ripe for `04-requirements-engineering` — its win-condition blocker shipped this session).
+  **Session-blocked:** `09-package-verification` on `IP-1082` needs a fresh session.
+- **Open gates:** none — every currently-`SCHEDULED`/`DEFERRED` item either has a named revisit
+  trigger or is ready to ride its own next step without a pending user decision. `BL-0082`'s
+  research entry point needs no G3 (research writes no code).
+
 
 ## Run log
 
@@ -613,3 +189,8 @@
 | 125 | 2026-07-12 | advance (user-directed iteration until blocked) | `06-feature-specification` | `FS-102` — revise for win-condition redesign | ✅ Updated Workflow A/B (placement algorithm, corrected a genuine victory-formula drift — the prior text stated `WorldScale²`, never actually decided by any binding artifact), Data Model Changes (§7c tri-state concept), AC (AC-5 revised, AC-9 new), Verification Plan, Dependencies, Related ADRs. Filed 2 non-blocking Open Questions (catalog-citation lag → `05`; encoding choice → `07`). `docs/features/INDEX.md`/`FEAT-9000` metadata/`ROADMAP.md` updated. No code touched, ROM unchanged. Committed (`4b20a85`) and pushed. Harvested: no new findings. | No skill invocation is gated. **Recommend:** `07-implementation-planning` to package `FS-102`'s revised behavior. Separately available: `BL-0082`, `BL-0066` (`NEEDS-USER`). Still session-blocked: `09-package-verification` on `IP-1081`. |
 | 126 | 2026-07-12 | advance (user-directed iteration until blocked) | `07-implementation-planning` | `FS-102` revised behavior — package `BL-0093` | ✅ Packaged as `IP-1021` (`08-code-implementation`): `generate_world`'s new placement pass, `check_complete`'s corrected comparison, `worldgen.py` mirror. Resolved OQ5 (widened `KEYITEM_FLAGS` domain, confirmed zero downstream changes needed via direct code read). TWBS/Master Build Plan/`packages/INDEX.md`/metadata/`ROADMAP.md` updated. No code touched, ROM byte-identical. Committed (`aeacf85`) and pushed. Neither authorized. | **GATE:** G3 authorization needed for `IP-1021` before `08-code-implementation` can begin. |
 | 127 | 2026-07-13 | advance (user-directed iteration until blocked) | `08-code-implementation` | `IP-1021` — win-condition redesign | ✅ Implemented `generate_world`'s two-pass placement algorithm (leaf classification + up-to-`WORLD_SCALE` selection + fallback-fill, no new PRNG draws), `check_complete`'s runtime `WORLD_SCALE` read, `worldgen.py`'s oracle mirror (0 mismatches, full corpus). Found and fixed a same-package defect during implementation: `st_intro`'s `KEYITEM_FLAGS` clear ran after `generate_world` and destroyed the placement output — relocated to the SEED/SCALE ENTRY confirm handler. Direct PyBoy verification across 4 seed/scale pairs confirmed correct present/absent counts and victory triggering. Revised `T12.e` (region-count check renamed `T12.m`; `T12.e` now the real placement/oracle-parity check), added `T12.n`. Full suite 233/233. Supersession sweep re-confirmed clean. `IP-1021` → `COMPLETE`. `FR-9160`/`FR-9161` marked implemented, `FR-9130`/`FR-3300` formally superseded, RTM/`FS-102`/`GDS-07` §7c/Master Build Plan/`packages/INDEX.md`/`ROADMAP.md` updated. | **Session-blocked:** `09-package-verification` on `IP-1021` (and `IP-1081`) needs a fresh session. Next available: `BL-0082` (streaming/infinite-world research) or `BL-0066` (`NEEDS-USER`). |
+| 128 | 2026-07-13 | advance (fresh session — unblocks the prior session's own stop) | `09-package-verification` | `IP-1021` | ✅ Independently confirmed: full suite 233/233 (fresh PyBoy install), ROM builds at exactly 32768 bytes, every DoD/checklist item re-derived by direct code read (placement pass confined between `maze_carve_done` and the braid pass, `check_complete`'s only change the comparison operand, zero new PRNG draws — confirmed by direct source scan, not inference). **Independent live drive** (this skill's own tunable-parameter rule): real MAIN MENU → SEED/SCALE ENTRY UI path at two non-corpus scales (6, 8, seeds 65535/55432) — exact `WORLD_SCALE`-count placement, oracle parity, and correct victory-threshold triggering all confirmed directly. `IP-1021` → `VERIFIED` ([VR-1021](../implementation/verification/VR-1021-win-condition-redesign.md)). No findings. Committed (`7db0514`) and pushed. | `09-package-verification` on `IP-1081` (also session-blocked from the prior session, now unblocked). |
+| 129 | 2026-07-13 | advance | `09-package-verification` | `IP-1081` | ✅ Independently confirmed: 233/233 pass, ROM builds at exactly 32768 bytes, `tiles.py` diff confirmed exactly 4 constants + 4 functions + 4 `put()` calls, `build_rom.py` confirmed untouched (0 new palette entries), `0x1A`-`0x1D` confirmed previously free. `IP-1081` → `VERIFIED` ([VR-1081](../implementation/verification/VR-1081-maze-blocked-edge-indicator-content.md)), unblocking `IP-1082` → `READY`. One Medium finding: `blocked_up`/`blocked_down` and `blocked_left`/`blocked_right` are pixel-identical pairs, not direction-specific glyphs as the package's own §6 text called for — does not block `VERIFIED` (deferred to `09-content-review` per the package's own §13 Risks). Filed `BL-0097`, `DEFERRED` (revisit trigger: `IP-1082` reaching `VERIFIED` and its own `09-content-review` pass beginning). Committed (`15c6d5d`) and pushed. | `08-code-implementation` on `IP-1082` (now `READY`, pre-authorized `BL-0092`). |
+| 130 | 2026-07-13 | advance | `08-code-implementation` | `IP-1082` — maze-blocked edge indicator (render) | ✅ Extended `draw_region_arrows`'s four `dra_no_*` (`0xFF`) branches with a blocked-vs-absent render decision (`DRA_ROW`/`DRA_COL` vs `WORLD_SCALE`), drawing `IP-1081`'s `TL_BLOCKED_<dir>` tile via the existing `_arrow_write` helper. Open-edge branches confirmed byte-for-byte unchanged. **Found and fixed a same-package defect during implementation**: the first draft ran the new blocked-test unconditionally after each `dra_no_*` label, including on the open-arrow fallthrough path, silently overwriting a just-drawn open arrow whenever the blocked-side condition also happened to hold — fixed with an explicit `JR` past the blocked-test block right after each open-arrow write (caught by `T13.c`/`T20.a`/`T20.e` failing, not by inspection). `T20.b` corrected to the positive tile-index assertion, new `T20.e` (open-case non-regression). Full suite 234/234. Independently re-driven via PyBoy screenshot at `(seed=0, scale=3)` region 0's blocked right edge — confirmed rendering both by direct WRAM tile-index read and visual screenshot. Closes `BL-0075`/`FR-2330` in full. `IP-1082` → `COMPLETE`. `FR-2320` (superseded)/`FR-2330` (implemented) Notes, RTM row, `FS-108` metadata, Master Build Plan, `packages/INDEX.md`, `ROADMAP.md` updated. Committed (`6091bd1`) and pushed. | **Session-blocked:** `09-package-verification` on `IP-1082` needs a fresh session. Next available: `10-integration-review` on `IP-1021` (per user's explicit instruction — post-dates the last integration sweep), or `BL-0082`. |
+| 131 | 2026-07-13 | advance | `10-integration-review` | `IP-1021` (win-condition redesign) | ✅ **Clean** — no Critical/High. Confirmed `KEYITEM_FLAGS`'s widened tri-state domain is honored correctly by every other consumer (`setup_zone_collects`/`check_collisions`, both `IP-1020`) and that the save/load ordering (`IP-1050`) is safe: `try_load_save` calls `generate_world` (which now also runs the placement pass) *before* the `SRAM_KEYITEM_FLAGS` restore memcpy, so a player's actually-collected KeyItems correctly survive a reload rather than being reset. Two non-blocking findings: `GW_KI_PLACED` (`IP-1021`'s new transient scratch byte) has no GDS-07 WRAM table row, breaking this codebase's own documented-scratch-byte convention (`BL-0099`, Medium, → `03`); `FEAT-9000`'s catalog entry still cites the superseded `FR-9130` and an "exactly one KeyItem per region" claim `IP-1021` invalidates — already an internal Open Question (`FS-102` OQ4) with no backlog entry until now (`BL-0098`, Low, → `05`). Report: [integration-review-ip-1021.md](../reviews/integration-review-ip-1021.md). `docs/reviews/INDEX.md`/`ROADMAP.md` `RV-INTEG` row updated. Committed (`9d33d20`) and pushed. | Backlog triage sweep (per user's explicit instruction), then `BL-0082` (streaming/infinite-world research, the user's stated priority for this session). |
+| 132 | 2026-07-13 | triage | — | full backlog sweep | ✅ Re-checked every open (non-`DONE`) row. **Caught two genuinely stale rows**: `BL-0064`/`BL-0065` (maze-shaped adjacency generation pass + braid default) still read "rides `07-implementation-planning` next" though the work shipped as `IP-1070` long ago, independently `VERIFIED` and integration-reviewed clean — flipped `DONE`. `BL-0093` (win-condition umbrella) flipped `DONE` (`IP-1021` now `VERIFIED` + integration-reviewed). `BL-0075`/`BL-0067` (maze-blocked edge indicator) updated with this session's full `IP-1081`/`IP-1082` progress, staying `SCHEDULED` pending `IP-1082`'s own verification. `BL-0050` (MAP/status-screen redesign) confirmed fully ripe for `04-requirements-engineering` — its win-condition blocker (`FR-9160`/`9161`) has landed and shipped — not actioned this run per the user's own stated priority (`BL-0082` first); noted as the natural next `04` candidate. `BL-0091` partially unblocked (`BL-0081` half of its trigger fired) but stays `DEFERRED` pending `BL-0050` itself shipping. All other open rows (`BL-0043`/`44`/`57`/`60`/`61`/`71`/`73`/`80`/`89`/`90`, `BL-0014`/`66`/`86`/`94`/`97`/`98`/`99`) re-checked and confirmed still correctly dispositioned. Committed (`e6815c1`) and pushed. | `02-research-gbc-hardware` on `BL-0082` (streaming/infinite-world feasibility) — the user's explicit priority for this session, recommended entry point per their own instruction. |
