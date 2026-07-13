@@ -225,6 +225,19 @@ parallel-eligible.
   as a Notes-only forward pointer for a future `04-requirements-engineering` correction (see the
   package status table's own `IP-9100` row).
 
+## SELECT Menu & Edge-Indicator Legend Screen tranche (`FS-109`/`FEAT-1200`/`BL-0100`, planned 2026-07-13)
+
+One package extending `PLAYING`'s SELECT press into a two-option cursor menu (MAP/LEGEND) and
+adding a new static LEGEND screen explaining the transition-edge indicator tiles — see the
+[TWBS](01-technical-work-breakdown.md#select-menu--edge-indicator-legend-screen-fs-109feat-1200bl-0100-planned-2026-07-13)
+for the verb inventory and supersession sweep (three existing `test_rom.py` sites needed
+correction for the new two-hop SELECT path). **Does not fall under the `BL-0001`…`BL-0005` G3
+bootstrap carve-out; explicit user authorization is required before `08-code-implementation` can
+start.** No critical path — a single package, fully `READY` (every dependency already
+`VERIFIED`).
+
+| [IP-1090](packages/IP-1090-select-menu-edge-indicator-legend-screen.md) | SELECT Menu & Edge-Indicator Legend Screen (FS-109 / FEAT-1200 / BL-0100) | `08-code-implementation` | **READY** | IP-1040 (VERIFIED), IP-1030 (VERIFIED), IP-1081 (VERIFIED) | **NOT YET — awaiting explicit user G3** | Fully specified 2026-07-13. Resolves FS-109's 3 Open Questions as this package's own implementation choices: `GS_SELECT_MENU`/`GS_LEGEND` = 8/9 (next free `GAMESTATE` values); SELECT MENU's cursor reuses `MM_CURSOR`/`MM_JUST_ENTERED` rather than allocating new WRAM bytes (valid — `GS_MAIN_MENU`/`GS_SELECT_MENU` never simultaneously active, no direct transition between them); SELECT is a plain no-op inside SELECT MENU/LEGEND (neither handler tests `J_SELECT`). No new tile art (`GDS-08` §11) — reuses `TL_ARROW_U`/`TL_BLOCKED_U` verbatim, so no `09-content-review` pass is owed. Supersession sweep found three existing tests (`T4.6`, `T8.11`, `T14.e2`) assume the old single-hop SELECT→MAP path and need a corrective `A`-press insertion — recorded as this package's own Tests to Add/Modify, not left for `08` to rediscover. |
+
 ## Dependency graph
 
 ```mermaid
@@ -311,6 +324,13 @@ graph TD
 
     style IP1081 fill:#eee,stroke:#333,stroke-width:2px
     style IP1082 fill:#eee,stroke:#333,stroke-width:2px
+
+    IP1090["IP-1090 SELECT menu &<br/>legend screen<br/>(READY)"]
+    IP1040 --> IP1090
+    IP1030 --> IP1090
+    IP1081 --> IP1090
+
+    style IP1090 fill:#eee,stroke:#333,stroke-width:2px
 ```
 
 *(The dotted edge into `IP1020` represents the Master Build Plan's own package-status
@@ -527,3 +547,18 @@ first-in-critical-path package.)*
   blocking dependency. Independent of `IP-1081`/`IP-1082` (disjoint files). `COMPLETE`, awaiting
   `09-package-verification` in a fresh session (same-session-independence rule).
 - **Authorization state: authorized** — user G3, `BL-0096`, "Yes, build it" (2026-07-12).
+
+### SELECT Menu & Edge-Indicator Legend Screen tranche (`FS-109`/`FEAT-1200`/`BL-0100`, planned 2026-07-13)
+
+- **No critical path — a single package, `IP-1090`, no split** (the state-machine navigate half
+  and the two-screen render half are not independently completable — neither has anywhere to
+  transition to/from without the other — per the TWBS's own split rationale).
+- **`IP-1090`**: `handle_play_input`'s SELECT branch retargeted from `GS_MAP` to the new
+  `GS_SELECT_MENU`; two new state handlers (`st_select_menu`, `st_legend`); two new static
+  screens (`select_menu_screen()`, `legend_screen()`, no new tile art). Depends on `IP-1040`
+  (cursor-menu convention + `MM_CURSOR`/`MM_JUST_ENTERED` reuse), `IP-1030`/`IP-1081` (the
+  already-shipped `TL_ARROW_U`/`TL_BLOCKED_U` tiles LEGEND displays) — all three `VERIFIED`, no
+  blocking dependency. Independent of `IP-1082`'s own still-pending independent verification
+  (disjoint files). Fully specified, `READY`.
+- **Authorization state: not yet authorized** — awaiting explicit user G3 before
+  `08-code-implementation` may begin.

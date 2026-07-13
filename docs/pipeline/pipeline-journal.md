@@ -14,40 +14,43 @@
 
 ## Position
 
-- **Updated:** 2026-07-13 (run #139)
+- **Updated:** 2026-07-13 (run #140)
 - **Increment:** Bootstrap baseline remains fully closed (01–11 ✅, GO recorded). Release 2
   (bundled with all post-ship remediation) is baselined GO, with `FEAT-2100`'s partial-delivery
   exception still open pending `IP-1082`'s independent verification. **This session (runs
-  #128–139):** verified `IP-1021`/`IP-1081`, implemented `IP-1082`, integration-reviewed
+  #128–140):** verified `IP-1021`/`IP-1081`, implemented `IP-1082`, integration-reviewed
   `IP-1021`, ran both `02-research-*` halves of the infinite-world priority (`R114`/`R216`), then
-  drove the full `04→03→04→05→06` chain for the edge-indicator legend screen from a bare
-  `CR-06` through to a complete `FS-109` feature specification.
+  drove the full `04→03→04→05→06→07` chain for the edge-indicator legend screen from a bare
+  `CR-06` through to a fully specified, packaged, `READY` implementation package (`IP-1090`).
 - **Pipeline state:** Bootstrap: stages 01–11 ✅. **24 of 25 implementation packages `VERIFIED`**
   (`IP-1082` is `COMPLETE`, still session-blocked from its own verification — needs a genuinely
-  fresh session next). `IP-1021` integration-reviewed clean, standalone. `IP-1081`/`IP-1082`
+  fresh session next; `IP-1090` is new this run, `READY` but not authorized, bringing the tree to
+  26 packages total). `IP-1021` integration-reviewed clean, standalone. `IP-1081`/`IP-1082`
   (maze-blocked edge indicator set) **not yet** integration-reviewed — `IP-1082` must reach
   `VERIFIED` first; a `09-content-review` pass on the shipped tile art is also owed once it
   verifies (weighing `BL-0097`). GDS-01/GDS-08 both carry a delta (§4c/§11); requirements baseline
-  carries `FR-1200`/`FR-1210` (target, not yet implemented); feature-planning baseline carries
-  `FEAT-1200`; **`docs/features/` now carries `FS-109`**, fully specified with 3 Open Questions,
-  all routed to `07-implementation-planning`. No `IP-xxxx` package exists yet for this capability.
+  carries `FR-1200`/`FR-1210` (target, not yet implemented — RTM's Feature Spec/Implementation
+  Package columns now show `FS-109`/`IP-1090`); feature-planning baseline carries `FEAT-1200`;
+  `docs/features/` carries `FS-109`, all 3 Open Questions now resolved; **`docs/implementation/`
+  now carries `IP-1090`**, fully specified, `READY` (every dependency `VERIFIED`), **not yet
+  authorized**.
 - **Backlog:** 102 entries, 28 open (20 `SCHEDULED`, 8 `DEFERRED`). `BL-0100` now stays
-  `SCHEDULED`, riding a future `07-implementation-planning` pass (was `06`). All other open rows
-  unchanged from run #138's own reconciliation.
-- **Next step:** **`07-implementation-planning` on `FS-109`** — package the SELECT Menu &
-  Edge-Indicator Legend Screen into an `IP-xxxx`, resolving the 3 Open Questions as concrete
-  implementation choices (WRAM byte, `GAMESTATE` values, SELECT-while-in-menu behavior). Per the
-  standing instruction for this session, **stop at the G3 authorization gate before any
-  `08-code-implementation` work** and ask the user explicitly rather than assuming approval.
-  Separately, still open and **held for the user's own go-ahead**: `BL-0082` (whether to adopt
-  streaming/infinite-world generation at all, amending `ADR-0009`/`ADR-0012`/`ADR-0013`, informed
-  by `R114`+`R216` together) — a genuine architecture-scope decision, not actioned this session.
-  **Session-blocked:** `09-package-verification` on `IP-1082` needs a genuinely fresh session.
-- **Open gates:** **one** — whether to proceed with `03-architecture-design-synthesis` and adopt
-  streaming/infinite-world generation as a real architecture change; asked of the user, not yet
-  answered. `FEAT-1200`/`BL-0100`'s own thread is fully unblocked now (ready for `07`, no gate).
-  Every other currently-`SCHEDULED`/`DEFERRED` item has a named revisit trigger or is ready to
-  ride its own next step without a pending decision.
+  `SCHEDULED`, riding `08-code-implementation` once the user authorizes `IP-1090` (was `07`). All
+  other open rows unchanged from run #138's own reconciliation.
+- **Next step:** **`08-code-implementation` on `IP-1090`** — fully specified and `READY`, every
+  dependency `VERIFIED`, but **not yet authorized**. This is a genuine G3 gate: ask the user
+  explicitly for the go-ahead before any code is touched, per the standing instruction for this
+  session. Separately, still open and **held for the user's own go-ahead**: `BL-0082` (whether to
+  adopt streaming/infinite-world generation at all, amending `ADR-0009`/`ADR-0012`/`ADR-0013`,
+  informed by `R114`+`R216` together) — a genuine architecture-scope decision, not actioned this
+  session. **Session-blocked:** `09-package-verification` on `IP-1082` needs a genuinely fresh
+  session.
+- **Open gates:** **two.** (1) Whether to proceed with `03-architecture-design-synthesis` and
+  adopt streaming/infinite-world generation as a real architecture change; asked of the user, not
+  yet answered. (2) **New this run:** whether to authorize `08-code-implementation` on `IP-1090`
+  (SELECT Menu & Edge-Indicator Legend Screen) — fully `READY`, not yet authorized; asked of the
+  user, not yet answered. Every other currently-`SCHEDULED`/`DEFERRED` item has a named revisit
+  trigger or is ready to ride its own next step without a pending decision.
 - **Direct user instruction, no skill invocation (2026-07-13, between runs #134 and #135):**
   user directed two backlog corrections. (1) `BL-0050` re-dispositioned `SCHEDULED`→`DEFERRED` —
   it was marked ripe for `04` once `IP-1021` shipped, but that's only the finite-world win
@@ -202,3 +205,4 @@
 | 137 | 2026-07-13 | advance | `04-requirements-engineering` | `CR-06`/`BL-0100` — derive the FR | ✅ Baselined **FR-1200** (SELECT MENU state — `SELECT` opens a two-option cursor menu, `MAP`/`LEGEND`, superseding `FR-1150`'s own SELECT→MAP clause, left textually unmodified per the `FR-1120`→`FR-1170` coexistence precedent) and **FR-1210** (LEGEND state itself, citing `GDS-08` §11 directly for content). Both target, not yet implemented. Cross-checked against `FR-1100`/`FR-1170` (state-count extension, cursor-menu convention reuse) and `FR-2320`/`FR-2330` (confirmed unaffected — `FR-1210` only displays what those already define). `CR-06` closed, pointing forward rather than deleted. RQ-03 finding #16: clean, no conflicts. RTM rows added. `docs/requirements/INDEX.md`/`ROADMAP.md` updated. No code touched, ROM unchanged. Committed (`371249b`) and pushed. Harvested: `BL-0100` stays `SCHEDULED`, now riding `05-feature-decomposition` (no `FEAT-xxxx` catalog entry exists yet for this capability). | `05-feature-decomposition` on `FR-1200`/`FR-1210` (`BL-0100`) — derive a `FEAT-xxxx` catalog entry. Separately, still open and held for the user's own go-ahead: `BL-0082` (streaming/infinite-world adoption). **Session-blocked:** `09-package-verification` on `IP-1082` needs a genuinely fresh session. |
 | 138 | 2026-07-13 | advance | `05-feature-decomposition` | `FR-1200`/`FR-1210` (`BL-0100`) — decompose | ✅ New Feature **FEAT-1200** (SELECT Menu & Edge-Indicator Legend Screen) — joins `EP-1000` and Release 2 as a second, independent addendum (this stage's own established "no Release 3" convention). Confirmed via `FP-04`'s dependency analysis: `FEAT-1200`'s dependency on `FEAT-2100` is a *content* dependency (its already-shipped tiles, `IP-1030`/`IP-1081`) not a *build-order* dependency on `FEAT-2100`'s own still-in-flight render branch (`IP-1082`) — immediately buildable, not serialized behind anything. No cycles. Feature Review finding #8: reviewed clean (cohesion, dependency correctness, requirement assignment, bucket placement all confirmed). Requirement-assignment tally now 58 (was 56). **Found and filed a pre-existing bookkeeping gap** (`BL-0102`): `FR-9160`/`FR-9161` (`ADR-0015`'s win-condition redesign) were never added to this tally, since they superseded existing FRs in place within `FEAT-9000` rather than needing a new Feature row — no mis-assignment, just a stale running total. `docs/feature-planning/INDEX.md`/`ROADMAP.md` updated across all five FP-0x rows. No code touched, ROM unchanged. Committed (`d21cfe4`) and pushed. Harvested: `BL-0100` stays `SCHEDULED`, now riding `06-feature-specification`; `BL-0102` filed, `SCHEDULED`. | `06-feature-specification` on `FEAT-1200` — author `FS-xxx`. Separately, still open and held for the user's own go-ahead: `BL-0082` (streaming/infinite-world adoption). **Session-blocked:** `09-package-verification` on `IP-1082` needs a genuinely fresh session. |
 | 139 | 2026-07-13 | advance | `06-feature-specification` | `FEAT-1200` — SELECT Menu & Edge-Indicator Legend Screen | ✅ Authored [FS-109](../features/FS-109-select-menu-edge-indicator-legend-screen.md), expanding `FEAT-1200` (FR-1200/FR-1210) per the fixed 20-field template — Purpose/Scope/Dependencies/Modules/ADRs carried forward verbatim from the catalog entry, three User Workflows (open map, open legend, cancel), edge cases named for the two-option toggle and the LEGEND-exit path. Proposed a new **T21** `test_rom.py` suite (next unused number after the existing T1–T20) in the Verification Plan, with 7 Acceptance Criteria each mapped to a concrete assertion. Surfaced **3 Open Questions**, all narrow implementation-level choices GDS-01 §4c itself already deferred to `07`/`08` rather than design ambiguity: (1) the WRAM byte for SELECT MENU's cursor (reuse `MM_CURSOR` vs. a new byte), (2) the new `GAMESTATE` numeric values for SELECT MENU/LEGEND, (3) whether SELECT is a no-op when already inside SELECT MENU/MAP/LEGEND (assumed yes, matching how MAP/SAVE already ignore unhandled inputs, but unconfirmed by any upstream artifact). `docs/features/INDEX.md` updated with the new row; `FEAT-1200`'s own catalog entry got its forward-reference metadata updated (pointer only, content untouched, per this skill's own SHALL-NOT rule). `docs/feature-planning/INDEX.md`/`ROADMAP.md` updated in sync. No code touched, ROM unchanged. Committed and pushed. Harvested: `BL-0100` stays `SCHEDULED`, now riding a future `07-implementation-planning` pass. | `07-implementation-planning` on **`FS-109`** — package it into an `IP-xxxx`, closing the 3 Open Questions as concrete implementation choices along the way. **Implementation itself (`08-code-implementation`) must stop at the G3 authorization gate and ask before proceeding**, per this session's own standing instruction. Separately, still open and **held for the user's own go-ahead**: `BL-0082` (whether to adopt streaming/infinite-world generation at all). **Session-blocked:** `09-package-verification` on `IP-1082` needs a genuinely fresh session. |
+| 140 | 2026-07-13 | advance | `07-implementation-planning` | `FS-109` — SELECT Menu & Edge-Indicator Legend Screen | ✅ Authored [IP-1090](../implementation/packages/IP-1090-select-menu-edge-indicator-legend-screen.md), the full 14-field package, plus a new TWBS tranche section (verb inventory: navigate + render, no generate/persist/review). **Resolved all 3 FS-109 Open Questions as this package's own implementation choices**: `GS_SELECT_MENU`/`GS_LEGEND` = 8/9 (next free `GAMESTATE` values); SELECT MENU's cursor reuses `MM_CURSOR`/`MM_JUST_ENTERED` rather than allocating two new WRAM bytes (valid — `GS_MAIN_MENU`/`GS_SELECT_MENU` never simultaneously active, no direct transition between them); SELECT resolved as a plain no-op inside SELECT MENU/LEGEND (neither handler tests `J_SELECT`; `MAP`'s own pre-existing SELECT==B merge, `st_map`, is untouched and unrelated). **Mandatory supersession sweep found real drift**: `handle_play_input`'s SELECT branch (`asm_game.py:536-538`) is the sole site retargeting `PLAYING`→`GS_MAP` in one hop; three existing `test_rom.py` sites (`T4.6`, `T8.11`, `T14.e2`) simulate a bare SELECT press expecting immediate `GAMESTATE == GS_MAP` and will break once SELECT lands in `GS_SELECT_MENU` first — recorded as this package's own Tests to Add/Modify (an inserted `A` press at each site), not left for `08` to rediscover via test failures. No new tile art (`GDS-08` §11's own decision) — no `09-content-review` owed. Verified every cited file/function/label/address against the live tree directly (`asm_game.py`'s dispatch tables, `mm_on_entry`/`draw_menu_cursor`'s exact shape, `tilemaps.py`'s `main_menu_screen()`/`ALL_SCREENS`, `build_rom.py`'s patch-resolution pattern, current ROM budget 22984/32768 bytes) before citing any of it. All three dependencies (`IP-1040`, `IP-1030`, `IP-1081`) `VERIFIED` — package is `READY`, **not authorized** (no G3 basis yet, this capability isn't part of the bootstrap carve-out). `docs/features/FS-109-…md` §19 Open Questions marked Resolved; `docs/feature-planning/03-feature-catalog.md`/`docs/features/INDEX.md` forward-reference metadata updated; RTM's `FR-1200`/`FR-1210` rows' Feature Spec/Implementation Package columns filled (`FS-109`/`IP-1090`, Test stays `UNASSIGNED` — no code exists yet); Master Build Plan (new tranche section, package-status-table row, dependency-graph node/edges, critical-path subsection), `packages/INDEX.md`, `ROADMAP.md` updated in sync. No code touched, ROM unchanged. Committed and pushed. Harvested: `BL-0100` stays `SCHEDULED`, now riding `08-code-implementation` once authorized. | **`08-code-implementation` on `IP-1090`** — fully `READY`, every dependency `VERIFIED`, but this is a genuine **G3 gate**: ask the user explicitly for authorization before any code is touched, per the standing instruction for this session. Separately, still open and **held for the user's own go-ahead**: `BL-0082` (streaming/infinite-world adoption). **Session-blocked:** `09-package-verification` on `IP-1082` needs a genuinely fresh session. |

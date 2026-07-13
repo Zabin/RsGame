@@ -5,7 +5,10 @@
 > elaborates FEAT-1200, it does not modify its catalog entry, the requirements it implements, or
 > any architecture document.
 >
-> **Forward reference (metadata only):** no `IP-xxxx` authored yet.
+> **Forward reference (metadata only):** packaged as
+> [IP-1090](../implementation/packages/IP-1090-select-menu-edge-indicator-legend-screen.md)
+> (`07-implementation-planning`, 2026-07-13) — `READY`, not yet authorized. Resolves this
+> document's Open Questions 1–3 (§19).
 
 [↑ Features index](INDEX.md) · [Feature Catalog](../feature-planning/03-feature-catalog.md) ·
 [Epic Catalog](../feature-planning/02-epic-catalog.md)
@@ -251,12 +254,15 @@ implementation-level choices rather than design-level ambiguity.
    following `ADR-0015`'s own precedent of leaving byte-encoding choices to `07`/`08` when either
    representation is equally valid). Matters because `07-implementation-planning` needs a
    concrete WRAM address before packaging. Resolved by: `07-implementation-planning` (or a
-   GDS-07 delta if the chosen encoding warrants documenting as a data-model entity).
+   GDS-07 delta if the chosen encoding warrants documenting as a data-model entity). **Resolved
+   (`IP-1090`, 2026-07-13):** reuses `MM_CURSOR` (`0xC27E`) and `MM_JUST_ENTERED` (`0xC2D7`)
+   rather than allocating two new WRAM bytes.
 2. **The new `GAMESTATE` numeric values for SELECT MENU/LEGEND are not decided here** — GDS-01
    §4c names them as "the next two free values following the existing `GS_SEED_SCALE_ENTRY = 7`"
    but defers the actual assignment to implementation, per this project's own append-only
    `GAMESTATE` numbering convention (`asm_game.py:170,174`). Matters for the same packaging
-   reason as Open Question 1. Resolved by: `07-implementation-planning`.
+   reason as Open Question 1. Resolved by: `07-implementation-planning`. **Resolved (`IP-1090`,
+   2026-07-13):** `GS_SELECT_MENU = 8`, `GS_LEGEND = 9`.
 3. **Whether SELECT pressed while already in SELECT MENU, MAP, or LEGEND has any defined
    behavior is not named by GDS-01 §4c's diagram**, which shows SELECT only as PLAYING's own
    outbound trigger. Matters because an implementer needs to know whether SELECT is simply
@@ -264,7 +270,10 @@ implementation-level choices rather than design-level ambiguity.
    should do something else. This spec assumes the former (no handler, matching how MAP and
    SAVE already ignore inputs they don't explicitly handle) but flags it as unconfirmed by any
    upstream artifact. Resolved by: `07-implementation-planning`, or a GDS-01 delta if the
-   architecture owner wants it stated explicitly.
+   architecture owner wants it stated explicitly. **Resolved (`IP-1090`, 2026-07-13):** SELECT is
+   a plain no-op inside both SELECT MENU and LEGEND (neither handler tests `J_SELECT`); `MAP`'s
+   own pre-existing SELECT==B exit merge (`st_map`, unrelated, unchanged) continues to apply once
+   inside `MAP` itself, per the Technical Work Breakdown's own supersession sweep.
 
 ## 20. Related ADRs
 
