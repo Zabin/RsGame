@@ -376,6 +376,39 @@ def seed_scale_entry_screen():
         _put(t, a, x, 15, TL_BORDER_H, 2)
     return t, a
 
+# ── SELECT menu / edge-indicator legend screens (IP-1090) ──
+# select_menu_screen() reuses main_menu_screen()'s own static-screen shape
+# (same row/column layout — cursor cell math in asm_game.py's
+# sm_on_entry/draw_select_menu_cursor reuses main_menu_screen()'s rows
+# 7/9, label start col 8 — directly). legend_screen() bakes GDS-08 §11's
+# static content verbatim: the real TL_ARROW_U/TL_BLOCKED_U tiles beside
+# their plain-language labels, plus a genuinely blank cell for the
+# world-edge case (no new tile art, no new palette entry).
+def select_menu_screen():
+    t, a = _blank(TL_BG_BLANK, 2)
+    _str(t, a, 5, 3, "BUNNY QUEST", 2)
+    _str(t, a, 8, 7, "MAP", 2)
+    _str(t, a, 8, 9, "LEGEND", 2)
+    for x in range(2, 18):
+        _put(t, a, x, 2,  TL_BORDER_H, 2)
+        _put(t, a, x, 14, TL_BORDER_H, 2)
+    return t, a
+
+def legend_screen():
+    t, a = _blank(TL_BG_BLANK, 2)
+    _str(t, a, 7, 1, "LEGEND", 2)
+    for x in range(2, 18):
+        _put(t, a, x, 3, TL_BORDER_H, 2)
+    _put(t, a, 4, 6, TL_ARROW_U, 2)
+    _str(t, a, 7, 6, "OPEN PATH", 2)
+    _put(t, a, 4, 9, TL_BLOCKED_U, 2)
+    _str(t, a, 7, 9, "MAZE BLOCKED", 2)
+    # Row 12: deliberately no _put() — the real absence of a tile is the
+    # point (GDS-08 §11); the pre-blanked background already reads blank.
+    _str(t, a, 7, 12, "WORLD EDGE", 2)
+    _str(t, a, 6, 15, "B: EXIT", 2)
+    return t, a
+
 # All screens (5 biome-family representatives first, then UI screens).
 # IP-1030: generalizes from one entry per fixed zone (9) to one entry per
 # biome family (5), matching generate_world's Water=0..Brick=4 axis and
@@ -398,6 +431,8 @@ ALL_SCREENS = [
     ("victory", victory_screen),
     ("main_menu",       main_menu_screen),
     ("seed_scale_entry", seed_scale_entry_screen),
+    ("select_menu", select_menu_screen),
+    ("legend",      legend_screen),
 ]
 
 # ── Collectibles per zone ─────────────────────────────────

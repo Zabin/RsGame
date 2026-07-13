@@ -41,7 +41,7 @@
   owns *what* gets saved; this Feature owns only *when* SAVE/load happens relative to state).
 - **Dependencies:** None — this is the foundational dispatch layer.
 - **Dependent Features:** FEAT-2000, FEAT-3000, FEAT-5000, FEAT-6000 (all gated by which state is
-  active).
+  active); FEAT-1100, FEAT-1200 (each extends this Feature's own state set with new nodes).
 - **Affected Modules:** `asm_game.py`.
 - **Related ADRs:** ADR-0006 (tangential, via FR-1120's auto-load bypass reading SRAM).
 - **User Value:** High — defines the entire menu/play session shape the player experiences.
@@ -124,7 +124,8 @@
   Feature's own dependency on that logic continuing to work unchanged); FEAT-9100 (there is no
   "blocked but grid-adjacent" case to signal before the maze exists — this Feature cannot ship
   before FEAT-9100 does).
-- **Dependent Features:** None yet.
+- **Dependent Features:** FEAT-1200 (LEGEND's own content displays this Feature's tiles/meaning —
+  a content dependency, not a build-order one; both this Feature's tiles already ship).
 - **Affected Modules:** `asm_game.py` (`draw_region_arrows`'s own extension — the new 3-way
   branch); `tiles.py`/`tilemaps.py` (new tile art for the blocked-edge indicator — **not yet
   designed**; a `GDS-08` presentation-architecture delta is needed before this Feature's tile
@@ -621,7 +622,8 @@
   underlying save-write mechanism — `FEAT-5000`, reused not reimplemented).
 - **Dependencies:** FEAT-1000 (extends its state machine); FEAT-9000 (triggers its generation
   routine on new-game confirm); FEAT-5000 (reuses its save-write for the auto-save option).
-- **Dependent Features:** None yet.
+- **Dependent Features:** FEAT-1200 (reuses this Feature's own cursor-menu convention for its
+  SELECT MENU rather than inventing a second one).
 - **Affected Modules:** `asm_game.py` (new states/dispatch), `tilemaps.py` (two new screens: main
   menu, seed/scale entry).
 - **Related ADRs:** ADR-0009, ADR-0010.
@@ -637,6 +639,59 @@
   actually holds against every reachable input sequence.
 - **Suggested Verification Strategy:** Test — entirely new assertions; unblocked by any prior
   remediation.
+- **Open Questions:** None surfaced yet — first specified at `06-feature-specification`.
+
+## FEAT-1200 — SELECT Menu & Edge-Indicator Legend Screen (new — not yet implemented)
+
+> **Forward reference (metadata only):** requirements baselined as FR-1200/FR-1210
+> (`04-requirements-engineering`, 2026-07-13, `CR-06`/`BL-0100`); specified as
+> [FS-109](../features/FS-109-select-menu-edge-indicator-legend-screen.md) (`06-feature-specification`,
+> 2026-07-13); implemented as
+> [IP-1090](../implementation/packages/IP-1090-select-menu-edge-indicator-legend-screen.md)
+> (`08-code-implementation`, 2026-07-13), `COMPLETE`, awaiting independent verification.
+
+- **Feature ID:** FEAT-1200
+- **Title:** SELECT Menu & Edge-Indicator Legend Screen
+- **Purpose:** Give the player an in-game explanation of the on-screen transition-edge indicator
+  tiles (`FEAT-2100`'s open-arrow/blocked-edge/absent three-state signal), which today has no
+  in-game explanation anywhere (`BL-0100`, project owner request).
+- **Description:** Extends `FEAT-1000`'s state machine with two new states: a SELECT MENU
+  (cursor-selectable "map"/"legend," reusing `FEAT-1100`'s own cursor-menu convention) that
+  replaces `SELECT`'s current direct jump to `MAP`, and a LEGEND screen (a single static page
+  showing each indicator tile beside a plain-language label). `MAP` itself is entirely unchanged
+  — this Feature adds a menu step in front of it, not a change to its own content.
+- **Scope:** The new state-machine nodes/transitions (SELECT MENU, LEGEND) and the LEGEND
+  screen's own static content. Explicitly **excludes** `MAP`'s own content/layout (`FEAT-1000`'s
+  existing entry, untouched — its own future redesign is `BL-0050`, tracked separately) and the
+  indicator tiles' own meaning/rendering logic (`FEAT-2100`, reused/displayed, not redefined).
+- **Included Requirements:** FR-1200, FR-1210.
+- **Excluded Requirements:** FR-1150 (the existing PLAYING↔MAP transition — `FEAT-1000`'s own
+  entry; this Feature's FR-1200 supersedes only its SELECT-entry clause on implementation, per
+  FR-1150's own target-state pointer, without modifying `FEAT-1000`'s catalog entry); FR-2320/
+  FR-2330 (the indicator tiles' own meaning and render-time classification — `FEAT-2000`/
+  `FEAT-2100`, this Feature only displays them).
+- **Dependencies:** FEAT-1000 (extends its state machine); FEAT-1100 (reuses its cursor-menu
+  convention rather than inventing a second one); FEAT-2100 (LEGEND's own content depends on the
+  open-arrow/blocked-edge tiles that Feature defines already existing — both tiles are already
+  shipped, `IP-1030`/`IP-1081`, so this is a content dependency, not a build-order one).
+- **Dependent Features:** None yet.
+- **Affected Modules:** `asm_game.py` (new states/dispatch — the SELECT MENU cursor and the two
+  confirm branches), `tilemaps.py` (one new screen: LEGEND; `map_screen()` itself untouched).
+- **Related ADRs:** None.
+- **User Value:** Medium — closes a real discoverability gap (`FEAT-2100`'s own 3-state signal is
+  currently unexplained in-game), but affects a reference screen a player visits rarely, not the
+  moment-to-moment loop.
+- **Technical Value:** Low — a small state-machine extension reusing two already-established
+  conventions (cursor-menu UI, static-screen layout); no new subsystem.
+- **Complexity:** Low — no new tile art or palette entry (GDS-08 §11), no new generation/collision
+  logic; the only new mechanism is the two-state cursor menu itself, which directly mirrors
+  `FEAT-1100`'s own MAIN MENU implementation.
+- **Risk:** Low — the one real, explicitly-named tradeoff (an extra button press to reach `MAP`
+  for every player) was already weighed and accepted at the architecture level (GDS-01 §4c), not
+  an open risk this Feature carries forward undecided.
+- **Suggested Verification Strategy:** Test — state-transition assertions for the new SELECT
+  MENU/LEGEND states (mirroring `FEAT-1100`'s own MAIN MENU test pattern) plus an Inspection pass
+  on LEGEND's exact tile/label layout (GDS-08 §11 leaves precise coordinates to `07`/`08`).
 - **Open Questions:** None surfaced yet — first specified at `06-feature-specification`.
 
 ## FEAT-6100 — Aesthetic & Biome-Transition Compliance (new — not yet implemented)

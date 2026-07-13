@@ -2,7 +2,8 @@
 
 > **Status: ✅ Authored (bootstrap as-built, 2026-07-06; delta 2026-07-09 for the procgen-world
 > increment, FR-1170–9200; delta 2026-07-11 for `ADR-0012`'s maze-shaped region adjacency,
-> FR-9140/9150/2330; delta 2026-07-12 for `ADR-0015`'s win-condition redesign, FR-9160/9161 — see
+> FR-9140/9150/2330; delta 2026-07-12 for `ADR-0015`'s win-condition redesign, FR-9160/9161;
+> delta 2026-07-13 for the edge-indicator legend screen, FR-1200/1210, `CR-06`/`BL-0100` — see
 > Changelog).** Owned by `04-requirements-engineering`.
 > Derives from [GDS-05](../architecture/05-functional-requirements.md)'s six capability groupings
 > (C1–C6) — this document formalizes each into numbered, testable `FR-xxxx` requirements per
@@ -76,6 +77,18 @@
   actually shipped and independently verified the original one-per-region rule (`VR-1020`,
   `T12.e`) before `ADR-0015` superseded it — a factual correction, not a behavior-text edit, made
   in passing while this FR was already open for its own supersession note.
+- **2026-07-13 — Delta for the edge-indicator legend screen** (`BL-0100`, project-owner request;
+  re-run Step 0 on the delta only). First pass (same day) found no traceable architecture source
+  and correctly declined to invent one — filed as **CR-06** (Candidate Requirements) and routed to
+  `03-architecture-design-synthesis` (RQ-03 finding #15). Second pass, same day, once
+  [GDS-01](../architecture/01-concept-of-play.md) §4c and
+  [GDS-08](../architecture/08-presentation-architecture.md) §11 landed: **two new FRs added,
+  both target — not yet implemented:** **FR-1200** (SELECT MENU state — `SELECT` now opens a
+  two-option cursor menu, `MAP`/`LEGEND`, superseding FR-1150's own "SELECT→MAP" clause) and
+  **FR-1210** (LEGEND state — the static edge-indicator explanation screen itself). `FR-1150` is
+  left with its substantive text unmodified (accurate for the currently shipped game) and gains
+  only a Notes forward-pointer, per the established `FR-1120`→`FR-1170` coexistence precedent.
+  `CR-06` is closed, pointing forward to `FR-1200`/`FR-1210` rather than deleted.
 
 ## FR-1000 — Game states & transitions
 
@@ -214,7 +227,12 @@
 - **Verification Method:** Test.
 - **Source Documents:** GDS-01 §4.
 - **Related ADRs:** None.
-- **Notes:** None.
+- **Notes:** **Target-state pointer (2026-07-13):** [GDS-01](../architecture/01-concept-of-play.md)
+  §4c commits SELECT's own target to a new SELECT MENU state (FR-1200) rather than jumping
+  directly to MAP — MAP's own content and its own "B → PLAYING" clause are unaffected and remain
+  this FR's. Unmodified here; accurate for the current shipped game. Will gain a forward-pointer
+  note once FR-1200 ships, per the established FR-1120→FR-1170 coexistence precedent (RQ-03
+  finding #7).
 
 ### FR-1160 — PLAYING → VICTORY transition
 
@@ -331,6 +349,80 @@
   was already correct, but had no on-screen label — `save_screen` (`tilemaps.py`) now renders
   "SELECT: SAVE" / "AND EXIT" (rows 12–13), fixing a real discoverability gap (the option was
   functionally present but invisible to the player). Content-only; no behavior change.
+
+### FR-1200 — SELECT MENU state (Implemented — 2026-07-13, `IP-1090`)
+
+- **ID:** FR-1200
+- **Title:** The system shall present a SELECT MENU offering MAP and LEGEND when SELECT is
+  pressed from PLAYING.
+- **Description:** From PLAYING, pressing SELECT shall transition to a SELECT MENU state
+  presenting two cursor-selectable options, "map" and "legend." D-pad up/down moves the
+  highlighted option; A confirms the highlighted option, transitioning to MAP or LEGEND
+  respectively; B cancels, returning directly to PLAYING with neither option visited.
+- **Rationale:** [GDS-01](../architecture/01-concept-of-play.md) §4c (project owner request,
+  `BL-0100`); reuses the cursor-menu convention FR-1170/GDS-01 §4a already established for MAIN
+  MENU rather than introducing a second UI convention for the same shape of choice.
+- **Priority:** Must (Met)
+- **Inputs:** SELECT press (in PLAYING); D-pad up/down (in SELECT MENU); A (confirm); B (cancel).
+- **Outputs:** State transitions PLAYING→SELECT MENU (on SELECT); SELECT MENU→MAP or SELECT
+  MENU→LEGEND (on A, per the highlighted option); SELECT MENU→PLAYING (on B).
+- **Preconditions:** Current state is PLAYING (for entry); current state is SELECT MENU (for the
+  confirm/cancel transitions).
+- **Postconditions:** State transitions as specified; a B-cancel writes nothing and leaves
+  PLAYING's own state exactly as it was before SELECT was pressed.
+- **Acceptance Criteria:** From PLAYING, SELECT press results in state = SELECT MENU with "map"
+  highlighted by default. D-pad up/down toggles the highlighted option between "map" and
+  "legend." With "map" highlighted, A results in state = MAP. With "legend" highlighted, A
+  results in state = LEGEND. From SELECT MENU, B results in state = PLAYING regardless of which
+  option was highlighted.
+- **Dependencies:** FR-1100 (extends the state set by one), FR-1150 (this FR supersedes FR-1150's
+  own "PLAYING → MAP on SELECT" clause — MAP's own "B → PLAYING" clause and content are
+  unaffected and remain FR-1150's), FR-1170 (the cursor-menu convention reused).
+- **Verification Method:** Test.
+- **Source Documents:** GDS-01 §4c.
+- **Related ADRs:** None.
+- **Notes:** **Named tradeoff (GDS-01 §4c):** reaching MAP now costs one extra confirm step for
+  every player, not just those who want LEGEND — accepted per GDS-01 §4c's own reasoning (the
+  same one-extra-step shape FR-1170/MAIN MENU's continue/new-game choice already asks with no
+  recorded player-facing complaint), not silently absorbed. FR-1150's own "PLAYING → MAP on
+  SELECT" acceptance criterion becomes inaccurate once this FR ships — left unmodified in
+  FR-1150's own text per the established FR-1120→FR-1170 coexistence precedent (RQ-03 finding
+  #7), to be marked superseded there once implemented. **Implemented 2026-07-13 (`IP-1090`):**
+  `GS_SELECT_MENU`/`GS_LEGEND` = 8/9; `MM_CURSOR`/`MM_JUST_ENTERED` reused for the new state
+  rather than new WRAM bytes; confirmed by `T21.a1`–`T21.d2`.
+
+### FR-1210 — LEGEND state (Implemented — 2026-07-13, `IP-1090`)
+
+- **ID:** FR-1210
+- **Title:** The system shall present a read-only LEGEND screen explaining the transition-edge
+  indicator tiles.
+- **Description:** From SELECT MENU's "legend" option, the system shall present a static,
+  read-only screen showing each of the three transition-edge indicator states (FR-2320/FR-2330:
+  open arrow, blocked-edge bar, no indicator/world edge) alongside a plain-language label for
+  each. B returns to PLAYING.
+- **Rationale:** [GDS-08](../architecture/08-presentation-architecture.md) §11 (project owner
+  request, `BL-0100`) — today's three-state edge signal (FR-2320/FR-2330) has no in-game
+  explanation anywhere.
+- **Priority:** Must (Met)
+- **Inputs:** B press (in LEGEND).
+- **Outputs:** State transitions LEGEND→PLAYING (on B).
+- **Preconditions:** Current state is LEGEND.
+- **Postconditions:** State = PLAYING.
+- **Acceptance Criteria:** From LEGEND, B press results in state = PLAYING. The screen displays
+  the actual open-arrow tile and the actual blocked-edge-bar tile (not redrawn approximations)
+  each beside its own plain-language label, plus a labeled blank cell for the world-edge case.
+- **Dependencies:** FR-1200, FR-2320, FR-2330.
+- **Verification Method:** Test (state transition) / Inspection (visual — the exact tile/label
+  layout, per GDS-08 §11's own "not decided here" deferral of precise screen coordinates to
+  `07`/`08`).
+- **Source Documents:** GDS-08 §11.
+- **Related ADRs:** None.
+- **Notes:** No new tile art or palette entry — reuses `TL_ARROW_U`/`TL_BLOCKED_U` and palette 2
+  verbatim (GDS-08 §11). A single static page, no `SELECT`-triggered sub-paging within LEGEND
+  itself (GDS-08 §11's own R206-grounded reasoning: three short facts don't need a multi-page
+  manual). **Implemented 2026-07-13 (`IP-1090`):** confirmed by `T21.e`/`T21.f1`–`f3` — the real
+  `TL_ARROW_U`/`TL_BLOCKED_U` tiles render beside their labels, plus a genuinely blank cell for
+  the world-edge case.
 
 ## FR-2000 — Player movement & zone traversal
 
@@ -1376,3 +1468,38 @@ excluded from the numbered baseline above; marked `CANDIDATE — NOT BASELINED` 
   `03-architecture-design-synthesis` (or directly to the user, if the owner has a preference
   between "revisit `ADR-0012`'s pass ordering to allow dead-end-seeding" vs. "keep the ordering,
   use flood-fill instead") — see `RQ-03`'s finding for the full conflict write-up.
+
+### CR-06 — Edge-indicator legend/help screen, reachable via SELECT (`BL-0100`) — RESOLVED, BASELINED 2026-07-13
+
+- **Description:** A read-only screen explaining the on-screen transition-edge indicator tiles to
+  the player — the open-arrow (a valid, maze-connected neighbor exists, `FR-2320`) versus the
+  blocked-edge indicator (a grid-adjacent region exists but the generated maze doesn't connect to
+  it, `FR-2330`) versus no indicator at all (a true grid boundary) — reachable via the SELECT
+  button, per the owner's own request.
+- **Why excluded:** **No traceable architecture source, not a gap this pass can close by
+  rewording.** [GDS-01](../architecture/01-concept-of-play.md) §4's game-state machine names
+  exactly six states (`TITLE`/`INTRO`/`PLAYING`/`SAVE`/`MAP`/`VICTORY`), with §4a's own delta
+  list (the only mechanism this document uses to add new states — it already added `MAIN MENU`/
+  `SEED SCALE ENTRY` this way, per `BL-0031`'s own `01→02→03→04` routing precedent) naming
+  nothing resembling a legend/help screen or a SELECT sub-menu. `MAP` is documented as SELECT's
+  *sole* destination ("reachable only from PLAYING (SELECT)") — there is currently no state-
+  machine node this new screen could occupy, and no GDS-08 presentation-layer description of its
+  layout/content. Per this skill's own rule ("a wrong/ambiguous/self-contradictory architecture
+  statement is a Review finding, never patched by writing around it" — the same standard `CR-05`
+  above applies to a direct `ADR-0012` conflict, applied here to a missing-concept gap instead of
+  a conflicting one), inventing a new `GAMESTATE` value or a SELECT-menu restructuring here would
+  be originating an architecture decision, not deriving a requirement from one.
+- **Disposition:** Routed to `03-architecture-design-synthesis` first — a GDS-01 §4/§4a delta
+  (new state, or a redefinition of what SELECT reaches) and a GDS-08 delta (the new screen's own
+  layout/content) are both needed before a clean, implementation-independent FR can be written.
+  `04-requirements-engineering` returns to derive the actual FR once that lands, mirroring
+  `BL-0031`'s own `01→02→03→04` precedent for `MAIN MENU`/`SEED SCALE ENTRY`. See `RQ-03`'s
+  finding for the full write-up. **Architecture landed (2026-07-13):** [GDS-01](../architecture/01-concept-of-play.md)
+  §4c (`SELECT` now opens a small `MAP`/`LEGEND` cursor menu, `MAP` itself unchanged) and
+  [GDS-08](../architecture/08-presentation-architecture.md) §11 (the `LEGEND` screen's static
+  three-row content, reusing existing tiles/palette) both authored — this Candidate is now ready
+  for `04-requirements-engineering` to derive its real FR from, still un-baselined until that
+  pass runs. **Resolved (`04-requirements-engineering`, 2026-07-13): baselined as FR-1200**
+  (SELECT MENU state, supersedes FR-1150's own SELECT→MAP clause) **and FR-1210** (LEGEND state
+  itself, citing GDS-08 §11 directly) — both target, not yet implemented. This Candidate is now
+  closed; further tracking lives on FR-1200/FR-1210 themselves.

@@ -1,4 +1,4 @@
-BunnyQuest ROM Tests  PASS=234/234  FAIL=0
+BunnyQuest ROM Tests  PASS=246/246  FAIL=0
 ==================================================
 [PASS] T1.1 ROM size = 32768  (32768)
 [PASS] T1.2 Entry = NOP; JP
@@ -234,3 +234,15 @@ BunnyQuest ROM Tests  PASS=234/234  FAIL=0
 [PASS] T20.c Absent classification: true grid-boundary edges re-derive the correct (row,col) and draw no arrow/blocked tile, every corpus entry (AC-3)  (n=68 bad=[])
 [PASS] T20.e Open-case non-regression: live-neighbor edges still render the existing open-arrow tile, unaffected by the new blocked-branch addition, every corpus entry (AC-5)  (bad=[])
 [PASS] T20.d Static audit: row/col re-derivation precedes the neighbor-byte loads it would otherwise clobber (AC-2/AC-3 precondition)  (source-scanned)
+[PASS] T21.a1 SELECT -> SELECT MENU (GS=8), MAP default highlighted  (GS=8 cursor=0)
+[PASS] T21.a2a DOWN toggles MM_CURSOR to 1 (legend)  (cursor=1)
+[PASS] T21.a2b DOWN again toggles MM_CURSOR back to 0 (map)  (cursor=0)
+[PASS] T21.b SELECT MENU, map highlighted, A -> MAP (GS=4)  (GS=4)
+[PASS] T21.c SELECT MENU, legend highlighted, A -> LEGEND (GS=9)  (GS=9)
+[PASS] T21.d1 SELECT MENU, B -> PLAYING (GS=2)  (GS=2)
+[PASS] T21.d2 B-cancel writes nothing outside GAMESTATE/NEED_REDRAW/TRANSITION_TO/MM_CURSOR/MM_JUST_ENTERED  (changed=[])
+[PASS] T21.e0 LEGEND reached (GS=9)  (GS=9)
+[PASS] T21.e LEGEND, B -> PLAYING (GS=2)  (GS=2)
+[PASS] T21.f1 LEGEND row 1 shows the real open-arrow tile (TL_ARROW_U) beside OPEN PATH  (0x18)
+[PASS] T21.f2 LEGEND row 2 shows the real blocked-edge tile (TL_BLOCKED_U) beside MAZE BLOCKED  (0x1A)
+[PASS] T21.f3 LEGEND row 3 is genuinely blank beside WORLD EDGE (no tile drawn)  (0x10)

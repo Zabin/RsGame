@@ -1,9 +1,10 @@
 # FP-04 — Feature Dependency Graph
 
 > **Status: ✅ Authored (bootstrap as-built, 2026-07-07); delta 2026-07-10 (procgen-world
-> increment); delta 2026-07-11 (`ADR-0012` maze-adjacency remediation, `FEAT-9100`/`FEAT-2100`).**
+> increment); delta 2026-07-11 (`ADR-0012` maze-adjacency remediation, `FEAT-9100`/`FEAT-2100`);
+> delta 2026-07-13 (edge-indicator legend screen, `FEAT-1200`, `CR-06`/`BL-0100`).**
 > Owned by `05-feature-decomposition`. Analyzes dependencies among [FP-03](03-feature-catalog.md)'s
-> fifteen Features. **No circular dependency found.**
+> sixteen Features. **No circular dependency found.**
 
 ## Graph
 
@@ -24,6 +25,7 @@ graph TD
     FEAT6100["FEAT-6100: Aesthetic &<br/>Biome-Transition Compliance (NEW)"]
     FEAT9100["FEAT-9100: Maze-Shaped<br/>Region Adjacency (NEW)"]
     FEAT2100["FEAT-2100: Maze-Aware<br/>Transition-Edge Signaling (NEW)"]
+    FEAT1200["FEAT-1200: SELECT Menu &<br/>Edge-Indicator Legend (NEW)"]
 
     FEAT1000 --> FEAT2000
     FEAT1000 --> FEAT3000
@@ -56,6 +58,9 @@ graph TD
     FEAT9000 --> FEAT9100
     FEAT9100 --> FEAT2100
     FEAT2000 --> FEAT2100
+    FEAT1000 --> FEAT1200
+    FEAT1100 --> FEAT1200
+    FEAT2100 --> FEAT1200
 
     FEAT7000 -.underpins.-> FEAT1000
     FEAT7000 -.underpins.-> FEAT2000
@@ -70,6 +75,7 @@ graph TD
     FEAT7000 -.underpins.-> FEAT6100
     FEAT7000 -.underpins.-> FEAT9100
     FEAT7000 -.underpins.-> FEAT2100
+    FEAT7000 -.underpins.-> FEAT1200
 
     style FEAT5100 fill:#9d9,stroke:#333,stroke-width:2px
     style FEAT9000 fill:#f9d,stroke:#333,stroke-width:2px
@@ -79,6 +85,7 @@ graph TD
     style FEAT6100 fill:#f9d,stroke:#333,stroke-width:2px
     style FEAT9100 fill:#f96,stroke:#333,stroke-width:2px
     style FEAT2100 fill:#f96,stroke:#333,stroke-width:2px
+    style FEAT1200 fill:#9cf,stroke:#333,stroke-width:2px
 ```
 
 *(FEAT-5100 highlighted green — shipped and VERIFIED since this graph's last version. The five
@@ -86,7 +93,11 @@ procgen-world increment Features highlighted pink as not-yet-implemented. FEAT-7
 highlighted red — both its tracked non-compliances (`NFR-1200`/`NFR-7100`) are now VERIFIED Met.
 FEAT-9100/FEAT-2100 highlighted orange — the 2026-07-11 `ADR-0012` post-ship remediation, a
 distinct thread from the original procgen-world increment's own pink Features (all of which are
-already `COMPLETE`/`VERIFIED` or awaiting only fresh-session verification).
+already `COMPLETE`/`VERIFIED` or awaiting only fresh-session verification). FEAT-1200 highlighted
+blue — the 2026-07-13 edge-indicator legend screen delta (`CR-06`/`BL-0100`), a third, independent
+thread: its own dependencies (FEAT-1100's cursor-menu convention, FEAT-2100's already-shipped
+tiles) are both already satisfied, so it is immediately buildable, not serialized behind
+FEAT-2100's own in-flight render branch (`IP-1082`).
 Solid arrows are hard dependencies (A → B means B depends on A); dotted arrows from FEAT-7000
 represent the non-blocking "underpins" relationship its cross-cutting NFRs have with every
 player-visible Feature.)*
@@ -95,7 +106,7 @@ player-visible Feature.)*
 
 | Feature | Depends on | Depended on by |
 |---|---|---|
-| FEAT-1000 | — (foundational) | FEAT-2000, FEAT-3000, FEAT-5000, FEAT-6000, FEAT-9000, FEAT-1100 |
+| FEAT-1000 | — (foundational) | FEAT-2000, FEAT-3000, FEAT-5000, FEAT-6000, FEAT-9000, FEAT-1100, FEAT-1200 |
 | FEAT-4000 | — (foundational) | FEAT-2000, FEAT-3000, FEAT-6000, FEAT-9000, FEAT-4100 |
 | FEAT-2000 | FEAT-1000, FEAT-4000 | FEAT-3000, FEAT-5000, FEAT-2100 |
 | FEAT-3000 | FEAT-1000, FEAT-2000, FEAT-4000 | FEAT-5000, FEAT-6000, FEAT-5100, FEAT-9000 |
@@ -105,11 +116,12 @@ player-visible Feature.)*
 | FEAT-7000 | — (infrastructure floor) | all others, non-blocking |
 | **FEAT-9000** | FEAT-1000, FEAT-3000, FEAT-4000 | FEAT-4100, FEAT-1100, FEAT-5300, FEAT-9100 |
 | **FEAT-4100** | FEAT-9000, FEAT-4000, FEAT-6000 | FEAT-6100 |
-| **FEAT-1100** | FEAT-1000, FEAT-9000, FEAT-5000 | — (nothing yet) |
+| **FEAT-1100** | FEAT-1000, FEAT-9000, FEAT-5000 | FEAT-1200 |
 | **FEAT-5300** | FEAT-9000, FEAT-5000, FEAT-5100 | — (nothing yet) |
 | **FEAT-6100** | FEAT-4100, FEAT-6000 | — (nothing yet) |
 | **FEAT-9100** | FEAT-9000 | FEAT-2100 |
-| **FEAT-2100** | FEAT-9100, FEAT-2000 | — (nothing yet) |
+| **FEAT-2100** | FEAT-9100, FEAT-2000 | FEAT-1200 |
+| **FEAT-1200** | FEAT-1000, FEAT-1100, FEAT-2100 | — (nothing yet) |
 
 ## Critical path
 
@@ -131,9 +143,17 @@ chain is fully built, only fresh-session `09-package-verification` remains outst
 original increment's 3-node chain, and does not extend it (a parallel, independent thread off
 the same root, not a continuation).
 
+**Edge-indicator legend screen (new, 2026-07-13):** **FEAT-1000/FEAT-1100/FEAT-2100 → FEAT-1200**
+— all three of `FEAT-1200`'s own dependencies are already satisfied (`FEAT-1000`/`FEAT-1100`
+shipped; `FEAT-2100`'s specific dependency is its *tiles*, already shipped via `IP-1030`/`IP-1081`,
+not its still-in-flight render branch `IP-1082`) — this thread's own *effective* new-work length
+is 1 node (`FEAT-1200` itself), the shortest of the three active threads, and does not extend the
+critical path.
+
 ## Blocking Features (high fan-out)
 
-- **FEAT-1000** (6 direct dependents) — remains the single highest-fan-out Feature.
+- **FEAT-1000** (7 direct dependents) — remains the single highest-fan-out Feature; grows by one
+  (`FEAT-1200`) with this delta.
 - **FEAT-9000** (4 direct dependents: FEAT-4100, FEAT-1100, FEAT-5300, FEAT-9100) — the
   procgen-world increment's own highest-fan-out Feature, now also gating this session's
   remediation thread. Any change to the generation algorithm's output shape ripples into
@@ -155,10 +175,16 @@ the same root, not a continuation).
   serialization pattern the original increment had at `FEAT-9000`.
 - **FEAT-7000 (Engine Quality)**'s two prior tracked non-compliances are both now resolved
   (`NFR-1200`/`NFR-7100`, both VERIFIED) — it no longer represents an open scheduling choice.
+- **FEAT-1200 is immediately buildable, not serialized behind anything in-flight** — unlike
+  `FEAT-2100` (which had to wait on `FEAT-9100`), all three of `FEAT-1200`'s own dependencies are
+  already satisfied today (`FEAT-1000`/`FEAT-1100` shipped; `FEAT-2100`'s tiles already shipped
+  independent of its still-in-flight render branch). It can proceed in parallel with `FEAT-2100`'s
+  own remaining work, not after it.
 
 ## Circular dependency check
 
-**None found**, including after adding the two `ADR-0012` remediation Features. One near-miss was resolved during
+**None found**, including after adding the two `ADR-0012` remediation Features and `FEAT-1200`.
+One near-miss was resolved during
 this delta's own authoring, not left for the graph to surface: `FR-9130` ("exactly one KeyItem
 per generated region") and `FR-3220` ("item-agnostic KeyItem collection") name each other as
 dependencies at the *requirement* level (FR-9130 depends on the collection mechanism existing;

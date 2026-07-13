@@ -864,3 +864,88 @@ in-flight `IP-1081`/`IP-1082` pair (disjoint files: this touches `asm_game.py`'s
 ### Backlog riders honored in this pass
 
 - **`BL-0093`** (High, resolved win-condition redesign): packaged as `IP-1021`.
+
+## SELECT Menu & Edge-Indicator Legend Screen (`FS-109`/`FEAT-1200`/`BL-0100`, planned 2026-07-13)
+
+`FS-109` fully specifies both new states (SELECT MENU, LEGEND) with no blocking Open Questions —
+its own 3 Open Questions are exactly the WRAM-byte/`GAMESTATE`-value/SELECT-while-in-menu
+implementation choices this stage is meant to resolve, not upstream gaps. Resolved here (see
+Work unit below): `GS_SELECT_MENU = 8`, `GS_LEGEND = 9` (the next two free `GAMESTATE` values
+after `GS_SEED_SCALE_ENTRY = 7`, `asm_game.py:170,174`); the SELECT MENU cursor reuses `MM_CURSOR`
+(`0xC27E`) and the generic entry-reset flag reuses `MM_JUST_ENTERED` (`0xC2D7`) rather than
+allocating two new WRAM bytes — valid because `GS_MAIN_MENU` and `GS_SELECT_MENU` are never
+simultaneously active (no transition connects them directly) and no code path needs both states'
+cursor/entry-flag values live at once; SELECT is resolved as a plain no-op inside SELECT MENU and
+LEGEND (their own input handlers simply never test `J_SELECT`, the same "only named bits act"
+convention every other handler already follows — `MAP`'s own SELECT==B merge is `st_map`'s
+pre-existing, unrelated choice, untouched by this pass).
+
+### Verb inventory
+
+Two verbs: **navigate** (the state-machine extension — `handle_play_input`'s SELECT branch
+retargeted, two new state handlers, two new dispatch-table entries) and **render** (two new
+static screens, no new tile art — `GDS-08` §11's own "no new tile art, no new palette entry"
+decision). `generate` doesn't apply (no world-generation touch); `persist` doesn't apply (`FS-109`
+§14: no SRAM/checksum obligation); `review` doesn't apply — no new visible tile *art* ships (both
+screens reuse already-shipped `TL_ARROW_U`/`TL_BLOCKED_U`/text/border primitives verbatim), so no
+`09-content-review` pass is owed the way `IP-1081`'s new tile bitmaps needed one.
+
+### Supersession sweep
+
+This pass **does** retire an existing behavior: `handle_play_input`'s SELECT branch
+(`asm_game.py:536-538`) currently transitions `PLAYING` directly to `GS_MAP` in one hop; this
+pass retargets it to `GS_SELECT_MENU` instead, making the old single-hop path a two-hop one
+(SELECT → SELECT MENU → A("map") → MAP). Swept the tree for every call site still encoding the
+old single-hop assumption:
+
+- **`asm_game.py`**: only one call site sets `TRANSITION_TO = GS_MAP` from a SELECT press
+  (`handle_play_input:536-538`) — confirmed the sole site to retarget. `st_map` itself
+  (`asm_game.py:368-373`, its own pre-existing `SELECT` == `B` exit-to-`PLAYING` merge) is a
+  different, downstream behavior — once *inside* `MAP`, not a path *into* it — and is explicitly
+  unchanged (`FEAT-1200`'s own Scope: `MAP`'s content/behavior is untouched).
+- **`test_rom.py`** (found, not clean — recorded as this pass's own `Tests to Modify`, not
+  silently absorbed): three existing sites simulate a bare `SELECT` press from `PLAYING` and
+  assert an immediate `GAMESTATE == GS_MAP` (4), which breaks once `SELECT` lands in
+  `GS_SELECT_MENU` (8) instead: **T4.6** (`test_rom.py:297-298`), **T8.11**
+  (`test_rom.py:694-695`), and **T14.e2**'s runtime negative-test sweep (`test_rom.py:1362-1366`,
+  which drives `PLAYING`→`SELECT`→`MAP`→`B`→`PLAYING`→`SELECT`(enter)→`SELECT`(exit, exercising
+  `MAP`'s own merge) as part of its systematic input-branch coverage). All three need an inserted
+  `A` press between the `SELECT` press and the `MAP`-state assertion/traversal; none needs its own
+  *intent* changed, only the added hop. Assigned to `IP-1090`'s own Tests to Add/Modify, per this
+  skill's own "recorded, not silently planned around" rule.
+- **`docs/`**: no other document encodes the old single-hop path as fact — `FR-1150`'s Notes
+  already carries the forward-pointer to `FR-1200` (`04-requirements-engineering`, 2026-07-13),
+  and `GDS-01` §4c/`GDS-08` §11 already document the two-hop target state directly. Nothing to
+  correct upstream.
+
+### Work unit and package cut
+
+| Work unit | Package | Owner |
+|---|---|---|
+| State-machine extension (`GS_SELECT_MENU`/`GS_LEGEND` constants, dispatch-table entries, `handle_play_input`'s SELECT retarget, `st_select_menu`/`st_legend` handlers, `sm_on_entry`/`draw_select_menu_cursor` reusing `MM_CURSOR`/`MM_JUST_ENTERED`) plus two new static screens (`select_menu_screen()`, `legend_screen()` in `tilemaps.py`, both reusing existing text/border/tile primitives, no new art) plus the three existing-test corrections the supersession sweep found | [IP-1090](packages/IP-1090-select-menu-edge-indicator-legend-screen.md) | `08-code-implementation` |
+
+**Split rationale:** one package, mirroring `IP-1040`'s own precedent (`FEAT-1100`'s MAIN MENU +
+SEED/SCALE ENTRY: two new states plus two new screens, no code/content peer split) rather than
+`IP-1030`/`IP-1031`'s split — that split existed *because* new tile art needed its own
+`09-content-review` pass; here `GDS-08` §11 explicitly commits to zero new tile art, so there is
+no content-authoring half to separate out. The navigate and render verbs stay fused in one
+package because they are not independently completable: the new screens have no dispatch path to
+reach them without the state-machine half, and the state-machine half has nothing to transition
+*to* without the screens existing.
+
+### Sequencing summary
+
+**No critical path — a single package, `IP-1090`.** Depends on `FEAT-1000`'s existing state
+machine (as-built, shipped Baseline — predates this project's `IP-xxxx` numbering, no dedicated
+package), `IP-1040`/`FEAT-1100`'s cursor-menu convention
+(`VERIFIED`, reused not reinvented), and `FEAT-2100`'s already-shipped `TL_ARROW_U`/`TL_BLOCKED_U`
+tiles (`IP-1030`/`IP-1081`, both `VERIFIED`) — all dependencies already `VERIFIED`, none blocking.
+Independent of `IP-1082`'s own pending verification (a content dependency on already-shipped
+tiles, not a build-order dependency on `IP-1082`'s still-unverified render branch, per `FS-109`
+§17/`FEAT-1200`'s own catalog entry) and independent of the still-undecided `BL-0082`
+streaming-generation thread.
+
+### Backlog riders honored in this pass
+
+- **`BL-0100`** (project owner request, edge-indicator legend screen): packaged as `IP-1090` —
+  not `DONE` until `IP-1090` ships and is `VERIFIED`.

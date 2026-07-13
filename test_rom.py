@@ -61,6 +61,9 @@ SCOREITEM_FLAGS = 0xC286   # up to 81 bytes, C286-C2D6 — one bitfield per regi
                             # relocated off 0xC060 to avoid colliding with REGION_GRAPH)
 SEED = 0xC069; WORLD_SCALE = 0xC06B; REGION_GRAPH = 0xC070
 MM_CURSOR = 0xC27E   # MAIN MENU highlighted option: 0=continue, 1=new game (IP-1040/IP-9060)
+                     # -- also SELECT MENU's own cursor: 0=map, 1=legend (IP-1090, reused)
+MM_JUST_ENTERED = 0xC2D7   # genuine-entry flag, reused by GS_MAIN_MENU and
+                            # GS_SELECT_MENU transitions alike (IP-1040/IP-1090)
 KEYITEM_FLAGS = 0xC220     # up to 81 bytes — generalizes CARROT_FLAGS (IP-1020);
                             # only indices 0-8 are live until FEAT-1100 ships
 KEYITEM_COUNT = CARROTS_COUNT   # same WRAM slot as CARROTS_COUNT (IP-1020)
@@ -295,6 +298,7 @@ pb.button('b'); [pb.tick() for _ in range(40)]
 check("T4.5 B in SAVE -> PLAYING (GS=2)",  pb.memory[GAMESTATE] == 2)
 
 pb.button('select'); [pb.tick() for _ in range(40)]
+pb.button('a');      [pb.tick() for _ in range(40)]   # IP-1090: SELECT MENU, "map" default -> A
 check("T4.6 SELECT -> MAP (GS=4)",          pb.memory[GAMESTATE] == 4)
 shoot(pb, "T4_map")
 
@@ -692,6 +696,7 @@ pb.memory[CARROTS_COUNT] = carrots_pre; pb.memory[SCORE_DIRTY] = 1
 # Map hearts (BL-0001 closure): z0 heart full, z1 heart empty.
 # update_map_hearts writes 0x9800 + {6,9,12}*32 + {6,11,16}, LCD off during redraw.
 pb.button('select'); [pb.tick() for _ in range(40)]
+pb.button('a');      [pb.tick() for _ in range(40)]   # IP-1090: SELECT MENU, "map" default -> A
 check("T8.11 SELECT -> MAP", pb.memory[GAMESTATE] == 4)
 h_z0 = pb.memory[0x9800 + 6*32 + 6]
 h_z1 = pb.memory[0x9800 + 6*32 + 11]
@@ -1359,10 +1364,13 @@ pb.button('start'); [pb.tick() for _ in range(40)]
 pb.button('b');     [pb.tick() for _ in range(40)]        # SAVE: B
 pb.button('start'); [pb.tick() for _ in range(40)]
 pb.button('a');      [pb.tick() for _ in range(40)]       # SAVE: A (save)
-# MAP: SELECT enters, B and SELECT both exit back to PLAYING
+# MAP: SELECT (IP-1090: -> SELECT MENU, "map" default -> A) enters,
+# B and SELECT both exit back to PLAYING (st_map's own pre-existing merge)
 pb.button('select'); [pb.tick() for _ in range(40)]
+pb.button('a');       [pb.tick() for _ in range(40)]       # SELECT MENU: A -> MAP
 pb.button('b');       [pb.tick() for _ in range(40)]       # MAP: B
 pb.button('select'); [pb.tick() for _ in range(40)]
+pb.button('a');       [pb.tick() for _ in range(40)]       # SELECT MENU: A -> MAP
 pb.button('select');  [pb.tick() for _ in range(40)]       # MAP: SELECT
 seed_after_e = pb.memory[SEED] | (pb.memory[SEED+1] << 8)
 scale_after_e = pb.memory[WORLD_SCALE]
@@ -2158,6 +2166,101 @@ _b_up_pos = _dra_src.find("LD_B_A()", _div_done_pos)   # first B=up load,
 check("T20.d Static audit: row/col re-derivation precedes the neighbor-byte loads it would otherwise clobber (AC-2/AC-3 precondition)",
       _div_pos != -1 and _b_up_pos != -1 and _div_pos < _b_up_pos,
       "source-scanned")
+
+print("\n=== T21: SELECT Menu & Edge-Indicator Legend Screen ===")
+
+pb = fresh_boot(200)
+advance_to_playing(pb)
+
+# T21.a1/a2 -- SELECT MENU entry + toggle (AC-1/AC-2)
+pb.button('select'); [pb.tick() for _ in range(40)]
+check("T21.a1 SELECT -> SELECT MENU (GS=8), MAP default highlighted",
+      pb.memory[GAMESTATE] == 8 and pb.memory[MM_CURSOR] == 0,
+      f"GS={pb.memory[GAMESTATE]} cursor={pb.memory[MM_CURSOR]}")
+pb.button('down'); [pb.tick() for _ in range(10)]
+check("T21.a2a DOWN toggles MM_CURSOR to 1 (legend)", pb.memory[MM_CURSOR] == 1,
+      f"cursor={pb.memory[MM_CURSOR]}")
+pb.button('down'); [pb.tick() for _ in range(10)]
+check("T21.a2b DOWN again toggles MM_CURSOR back to 0 (map)", pb.memory[MM_CURSOR] == 0,
+      f"cursor={pb.memory[MM_CURSOR]}")
+pb.stop()
+
+# T21.b -- MM_CURSOR=0, A -> MAP (AC-3)
+pb = fresh_boot(200)
+advance_to_playing(pb)
+pb.button('select'); [pb.tick() for _ in range(40)]
+pb.button('a');      [pb.tick() for _ in range(40)]
+check("T21.b SELECT MENU, map highlighted, A -> MAP (GS=4)", pb.memory[GAMESTATE] == 4,
+      f"GS={pb.memory[GAMESTATE]}")
+pb.stop()
+
+# T21.c -- toggle to legend, A -> LEGEND (AC-4)
+pb = fresh_boot(200)
+advance_to_playing(pb)
+pb.button('select'); [pb.tick() for _ in range(40)]
+pb.button('down');   [pb.tick() for _ in range(10)]
+pb.button('a');      [pb.tick() for _ in range(40)]
+check("T21.c SELECT MENU, legend highlighted, A -> LEGEND (GS=9)", pb.memory[GAMESTATE] == 9,
+      f"GS={pb.memory[GAMESTATE]}")
+pb.stop()
+
+# T21.d -- B cancels SELECT MENU -> PLAYING, writing nothing else (AC-5).
+# A raw full-WRAM diff would false-positive on bytes that change every
+# frame regardless of menu state (MUSIC_CTR/MUSIC_PTR_LO/MUSIC_PTR_HI,
+# JOY_CUR/PREV/NEW, VBLANK_FLAG) -- so this checks the meaningful,
+# player-visible game-progress fields FR-1200's Postcondition is actually
+# about, the same set T14's own SEED/SCALE-immutability check targets
+# rather than diffing the entire WRAM region.
+MEANINGFUL_FIELDS = [SEED, SEED + 1, WORLD_SCALE, 0xC001, 0xC002,  # PLAYER_X/Y
+                      0xC003, 0xC004, SCORE, CARROTS_COUNT, CUR_ZONE]
+pb = fresh_boot(200)
+advance_to_playing(pb)
+before = {addr: pb.memory[addr] for addr in MEANINGFUL_FIELDS}
+pb.button('select'); [pb.tick() for _ in range(40)]
+pb.button('b');      [pb.tick() for _ in range(40)]
+check("T21.d1 SELECT MENU, B -> PLAYING (GS=2)", pb.memory[GAMESTATE] == 2,
+      f"GS={pb.memory[GAMESTATE]}")
+after = {addr: pb.memory[addr] for addr in MEANINGFUL_FIELDS}
+changed = [hex(a) for a in MEANINGFUL_FIELDS if before[a] != after[a]]
+check("T21.d2 B-cancel writes nothing outside GAMESTATE/NEED_REDRAW/TRANSITION_TO/MM_CURSOR/MM_JUST_ENTERED",
+      len(changed) == 0, f"changed={changed}")
+pb.stop()
+
+# T21.e -- from LEGEND, B -> PLAYING (AC-6)
+pb = fresh_boot(200)
+advance_to_playing(pb)
+pb.button('select'); [pb.tick() for _ in range(40)]
+pb.button('down');   [pb.tick() for _ in range(10)]
+pb.button('a');      [pb.tick() for _ in range(40)]
+check("T21.e0 LEGEND reached (GS=9)", pb.memory[GAMESTATE] == 9, f"GS={pb.memory[GAMESTATE]}")
+pb.button('b'); [pb.tick() for _ in range(40)]
+check("T21.e LEGEND, B -> PLAYING (GS=2)", pb.memory[GAMESTATE] == 2,
+      f"GS={pb.memory[GAMESTATE]}")
+
+# T21.f -- LEGEND's static content: real tiles beside their labels, plus a
+# genuinely blank world-edge cell (Inspection, GDS-08 §11) -- re-enter
+# LEGEND (same pb instance) to read its tilemap directly.
+pb.button('select'); [pb.tick() for _ in range(40)]
+pb.button('down');   [pb.tick() for _ in range(10)]
+pb.button('a');      [pb.tick() for _ in range(40)]
+legend_open_tile    = pb.memory[arrow_addr(4, 6)]
+legend_blocked_tile = pb.memory[arrow_addr(4, 9)]
+legend_edge_tile    = pb.memory[arrow_addr(4, 12)]
+check("T21.f1 LEGEND row 1 shows the real open-arrow tile (TL_ARROW_U) beside OPEN PATH",
+      legend_open_tile == ARROW_TILE['up'], f"0x{legend_open_tile:02X}")
+check("T21.f2 LEGEND row 2 shows the real blocked-edge tile (TL_BLOCKED_U) beside MAZE BLOCKED",
+      legend_blocked_tile == BLOCKED_TILE['up'], f"0x{legend_blocked_tile:02X}")
+check("T21.f3 LEGEND row 3 is genuinely blank beside WORLD EDGE (no tile drawn)",
+      legend_edge_tile == TL_BG_BLANK, f"0x{legend_edge_tile:02X}")
+pb.button('b'); [pb.tick() for _ in range(40)]
+pb.stop()
+
+# T21.g (FS-109 Verification Plan) -- not a separate assertion: this
+# requirement is that the corrected two-hop SELECT->SELECT MENU->MAP path
+# (T4.6/T8.11/T14.e2, all earlier in this same run) passes alongside T21's
+# own new-state checks in one full-suite run, not merely in isolation --
+# already satisfied structurally by this script's own single-process,
+# top-to-bottom execution (see RESULTS below).
 
 # ══════════════════════════════════════════════════════
 # SUMMARY

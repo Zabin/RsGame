@@ -160,6 +160,12 @@ def build(out_path='BunnyQuest.gbc'):
     p16(patches['sse_t'], screen_addrs['seed_scale_entry'][0])
     p16(patches['sse_a'], screen_addrs['seed_scale_entry'][1])
 
+    # IP-1090: select menu + legend screens, same title_t/title_a pattern.
+    p16(patches['sm_t'], screen_addrs['select_menu'][0])
+    p16(patches['sm_a'], screen_addrs['select_menu'][1])
+    p16(patches['lg_t'], screen_addrs['legend'][0])
+    p16(patches['lg_a'], screen_addrs['legend'][1])
+
     # IP-1030: one tile/attr address pair per biome family (5), parallel
     # to the title_t/title_a pattern above — not one pair per region.
     p16(patches['water_t'], screen_addrs['water'][0])

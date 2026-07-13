@@ -172,6 +172,9 @@ GS_TITLE, GS_INTRO, GS_PLAYING, GS_SAVE, GS_MAP, GS_VICTORY = 0, 1, 2, 3, 4, 5
 # st_title's dispatch entry/code is unreachable dead code, left in place —
 # same orphaning precedent as CARROT_FLAGS/village_screen etc.
 GS_MAIN_MENU, GS_SEED_SCALE_ENTRY = 6, 7
+GS_SELECT_MENU, GS_LEGEND = 8, 9  # IP-1090: SELECT now opens a small
+                                  # map/legend cursor menu instead of
+                                  # jumping directly to GS_MAP (GDS-01 §4c)
 
 
 def build_game_asm(rom: ROM) -> dict:
@@ -296,6 +299,8 @@ def build_game_asm(rom: ROM) -> dict:
     rom.CP_n(GS_VICTORY); rom.JP_Z('st_victory')
     rom.CP_n(GS_MAIN_MENU); rom.JP_Z('st_main_menu')
     rom.CP_n(GS_SEED_SCALE_ENTRY); rom.JP_Z('st_seed_scale_entry')
+    rom.CP_n(GS_SELECT_MENU); rom.JP_Z('st_select_menu')
+    rom.CP_n(GS_LEGEND); rom.JP_Z('st_legend')
     rom.JP('end_frame')
 
     # ── State: TITLE ─────────────────────────────────────
@@ -482,6 +487,47 @@ def build_game_asm(rom: ROM) -> dict:
     rom.CALL('draw_sse_digits')
     rom.JP('end_frame')
 
+    # ── State: SELECT MENU (IP-1090) ──────────────────────
+    # D-pad up/down toggles MM_CURSOR unconditionally between 0 ("map")
+    # and 1 ("legend") -- both options are always offered, unlike MAIN
+    # MENU's conditional "continue". A confirms the highlighted option;
+    # B cancels straight back to PLAYING, writing nothing else (FR-1200).
+    # SELECT itself is not tested here -- a plain no-op if pressed again.
+    rom.label('st_select_menu')
+    rom.LD_A_nn(JOY_NEW); rom.LD_B_A()
+    rom.BIT_b_B(J_UP); rom.JR_NZ('sm_toggle')
+    rom.BIT_b_B(J_DOWN); rom.JP_Z('sm_check_b')
+    rom.label('sm_toggle')
+    rom.LD_A_nn(MM_CURSOR); rom.XOR_n(1); rom.LD_nn_A(MM_CURSOR)
+    rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW)
+    rom.JP('end_frame')
+    rom.label('sm_check_b')
+    rom.LD_A_nn(JOY_NEW); rom.LD_B_A()
+    rom.BIT_b_B(J_B); rom.JR_Z('sm_check_a')
+    rom.LD_A_n(GS_PLAYING); rom.LD_nn_A(TRANSITION_TO)
+    rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW)
+    rom.JP('end_frame')
+    rom.label('sm_check_a')
+    rom.BIT_b_B(J_A); rom.JP_Z('end_frame')
+    rom.LD_A_nn(MM_CURSOR); rom.OR_A(); rom.JP_NZ('sm_legend')
+    rom.LD_A_n(GS_MAP); rom.LD_nn_A(TRANSITION_TO)
+    rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW)
+    rom.JP('end_frame')
+    rom.label('sm_legend')
+    rom.LD_A_n(GS_LEGEND); rom.LD_nn_A(TRANSITION_TO)
+    rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW)
+    rom.JP('end_frame')
+
+    # ── State: LEGEND (IP-1090) ────────────────────────────
+    # Single static screen (GDS-08 §11) -- only B is tested; SELECT is a
+    # plain no-op here too, same resolution as SELECT MENU.
+    rom.label('st_legend')
+    rom.LD_A_nn(JOY_NEW); rom.AND_n(1 << J_B)
+    rom.JP_Z('end_frame')
+    rom.LD_A_n(GS_PLAYING); rom.LD_nn_A(TRANSITION_TO)
+    rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW)
+    rom.JP('end_frame')
+
     # ── End of frame ─────────────────────────────────────
     rom.label('end_frame')
     rom.CALL('update_oam')
@@ -534,8 +580,13 @@ def build_game_asm(rom: ROM) -> dict:
     rom.label('hpi_no_st')
 
     rom.BIT_b_B(J_SELECT); rom.JR_Z('hpi_no_sel')
-    rom.LD_A_n(GS_MAP); rom.LD_nn_A(TRANSITION_TO)
-    rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW); rom.RET()
+    # IP-1090: SELECT now opens SELECT MENU (map/legend cursor choice)
+    # instead of jumping directly to MAP (GDS-01 §4c). MM_JUST_ENTERED
+    # set here so MM_CURSOR resets to "map" (0) on this genuine entry,
+    # mirroring st_save's own exit-to-main-menu site.
+    rom.LD_A_n(GS_SELECT_MENU); rom.LD_nn_A(TRANSITION_TO)
+    rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW); rom.LD_nn_A(MM_JUST_ENTERED)
+    rom.RET()
     rom.label('hpi_no_sel')
 
     rom.LD_A_nn(JOY_CUR); rom.LD_B_A()
@@ -861,7 +912,8 @@ def build_game_asm(rom: ROM) -> dict:
     # Dispatch to state-specific draw
     for gs, lbl in [(GS_TITLE,'dsr_t'),(GS_INTRO,'dsr_i'),(GS_PLAYING,'dsr_p'),
                     (GS_SAVE,'dsr_sv'),(GS_MAP,'dsr_m'),(GS_VICTORY,'dsr_v'),
-                    (GS_MAIN_MENU,'dsr_mm'),(GS_SEED_SCALE_ENTRY,'dsr_sse')]:
+                    (GS_MAIN_MENU,'dsr_mm'),(GS_SEED_SCALE_ENTRY,'dsr_sse'),
+                    (GS_SELECT_MENU,'dsr_sm'),(GS_LEGEND,'dsr_lg')]:
         rom.LD_A_nn(GAMESTATE); rom.CP_n(gs); rom.JP_Z(lbl)
     rom.JP('dsr_done')
 
@@ -885,6 +937,11 @@ def build_game_asm(rom: ROM) -> dict:
     # also called directly on every digit-cursor edit — see st_seed_scale_entry).
     _dsr_screen('dsr_mm',  'mm_t',  'mm_a',  extra='mm_on_entry')
     _dsr_screen('dsr_sse', 'sse_t', 'sse_a', extra='draw_sse_digits')
+    # IP-1090: select menu draws/resets its own cursor on every entry
+    # (sm_on_entry, mirroring mm_on_entry); legend is fully static -- no
+    # per-entry logic needed, plain copy_screen suffices.
+    _dsr_screen('dsr_sm', 'sm_t', 'sm_a', extra='sm_on_entry')
+    _dsr_screen('dsr_lg', 'lg_t', 'lg_a')
 
     # PLAYING: biome-family screen dispatch (IP-1030, generalizes the
     # former fixed 9-entry zs_table). CUR_ZONE is read as the current
@@ -1104,6 +1161,34 @@ def build_game_asm(rom: ROM) -> dict:
     rom.label('dmc_newgame')
     rom.LD_HL_nn(MM_CURSOR_NEW_ADDR)
     rom.label('dmc_write')
+    rom.LD_A_n(TL_ARROW_R); rom.LD_HL_A()
+    rom.RET()
+
+    # ── sm_on_entry / draw_select_menu_cursor (IP-1090) ───────
+    # Mirrors mm_on_entry/draw_menu_cursor, but with no save-validity gate
+    # -- "map" and "legend" are always both offered, nothing is ever
+    # blanked. select_menu_screen() uses the same row/column layout as
+    # main_menu_screen() (rows 7/9, label start col 8), so the cursor-cell
+    # addresses reuse the identical row math.
+    SM_CURSOR_MAP_ADDR    = 0x9800 + 7*32 + 6
+    SM_CURSOR_LEGEND_ADDR = 0x9800 + 9*32 + 6
+
+    rom.label('sm_on_entry')
+    rom.LD_A_nn(MM_JUST_ENTERED); rom.OR_A(); rom.JR_Z('sm_oe_no_reset')
+    rom.XOR_A(); rom.LD_nn_A(MM_JUST_ENTERED)
+    rom.LD_nn_A(MM_CURSOR)
+    rom.label('sm_oe_no_reset')
+    rom.CALL('draw_select_menu_cursor')
+    rom.RET()
+
+    rom.label('draw_select_menu_cursor')
+    rom.LD_HL_nn(SM_CURSOR_MAP_ADDR);    rom.LD_A_n(TL_BG_BLANK); rom.LD_HL_A()
+    rom.LD_HL_nn(SM_CURSOR_LEGEND_ADDR); rom.LD_A_n(TL_BG_BLANK); rom.LD_HL_A()
+    rom.LD_A_nn(MM_CURSOR); rom.OR_A(); rom.JR_NZ('dsmc_legend')
+    rom.LD_HL_nn(SM_CURSOR_MAP_ADDR); rom.JR('dsmc_write')
+    rom.label('dsmc_legend')
+    rom.LD_HL_nn(SM_CURSOR_LEGEND_ADDR)
+    rom.label('dsmc_write')
     rom.LD_A_n(TL_ARROW_R); rom.LD_HL_A()
     rom.RET()
 
