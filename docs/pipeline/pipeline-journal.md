@@ -455,8 +455,17 @@
   a confirming note; Master Build Plan, `packages/INDEX.md`, `ROADMAP.md` updated in sync.
 - **Next step:** **`09-package-verification` on `IP-1021`** — but this session cannot perform it
   (same-session-independence rule: `IP-1021` was implemented in this same session). Falls back to
-  the next unblocked item. Separately available: `BL-0082` (streaming/infinite-world research) and
-  `BL-0066` (`NEEDS-USER`). Still session-blocked: `09-package-verification` on `IP-1081`.
+  the next unblocked item. Separately available: `BL-0082` (streaming/infinite-world research).
+  Still session-blocked: `09-package-verification` on `IP-1081`.
+- **Direct backlog triage (2026-07-13, user instruction, no skill invocation):** the user directed
+  that `BL-0066` (biome-blob clustering) be formally blocked on `BL-0082` (streaming/infinite-world
+  research), not left as an independent `NEEDS-USER` (a)-vs-(b) pick — because neither of
+  `BL-0066`'s two candidate seeding strategies (dead-end seeding, N-random-point flood-fill) is
+  guaranteed to survive a lazy/on-demand streaming generation model, since both currently assume a
+  known, bounded grid extent. `BL-0066` re-dispositioned `NEEDS-USER` → `DEFERRED` (revisit
+  trigger: `BL-0082`'s own `02-research-*` step closing with a concrete streaming model).
+  `BL-0082`'s own scope widened to explicitly evaluate blob-clustering viability under whatever
+  streaming model it lands on, not just the hardware-feasibility/WRAM questions already named.
 - **Open gates:** none — `IP-1021` is authorized and `COMPLETE`. **Session-blocked:**
   `09-package-verification` on `IP-1081` and now also `IP-1021` (both implemented this session,
   both need a fresh session to verify).
