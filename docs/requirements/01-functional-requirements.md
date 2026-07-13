@@ -485,9 +485,9 @@
 - **Verification Method:** Test (tilemap inspection) / Inspection (visual).
 - **Source Documents:** GDS-05 C2; R203.
 - **Related ADRs:** None.
-- **Notes:** **Defect found and fixed ([IP-9140](../implementation/packages/IP-9140-right-arrow-offscreen-position-fix.md), 2026-07-12, `BL-0084`):** the right-edge arrow's tilemap position (`ARROW_ADDR_R`) placed it at tilemap column 30 — outside the true 20-column visible background window (`SCX=0` always) — so it was written to VRAM correctly but never actually rendered on screen, on any build, since before this pipeline's own work began (inherited from the retired pre-procgen `_zone_arrows`). Fixed to column 18; new check `T13.d` (screen-visibility audit) closes the test-coverage gap that let a correctly-written-but-invisible tile pass every prior tilemap-byte-value check.
+- **Notes:** **Defect found and fixed ([IP-9140](../implementation/packages/IP-9140-right-arrow-offscreen-position-fix.md), 2026-07-12, `BL-0084`):** the right-edge arrow's tilemap position (`ARROW_ADDR_R`) placed it at tilemap column 30 — outside the true 20-column visible background window (`SCX=0` always) — so it was written to VRAM correctly but never actually rendered on screen, on any build, since before this pipeline's own work began (inherited from the retired pre-procgen `_zone_arrows`). Fixed to column 18; new check `T13.d` (screen-visibility audit) closes the test-coverage gap that let a correctly-written-but-invisible tile pass every prior tilemap-byte-value check. **Superseded by `FR-2330`, implemented 2026-07-13** ([IP-1081](../implementation/packages/IP-1081-maze-blocked-edge-indicator-content.md)/[IP-1082](../implementation/packages/IP-1082-maze-blocked-edge-indicator-render.md)) — the open-edge case this requirement describes remains byte-for-byte unchanged (confirmed by `IP-1082`'s own zero-diff claim on the open branches), but `FR-2330` now generalizes it to the full 3-state signal.
 
-### FR-2330 — Three-state transition-edge signaling for a maze-shaped generated world (target — 2026-07-11)
+### FR-2330 — Three-state transition-edge signaling for a maze-shaped generated world (implemented — 2026-07-13)
 
 - **ID:** FR-2330
 - **Title:** The system shall distinguish, at each screen edge, between a grid boundary, a
@@ -506,7 +506,7 @@
   identical to a true dead end, or the player cannot tell "there is a path here I haven't opened"
   from "this is the edge of the world." Explicitly presentation-layer only — not mid-screen
   walls/collision, which remains out of scope for any current requirement.
-- **Priority:** Must (target — not yet implemented)
+- **Priority:** Must (implemented)
 - **Inputs:** The current region's `REGION_GRAPH` neighbor bytes (`ADR-0012`); the current
   region's `(row, col)` position and the world's `WORLD_SCALE`.
 - **Outputs:** One of three visual states rendered at each of the four screen edges.
@@ -522,10 +522,10 @@
   verbatim).
 - **Verification Method:** Test (per-edge state audit across a `(seed, scale)` corpus, extending
   `FR-2320`'s existing tilemap-inspection pattern to the new 3-way case) / Inspection (visual —
-  the blocked-edge indicator's own tile art has not been designed; see Notes).
+  `09-content-review` owed, see Notes).
 - **Source Documents:** `BL-0067`; `ADR-0012` point 2.
 - **Related ADRs:** ADR-0009, ADR-0012.
-- **Notes:** **Logic half implemented ([IP-1080](../implementation/packages/IP-1080-maze-aware-edge-classification.md), 2026-07-12):** `draw_region_arrows` (`asm_game.py`) now re-derives `(row, col)` from `CUR_ZONE`/`WORLD_SCALE` at render time and independently confirms whether a grid-adjacent region exists in each direction — the classification arithmetic this requirement's AC-(b)/(c) clause describes, verified by `T20.a`–`d`. **The rendering half remains open**, tracked by `BL-0068`: `GDS-08` §10 has since decided the blocked-edge indicator's tile art/palette (4 new tiles at `0x1A`–`0x1D`, reusing the open arrow's own palette 2), but no package yet wires that art in — today, both the "blocked" and "absent" cases remain visually identical no-ops (AC-(b)'s "blocked-edge indicator renders" clause is not yet satisfied; only the underlying classification decision is). `FR-2320` is left unmodified — it accurately describes the currently shipped 2-state *rendered* behavior, unchanged by this requirement's own logic-half implementation; this FR supersedes it only once the rendering half ships too, following this project's established `FR-1120`→`FR-1170`-`1190` coexistence precedent (`RQ-03` finding #7).
+- **Notes:** **Logic half implemented ([IP-1080](../implementation/packages/IP-1080-maze-aware-edge-classification.md), 2026-07-12):** `draw_region_arrows` (`asm_game.py`) now re-derives `(row, col)` from `CUR_ZONE`/`WORLD_SCALE` at render time and independently confirms whether a grid-adjacent region exists in each direction — the classification arithmetic this requirement's AC-(b)/(c) clause describes, verified by `T20.a`–`d`. **Rendering half implemented ([IP-1081](../implementation/packages/IP-1081-maze-blocked-edge-indicator-content.md) content + [IP-1082](../implementation/packages/IP-1082-maze-blocked-edge-indicator-render.md) render, 2026-07-13):** `IP-1081` authored the 4 blocked-edge tiles (`0x1A`–`0x1D`, palette 2, per `GDS-08` §10); `IP-1082` extended `draw_region_arrows`'s existing per-direction branches so the blocked case now draws the corresponding `TL_BLOCKED_<dir>` tile at the same screen position the open-edge arrow uses — closing AC-(b) in full. `T20.b` (corrected) confirms the positive tile-index assertion; `T20.e` confirms the open-edge case is unaffected (AC-(a) non-regression). `FR-2320` is now formally superseded (its own Notes updated) — this requirement's full 3-state Description is satisfied. A `09-content-review` pass is still owed (this is the first exercise of these 4 tiles as live, rendered art — `IP-1081`'s own `BL-0097` finding, direction-pair tiles pixel-identical, is routed there).
 
 ## FR-3000 — Collectibles, score & victory
 

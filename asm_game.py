@@ -14,6 +14,7 @@ from gbc_lib import ROM
 from tiles import (TL_CARROT, TL_STAR, TL_FLOWER_OBJ,
                    TL_HEART_FULL, TL_HEART_EMPTY, TL_DIGIT_0,
                    TL_ARROW_U, TL_ARROW_D, TL_ARROW_L, TL_ARROW_R,
+                   TL_BLOCKED_U, TL_BLOCKED_D, TL_BLOCKED_L, TL_BLOCKED_R,
                    TL_BG_BLANK)
 
 # ── WRAM addresses ─────────────────────────────────────────
@@ -996,9 +997,8 @@ def build_game_asm(rom: ROM) -> dict:
     # because IP-1070's braid pass pruned it -- "blocked") be distinguished
     # from a true grid boundary (no grid-neighbor at all -- "absent") --
     # REGION_GRAPH's own neighbor byte alone cannot tell the two apart once
-    # the maze pass has run (ADR-0012 point 2). Both remain no-op render-
-    # wise for this package's own scope (BL-0068's future rendering-half
-    # package draws the blocked-edge indicator); row/col are directly
+    # the maze pass has run (ADR-0012 point 2). IP-1082 (FR-2330) draws the
+    # blocked-edge indicator using this same row/col; row/col are directly
     # testable via DRA_ROW/DRA_COL (T20.b/c), the classification arithmetic
     # FR-2330 requires.
     rom.LD_A_nn(WORLD_SCALE); rom.LD_B_A()
@@ -1018,16 +1018,50 @@ def build_game_asm(rom: ROM) -> dict:
 
     rom.LD_A_B(); rom.CP_n(0xFF); rom.JR_Z('dra_no_up')
     _arrow_write(ARROW_ADDR_U, TL_ARROW_U)
+    rom.JR('dra_up_done')
     rom.label('dra_no_up')
+    # IP-1082 (FR-2330): B is dead past the check above (nothing later reads
+    # it) -- REGION_GRAPH said 0xFF, but that alone can't distinguish a maze-
+    # pruned edge ("blocked") from a true grid boundary ("absent", ADR-0012
+    # point 2). row>0 means a grid neighbor genuinely exists above -- blocked.
+    rom.LD_A_nn(DRA_ROW); rom.OR_A(); rom.JR_Z('dra_up_done')
+    _arrow_write(ARROW_ADDR_U, TL_BLOCKED_U)
+    rom.label('dra_up_done')
+
     rom.LD_A_C(); rom.CP_n(0xFF); rom.JR_Z('dra_no_down')
     _arrow_write(ARROW_ADDR_D, TL_ARROW_D)
+    rom.JR('dra_down_done')
     rom.label('dra_no_down')
+    # C is dead past the check above. row < WORLD_SCALE-1 means a grid
+    # neighbor genuinely exists below -- blocked. B is dead (consumed by the
+    # up-branch's own entry check) -- reused as scratch for WORLD_SCALE.
+    rom.LD_A_nn(WORLD_SCALE); rom.LD_B_A()
+    rom.LD_A_nn(DRA_ROW); rom.INC_A(); rom.CP_B(); rom.JR_NC('dra_down_done')
+    _arrow_write(ARROW_ADDR_D, TL_BLOCKED_D)
+    rom.label('dra_down_done')
+
     rom.LD_A_D(); rom.CP_n(0xFF); rom.JR_Z('dra_no_left')
     _arrow_write(ARROW_ADDR_L, TL_ARROW_L)
+    rom.JR('dra_left_done')
     rom.label('dra_no_left')
+    # D is dead past the check above. col>0 means a grid neighbor genuinely
+    # exists to the left -- blocked.
+    rom.LD_A_nn(DRA_COL); rom.OR_A(); rom.JR_Z('dra_left_done')
+    _arrow_write(ARROW_ADDR_L, TL_BLOCKED_L)
+    rom.label('dra_left_done')
+
     rom.LD_A_E(); rom.CP_n(0xFF); rom.JR_Z('dra_no_right')
     _arrow_write(ARROW_ADDR_R, TL_ARROW_R)
+    rom.JR('dra_right_done')
     rom.label('dra_no_right')
+    # E is dead past the check above (this is the last direction). col <
+    # WORLD_SCALE-1 means a grid neighbor genuinely exists to the right --
+    # blocked. C is dead (consumed by the down-branch's own entry check) --
+    # reused as scratch for WORLD_SCALE.
+    rom.LD_A_nn(WORLD_SCALE); rom.LD_C_A()
+    rom.LD_A_nn(DRA_COL); rom.INC_A(); rom.CP_C(); rom.JR_NC('dra_right_done')
+    _arrow_write(ARROW_ADDR_R, TL_BLOCKED_R)
+    rom.label('dra_right_done')
     rom.RET()
 
     # ── mm_on_entry / draw_menu_cursor (IP-1040 / IP-9060) ────
