@@ -20,24 +20,33 @@
 - **Features Included:** FEAT-1000 (Game State Machine & Menu Flow), FEAT-2000 (Player Movement &
   Zone Traversal), FEAT-3000 (Collectibles, Scoring & Victory), FEAT-1100 (Main Menu & New-Game
   Flow, new — not yet implemented), FEAT-2100 (Maze-Aware Transition-Edge Signaling, new — not
-  yet implemented).
+  yet implemented), FEAT-1200 (SELECT Menu & Edge-Indicator Legend Screen, new — not yet
+  implemented).
 - **Modules:** `asm_game.py` (all Features are primarily this module), `tilemaps.py`
-  (FEAT-2000's arrow signaling; FEAT-1100's new main-menu/seed-scale-entry screens); `tiles.py`
-  (FEAT-2100's new blocked-edge indicator art, not yet designed — see its own Open Questions).
-- **Estimated Scope:** Three of five Features already shipped in full. **FEAT-1100 is new work**
-  — extends the state machine with three new states, gated on EP-5000's world-generation routine
-  (FEAT-9000) existing to call into. **FEAT-2100 is new work** — extends `FEAT-2000`'s arrow
-  signaling to a 3-state form, gated on EP-5000's `FEAT-9100` (the maze itself) existing first.
+  (FEAT-2000's arrow signaling; FEAT-1100's new main-menu/seed-scale-entry screens; FEAT-1200's
+  new LEGEND screen); `tiles.py` (FEAT-2100's new blocked-edge indicator art, not yet designed —
+  see its own Open Questions).
+- **Estimated Scope:** Three of five original Features already shipped in full. **FEAT-1100 is
+  new work** — extends the state machine with three new states, gated on EP-5000's world-
+  generation routine (FEAT-9000) existing to call into. **FEAT-2100 is new work** — extends
+  `FEAT-2000`'s arrow signaling to a 3-state form, gated on EP-5000's `FEAT-9100` (the maze
+  itself) existing first. **FEAT-1200 is new work** — extends the state machine with two more
+  new states (SELECT MENU, LEGEND), reusing FEAT-1100's own cursor-menu convention; gated only on
+  FEAT-2100's tiles already existing (they do, `IP-1030`/`IP-1081`), so it is not gated on
+  FEAT-2100's own render branch (`IP-1082`) shipping — LEGEND only needs the tiles to exist, not
+  the live render logic that draws them contextually.
 - **Risks:** `BL-0006`'s prior test-suite-currency risk is **resolved** (IP-9010 VERIFIED,
   2026-07-07) — no longer a live risk for this Epic. FEAT-1100 carries its own new-work risk:
   retiring FR-1120's auto-load bypass is a deliberate protected-baseline change needing careful
   negative testing (see FP-03's FEAT-1100 entry). FEAT-2100 carries a real open blocker of its
   own: its tile art is undesigned, needing a `GDS-08` delta before full specification (see FP-03's
-  FEAT-2100 entry) — low logic risk, but not yet fully unblocked.
+  FEAT-2100 entry) — low logic risk, but not yet fully unblocked. FEAT-1200 carries low risk — its
+  one named tradeoff (an extra button press to reach MAP) was already weighed and accepted at the
+  architecture level (GDS-01 §4c), not an open question this Epic carries forward.
 - **Dependencies:** EP-2000 (World Content & Presentation) supplies the content this Epic operates
   on; EP-5000 (World Generation & Visual Narrative) — FEAT-1100 triggers FEAT-9000's generation
   routine; FEAT-2100 depends on EP-5000's FEAT-9100 (the maze) existing before it has anything to
-  signal.
+  signal; FEAT-1200 depends on FEAT-2100's own tiles (not its render branch) existing.
 
 ## EP-2000 — World Content & Presentation
 

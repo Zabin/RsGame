@@ -90,11 +90,11 @@ build order.
 
 | ID | Document | Path | Depends on | Status |
 |---|---|---|---|---|
-| FP-01 | Release Plan | `docs/feature-planning/01-release-plan.md` | RQ baseline | ✅ (2026-07-07; delta 2026-07-10 — Release 2 populated, FEAT-5100/`BL-0036` corrected; delta 2026-07-11 — FEAT-9100/FEAT-2100 join Release 2 as a post-ship addendum, ADR-0012; **delta 2026-07-12 — Release 2 bucket flipped to shipped/GO, FEAT-2100 recorded as partially delivered (logic half only)**) |
-| FP-02 | Epic Catalog | `docs/feature-planning/02-epic-catalog.md` | FP-03 | ✅ (2026-07-07; delta 2026-07-10 — EP-5000 added; delta 2026-07-11 — FEAT-9100 joins EP-5000, FEAT-2100 joins EP-1000) |
-| FP-03 | Feature Catalog (FEAT-xxxx) | `docs/feature-planning/03-feature-catalog.md` | RQ baseline | ✅ (2026-07-07; delta 2026-07-10 — 5 new Features, 53 requirements total; FEAT-6000/7000 Risk fields corrected, BL-0037; delta 2026-07-11 — FEAT-9100/FEAT-2100, 56 requirements total, ADR-0012) |
-| FP-04 | Feature Dependency Graph | `docs/feature-planning/04-feature-dependency-graph.md` | FP-03 | ✅ (2026-07-07; delta 2026-07-10 — no cycles, critical path FEAT-9000→FEAT-4100→FEAT-6100; delta 2026-07-11 — FEAT-9100/FEAT-2100 added, no cycles) |
-| FP-05 | Feature Review | `docs/feature-planning/05-feature-review.md` | FP-01…04 | ✅ (2026-07-07; re-run 2026-07-10 — finding #5 resolved, BL-0037; re-run 2026-07-11 — finding #7, FEAT-2100 needs a GDS-08 delta) |
+| FP-01 | Release Plan | `docs/feature-planning/01-release-plan.md` | RQ baseline | ✅ (2026-07-07; delta 2026-07-10 — Release 2 populated, FEAT-5100/`BL-0036` corrected; delta 2026-07-11 — FEAT-9100/FEAT-2100 join Release 2 as a post-ship addendum, ADR-0012; **delta 2026-07-12 — Release 2 bucket flipped to shipped/GO, FEAT-2100 recorded as partially delivered (logic half only)**; delta 2026-07-13 — FEAT-1200 joins Release 2 as a second, independent addendum, `CR-06`/`BL-0100`) |
+| FP-02 | Epic Catalog | `docs/feature-planning/02-epic-catalog.md` | FP-03 | ✅ (2026-07-07; delta 2026-07-10 — EP-5000 added; delta 2026-07-11 — FEAT-9100 joins EP-5000, FEAT-2100 joins EP-1000; delta 2026-07-13 — FEAT-1200 joins EP-1000) |
+| FP-03 | Feature Catalog (FEAT-xxxx) | `docs/feature-planning/03-feature-catalog.md` | RQ baseline | ✅ (2026-07-07; delta 2026-07-10 — 5 new Features, 53 requirements total; FEAT-6000/7000 Risk fields corrected, BL-0037; delta 2026-07-11 — FEAT-9100/FEAT-2100, 56 requirements total, ADR-0012; delta 2026-07-13 — FEAT-1200, 58 requirements total, `CR-06`/`BL-0100`) |
+| FP-04 | Feature Dependency Graph | `docs/feature-planning/04-feature-dependency-graph.md` | FP-03 | ✅ (2026-07-07; delta 2026-07-10 — no cycles, critical path FEAT-9000→FEAT-4100→FEAT-6100; delta 2026-07-11 — FEAT-9100/FEAT-2100 added, no cycles; delta 2026-07-13 — FEAT-1200 added, no cycles, immediately buildable/not serialized) |
+| FP-05 | Feature Review | `docs/feature-planning/05-feature-review.md` | FP-01…04 | ✅ (2026-07-07; re-run 2026-07-10 — finding #5 resolved, BL-0037; re-run 2026-07-11 — finding #7, FEAT-2100 needs a GDS-08 delta; re-run 2026-07-13 — finding #8, FEAT-1200 reviewed clean) |
 
 ## Theme: Feature specifications (`docs/features/`) — owner `06-feature-specification`
 

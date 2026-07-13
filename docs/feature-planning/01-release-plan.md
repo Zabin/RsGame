@@ -7,15 +7,18 @@
 > as an addendum); **Release 2 assessed GO 2026-07-12, user-confirmed**
 > ([release-assessment-release-2-bundled.md](../reviews/release-assessment-release-2-bundled.md))
 > — **with `FEAT-2100` explicitly carried forward as partially delivered** (logic half shipped
-> and `VERIFIED`; rendering half not yet built, tracked as `BL-0075`).** Owned by
+> and `VERIFIED`; rendering half not yet built, tracked as `BL-0075`); delta 2026-07-13
+> (edge-indicator legend screen, `FEAT-1200` joins Release 2 as a second addendum, `CR-06`/
+> `BL-0100`).** Owned by
 > `05-feature-decomposition`. Assigns every Feature
-> in [FP-03](03-feature-catalog.md) (now fifteen) to exactly one bucket, using
+> in [FP-03](03-feature-catalog.md) (now sixteen) to exactly one bucket, using
 > [FP-04](04-feature-dependency-graph.md)'s dependency analysis. **Bootstrap framing: seven of
 > eight bootstrap-baseline Features are already shipped** (FEAT-5100 shipped and verified
 > 2026-07-07, correcting this document's prior "no shipped implementation" framing — `BL-0036`).
 > **Release 2** holds the procgen-world increment's five original Features (all shipped and
 > `VERIFIED`) plus two 2026-07-11 post-ship remediation Features (`FEAT-9100` shipped/`VERIFIED`;
-> `FEAT-2100` partially shipped — see above).
+> `FEAT-2100` partially shipped — see above) plus one 2026-07-13 addendum Feature (`FEAT-1200`,
+> not yet implemented).
 
 ## Bucket: Baseline (as-built)
 
@@ -91,6 +94,19 @@ of `BL-0066`'s still-open `NEEDS-USER` conflict (`CR-05`) — that item has no `
 all yet, per this stage's own rule against inventing a Feature for an unresolved requirements
 conflict.
 
+### Release 2 addendum — edge-indicator legend screen (`CR-06`/`BL-0100`, added 2026-07-13)
+
+One new Feature, from a project-owner request (`BL-0100`) unrelated to `ADR-0012`'s own
+remediation thread above but joining the same bucket for the identical reason this stage's own
+Step 4 already established: the fixed bucket vocabulary has no "Release 3."
+
+| Feature | Why here |
+|---|---|
+| FEAT-1200 (SELECT Menu & Edge-Indicator Legend Screen) | Not yet implemented. All three of its own dependencies are already satisfied (`FEAT-1000`/`FEAT-1100` shipped; `FEAT-2100`'s specific dependency is its tiles, already shipped via `IP-1030`/`IP-1081`, independent of `FEAT-2100`'s own still-in-flight render branch) — immediately buildable, not serialized behind the `ADR-0012` addendum's own remaining work (`IP-1082`). |
+
+Independent of the `ADR-0012` addendum's own ordering constraint (`FEAT-9100` before `FEAT-2100`)
+— `FEAT-1200` can proceed in parallel with either, per FP-04's own dependency analysis.
+
 ## Bucket: Future (not yet decomposed into Features)
 
 These are named here for completeness because they're real, tracked program-level concerns — but
@@ -147,4 +163,6 @@ FEAT-5000 and FEAT-3000, both Baseline. Release 2's FEAT-9000 depends only on Ba
 plus Baseline/Release-1 Features already scheduled or shipped earlier — no ordering violation
 anywhere in the plan. **2026-07-11 addendum:** FEAT-9100 depends only on the now-shipped FEAT-9000;
 FEAT-2100 depends on FEAT-9100 plus the already-shipped FEAT-2000 — both schedule cleanly after
-their dependencies, no violation.
+their dependencies, no violation. **2026-07-13 addendum:** FEAT-1200 depends on FEAT-1000/
+FEAT-1100 (both shipped) and FEAT-2100 (its tile-content dependency already shipped, independent
+of FEAT-2100's own still-unshipped render branch) — schedules cleanly, no violation.
