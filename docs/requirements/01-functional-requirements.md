@@ -1402,4 +1402,9 @@ excluded from the numbered baseline above; marked `CANDIDATE — NOT BASELINED` 
   layout/content) are both needed before a clean, implementation-independent FR can be written.
   `04-requirements-engineering` returns to derive the actual FR once that lands, mirroring
   `BL-0031`'s own `01→02→03→04` precedent for `MAIN MENU`/`SEED SCALE ENTRY`. See `RQ-03`'s
-  finding for the full write-up.
+  finding for the full write-up. **Architecture landed (2026-07-13):** [GDS-01](../architecture/01-concept-of-play.md)
+  §4c (`SELECT` now opens a small `MAP`/`LEGEND` cursor menu, `MAP` itself unchanged) and
+  [GDS-08](../architecture/08-presentation-architecture.md) §11 (the `LEGEND` screen's static
+  three-row content, reusing existing tiles/palette) both authored — this Candidate is now ready
+  for `04-requirements-engineering` to derive its real FR from, still un-baselined until that
+  pass runs.

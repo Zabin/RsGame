@@ -63,14 +63,14 @@ build order.
 | ID | Document | Path | Depends on | Status |
 |---|---|---|---|---|
 | GDS-00 | Vision level | `docs/architecture/00-vision.md` | MSTR-001 | ✅ (revised 2026-07-09 for MSTR-001 v3.0) |
-| GDS-01 | Concept of Play | `docs/architecture/01-concept-of-play.md` | GDS-00 | ✅ (2026-07-06; delta 2026-07-09 for procgen-world increment) |
+| GDS-01 | Concept of Play | `docs/architecture/01-concept-of-play.md` | GDS-00 | ✅ (2026-07-06; delta 2026-07-09 for procgen-world increment; delta 2026-07-13 §4c — `SELECT` becomes a small `MAP`/`LEGEND` menu, target state, `CR-06`/`BL-0100`) |
 | GDS-02 | System Context | `docs/architecture/02-system-context.md` | GDS-01 | ✅ (2026-07-06) |
 | GDS-03 | Architecture | `docs/architecture/03-architecture.md` | GDS-02 | ✅ (2026-07-06) |
 | GDS-04 | Domain Model | `docs/architecture/04-domain-model.md` | GDS-03 | ✅ (2026-07-06; delta 2026-07-09 for procgen-world increment; delta 2026-07-10, BL-0033; delta 2026-07-12 — `KeyItem` cardinality/win-condition corrected, `ADR-0015`/`BL-0093`) |
 | GDS-05 | Functional Requirements | `docs/architecture/05-functional-requirements.md` | GDS-04 | ✅ (2026-07-06) |
 | GDS-06 | Non-functional Requirements | `docs/architecture/06-non-functional-requirements.md` | GDS-05 | ✅ (2026-07-06) |
 | GDS-07 | Data Model | `docs/architecture/07-data-model.md` | GDS-06 | ✅ (2026-07-06; delta 2026-07-09 for procgen-world increment; delta 2026-07-12 — §7c per-region treasure-presence concept, `ADR-0015`) |
-| GDS-08 | Presentation Architecture | `docs/architecture/08-presentation-architecture.md` | GDS-07 | ✅ (2026-07-06; delta 2026-07-09 — normative aesthetic standard + biome-transition strategy for C8/C9; delta 2026-07-11 §10 — maze-blocked edge indicator: distinct tile shape at `0x1A`–`0x1D`, reuses palette 2, closes `BL-0068`) |
+| GDS-08 | Presentation Architecture | `docs/architecture/08-presentation-architecture.md` | GDS-07 | ✅ (2026-07-06; delta 2026-07-09 — normative aesthetic standard + biome-transition strategy for C8/C9; delta 2026-07-11 §10 — maze-blocked edge indicator: distinct tile shape at `0x1A`–`0x1D`, reuses palette 2, closes `BL-0068`; delta 2026-07-13 §11 — edge-indicator legend/help screen content, reuses existing tiles, `CR-06`/`BL-0100`) |
 | GDS-09 | Interface Specification | `docs/architecture/09-interface-specification.md` | GDS-08 | ✅ (2026-07-06; delta 2026-07-09 — worldgen.py contract, new patch points) |
 | GDS-10 | RTM level | `docs/architecture/10-requirements-traceability-matrix.md` | GDS-09 | ✅ (2026-07-06; ID-scheme refreshed 2026-07-09 — confirms no new prefix needed for procgen-world increment; delta 2026-07-10, BL-0034) |
 | AR-ASSUME | Strategic assumptions register | `docs/architecture/strategic-assumptions-register.md` | MSTR-001 | ♻️ (A1–A10, revised 2026-07-09) |

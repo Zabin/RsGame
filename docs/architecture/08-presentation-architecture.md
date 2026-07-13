@@ -250,3 +250,62 @@ pairs") is corrected to 8×16 in this authoring pass, matching the shipped `LCDC
 increment plan's Phase 3 and MSTR-001 C8/C9. Delta, not re-authoring — §§1–6 remain the accurate
 as-shipped description; §§7–9 are the normative standard/strategy content downstream stage-06/08
 work and `09-content-review` will apply once built. No merge-gate box above is reopened.
+
+### 11. Edge-indicator legend/help screen — `GDS-08` delta for `CR-06`/`BL-0100` (decided 2026-07-13)
+
+The project owner asked for a screen explaining the on-screen transition-edge indicator tiles to
+the player (`BL-0100`) — today's `FR-2320`/`FR-2330` three-state signal (open arrow / blocked-edge
+bar / no indicator, §10 above) has no in-game explanation anywhere; a player must infer the
+distinction from play alone. This section decides the new **LEGEND** screen's content and layout;
+[GDS-01](01-concept-of-play.md) §4c decides where it sits in the state machine (a new `SELECT`
+menu, not a change to `MAP`'s own existing content).
+
+**Decision: a single static, read-only screen showing each of the three indicator tiles next to a
+one-line plain-language explanation — no animation, no interactivity beyond exit.** Reuses this
+project's own established static-screen layout convention (a title line, a horizontal border rule,
+body content, a footer control hint — the exact shape `main_menu_screen()`/`map_screen()` already
+use, `tilemaps.py`). Content, three rows:
+
+```
+ <open-arrow tile>   OPEN PATH
+ <blocked-bar tile>  MAZE BLOCKED
+ (blank)             WORLD EDGE
+```
+
+Each row places the real tile (`TL_ARROW_U` reused as the representative open-arrow glyph;
+`TL_BLOCKED_U` reused as the representative blocked-edge glyph, both already ROM-resident since
+`IP-1030`/`IP-1081` — no new tile art, no new palette entry) directly beside its own plain-language
+label, so the player compares the *actual* on-screen glyph to its meaning rather than a redrawn
+approximation. The third row is the "no indicator" case — deliberately shown as a blank cell (the
+real absence of a tile is the point), labeled "WORLD EDGE" rather than left unexplained. Footer:
+`"B: EXIT"` (this screen has one control, matching `MAP`'s own single-control footer convention).
+No `SELECT`-triggered page-cycling within `LEGEND` itself — it is a single static page, unlike
+`MAP`, which already has its own (pre-existing, unrelated) internal content; nothing about this
+delta touches `map_screen()`.
+
+**Why one static page, not more:** `R206` (session length/pacing) favors short, low-friction
+reference material for a handheld game — a single glance-and-return screen matches that better
+than a multi-page manual would, and the entire explanation is three short facts, not a tutorial
+needing sequencing.
+
+**Not decided here (implementation-level, `06`/`07`/`08-code-implementation`):** the exact screen
+coordinates for each row/label (a direct, low-risk layout choice for whoever implements this,
+following `map_screen()`'s/`main_menu_screen()`'s own existing coordinate conventions); whether the
+representative tiles are drawn via the existing `_arrow_write`-style helper or a plain `_put()`
+call (no palette/VBlank-timing question is raised by a static screen, unlike the live `MAP`/
+`draw_region_arrows` case — either is fine, a pure code-shape choice).
+
+- [x] Stub body replaced with real content addressing the stated Purpose (delta, not re-authoring
+      — §§1–10 unaffected, no merge-gate box above reopened).
+- [x] Every "merges from" source consulted (`FR-2320`/`FR-2330`, `tilemaps.py`'s existing static-
+      screen shape, `R206`).
+- [x] No production code or byte-level detail beyond what this level calls for — no new tile art,
+      no new palette entry, no WRAM address (the new `GAMESTATE` value and menu-cursor byte are
+      [GDS-01](01-concept-of-play.md) §4c's/`GDS-07`'s own concern, not this level's).
+- [x] `docs/architecture/INDEX.md` §1 and `ROADMAP.md` flipped together (this delta, alongside
+      GDS-01 §4c).
+
+**Delta record (2026-07-13):** §11 added, per `CR-06`/`BL-0100` (project owner request, routed
+here by `04-requirements-engineering`'s own finding #15 after it correctly declined to invent this
+content at the requirements level). Delta, not re-authoring — §§1–10 remain accurate; §11 is new,
+independent content with no dependency on `MAP`'s own future redesign (`BL-0050`, still deferred).
