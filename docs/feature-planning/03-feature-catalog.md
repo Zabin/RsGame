@@ -641,14 +641,16 @@
   remediation.
 - **Open Questions:** None surfaced yet — first specified at `06-feature-specification`.
 
-## FEAT-1200 — SELECT Menu & Edge-Indicator Legend Screen (new — not yet implemented)
+## FEAT-1200 — SELECT Menu & Edge-Indicator Legend Screen (implemented, verified)
 
 > **Forward reference (metadata only):** requirements baselined as FR-1200/FR-1210
 > (`04-requirements-engineering`, 2026-07-13, `CR-06`/`BL-0100`); specified as
 > [FS-109](../features/FS-109-select-menu-edge-indicator-legend-screen.md) (`06-feature-specification`,
 > 2026-07-13); implemented as
 > [IP-1090](../implementation/packages/IP-1090-select-menu-edge-indicator-legend-screen.md)
-> (`08-code-implementation`, 2026-07-13), `COMPLETE`, awaiting independent verification.
+> (`08-code-implementation`, 2026-07-13), independently verified as
+> [VR-1090](../implementation/verification/VR-1090-select-menu-edge-indicator-legend-screen.md)
+> (`09-package-verification`, 2026-07-13), `VERIFIED`.
 
 - **Feature ID:** FEAT-1200
 - **Title:** SELECT Menu & Edge-Indicator Legend Screen

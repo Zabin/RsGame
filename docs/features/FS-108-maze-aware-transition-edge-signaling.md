@@ -35,9 +35,11 @@
 > [IP-1082](../implementation/packages/IP-1082-maze-blocked-edge-indicator-render.md) (render).
 > Both authorized 2026-07-12 (user G3, `BL-0092`). `IP-1081` `VERIFIED` (2026-07-13,
 > [VR-1081](../implementation/verification/VR-1081-maze-blocked-edge-indicator-content.md)); `IP-1082`
-> implemented 2026-07-13 (`COMPLETE`, 234/234 — `T20.b` corrected, new `T20.e`), closing AC-4/AC-5
-> in full and resolving `BL-0075`'s tracked path pending its own independent verification. A
-> `09-content-review` pass on the shipped tile art is still owed (`BL-0097`).
+> `VERIFIED` (2026-07-13,
+> [VR-1082](../implementation/verification/VR-1082-maze-blocked-edge-indicator-render.md), 246/246
+> — `T20.b` corrected, new `T20.e`, both independently re-confirmed), closing AC-4/AC-5 in full and
+> resolving `BL-0075`'s tracked path completely. A `09-content-review` pass on the shipped tile art
+> is still owed (`BL-0097`), as is a `10-integration-review` pass on the `IP-1081`/`IP-1082` set.
 
 ## 1. Feature ID
 
