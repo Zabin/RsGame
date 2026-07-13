@@ -5,10 +5,10 @@
 > elaborates FEAT-1200, it does not modify its catalog entry, the requirements it implements, or
 > any architecture document.
 >
-> **Forward reference (metadata only):** packaged as
-> [IP-1090](../implementation/packages/IP-1090-select-menu-edge-indicator-legend-screen.md)
-> (`07-implementation-planning`, 2026-07-13) — `READY`, not yet authorized. Resolves this
-> document's Open Questions 1–3 (§19).
+> **Forward reference (metadata only):** [IP-1090](../implementation/packages/IP-1090-select-menu-edge-indicator-legend-screen.md)
+> **COMPLETE 2026-07-13** — all seven Acceptance Criteria (§15) demonstrably pass via
+> `test_rom.py`'s T21 suite (12/12, full suite 246/246 green), awaiting independent
+> (`09-package-verification`) review. Resolves this document's Open Questions 1–3 (§19).
 
 [↑ Features index](INDEX.md) · [Feature Catalog](../feature-planning/03-feature-catalog.md) ·
 [Epic Catalog](../feature-planning/02-epic-catalog.md)

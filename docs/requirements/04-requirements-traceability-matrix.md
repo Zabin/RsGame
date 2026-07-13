@@ -59,8 +59,8 @@
 | FR-1170 | MAIN MENU state (Met, 2026-07-10; cursor-reset regression fixed 2026-07-11) | — | GDS-01 §2a/§4a | ADR-0010 | `asm_game.py` | FS-104 | IP-1040, IP-9060 | T14.a1–a4, T18.a–d — 231/231 pass |
 | FR-1180 | New-game seed/scale entry + generation trigger (Met) | R111 | GDS-01 §4a | ADR-0009, ADR-0010 | `asm_game.py` | FS-104 | IP-1040 | T14.b1–b3, T14.c1 — 180/180 pass (T14 sub-total 20/20) |
 | FR-1190 | Exit-to-main-menu with auto-save (Met) | — | GDS-01 §4a | — | `asm_game.py`, `tilemaps.py` | FS-104 | IP-1040, IP-9080 | T14.d1–d2 (behavior), T5.10–T5.12 (on-screen label, IP-9080) |
-| FR-1200 | SELECT MENU state (target, supersedes FR-1150's SELECT→MAP clause) | — | GDS-01 §4c | — | `asm_game.py`, `tilemaps.py` (prospective) | FS-109 | IP-1090 | UNASSIGNED |
-| FR-1210 | LEGEND state (target) | — | GDS-08 §11 | — | `asm_game.py`, `tilemaps.py` (prospective) | FS-109 | IP-1090 | UNASSIGNED |
+| FR-1200 | SELECT MENU state (Met, 2026-07-13, supersedes FR-1150's SELECT→MAP clause) | — | GDS-01 §4c | — | `asm_game.py`, `tilemaps.py` | FS-109 | IP-1090 | **T21.a1–a2, T21.b–d2, T4.6/T8.11/T14.e2 (corrected) — 246/246 pass** |
+| FR-1210 | LEGEND state (Met, 2026-07-13) | — | GDS-08 §11 | — | `asm_game.py`, `tilemaps.py` | FS-109 | IP-1090 | **T21.e, T21.f1–f3 — 246/246 pass** |
 | FR-3220 | Item-agnostic KeyItem collection (generalizes FR-3210) | — | GDS-04 delta | ADR-0009 | `asm_game.py` | FS-102 | IP-1020 | T8.7, T8.8 (retargeted KEYITEM_FLAGS/KEYITEM_COUNT checks), T12.g (cross-reference) — 133/133 pass |
 | FR-4300 | One biome per screen (Met — code half `IP-1030`, content half `IP-1031`, both 2026-07-10/11) | R212 | GDS-08 delta §8 | ADR-0009 | `asm_game.py`, `tilemaps.py` | FS-103 | IP-1030 (code), IP-1031 (content) | T13.a (tile-family audit, exercises both halves) — 180/180 pass |
 | FR-4310 | Grammar-valid adjacency only | R212 | GDS-04 delta | ADR-0009 | `asm_game.py`, `worldgen.py` | FS-102 | IP-1020 | T12.d (15-entry seed/scale corpus, 0 illegal edges) |

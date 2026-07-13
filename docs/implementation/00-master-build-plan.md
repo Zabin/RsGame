@@ -1,9 +1,10 @@
 # Master Build Plan
 
-> **Status: 22 of 25 packages VERIFIED (2026-07-12); `IP-1081` (`FS-108` rendering half — content,
-> `BL-0075`) `COMPLETE` same day, awaiting verification; `IP-1082` (render) `BLOCKED` on it;
-> `IP-1021` (win-condition redesign, `BL-0093`) `COMPLETE` 2026-07-13, awaiting verification
-> (same-session-independence rule).**
+> **Status (corrected 2026-07-13, `BL-0101`): 24 of 26 packages VERIFIED; `IP-1082` (`FS-108`
+> rendering half, `BL-0075`) `COMPLETE` 2026-07-13, awaiting independent verification; `IP-1090`
+> (SELECT Menu & Edge-Indicator Legend Screen, `BL-0100`) `COMPLETE` 2026-07-13, awaiting
+> independent verification (same-session-independence rule applies to both — implemented in the
+> same session that would verify them).**
 > **Bootstrap tranche fully VERIFIED (2026-07-10) — all five packages VERIFIED.**
 > **Release 2 tranche (procgen-world increment): authorized 2026-07-10 (user G3, `BL-0040`, all
 > five packages) — `IP-1020` (foundational, dependency-root) VERIFIED 2026-07-10
@@ -236,7 +237,7 @@ bootstrap carve-out; explicit user authorization is required before `08-code-imp
 start.** No critical path — a single package, fully `READY` (every dependency already
 `VERIFIED`).
 
-| [IP-1090](packages/IP-1090-select-menu-edge-indicator-legend-screen.md) | SELECT Menu & Edge-Indicator Legend Screen (FS-109 / FEAT-1200 / BL-0100) | `08-code-implementation` | **READY** | IP-1040 (VERIFIED), IP-1030 (VERIFIED), IP-1081 (VERIFIED) | **NOT YET — awaiting explicit user G3** | Fully specified 2026-07-13. Resolves FS-109's 3 Open Questions as this package's own implementation choices: `GS_SELECT_MENU`/`GS_LEGEND` = 8/9 (next free `GAMESTATE` values); SELECT MENU's cursor reuses `MM_CURSOR`/`MM_JUST_ENTERED` rather than allocating new WRAM bytes (valid — `GS_MAIN_MENU`/`GS_SELECT_MENU` never simultaneously active, no direct transition between them); SELECT is a plain no-op inside SELECT MENU/LEGEND (neither handler tests `J_SELECT`). No new tile art (`GDS-08` §11) — reuses `TL_ARROW_U`/`TL_BLOCKED_U` verbatim, so no `09-content-review` pass is owed. Supersession sweep found three existing tests (`T4.6`, `T8.11`, `T14.e2`) assume the old single-hop SELECT→MAP path and need a corrective `A`-press insertion — recorded as this package's own Tests to Add/Modify, not left for `08` to rediscover. |
+| [IP-1090](packages/IP-1090-select-menu-edge-indicator-legend-screen.md) | SELECT Menu & Edge-Indicator Legend Screen (FS-109 / FEAT-1200 / BL-0100) | `08-code-implementation` | **COMPLETE — 246/246 checks pass** | IP-1040 (VERIFIED), IP-1030 (VERIFIED), IP-1081 (VERIFIED) | **YES — explicit user G3, 2026-07-13 ("Yes")** | **Implemented 2026-07-13.** `GS_SELECT_MENU`/`GS_LEGEND` = 8/9 added; `handle_play_input`'s SELECT branch retargeted from `GS_MAP` to `GS_SELECT_MENU` (`st_map` itself confirmed byte-for-byte unchanged); new `st_select_menu` (D-pad toggle, A-confirm to MAP/LEGEND, B-cancel to PLAYING) and `st_legend` (B-only) state handlers; `sm_on_entry`/`draw_select_menu_cursor` mirror `mm_on_entry`/`draw_menu_cursor`, reusing `MM_CURSOR`/`MM_JUST_ENTERED` (no new WRAM bytes); two new static screens (`select_menu_screen()`, `legend_screen()`) reusing existing tile primitives — zero new tile art, zero new palette entries, ROM at 25544/32768 bytes (+2560 from the two screens). New `test_rom.py` suite **T21** (12 checks — SELECT MENU entry/toggle, both confirm branches, B-cancel with a scoped meaningful-fields diff, LEGEND entry/exit, and direct tilemap-content assertions confirming the real `TL_ARROW_U`/`TL_BLOCKED_U` tiles and a genuinely blank world-edge cell). Corrected the three existing tests (`T4.6`, `T8.11`, `T14.e2`) the Technical Work Breakdown's supersession sweep flagged, each with an inserted `A` press for the new two-hop path. Full suite 246/246 (was 234 — net +12, all new T21 checks; zero regressions). Independently re-driven via PyBoy screenshot: SELECT MENU's cursor correctly highlights MAP by default and moves to LEGEND on D-pad down; LEGEND renders the real open-arrow/blocked-bar tiles beside their labels with a genuinely blank WORLD EDGE cell. Backfilled GDS-07's missing `MM_SAVE_VALID`/`MM_CURSOR` WRAM-table rows (referenced since `IP-1040` but never entered) and extended `MM_JUST_ENTERED`'s row for its new `GS_SELECT_MENU` reuse. `FR-1200`/`FR-1210` marked Implemented (Notes-only), RTM Test column filled. Closes `BL-0100` in full, awaiting independent (fresh-session) verification. |
 
 ## Dependency graph
 
@@ -325,7 +326,7 @@ graph TD
     style IP1081 fill:#eee,stroke:#333,stroke-width:2px
     style IP1082 fill:#eee,stroke:#333,stroke-width:2px
 
-    IP1090["IP-1090 SELECT menu &<br/>legend screen<br/>(READY)"]
+    IP1090["IP-1090 SELECT menu &<br/>legend screen<br/>(COMPLETE)"]
     IP1040 --> IP1090
     IP1030 --> IP1090
     IP1081 --> IP1090
@@ -559,6 +560,8 @@ first-in-critical-path package.)*
   (cursor-menu convention + `MM_CURSOR`/`MM_JUST_ENTERED` reuse), `IP-1030`/`IP-1081` (the
   already-shipped `TL_ARROW_U`/`TL_BLOCKED_U` tiles LEGEND displays) — all three `VERIFIED`, no
   blocking dependency. Independent of `IP-1082`'s own still-pending independent verification
-  (disjoint files). Fully specified, `READY`.
-- **Authorization state: not yet authorized** — awaiting explicit user G3 before
-  `08-code-implementation` may begin.
+  (disjoint files).
+- **Authorization state: authorized** — user G3, 2026-07-13, "Yes".
+- **Implemented 2026-07-13 — `COMPLETE`, 246/246 checks pass** (new suite `T21`, 12 checks; three
+  existing tests corrected for the new two-hop SELECT path, per the TWBS's own supersession
+  sweep). Awaiting independent (fresh-session) verification.

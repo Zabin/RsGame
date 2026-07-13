@@ -350,7 +350,7 @@
   "SELECT: SAVE" / "AND EXIT" (rows 12–13), fixing a real discoverability gap (the option was
   functionally present but invisible to the player). Content-only; no behavior change.
 
-### FR-1200 — SELECT MENU state (target — 2026-07-13, `CR-06`/`BL-0100`)
+### FR-1200 — SELECT MENU state (Implemented — 2026-07-13, `IP-1090`)
 
 - **ID:** FR-1200
 - **Title:** The system shall present a SELECT MENU offering MAP and LEGEND when SELECT is
@@ -362,7 +362,7 @@
 - **Rationale:** [GDS-01](../architecture/01-concept-of-play.md) §4c (project owner request,
   `BL-0100`); reuses the cursor-menu convention FR-1170/GDS-01 §4a already established for MAIN
   MENU rather than introducing a second UI convention for the same shape of choice.
-- **Priority:** Must (target — not yet implemented)
+- **Priority:** Must (Met)
 - **Inputs:** SELECT press (in PLAYING); D-pad up/down (in SELECT MENU); A (confirm); B (cancel).
 - **Outputs:** State transitions PLAYING→SELECT MENU (on SELECT); SELECT MENU→MAP or SELECT
   MENU→LEGEND (on A, per the highlighted option); SELECT MENU→PLAYING (on B).
@@ -387,9 +387,11 @@
   recorded player-facing complaint), not silently absorbed. FR-1150's own "PLAYING → MAP on
   SELECT" acceptance criterion becomes inaccurate once this FR ships — left unmodified in
   FR-1150's own text per the established FR-1120→FR-1170 coexistence precedent (RQ-03 finding
-  #7), to be marked superseded there once implemented.
+  #7), to be marked superseded there once implemented. **Implemented 2026-07-13 (`IP-1090`):**
+  `GS_SELECT_MENU`/`GS_LEGEND` = 8/9; `MM_CURSOR`/`MM_JUST_ENTERED` reused for the new state
+  rather than new WRAM bytes; confirmed by `T21.a1`–`T21.d2`.
 
-### FR-1210 — LEGEND state (target — 2026-07-13, `CR-06`/`BL-0100`)
+### FR-1210 — LEGEND state (Implemented — 2026-07-13, `IP-1090`)
 
 - **ID:** FR-1210
 - **Title:** The system shall present a read-only LEGEND screen explaining the transition-edge
@@ -401,7 +403,7 @@
 - **Rationale:** [GDS-08](../architecture/08-presentation-architecture.md) §11 (project owner
   request, `BL-0100`) — today's three-state edge signal (FR-2320/FR-2330) has no in-game
   explanation anywhere.
-- **Priority:** Must (target — not yet implemented)
+- **Priority:** Must (Met)
 - **Inputs:** B press (in LEGEND).
 - **Outputs:** State transitions LEGEND→PLAYING (on B).
 - **Preconditions:** Current state is LEGEND.
@@ -418,7 +420,9 @@
 - **Notes:** No new tile art or palette entry — reuses `TL_ARROW_U`/`TL_BLOCKED_U` and palette 2
   verbatim (GDS-08 §11). A single static page, no `SELECT`-triggered sub-paging within LEGEND
   itself (GDS-08 §11's own R206-grounded reasoning: three short facts don't need a multi-page
-  manual).
+  manual). **Implemented 2026-07-13 (`IP-1090`):** confirmed by `T21.e`/`T21.f1`–`f3` — the real
+  `TL_ARROW_U`/`TL_BLOCKED_U` tiles render beside their labels, plus a genuinely blank cell for
+  the world-edge case.
 
 ## FR-2000 — Player movement & zone traversal
 
