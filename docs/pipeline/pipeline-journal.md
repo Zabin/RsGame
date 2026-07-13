@@ -14,43 +14,57 @@
 
 ## Position
 
-- **Updated:** 2026-07-13 (run #143)
+- **Updated:** 2026-07-13 (run #144)
 - **Increment:** Bootstrap baseline remains fully closed (01–11 ✅, GO recorded). Release 2
   (bundled with all post-ship remediation) is baselined GO. **This session (runs #128–141, a prior
   session):** verified `IP-1021`/`IP-1081`, implemented `IP-1082`, integration-reviewed `IP-1021`,
   ran both `02-research-*` halves of the infinite-world priority (`R114`/`R216`), then drove the
   full `04→03→04→05→06→07→08` chain for the edge-indicator legend screen through to a fully
-  implemented `IP-1090`. **This (genuinely fresh) session (runs #142–143):** independently
-  verified both session-blocked packages — `IP-1090` ([VR-1090](../implementation/verification/VR-1090-select-menu-edge-indicator-legend-screen.md))
+  implemented `IP-1090`. **Runs #142–143 (a fresh session):** independently verified both
+  session-blocked packages — `IP-1090` ([VR-1090](../implementation/verification/VR-1090-select-menu-edge-indicator-legend-screen.md))
   and `IP-1082` ([VR-1082](../implementation/verification/VR-1082-maze-blocked-edge-indicator-render.md)).
+  **This run (#144, another fresh session):** user asked to iterate `BL-0082` specifically;
+  gate-stopped on the open architecture-adoption decision, got explicit user authorization, then
+  ran `03-architecture-design-synthesis` to make the call — **adopted** streaming/positionally-
+  deterministic generation for a new, additive Infinite Mode (`ADS-001`/`ADR-0016`/`ADR-0017`).
 - **Pipeline state:** Bootstrap: stages 01–11 ✅. **All 26 of 26 implementation packages
   `VERIFIED`** — every package in the tree has now reached `VERIFIED`. `IP-1021`
   integration-reviewed clean, standalone. `IP-1081`/`IP-1082` (maze-blocked edge indicator set)
   now both `VERIFIED` but **still not** integration-reviewed, and a `09-content-review` pass on
-  the shipped tile art is also owed (weighing `BL-0097`, now `SCHEDULED` again — its revisit
-  trigger fired this run). GDS-01/GDS-08 both carry a delta (§4c/§11); `FR-1200`/`FR-1210` now
-  `Implemented` and `FR-2330` now fully closed (AC-4/AC-5). Master Build Plan/`packages/INDEX.md`/
-  `verification/INDEX.md`/`FS-108`/`FS-109`/`features/INDEX.md`/`ROADMAP.md` all updated to
-  reflect both new `VERIFIED` transitions; one further pre-existing drift corrected as a natural
-  fold-in (`IP-1021`'s own stale `COMPLETE` note in the Master Build Plan's `IP-1090` dependency
-  paragraph, already `VERIFIED` since run #128 but never updated there).
-- **Backlog:** 103 entries, 27 open (20 `SCHEDULED`, 6 `DEFERRED`, 1 `NEEDS-USER`-equivalent —
-  `BL-0082`, held for the user's own go-ahead). This run: `BL-0100`/`BL-0101` flipped `DONE`
-  (`IP-1090` fully verified; the Master Build Plan header drift `BL-0101` tracked was already
-  fixed in run #141 but never marked closed). `BL-0097` re-dispositioned `DEFERRED`→`SCHEDULED`
-  (its own revisit trigger — `IP-1082` reaching `VERIFIED` — fired this run). New: **`BL-0103`**
-  (`10-integration-review` still owed on the `IP-1081`/`IP-1082` set), `SCHEDULED`.
-- **Next step:** Two tranche-closing steps are now both unblocked and available, neither gated:
-  **`09-content-review` on the `IP-1081`/`IP-1082` shipped tile art** (`BL-0097`) and
-  **`10-integration-review` on the same `IP-1081`/`IP-1082` package set** (`BL-0103`) — either may
-  run first. Separately, still open and **held for the user's own go-ahead**: `BL-0082` (whether
-  to adopt streaming/infinite-world generation at all, amending `ADR-0009`/`ADR-0012`/`ADR-0013`,
-  informed by `R114`+`R216` together) — a genuine architecture-scope decision, not actioned this
-  session.
-- **Open gates:** **one** — whether to proceed with `03-architecture-design-synthesis` and adopt
-  streaming/infinite-world generation as a real architecture change; asked of the user, not yet
-  answered. Every other currently-`SCHEDULED`/`DEFERRED` item has a named revisit trigger or is
-  ready to ride its own next step without a pending decision.
+  the shipped tile art is also owed (`BL-0097`, `SCHEDULED`). GDS-01/GDS-08 both carry a delta
+  (§4c/§11); `FR-1200`/`FR-1210` now `Implemented` and `FR-2330` now fully closed (AC-4/AC-5).
+  **New this run:** `docs/architecture/` gains its first per-cluster synthesis,
+  [ADS-001](../architecture/ADS-001-streaming-infinite-world-generation.md), and two new ADRs,
+  [ADR-0016](../architecture/adr/ADR-0016-streaming-infinite-mode-generation-architecture.md)
+  (streaming generation architecture for Infinite Mode) and
+  [ADR-0017](../architecture/adr/ADR-0017-infinite-mode-treasure-placement-and-win-condition.md)
+  (decoupled treasure placement + score-chasing win condition). `ADR-0009`/`ADR-0012` each gained
+  an append-only cross-reference note (no Decision text changed) — the finite mode's own shipped
+  generation algorithm, save format, and win condition are entirely unaffected. `docs/architecture/
+  INDEX.md` §2 and `adr/INDEX.md` and `ROADMAP.md`'s ADR-xxxx/ADS-xxx rows all updated in sync.
+  This authorizes an architecture *target* only — no `GDS-04`/`07`/`09` delta yet, no code shipped;
+  Infinite Mode becomes a new epic for a future `04-requirements-engineering` pass to formalize.
+- **Backlog:** 108 entries, 30 open (24 `SCHEDULED`, 2 `DEFERRED`, 2 `NEEDS-USER`). This run:
+  **`BL-0082` flipped `DONE`** (architecture-adoption decision made). **`BL-0094`**
+  (infinite-mode win condition) and **`BL-0050`** (finite-mode MAP/status-screen redesign)
+  re-dispositioned `DEFERRED`→`SCHEDULED`, both riding the next `04-requirements-engineering` pass.
+  **`BL-0066`** re-dispositioned `DEFERRED`→`NEEDS-USER` — its Infinite Mode half is answered by
+  this run, but its original finite-mode question (the `ADR-0012` pass-ordering conflict) is
+  explicitly not resolved and needs the user to pick among three named paths. New: **`BL-0104`**
+  (Infinite Mode run/session shape, `SCHEDULED`, rides `04` alongside `BL-0094`), **`BL-0105`**
+  (Binary Tree maze aesthetic, `DEFERRED` until Infinite Mode is playable), **`BL-0106`**
+  (visited-region ledger SRAM sizing, `SCHEDULED`, rides `07`), **`BL-0107`** (materialization
+  cycle-cost measurement, `SCHEDULED`, rides `07`/`08`).
+- **Next step:** Two tranche-closing steps remain available from before this run, neither gated:
+  `09-content-review` on the `IP-1081`/`IP-1082` shipped tile art (`BL-0097`) and
+  `10-integration-review` on the same package set (`BL-0103`) — either may run first. **New from
+  this run:** `04-requirements-engineering` can now formalize the Infinite Mode epic (`FR`/`NFR`s
+  for `BL-0094`+`BL-0104`) and, independently, the finite-mode MAP/status-screen redesign
+  (`BL-0050`) — either may ride the same or a separate `04` pass, at the pipeline manager's
+  discretion when next invoked.
+- **Open gates:** **one** — `BL-0066`'s finite-mode blob-clustering question, `NEEDS-USER`
+  (three named paths, not urgent, blocks no in-flight package). The prior open gate (`BL-0082`'s
+  own adoption decision) was answered and closed this run.
 - **Direct user instruction, no skill invocation (2026-07-13, between runs #134 and #135):**
   user directed two backlog corrections. (1) `BL-0050` re-dispositioned `SCHEDULED`→`DEFERRED` —
   it was marked ripe for `04` once `IP-1021` shipped, but that's only the finite-world win
@@ -58,6 +72,7 @@
   (score-chasing is a live, structurally different candidate). Re-blocked on `BL-0082` itself, not
   `IP-1021` alone. (2) `00-intake` filed **`BL-0100`**: a legend/help screen, reachable via
   SELECT, explaining the maze-blocked edge indicator symbols. Committed (`4d3f119`) and pushed.
+  **(Both now resolved, run #144 — see above.)**
 
 ## Run log
 
@@ -209,3 +224,4 @@
 | 141 | 2026-07-13 | advance | `08-code-implementation` | `IP-1090` — SELECT Menu & Edge-Indicator Legend Screen | ✅ User authorized ("Yes"). Added `GS_SELECT_MENU`/`GS_LEGEND = 8, 9`; retargeted `handle_play_input`'s SELECT branch from `GS_MAP` to `GS_SELECT_MENU` (setting `MM_JUST_ENTERED`, mirroring `st_save`'s own exit-to-main-menu site) — confirmed `st_map` itself byte-for-byte unchanged, per the package's own explicit constraint. New `st_select_menu` (D-pad toggles `MM_CURSOR` unconditionally, A confirms to `GS_MAP`/`GS_LEGEND` per the highlighted option, B cancels to `GS_PLAYING` writing nothing else) and `st_legend` (B-only) state handlers; `sm_on_entry`/`draw_select_menu_cursor` mirror `mm_on_entry`/`draw_menu_cursor` exactly but with no save-validity gate, reusing `MM_CURSOR`/`MM_JUST_ENTERED` rather than new WRAM bytes. Two new `tilemaps.py` screens (`select_menu_screen()`, `legend_screen()`) reusing existing text/border/tile primitives — zero new tile art, zero new palette entries (GDS-08 §11's own decision); `build_rom.py` patch resolution added (`sm_t`/`sm_a`/`lg_t`/`lg_a`). ROM: 25544/32768 bytes (+2560 for the two screens). **Confirmed the Technical Work Breakdown's supersession-sweep finding was real**: rebuilding and running the full suite before touching tests reproduced exactly the predicted 4 failures (`T4.6`, `T8.11`, and two cascaded `T8.12`/`T8.13` heart-check failures caused by `T8.11` no longer actually reaching `MAP`) — corrected all three named sites (`T4.6`, `T8.11`, `T14.e2`) with the planned inserted `A` press, which also resolved `T8.12`/`T8.13` as a side effect. Authored new suite **T21** (12 checks: SELECT MENU entry/toggle, both A-confirm branches, B-cancel — narrowed to a curated meaningful-fields diff after a first full-WRAM-diff draft false-positived on `MUSIC_CTR`'s own per-frame counter, LEGEND entry/exit, and direct tilemap-content assertions confirming the real `TL_ARROW_U`/`TL_BLOCKED_U` tiles plus a genuinely blank world-edge cell). Full suite **246/246**, zero regressions. Independently re-driven via PyBoy screenshot: SELECT MENU's cursor correctly highlights MAP by default and moves to LEGEND on D-pad down; LEGEND renders exactly as GDS-08 §11 specified. Backfilled GDS-07's long-missing `MM_SAVE_VALID`/`MM_CURSOR` WRAM-table rows (referenced since `IP-1040` but never entered — closed as a natural byproduct of this package's own §9 Documentation Updates) and extended `MM_JUST_ENTERED`'s row for its new reuse. `FR-1200`/`FR-1210` marked Implemented (Notes-only, per-precedent title/Priority convention, text unmodified); RTM Test column filled. **Also corrected the Master Build Plan's own top-of-file status header** (`BL-0101`, stale since 2026-07-12 — a natural `08` touch of the same file, not a separate ledger edit). `IP-1090` → `COMPLETE`. `packages/INDEX.md`/`ROADMAP.md` updated in sync. Committed and pushed. Harvested: `BL-0100` stays `SCHEDULED`, now riding `09-package-verification` (session-blocked). | `09-package-verification` on `IP-1090` — **session-blocked**, needs a genuinely fresh session (same-session-independence rule), alongside `IP-1082` (and `IP-1021`'s still-owed `09-content-review`/integration follow-through). Separately, still open and **held for the user's own go-ahead**: `BL-0082` (streaming/infinite-world adoption). |
 | 142 | 2026-07-13 | advance (genuinely fresh session) | `09-package-verification` | `IP-1090` | ✅ Independently confirmed: full suite 246/246 (fresh PyBoy 2.7.0 + Pillow install), ROM builds at exactly 32768 bytes (25544 used), every DoD/Verification Checklist item re-derived by direct code read (`handle_play_input`'s SELECT branch confirmed retargeted to `GS_SELECT_MENU`, `st_map` reconfirmed byte-for-byte unchanged, `st_select_menu`'s B-cancel confirmed to write only `TRANSITION_TO`/`NEED_REDRAW`, `MM_CURSOR`/`MM_JUST_ENTERED` reuse confirmed structurally safe — every `GS_MAIN_MENU`/`GS_SELECT_MENU` entry site sets `MM_JUST_ENTERED`). Independent live drive: real MAIN MENU → SEED/SCALE ENTRY → PLAYING boot, then SELECT → SELECT MENU (cursor defaults to MAP) → DOWN (toggles to LEGEND) → A (LEGEND) — three screenshots confirm the rendered content matches GDS-08 §11 exactly (open-arrow/blocked-bar tiles beside their labels, "B: EXIT" footer). `IP-1090` → `VERIFIED` ([VR-1090](../implementation/verification/VR-1090-select-menu-edge-indicator-legend-screen.md)). No findings. Master Build Plan/`packages/INDEX.md`/`verification/INDEX.md`/`FS-109`/`FEAT-1200` catalog entry/`features/INDEX.md`/`ROADMAP.md` all updated. Committed (`441b262`) and pushed. | `09-package-verification` on `IP-1082` — also session-blocked from the prior (different) session, now unblocked in this fresh session. |
 | 143 | 2026-07-13 | advance | `09-package-verification` | `IP-1082` | ✅ Independently confirmed (not the session that implemented it — commit `6091bd1`, an earlier session): full suite 246/246 (same fresh-session run as `VR-1090`), open-edge branches and `IP-1080`'s `DRA_ROW`/`DRA_COL` classification arithmetic both reconfirmed byte-for-byte unchanged by direct diff against `6091bd1`, `T20.a`–`e` all confirmed passing. Independent live drive at a **non-corpus** `(seed=42, scale=9)`: region 0's grid-adjacent-but-maze-pruned DOWN edge confirmed rendering `0x1B` (`TL_BLOCKED_D`) exactly, both via direct WRAM read and screenshot; the open RIGHT edge confirmed unaffected. `IP-1082` → `VERIFIED` ([VR-1082](../implementation/verification/VR-1082-maze-blocked-edge-indicator-render.md)) — **this closes every implementation package in the tree to `VERIFIED` (26/26)**. Master Build Plan/`packages/INDEX.md`/`verification/INDEX.md`/`FS-108`/`features/INDEX.md`/`ROADMAP.md` updated; one further pre-existing drift corrected as a natural fold-in (`IP-1021`'s own stale `COMPLETE` note in the Master Build Plan, already `VERIFIED` since run #128). Committed (`6144335`) and pushed. Harvested: `BL-0097`'s revisit trigger fired (`IP-1082` reached `VERIFIED`) — re-dispositioned `DEFERRED`→`SCHEDULED`, riding a future `09-content-review` pass; filed **`BL-0103`** (a `10-integration-review` pass on the `IP-1081`/`IP-1082` set is owed, `SCHEDULED`). | `09-content-review` on the `IP-1081`/`IP-1082` shipped tile art (`BL-0097`) or `10-integration-review` on the same package set (`BL-0103`) — either may run first, neither blocks the other. Separately, still open and **held for the user's own go-ahead**: `BL-0082` (streaming/infinite-world adoption). |
+| 144 | 2026-07-13 | override (user-directed, gate-checked) | `03-architecture-design-synthesis` | `BL-0082` — streaming/infinite-world generation adoption decision | ✅ User asked to "iterate the pipeline skill focusing on BL-0082." Reconciled position (matched run #143's recorded state, no drift). Triaged: `BL-0082` was the sole open gate, recorded as `NEEDS-USER`-equivalent despite its own `SCHEDULED` status field — stopped and asked the user via `AskUserQuestion` whether to proceed with `03-architecture-design-synthesis` on the adoption call; user answered **"Yes, run 03 now."** Invoked `03-architecture-design-synthesis` with full context from `R114`/`R216`. **Outcome: adopted.** Authored [ADS-001](../architecture/ADS-001-streaming-infinite-world-generation.md) (first per-cluster synthesis in the tree), [ADR-0016](../architecture/adr/ADR-0016-streaming-infinite-mode-generation-architecture.md) (streaming/positionally-deterministic generation — `hash(SEED,row,col)` biome/connectivity reseeding, Binary Tree maze, visited-region-ledger save model — for a new, additive Infinite Mode; finite mode cross-referenced, not amended) and [ADR-0017](../architecture/adr/ADR-0017-infinite-mode-treasure-placement-and-win-condition.md) (treasure decoupled from maze structure via `hash(SEED,row,col) mod K`; `BL-0094`'s score-chasing win condition adopted unamended). `ADR-0009`/`ADR-0012` got append-only cross-reference notes, no Decision text changed. `docs/architecture/INDEX.md` §2, `adr/INDEX.md`, `ROADMAP.md` all updated in sync. Committed (`b78abde`) and pushed. **Harvested:** `BL-0082` → `DONE`; `BL-0094`/`BL-0050` re-dispositioned `DEFERRED`→`SCHEDULED` (both ride `04`); `BL-0066` re-dispositioned `DEFERRED`→`NEEDS-USER` (Infinite Mode half answered, finite-mode pass-ordering question still open, three paths named); filed **`BL-0104`** (run/session shape, `SCHEDULED`/`04`), **`BL-0105`** (Binary Tree aesthetic, `DEFERRED` until playable), **`BL-0106`** (visited-region ledger SRAM sizing, `SCHEDULED`/`07`), **`BL-0107`** (materialization cycle cost, `SCHEDULED`/`07`-`08`). No drift found. | `04-requirements-engineering` — formalize the Infinite Mode epic (`BL-0094`+`BL-0104`) and/or the finite-mode MAP/status-screen redesign (`BL-0050`); separately, `09-content-review`/`10-integration-review` on the `IP-1081`/`IP-1082` set (`BL-0097`/`BL-0103`) remain available; `BL-0066`'s finite-mode question is `NEEDS-USER`, not blocking. |
