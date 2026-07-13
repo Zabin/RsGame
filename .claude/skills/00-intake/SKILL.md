@@ -46,6 +46,7 @@ schedules it:
 | A capability with **no** home in the approved requirements baseline (a new zone, mechanic, screen, song…) | `feature` | `04-requirements-engineering` (candidate requirement first) — or `03`/`01` if it implies new architecture or a vision change |
 | A missing/uncertain domain fact (GBC hardware behavior, design convention, tooling question) | `research-gap` | the owning `02-research-*` skill |
 | A defect in documentation/trackers | `doc-defect` | the stage skill that owns the artifact |
+| Structural debt — code or docs that need restructuring with **no** behavior/meaning change (entanglement, duplication, fragmentation, naming drift) | `refactor` | `07-implementation-planning` — a refactoring package (`IP-8xx0`, executed by `08-refactoring`; the manager's explicit scheduling conditions apply). State the debt as an observable cost, not taste. |
 | A concern/idea that needs a decision before it's actionable | `design-question` | wherever the decision lives; usually `NEEDS-USER` at triage |
 
 When genuinely unsure between two stages, pick the **more upstream** one and say why — entering
