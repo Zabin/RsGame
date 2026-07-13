@@ -53,7 +53,7 @@ place, never delete rows (rejected entries stay, marked `REJECTED` with the reas
 |---|---|
 | **ID** | `BL-xxxx`, sequential |
 | **Filed** | Date + source (which run/VR/report/intake produced it) |
-| **Type** | `feature` / `bug` / `finding` / `recommendation` / `design-question` / `gate` / `research-gap` / `doc-defect` |
+| **Type** | `feature` / `bug` / `finding` / `recommendation` / `design-question` / `gate` / `research-gap` / `doc-defect` / `refactor` |
 | **Summary** | One sentence; link the source artifact |
 | **Sev/Pri** | The source's severity, or the user's stated priority for intake items |
 | **Entry stage** | The pipeline stage where the item enters when worked (e.g. a code bug → `07`, a spec gap → `06`, a research gap → `02`) |
@@ -133,7 +133,9 @@ Before invoking anything, stop and ask the user (via `AskUserQuestion`) if the s
 
 - **G3 authorization** — the step would implement a package with no explicit user go-ahead on
   record **and** the package is not covered by G3's bootstrap exception (as-built baselining, or a
-  remediation package for BL-0001…BL-0005);
+  remediation package for BL-0001…BL-0005); refactoring packages (`IP-8xx0`, executed by
+  `08-refactoring`) are **never** covered by the exception — they always require a fresh,
+  per-package user go-ahead;
 - **a release GO** — the step would flip baseline records;
 - **adjudication** — the step builds on a review with unadjudicated Critical/High findings;
 - **a ripe `NEEDS-USER` backlog entry** — the decision the entry is waiting on is needed now;
@@ -163,6 +165,49 @@ committed its own work per its own conventions).
 
 The mandatory completion summary (below), always ending with what the *next* advance will do —
 so the user can simply run the manager again.
+
+## Refactoring — explicit scheduling conditions
+
+Refactoring (behavior-preserving code restructuring, meaning-preserving doc restructuring —
+executed only by `08-refactoring`, grounded in encyclopedia topic `R307`) is deliberate
+housekeeping, not a default: the manager schedules it only under the conditions below, and never
+lets it ride along with feature or fix work.
+
+**When the manager PROPOSES refactoring** (files or recommends a `refactor`-type backlog entry —
+via harvest, or by naming `00-intake` in its report; proposing is not scheduling):
+
+- `10-integration-review` reports a structural finding (duplicated behavior, a module-boundary
+  violation, index/doc incoherence spanning multiple owners) whose real fix is restructuring;
+- three or more open backlog entries trace to the same structural cause (the manager names them
+  on the new entry);
+- a stage-08 run's Outstanding Issues repeatedly cite the same friction (a file too entangled to
+  change safely, a doc too fragmented to update coherently);
+- a release just went GO (stage 11 baseline flipped) and structural debt was noted during the
+  release — the post-GO / pre-next-increment window is the preferred slot for refactoring.
+
+**When the manager may SCHEDULE the planning step** (`07-implementation-planning` authoring an
+`IP-8xx0` from a `refactor` backlog entry) — all of:
+
+1. the `refactor` entry is dispositioned `SCHEDULED` with the user aware of it (it appeared in a
+   run report or was filed by the user via `00-intake`);
+2. no Critical/High `bug` entry is open at the same entry stage — correctness always outranks
+   structure;
+3. the debt is stated as an observable cost (what it blocks, slows, or keeps breaking), not as
+   taste.
+
+**When the manager may INVOKE `08-refactoring` on an authored package** — all of:
+
+1. the package is `READY` (dependencies `VERIFIED`) **and** carries the explicit per-package user
+   authorization (G3, no carve-out — see the gate check);
+2. the pipeline is **quiescent where it matters**: no package `IN PROGRESS`, and no
+   `COMPLETE`-but-unverified package touches any file the refactor names;
+3. the tree is green: the G5 gates pass as-found (never schedule a refactor onto a red tree — a
+   due remediation runs first);
+4. no release bucket is mid-close (between a `10-integration-review` and its `11` GO call) whose
+   reviewed set overlaps the refactor's files — refactoring under review invalidates the review.
+
+After the run, the normal loop applies: `08-refactoring` → `09-package-verification` (which
+re-checks the equivalence evidence) before anything downstream builds on the moved structure.
 
 ## Guardrails
 

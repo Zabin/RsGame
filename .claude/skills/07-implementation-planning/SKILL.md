@@ -43,7 +43,8 @@ All under `docs/implementation/` (this skill's sole write scope):
    to Add · Documentation Updates · Definition of Done · Verification Checklist · Dependencies ·
    Risks · Rollback Considerations. Assign to the owning stage-08 peer explicitly: a logic/build
    package names `08-code-implementation`; a pure art/screens/music package names
-   `08-content-authoring`.
+   `08-content-authoring`; a structure-only (behavior/meaning-preserving) package names
+   `08-refactoring`.
 3. **`docs/implementation/00-master-build-plan.md`** — updated, not regenerated: new package
    rows (status, blocking dependencies, authorization state), dependency-graph edges,
    critical-path recalculation, parallel notes. Update `packages/INDEX.md` in the same pass —
@@ -53,7 +54,15 @@ All under `docs/implementation/` (this skill's sole write scope):
 
 - **ID scheme:** `IP-<FS series>0` mirrors the FS series (FS-101 → `IP-1010`; lettered slices
   `IP-1011`); bug-remediation packages with no FS take the `IP-9xx0` series, citing their
+  `BL-xxxx`; refactoring packages take the `IP-8xx0` series, citing their `refactor`-type
   `BL-xxxx`. Check `packages/INDEX.md` for claimed IDs; gapped numbering.
+- **Refactoring packages** (`IP-8xx0`) name `08-refactoring` as executor and additionally carry
+  an **equivalence contract** in their Verification Checklist: byte-identical ROM (the default) or
+  an enumerated, per-delta-justified list of predicted byte deltas; for doc-scoped work, the
+  meaning-preservation constraints and the migration-map location if IDs/files move (grounding:
+  `R307`). A package that mixes refactoring with behavior change must be split — the equivalence
+  proof doesn't survive mixing. Refactoring packages are **never** pre-authorized (G3, no
+  bootstrap carve-out).
 - **Status vocabulary (verbatim):** `NOT STARTED / READY / IN PROGRESS / BLOCKED / COMPLETE /
   VERIFIED`. This skill only writes `NOT STARTED`, `READY`, or `BLOCKED` — `IN PROGRESS`/
   `COMPLETE` belong to stage 08, `VERIFIED` exclusively to `09-package-verification`.
