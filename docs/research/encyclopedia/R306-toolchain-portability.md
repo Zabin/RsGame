@@ -2,7 +2,7 @@
 
 - **Document ID:** R306 · **Version:** 1.0 · **Status:** ✅
 - **Dependencies:** R301 (PyBoy's own path-relative-to-ROM `.ram` behavior)
-- **Referenced By:** none yet — **this topic directly grounds BL-0005/BL-0008's path fix**
+- **Referenced By:** R307 (BL-0005's remediation is the precedent structure-level toolchain change) — **this topic directly grounds BL-0005/BL-0008's path fix**
 - **Produces:** grounds the remediation `build_rom.py`/`test_rom.py` need for portable execution
 - **Feature Mapping:** *(none yet)*
 - **Related Topics:** R301

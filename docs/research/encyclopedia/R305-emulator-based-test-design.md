@@ -5,7 +5,8 @@
   that stays stable across game-logic rewrites), R212/R213/R111 (the grammar/algorithm/PRNG this
   topic's C10 determinism-testing extension grounds test design against)
 - **Referenced By:** R213 (assumes this topic's reference-generator oracle pattern), R111
-  (same) — **this topic directly grounds the BL-0006/BL-0008 remediation, MSTR-001 C10's
+  (same), R307 (this suite is the characterization baseline every refactor is proven against) —
+  **this topic directly grounds the BL-0006/BL-0008 remediation, MSTR-001 C10's
   determinism-testing strategy (2026-07-09), and, as of 2026-07-11, the `BL-0047`/`BL-0048`/
   `BL-0051`/`BL-0052`/`BL-0053` remediation packages' regression-test design**
 - **Produces:** grounds the rewrite `test_rom.py` needs against the current WRAM map; grounds the
