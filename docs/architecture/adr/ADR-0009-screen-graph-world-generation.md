@@ -8,6 +8,12 @@
 > makes the edge-selectivity question concrete (a generated maze — spanning tree + braid — not a
 > full lattice), without contradicting anything below. Points 2–7 are unaffected. Left in place,
 > not edited, per this project's append-only ADR convention.
+>
+> **Cross-referenced, not amended, by [ADR-0016](ADR-0016-streaming-infinite-mode-generation-architecture.md)
+> (2026-07-13):** ADR-0016 adopts a second, independent generation architecture (streaming,
+> positionally-deterministic) for a new, additive Infinite Mode, selectable alongside this ADR's
+> `(seed, scale)` model at new-game creation. Every point below continues to govern the finite
+> mode exactly as written; nothing here is superseded.
 
 ## Context
 

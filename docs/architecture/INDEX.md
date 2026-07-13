@@ -33,7 +33,7 @@ file.
 
 | ID | Cluster | File | Status |
 |---|---|---|---|
-| *(none yet)* | | | |
+| [ADS-001](ADS-001-streaming-infinite-world-generation.md) | Streaming, positionally-deterministic world generation for a new, additive Infinite Mode (`BL-0082`) | [ADS-001-streaming-infinite-world-generation.md](ADS-001-streaming-infinite-world-generation.md) | ✅ Authored (2026-07-13; produces `ADR-0016`/`ADR-0017`) |
 
 ## §3 — Vision-layer artifacts owned by `01-vision`
 

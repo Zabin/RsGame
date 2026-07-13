@@ -9,6 +9,12 @@
 > technique scoped to this pass, without amending anything decided here (point 3's mod-4 draw and
 > point 4's braid mechanism both stand exactly as written; ADR-0013 only adds how the drawn byte
 > is perturbed before use).
+>
+> **Cross-referenced, not amended, by [ADR-0016](ADR-0016-streaming-infinite-mode-generation-architecture.md)
+> (2026-07-13):** the recursive-backtracker spanning-tree algorithm decided here remains the
+> finite mode's maze algorithm, unchanged. ADR-0016 adopts a different algorithm (Binary Tree) for
+> a separate, additive Infinite Mode's own streaming generation path — a distinct decision for a
+> distinct mode, not a reconsideration of this one.
 
 ## Context
 
