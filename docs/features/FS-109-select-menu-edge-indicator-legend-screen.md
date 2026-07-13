@@ -1,14 +1,15 @@
 # FS-109 — SELECT Menu & Edge-Indicator Legend Screen
 
-> Feature Specification for [FEAT-1200](../feature-planning/03-feature-catalog.md#feat-1200--select-menu--edge-indicator-legend-screen-new--not-yet-implemented),
+> Feature Specification for [FEAT-1200](../feature-planning/03-feature-catalog.md#feat-1200--select-menu--edge-indicator-legend-screen-implemented-verified),
 > produced by `06-feature-specification`. Read-only against upstream artifacts — this document
 > elaborates FEAT-1200, it does not modify its catalog entry, the requirements it implements, or
 > any architecture document.
 >
 > **Forward reference (metadata only):** [IP-1090](../implementation/packages/IP-1090-select-menu-edge-indicator-legend-screen.md)
-> **COMPLETE 2026-07-13** — all seven Acceptance Criteria (§15) demonstrably pass via
-> `test_rom.py`'s T21 suite (12/12, full suite 246/246 green), awaiting independent
-> (`09-package-verification`) review. Resolves this document's Open Questions 1–3 (§19).
+> **VERIFIED 2026-07-13** ([VR-1090](../implementation/verification/VR-1090-select-menu-edge-indicator-legend-screen.md))
+> — all seven Acceptance Criteria (§15) independently confirmed via `test_rom.py`'s T21 suite
+> (12/12, full suite 246/246 green) plus a live PyBoy screenshot walkthrough. Resolves this
+> document's Open Questions 1–3 (§19).
 
 [↑ Features index](INDEX.md) · [Feature Catalog](../feature-planning/03-feature-catalog.md) ·
 [Epic Catalog](../feature-planning/02-epic-catalog.md)
@@ -47,7 +48,7 @@ already-shipped tiles, it does not redefine what they mean or how they're comput
 ## 5. Requirements Implemented
 
 FR-1200, FR-1210 — the exact set FEAT-1200 owns, no more, no fewer (cross-checked against
-[03-feature-catalog.md](../feature-planning/03-feature-catalog.md#feat-1200--select-menu--edge-indicator-legend-screen-new--not-yet-implemented)'s
+[03-feature-catalog.md](../feature-planning/03-feature-catalog.md#feat-1200--select-menu--edge-indicator-legend-screen-implemented-verified)'s
 Included Requirements).
 
 ## 6. User Workflows
