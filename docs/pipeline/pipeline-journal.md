@@ -14,44 +14,51 @@
 
 ## Position
 
-- **Updated:** 2026-07-13 (run #133)
+- **Updated:** 2026-07-13 (run #134)
 - **Increment:** Bootstrap baseline remains fully closed (01–11 ✅, GO recorded). Release 2
   (bundled with all post-ship remediation) is baselined GO, with `FEAT-2100`'s partial-delivery
-  exception now closed. **This session (runs #128–133):** picked up exactly where the prior
+  exception now closed. **This session (runs #128–134):** picked up exactly where the prior
   session's own same-session-independence block left off — verified `IP-1021` (win-condition
   redesign) and `IP-1081` (maze-blocked edge indicator, content half) in a fresh session, then
   implemented `IP-1082` (the paired render half, unblocked by `IP-1081` reaching `VERIFIED`), ran
   `10-integration-review` on `IP-1021` (clean, 2 non-blocking findings), completed a full backlog
   triage sweep that caught two genuinely stale rows (`BL-0064`/`BL-0065`) never flipped `DONE`
-  despite their work having shipped as `IP-1070` long ago, then began the infinite-world priority:
-  `02-research-gbc-hardware` on `BL-0082` ([R114](../research/encyclopedia/R114-streaming-world-generation-feasibility.md)) — streaming generation is representable but needs a
-  genuine algorithm-family swap (positional/hash-seeded, not the shipped global-sequential shape),
-  and the cheapest maze option found conflicts with `IP-1021`'s own just-shipped win condition.
+  despite their work having shipped as `IP-1070` long ago, then completed both `02-research-*`
+  halves of the infinite-world priority: `02-research-gbc-hardware` ([R114](../research/encyclopedia/R114-streaming-world-generation-feasibility.md)) — streaming generation
+  is representable but needs a genuine algorithm-family swap (positional/hash-seeded, not the
+  shipped global-sequential shape) — then `02-research-game-design` ([R216](../research/encyclopedia/R216-infinite-mode-win-condition-design.md)) — confirmed
+  `BL-0094`'s score-chasing design is genre-correct, proposed resolving `R114`'s dead-end-bias
+  conflict via structure-independent hash-density treasure placement, and stated plainly what
+  "infinite" actually means (bounded persisted memory, not unbounded save data).
 - **Pipeline state:** Bootstrap: stages 01–11 ✅. **24 of 25 implementation packages `VERIFIED`**
   (`IP-1082` is `COMPLETE`, session-blocked from its own verification this session — needs a fresh
   session next). `IP-1021` integration-reviewed clean, standalone (post-dates the six-tranche
   sweep that closed run #115). `IP-1081`/`IP-1082` (maze-blocked edge indicator set) **not yet**
   integration-reviewed — `IP-1082` must reach `VERIFIED` first; a `09-content-review` pass on the
   shipped tile art is also owed once `IP-1082` verifies (weighing `BL-0097`'s pixel-identical
-  direction-pair finding). R100 tier now runs R101–R114 (R114 added this session, ✅).
+  direction-pair finding). R100 tier now runs R101–R114; R200 tier now runs R201–R216 (both added
+  this session, ✅).
 - **Backlog:** 99 entries, 25 open (19 `SCHEDULED`, 6 `DEFERRED`). This session: `BL-0097` filed
   (`IP-1081`'s content finding, `DEFERRED` pending `IP-1082`'s own `09-content-review`); `BL-0098`/
   `BL-0099` filed by the integration review (`DEFERRED`→`SCHEDULED` at triage, both routed
   upstream, neither blocking); `BL-0064`/`BL-0065`/`BL-0093` flipped `DONE` (stale or newly
-  resolved); `BL-0075`/`BL-0067`/`BL-0050`/`BL-0091`/`BL-0082`/`BL-0066` refreshed with current
-  status. All other open rows re-checked and confirmed still correctly dispositioned.
-- **Next step:** **`02-research-game-design` on `BL-0082`** — what "infinite" means for the
-  collect-a-thon/win-condition design, per the user's own stated priority ordering, now informed
-  by `R114`'s finding that the cheapest streaming-compatible maze algorithm (Binary Tree, proven
-  zero-memory) has a structural dead-end distribution bias directly conflicting with `IP-1021`'s
-  just-shipped dead-end-priority win condition and `BL-0094`'s carried-forward infinite-mode
-  design — this pass should weigh that conflict directly, not rediscover it. Separately available,
-  not session-blocked: `BL-0050` (MAP/status-screen redesign, now fully ripe for
+  resolved); `BL-0075`/`BL-0067`/`BL-0050`/`BL-0091`/`BL-0082`/`BL-0066`/`BL-0094` refreshed with
+  current status. All other open rows re-checked and confirmed still correctly dispositioned.
+- **Next step:** **The infinite-world research line (`BL-0082`) is now fully grounded on both
+  halves** (`R114` hardware, `R216` design) — the next real step is a
+  `03-architecture-design-synthesis` pass to decide whether to adopt streaming generation at all
+  (amending `ADR-0009`/`ADR-0012`/`ADR-0013`), informed by `R114`+`R216` together, and whether to
+  accept `R216`'s proposed departure from `BL-0094`'s literal "treasure at dead ends" wording. This
+  is a genuine architecture-scope decision (not a mechanical continuation of prior work) — **held
+  for the user's own go-ahead rather than actioned unilaterally this session.** Separately
+  available, not session-blocked: `BL-0050` (MAP/status-screen redesign, now fully ripe for
   `04-requirements-engineering` — its win-condition blocker shipped this session).
   **Session-blocked:** `09-package-verification` on `IP-1082` needs a fresh session.
-- **Open gates:** none — every currently-`SCHEDULED`/`DEFERRED` item either has a named revisit
-  trigger or is ready to ride its own next step without a pending user decision. `BL-0082`'s
-  research entry point needs no G3 (research writes no code).
+- **Open gates:** **one** — whether to proceed to `03-architecture-design-synthesis` and adopt
+  streaming/infinite-world generation as a real architecture change, now that both research halves
+  have landed; asked of the user at the end of run #134, not yet answered. Every other currently-
+  `SCHEDULED`/`DEFERRED` item has a named revisit trigger or is ready to ride its own next step
+  without a pending decision.
 
 
 ## Run log
@@ -194,3 +201,4 @@
 | 131 | 2026-07-13 | advance | `10-integration-review` | `IP-1021` (win-condition redesign) | ✅ **Clean** — no Critical/High. Confirmed `KEYITEM_FLAGS`'s widened tri-state domain is honored correctly by every other consumer (`setup_zone_collects`/`check_collisions`, both `IP-1020`) and that the save/load ordering (`IP-1050`) is safe: `try_load_save` calls `generate_world` (which now also runs the placement pass) *before* the `SRAM_KEYITEM_FLAGS` restore memcpy, so a player's actually-collected KeyItems correctly survive a reload rather than being reset. Two non-blocking findings: `GW_KI_PLACED` (`IP-1021`'s new transient scratch byte) has no GDS-07 WRAM table row, breaking this codebase's own documented-scratch-byte convention (`BL-0099`, Medium, → `03`); `FEAT-9000`'s catalog entry still cites the superseded `FR-9130` and an "exactly one KeyItem per region" claim `IP-1021` invalidates — already an internal Open Question (`FS-102` OQ4) with no backlog entry until now (`BL-0098`, Low, → `05`). Report: [integration-review-ip-1021.md](../reviews/integration-review-ip-1021.md). `docs/reviews/INDEX.md`/`ROADMAP.md` `RV-INTEG` row updated. Committed (`9d33d20`) and pushed. | Backlog triage sweep (per user's explicit instruction), then `BL-0082` (streaming/infinite-world research, the user's stated priority for this session). |
 | 132 | 2026-07-13 | triage | — | full backlog sweep | ✅ Re-checked every open (non-`DONE`) row. **Caught two genuinely stale rows**: `BL-0064`/`BL-0065` (maze-shaped adjacency generation pass + braid default) still read "rides `07-implementation-planning` next" though the work shipped as `IP-1070` long ago, independently `VERIFIED` and integration-reviewed clean — flipped `DONE`. `BL-0093` (win-condition umbrella) flipped `DONE` (`IP-1021` now `VERIFIED` + integration-reviewed). `BL-0075`/`BL-0067` (maze-blocked edge indicator) updated with this session's full `IP-1081`/`IP-1082` progress, staying `SCHEDULED` pending `IP-1082`'s own verification. `BL-0050` (MAP/status-screen redesign) confirmed fully ripe for `04-requirements-engineering` — its win-condition blocker (`FR-9160`/`9161`) has landed and shipped — not actioned this run per the user's own stated priority (`BL-0082` first); noted as the natural next `04` candidate. `BL-0091` partially unblocked (`BL-0081` half of its trigger fired) but stays `DEFERRED` pending `BL-0050` itself shipping. All other open rows (`BL-0043`/`44`/`57`/`60`/`61`/`71`/`73`/`80`/`89`/`90`, `BL-0014`/`66`/`86`/`94`/`97`/`98`/`99`) re-checked and confirmed still correctly dispositioned. Committed (`e6815c1`) and pushed. | `02-research-gbc-hardware` on `BL-0082` (streaming/infinite-world feasibility) — the user's explicit priority for this session, recommended entry point per their own instruction. |
 | 133 | 2026-07-13 | advance | `02-research-gbc-hardware` | `BL-0082` — streaming/on-the-fly world generation feasibility | ✅ Authored [R114](../research/encyclopedia/R114-streaming-world-generation-feasibility.md). **Load-bearing finding:** the shipped `generate_world` has two global-sequential dependencies — biome's raster-scan anchor-clamp chain (each region's biome derives from the immediately-preceding region in generation order, not from `(seed,row,col)` alone) and the maze carve's global backtracking DFS (needs whole-graph visited state, no termination condition for an unbounded grid) — neither is directly streamable; representable only via a genuine algorithm-family swap to positional determinism (per-region xorshift reseeding from `SEED` XOR/shift-mixed with `(row,col)`, no multiplication — SM83 has none, reusing this codebase's own existing PRNG shape). Named the Binary Tree maze algorithm (Jamis Buck) as a proven zero-memory streaming-compatible option, but flagged its own directional dead-end bias as a **direct conflict with `IP-1021`'s just-shipped dead-end-priority win condition** and `BL-0094`'s carried-forward infinite-mode design — a real cross-cutting risk, not resolved here. Extended the same coordinate-hashing technique to answer `BL-0066`'s widened scope: a per-super-cell blob-id hash replaces both original bounded-grid-assuming candidates. WRAM re-measured (3082 bytes bank-0 free, `SVBK` untouched/available — R112's own prior figure found stale, not fixed, out of this topic's own scope); ROM re-measured (9784 bytes free); neither binding. Save/load flagged as needing a genuinely different persisted shape if adopted (position + bounded visited-region ledger, not regenerate-from-scale). Cross-linked R111/R112/R113/R213/R215 bidirectionally; index flipped ✅; `ROADMAP.md` updated. `BL-0082`/`BL-0066` updated with these findings, both remain `SCHEDULED`/`DEFERRED`. No code touched, ROM unchanged. Committed (`d24b8b9`) and pushed. Harvested: no new findings beyond the two backlog updates already made. | `02-research-game-design` on `BL-0082` (what "infinite" means for win conditions) — per the user's own stated priority ordering, now informed by `R114`'s finding that the cheapest streaming-compatible maze option conflicts with `IP-1021`'s shipped win condition. |
+| 134 | 2026-07-13 | advance | `02-research-game-design` | `BL-0082` — what "infinite" means for win conditions | ✅ Authored [R216](../research/encyclopedia/R216-infinite-mode-win-condition-design.md). Confirmed `BL-0094`'s own top-3-high-score/no-name-entry design is the historically correct genre answer for non-terminating play (arcade high-score convention, cited — score systems exist specifically because arcade games "could not be 'won'... only endless cycles," and shared-cabinet initials-entry's own social purpose doesn't transfer to a single-player handheld save). **Proposed resolving `R114`'s dead-end-bias conflict**: decouple treasure placement from maze structure entirely via `hash(SEED,row,col) mod K`, the same positional-determinism technique `R114` already established for biome/blob placement — flagged explicitly as a real departure from `BL-0094`'s literal "at dead ends" wording, for `03`/`04` to accept or reject, not applied here. Stated plainly what "infinite" means given `R114`'s own bounded-SRAM-ledger finding: unbounded exploration extent, bounded persisted memory (matching how Minecraft-style "infinite" worlds actually ship) — not unbounded save data. Surfaced (did not resolve) whether an infinite run is indefinitely resumable or needs its own bounded end-condition mechanic. Cross-linked R114/R201/R206/R215 bidirectionally; index flipped ✅; `ROADMAP.md` updated. **Both `02-research-*` halves of `BL-0082` now complete.** `BL-0082`/`BL-0094` updated with these findings — both remain `SCHEDULED`/`DEFERRED`, correctly gated on a `03-architecture-design-synthesis` adoption decision, not yet made. No code touched, ROM unchanged. Committed (`2f82c95`) and pushed. Harvested: no new findings beyond the two backlog updates already made. | The infinite-world research line (`BL-0082`) is now fully grounded on both halves — next real step is a `03-architecture-design-synthesis` pass to decide whether to adopt streaming generation at all, informed by `R114`+`R216` together. Not actioned this session (a genuine architecture-adoption decision, appropriately left to the user rather than assumed unilaterally). Separately available, not session-blocked: `BL-0050` (MAP/status-screen redesign, ripe for `04-requirements-engineering`). **Session-blocked:** `09-package-verification` on `IP-1082` needs a fresh session. |
