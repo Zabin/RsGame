@@ -132,6 +132,12 @@ GW_MAZE_DRAW_CTR = 0xC3F4  # 1 byte -- a monotonic, never-persisted per-draw cou
                           # (R113: the shipped PRNG collapses to a degenerate fixed point/
                           # short cycle under many back-to-back draws with no such
                           # perturbation). Never fed back into TMP1/TMP2.
+GW_KI_PLACED   = 0xC3F5  # 1 byte -- IP-1021 (FR-9160/ADR-0015): the KeyItem-placement pass's
+                          # own running count of regions marked "present" so far (capped at
+                          # WORLD_SCALE), transient like the rest of the GW_* family. First
+                          # unclaimed byte past GW_MAZE_DRAW_CTR (0xC3F4). This pass consumes
+                          # no PRNG draws, so GW_MAZE_DRAW_CTR's own running state is untouched
+                          # by it.
 
 SAVE_VERSION_ADDR = 0xA012   # save-format version guard (FR-5220 / Design Decision 2)
 SAVE_VERSION_VAL  = 0x04     # bumped 0x03->0x04 (IP-9110, fourth bump since ship — the
@@ -306,12 +312,12 @@ def build_game_asm(rom: ROM) -> dict:
     # reset run
     rom.XOR_A()
     rom.LD_nn_A(SCORE); rom.LD_nn_A(CARROTS_COUNT); rom.LD_nn_A(CUR_ZONE)
-    # clear KEYITEM_FLAGS (81 bytes — IP-1020, generalizes CARROT_FLAGS; widened
-    # from the old 9-byte clear by IP-9050/BL-0063 now that CUR_ZONE can exceed
-    # 8 — a same-session "new game" replay after this fix would otherwise leave
-    # KEYITEM_FLAGS[9..80]'s prior-playthrough bits intact)
-    rom.LD_HL_nn(KEYITEM_FLAGS); rom.LD_B_n(81); rom.XOR_A()
-    rom.label('si_clr'); rom.LD_HLI_A(); rom.DEC_B(); rom.JR_NZ('si_clr')
+    # KEYITEM_FLAGS is no longer cleared here (IP-1021) — generate_world's own
+    # placement pass now writes a real present/collected/absent pattern per
+    # region, and this state is entered only after generate_world has already
+    # run (from the SEED/SCALE ENTRY confirm handler), so clearing here would
+    # destroy that placement. The stale-prior-playthrough-bytes clear moved to
+    # immediately before CALL('generate_world') instead.
     # clear SCOREITEM_FLAGS (81 bytes — IP-9070, generalized from the old fixed
     # 9-byte/9-zone clear the same way KEYITEM_FLAGS's own boot-clear was sized
     # for CARROT_FLAGS's 9-byte predecessor) — FR-5220 new-game reset
@@ -459,6 +465,13 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_nn(JOY_NEW); rom.AND_n(1 << J_A)
     rom.JP_Z('end_frame')
     rom.CALL('sse_compose_seed')
+    # clear KEYITEM_FLAGS (81 bytes) before generation writes its own
+    # present/collected/absent pattern — clears any prior playthrough's bytes
+    # beyond this world's region count (IP-1020/BL-0063's original intent),
+    # without clobbering generate_world's own output the way clearing it in
+    # st_intro (which runs after this call) used to (IP-1021 fix)
+    rom.LD_HL_nn(KEYITEM_FLAGS); rom.LD_B_n(81); rom.XOR_A()
+    rom.label('sse_ki_clr'); rom.LD_HLI_A(); rom.DEC_B(); rom.JR_NZ('sse_ki_clr')
     rom.CALL('generate_world')
     rom.LD_A_n(GS_INTRO); rom.LD_nn_A(TRANSITION_TO)
     rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW)
@@ -727,7 +740,11 @@ def build_game_asm(rom: ROM) -> dict:
 
     # ── check_complete ───────────────────────────────────
     rom.label('check_complete')
-    rom.LD_A_nn(CARROTS_COUNT); rom.CP_n(9); rom.RET_NZ()
+    # IP-1021 (FR-9161/ADR-0015): victory threshold is now WORLD_SCALE, read at
+    # runtime -- not a hardcoded 9 -- since KeyItem placement is now scale-
+    # relative (FR-9160), not one-per-region.
+    rom.LD_A_nn(WORLD_SCALE); rom.LD_B_A()
+    rom.LD_A_nn(CARROTS_COUNT); rom.CP_B(); rom.RET_NZ()
     rom.LD_A_n(GS_VICTORY); rom.LD_nn_A(TRANSITION_TO)
     rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW); rom.RET()
 
@@ -1570,6 +1587,142 @@ def build_game_asm(rom: ROM) -> dict:
     # only, so each undirected edge is decided exactly once) braid/prune pass.
     rom.label('maze_carve_done')
     rom.XOR_A(); rom.LD_nn_A(GW_BRAID_IDX)    # repurposed: region-loop counter
+
+    # ── IP-1021 (FR-9160/ADR-0015): KeyItem placement pass. Runs here --
+    # spanning tree complete, braid pass not yet started -- because leaf
+    # status must be snapshotted from the pure tree; braiding can turn a
+    # former leaf into a non-leaf by reopening a pruned edge. Reuses
+    # GW_MAZE_DIR/GW_BRAID_IDX as this pass's own nested direction/region
+    # loop counters (safe: maze_prune_region's own first instructions
+    # re-set GW_MAZE_DIR unconditionally, and this pass finishes by
+    # re-zeroing GW_BRAID_IDX to satisfy maze_prune_region's own
+    # precondition, restoring exactly what maze_carve_done's own line
+    # above already set up). GW_MAZE_STATE bit 6 (never read by the
+    # carve/braid passes, which only ever test bit 7/bits 1:0) is
+    # repurposed as a transient "is this region a leaf" scratch flag,
+    # meaningful only within this same pass. No PRNG draws -- placement
+    # "randomness" comes entirely from which regions the tree/braid
+    # shape makes leaves, which already varies by seed; this avoids the
+    # same modulo-by-variable-count selection problem ADR-0012 already
+    # ruled out Kruskal/Prim for on this codebase's PRNG.
+    rom.XOR_A(); rom.LD_nn_A(GW_KI_PLACED)    # placed := 0
+
+    # Pass A: one full region sweep. Classify each region's leaf status
+    # (all 4 directions -- unlike the braid pass's own canonical
+    # down/right-only sweep, leaf-ness needs every direction) and mark
+    # KEYITEM_FLAGS: leaves get placed (byte stays 0, "present",
+    # up to WORLD_SCALE), everything else gets 2 ("absent") tentatively
+    # -- Pass B below may un-mark a non-leaf region back to 0 if a
+    # shortfall needs filling.
+    rom.XOR_A(); rom.LD_nn_A(GW_BRAID_IDX)    # region R := 0
+
+    rom.label('ki_passA_region')
+    rom.XOR_A(); rom.LD_B_A()                 # B := has_child (0 = no)
+    rom.XOR_A(); rom.LD_nn_A(GW_MAZE_DIR)     # dir := 0 (plain 0..3 count, no
+                                                # rotation needed -- order doesn't
+                                                # matter for classification)
+
+    rom.label('ki_passA_dir')
+    rom.LD_A_nn(GW_MAZE_DIR); rom.LD_C_A()
+    rom.LD_A_nn(GW_BRAID_IDX)                 # A = R
+    rom.CALL('gw_neighbor_hl')                # HL -> REGION_GRAPH[R].neighbor[dir]
+    rom.LD_A_HL()
+    rom.CP_n(0xFF); rom.JR_Z('ki_passA_dir_next')   # no neighbor this direction
+
+    # A = V (neighbor region index) -- gw_maze_state_hl clobbers A only,
+    # and A already holds V, so no stash is needed before the call.
+    rom.CALL('gw_maze_state_hl')              # HL -> GW_MAZE_STATE[V]
+    rom.LD_A_HL(); rom.AND_n(3); rom.LD_E_A() # E = V's own parent-direction
+    rom.LD_A_nn(GW_MAZE_DIR); rom.XOR_n(1)    # A = opposite(dir) -- same trick
+                                                # maze_try_loop's own carve step uses
+    _cp_e()                                    # V.parent_dir == opposite(dir)?
+    rom.JR_NZ('ki_passA_dir_next')            # no -- V is not R's child via this edge
+    rom.LD_A_n(1); rom.LD_B_A()               # yes -- R has a child, not a leaf
+
+    rom.label('ki_passA_dir_next')
+    rom.LD_A_nn(GW_MAZE_DIR); rom.INC_A(); rom.LD_nn_A(GW_MAZE_DIR)
+    rom.CP_n(4); rom.JR_NZ('ki_passA_dir')
+
+    # B = has_child for region R. Leaf iff B == 0.
+    rom.LD_A_B(); rom.OR_A(); rom.JR_NZ('ki_passA_not_leaf')
+
+    # --- leaf branch: mark GW_MAZE_STATE[R] bit 6, place if under cap ---
+    rom.LD_A_nn(GW_BRAID_IDX)
+    rom.CALL('gw_maze_state_hl')              # HL -> GW_MAZE_STATE[R]
+    rom.LD_A_HL(); rom.SET_b_A(6); rom.LD_HL_A()   # mark leaf
+
+    rom.LD_A_nn(WORLD_SCALE); rom.LD_D_A()    # D = WORLD_SCALE
+    rom.LD_A_nn(GW_KI_PLACED)
+    rom.CP_D(); rom.JR_NC('ki_passA_mark_absent2')   # placed >= WORLD_SCALE: cap
+                                                       # already reached, this excess
+                                                       # leaf becomes absent instead
+    rom.LD_A_nn(GW_KI_PLACED); rom.INC_A(); rom.LD_nn_A(GW_KI_PLACED)
+    rom.LD_A_nn(GW_BRAID_IDX)
+    rom.LD_E_A(); rom.LD_D_n(0)
+    rom.LD_HL_nn(KEYITEM_FLAGS); rom.ADD_HL_DE()
+    rom.XOR_A(); rom.LD_HL_A()                # KEYITEM_FLAGS[R] = 0 (present)
+    rom.JR('ki_passA_next_region')
+
+    rom.label('ki_passA_mark_absent2')
+    rom.LD_A_nn(GW_BRAID_IDX)
+    rom.LD_E_A(); rom.LD_D_n(0)
+    rom.LD_HL_nn(KEYITEM_FLAGS); rom.ADD_HL_DE()
+    rom.LD_A_n(2); rom.LD_HL_A()              # KEYITEM_FLAGS[R] = 2 (absent)
+    rom.JR('ki_passA_next_region')
+
+    rom.label('ki_passA_not_leaf')
+    rom.LD_A_nn(GW_BRAID_IDX)
+    rom.LD_E_A(); rom.LD_D_n(0)
+    rom.LD_HL_nn(KEYITEM_FLAGS); rom.ADD_HL_DE()
+    rom.LD_A_n(2); rom.LD_HL_A()              # KEYITEM_FLAGS[R] = 2 (absent, tentative)
+
+    rom.label('ki_passA_next_region')
+    rom.LD_A_nn(GW_BRAID_IDX); rom.INC_A(); rom.LD_nn_A(GW_BRAID_IDX)
+    rom.LD_E_A()
+    rom.LD_A_nn(GW_SCALE_SQ); _cp_e()
+    rom.JP_NZ('ki_passA_region')   # JP not JR: the per-region body this closes is
+                                     # too long for JR's +-127 byte range
+
+    # Pass B: only if Pass A placed fewer than WORLD_SCALE (leaf count was
+    # short) -- fill the remainder from the first non-leaf regions found,
+    # in region-index order (deterministic from (SEED, WORLD_SCALE), since
+    # which regions are leaves already varies by seed).
+    rom.LD_A_nn(WORLD_SCALE); rom.LD_D_A()
+    rom.LD_A_nn(GW_KI_PLACED)
+    rom.CP_D(); rom.JR_NC('ki_passB_done')    # already reached WORLD_SCALE -- no
+                                                # shortfall, skip Pass B entirely
+
+    rom.XOR_A(); rom.LD_nn_A(GW_BRAID_IDX)    # region R := 0 again
+
+    rom.label('ki_passB_region')
+    rom.LD_A_nn(GW_BRAID_IDX)
+    rom.CALL('gw_maze_state_hl')              # HL -> GW_MAZE_STATE[R]
+    rom.LD_A_HL(); rom.BIT_b_A(6)
+    rom.JR_NZ('ki_passB_next_region')         # was a leaf -- already placed, skip
+
+    rom.LD_A_nn(WORLD_SCALE); rom.LD_D_A()
+    rom.LD_A_nn(GW_KI_PLACED)
+    rom.CP_D(); rom.JR_NC('ki_passB_done')    # shortfall now fully filled -- stop
+                                                # the whole pass, not just this region
+
+    rom.LD_A_nn(GW_KI_PLACED); rom.INC_A(); rom.LD_nn_A(GW_KI_PLACED)
+    rom.LD_A_nn(GW_BRAID_IDX)
+    rom.LD_E_A(); rom.LD_D_n(0)
+    rom.LD_HL_nn(KEYITEM_FLAGS); rom.ADD_HL_DE()
+    rom.XOR_A(); rom.LD_HL_A()                # KEYITEM_FLAGS[R] = 0 (present, fallback fill)
+
+    rom.label('ki_passB_next_region')
+    rom.LD_A_nn(GW_BRAID_IDX); rom.INC_A(); rom.LD_nn_A(GW_BRAID_IDX)
+    rom.LD_E_A()
+    rom.LD_A_nn(GW_SCALE_SQ); _cp_e()
+    rom.JP_NZ('ki_passB_region')   # JP not JR: same range concern as Pass A's own
+                                     # back-edge above
+
+    rom.label('ki_passB_done')
+    rom.XOR_A(); rom.LD_nn_A(GW_BRAID_IDX)    # restore maze_prune_region's own
+                                                # precondition (region-loop counter
+                                                # starts at 0), since this pass
+                                                # advanced it through GW_SCALE_SQ.
 
     rom.label('maze_prune_region')
     rom.LD_A_n(1); rom.LD_nn_A(GW_MAZE_DIR)   # repurposed: current direction (down first)

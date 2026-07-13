@@ -36,7 +36,7 @@ def _draw_delta(x):
     return x, delta
 
 
-def generate(seed: int, scale: int):
+def generate(seed: int, scale: int, _with_treasure: bool = False):
     """
     Deterministically generate a scale x scale region grid from (seed, scale).
 
@@ -44,6 +44,12 @@ def generate(seed: int, scale: int):
         {'biome_id': int (0-4), 'neighbors': [up, down, left, right]}
     where each neighbor is a region index (int) or None (grid boundary, 0xFF on
     the SM83 side).
+
+    If `_with_treasure` is set, returns `(regions, treasure)` instead, where
+    `treasure` is a `scale*scale`-length list mirroring KEYITEM_FLAGS's
+    generation-time output (IP-1021/FR-9160): 0 = present, 2 = absent. Kept as
+    an opt-in third argument (not a separate duplicated pipeline) so existing
+    two-arg call sites are untouched.
     """
     assert 2 <= scale <= 9
     x = seed & 0xFFFF
@@ -96,7 +102,9 @@ def generate(seed: int, scale: int):
                 'neighbors': [up, down, left_n, right_n],
             })
 
-    _carve_maze(regions, scale, x)
+    treasure = _carve_maze(regions, scale, x)
+    if _with_treasure:
+        return regions, treasure
     return regions
 
 
@@ -120,6 +128,17 @@ def _carve_maze(regions, scale, x):
     Mutates `regions`' neighbor lists in place (writes None where the SM83
     side would write 0xFF). Discards the advanced PRNG state -- this is the
     generator's own last step, nothing downstream consumes it further.
+
+    Between the spanning-tree carve and the braid pass, also computes the
+    IP-1021/FR-9160 KeyItem-placement pass (dead-end-priority with a random-
+    fill fallback -- mirrors asm_game.py's `ki_passA_region`/`ki_passB_region`
+    exactly): a region is a leaf iff no neighbor's `parent_dir` points back to
+    it (reusing the same tree-edge test the braid pass below performs, just
+    over all 4 directions instead of the canonical down/right pair, and run
+    against the pre-braid neighbor lists since braiding can turn a leaf into
+    a non-leaf by reopening a pruned edge). No PRNG draws are consumed by
+    this pass -- returns the resulting `treasure` list (0=present, 2=absent),
+    length `scale*scale`, in addition to mutating `regions` as before.
     """
     n = scale * scale
     visited = [False] * n
@@ -159,6 +178,33 @@ def _carve_maze(regions, scale, x):
             break  # root exhausted with nothing left to carve -- tree complete
         cur = regions[cur]['neighbors'][parent_dir[cur]]  # backtrack
 
+    # IP-1021: pre-braid leaf classification + placement (Pass A: leaves,
+    # capped at `scale`; Pass B: fallback-fill from the first non-leaf
+    # regions in index order if the leaf count fell short). Must run here --
+    # after the spanning tree completes, before the braid pass below mutates
+    # `regions`' neighbor lists.
+    is_leaf = [True] * n
+    for r in range(n):
+        for d in range(4):
+            v = regions[r]['neighbors'][d]
+            if v is not None and parent_dir[v] == _OPPOSITE[d]:
+                is_leaf[r] = False
+                break
+
+    treasure = [2] * n
+    placed = 0
+    for r in range(n):
+        if is_leaf[r] and placed < scale:
+            treasure[r] = 0
+            placed += 1
+    if placed < scale:
+        for r in range(n):
+            if not is_leaf[r]:
+                if placed >= scale:
+                    break
+                treasure[r] = 0
+                placed += 1
+
     # canonical-edge braid/prune pass (down=1, right=3 only -- each undirected
     # edge decided exactly once; every region is visited by this point, so no
     # visited[] guard is needed on either side of the tree-edge test, mirroring
@@ -178,4 +224,4 @@ def _carve_maze(regions, scale, x):
             regions[r]['neighbors'][d] = None
             regions[v]['neighbors'][_OPPOSITE[d]] = None
 
-    return x
+    return treasure
