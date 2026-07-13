@@ -466,6 +466,15 @@
   trigger: `BL-0082`'s own `02-research-*` step closing with a concrete streaming model).
   `BL-0082`'s own scope widened to explicitly evaluate blob-clustering viability under whatever
   streaming model it lands on, not just the hardware-feasibility/WRAM questions already named.
+- **Direct ledger fix (2026-07-13, no skill invocation):** while closing out this session, found
+  `packages/INDEX.md` had drifted from the Master Build Plan — 12 packages (`IP-1031`, `IP-9070`,
+  `IP-9050`, `IP-9060`, `IP-1080`, `IP-9090`, `IP-9100`, `IP-9080`, `IP-9110`, `IP-9120`, `IP-9130`,
+  `IP-9140`) were independently verified in earlier runs (real `VR-xxxx` files exist for all
+  twelve, and the Master Build Plan already correctly reads `VERIFIED`), but the index still
+  showed them `COMPLETE`/"awaits independent verification" — a stale copy from before those
+  verification runs, never synced. Corrected all twelve rows to `VERIFIED`, each citing its real
+  VR file. The index and the plan must never disagree (this project's own stated rule) — this was
+  a genuine integrity gap in the ledger the next session would otherwise have inherited.
 - **Open gates:** none — `IP-1021` is authorized and `COMPLETE`. **Session-blocked:**
   `09-package-verification` on `IP-1081` and now also `IP-1021` (both implemented this session,
   both need a fresh session to verify).
