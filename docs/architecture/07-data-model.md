@@ -266,7 +266,16 @@ start of every call). Two new subroutines, `gw_neighbor_hl` (region+direction �
 neighbor-byte address) and `gw_maze_state_hl` (region → `GW_MAZE_STATE` byte address), reached
 only via `CALL`, placed immediately before `save_to_sram`'s label.
 
-### 7c. Per-region treasure-presence concept — `ADR-0015` (decided 2026-07-12, not yet implemented)
+### 7c. Per-region treasure-presence concept — `ADR-0015` (implemented 2026-07-13, `IP-1021`)
+
+**Confirming note (2026-07-13):** the shipped encoding is the first candidate below — `KEYITEM_FLAGS`'s
+value domain widened in place to `{0, 1, 2}`. The re-audit this section flagged as needed
+(`setup_zone_collects`'s nonzero-means-inactive check) was performed directly against the code:
+both real consumers (`setup_zone_collects`, `check_collisions`) already treat any nonzero value as
+"no active item here," which is exactly correct for the new `2` ("absent") value too — no
+downstream changes were needed. No new WRAM address was added; `SRAM_KEYITEM_FLAGS`'s existing
+81-byte mirror is unaffected (value-agnostic memcpy). The remainder of this section is left as the
+original decision record.
 
 `ADR-0015` (`BL-0093`) makes `KeyItem` placement selective — `WorldScale` total, zero-or-one per
 `Region`, decided at generation time from the pre-braid spanning-tree's leaf structure (§7b's

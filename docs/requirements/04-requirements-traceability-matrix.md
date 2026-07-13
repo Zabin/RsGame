@@ -38,7 +38,7 @@
 | FR-3100 | Collection-proximity detection | R202 | GDS-05 C3 | — | `asm_game.py` | UNASSIGNED | IP-9100 | T8.4, T8.x/T8.y/T8.z1/T8.z2 (corrected point-in-box overlap test) |
 | FR-3200 | ScoreItem collection increments Score | — | GDS-05 C3; GDS-04 | — | `asm_game.py` | UNASSIGNED | UNASSIGNED | T8.4/T8.5/T8.6/T8.10 — trustworthy; postcondition corrected 2026-07-10 (`BL-0022`) to match shipped respawn-on-re-entry behavior |
 | FR-3210 | Carrot collection sets zone flag, increments CarrotCount | — | GDS-05 C3; GDS-04 | — | `asm_game.py` | UNASSIGNED | UNASSIGNED | T8.7/T8.8/T8.9 |
-| FR-3300 | Victory condition (CarrotCount==9; superseded target FR-9161 once implemented) | — | GDS-05 C4 | — | `asm_game.py` | UNASSIGNED | UNASSIGNED | T4.8, T8.14 |
+| FR-3300 | Victory condition (CarrotCount==9; superseded by FR-9161, implemented 2026-07-13) | — | GDS-05 C4 | — | `asm_game.py` | UNASSIGNED | UNASSIGNED | T4.8, T8.14 |
 | FR-4100 | Fixed 3×3 zone grid | — | GDS-04; GDS-01 §3 | — | `tilemaps.py` | UNASSIGNED | UNASSIGNED | T1.10, T9 (grid edges) |
 | FR-4200 | Fourteen total screens | — | GDS-04; GDS-05 C6 | — | `tilemaps.py` | UNASSIGNED | UNASSIGNED | UNASSIGNED |
 | FR-5100 | Explicit player-initiated save | R106; R205 | GDS-05 C5; GDS-06 N3 | ADR-0006 | `asm_game.py` | UNASSIGNED | UNASSIGNED | T10.3–T10.5, T10.13/T10.14 |
@@ -61,11 +61,11 @@
 | FR-9100 | Deterministic world generation from (seed, scale) | R111, R213 | GDS-04 delta; ADR-0009 | ADR-0009, ADR-0014 | `asm_game.py`, `worldgen.py` | FS-102 | IP-1020, IP-9110 | T12.a (two-boot determinism), T12.b (oracle parity), T12.e (region count), T12.j (non-degeneracy statistical check), T12.k (BL-0074 direct reproduction re-check) |
 | FR-9110 | Seed/scale immutable per save, new-game-only (Met, 2026-07-10) | — | ADR-0010 | ADR-0010 | `asm_game.py` (only `sse_compose_seed`, reachable only via `st_seed_scale_entry`'s A-confirm, writes `SEED`/`WORLD_SCALE`) | FS-102, FS-104 | IP-1020, IP-1040 | T14.e1 (static write-site audit), T14.e2 (runtime sweep, PLAYING/SAVE/MAP) — 180/180 pass (T14 sub-total 20/20) |
 | FR-9120 | Full reachability of every generated region | — | GDS-04 delta; ADR-0009 | ADR-0009 | `worldgen.py` | FS-102 | IP-1020 | T12.c (BFS from region 0, 15-entry corpus, 0 unreachable) |
-| FR-9130 | Exactly one KeyItem per generated region (generalizes BL-0017; superseded target FR-9160 once implemented) | — | GDS-04 delta; BL-0017 | ADR-0009 | `worldgen.py` | FS-102 | IP-1020 | T12.e (region count == scale², 15-entry corpus) |
+| FR-9130 | Exactly one KeyItem per generated region (generalizes BL-0017; superseded by FR-9160, implemented 2026-07-13) | — | GDS-04 delta; BL-0017 | ADR-0009 | `worldgen.py` | FS-102 | IP-1020 | T12.m (region count == scale², 15-entry corpus) |
 | FR-9140 | Maze-shaped region adjacency (implemented — 2026-07-11) | R112, R113 | GDS-04 delta; GDS-07 §7b | ADR-0009, ADR-0012, ADR-0013 | `worldgen.py`, `asm_game.py` | FS-107 | IP-1070 | T19.a (subgraph), T19.b (reachability), T19.c (oracle parity), T19.d (grammar), T19.f (static audit), T19.g (WRAM headroom); T17.a/b (non-regression navigation) |
 | FR-9150 | Braid-fraction parameter (implemented — 2026-07-11) | R112 | — | ADR-0012 | `worldgen.py`, `asm_game.py` | FS-107 | IP-1070 | T19.e (braid-fraction statistical check) |
-| FR-9160 | Scale-relative, dead-end-prioritized KeyItem placement (target — 2026-07-12, supersedes FR-9130) | R215 | GDS-04 delta (2026-07-12 correction); GDS-07 §7c | ADR-0015, ADR-0012, ADR-0009 | `asm_game.py`, `worldgen.py` | UNASSIGNED | UNASSIGNED | UNASSIGNED |
-| FR-9161 | Scale-relative victory condition (target — 2026-07-12, supersedes FR-3300) | R215 | — | ADR-0015 | `asm_game.py` | UNASSIGNED | UNASSIGNED | UNASSIGNED |
+| FR-9160 | Scale-relative, dead-end-prioritized KeyItem placement (implemented 2026-07-13, supersedes FR-9130) | R215 | GDS-04 delta (2026-07-12 correction); GDS-07 §7c | ADR-0015, ADR-0012, ADR-0009 | `asm_game.py`, `worldgen.py` | FS-102 | IP-1021 | T12.e (revised), T12.n |
+| FR-9161 | Scale-relative victory condition (implemented 2026-07-13, supersedes FR-3300) | R215 | — | ADR-0015 | `asm_game.py` | FS-102 | IP-1021 | T4.8 (corrected), T12.n |
 | FR-9200 | Save-format extension: seed/scale/region-flags (Met, 2026-07-10) | R106 (ext.) | GDS-07 delta §7 | ADR-0010, ADR-0006 | `asm_game.py` | FS-105 | IP-1050 | T15.a1–a6, T15.c1–c6, T15.d — 180/180 pass |
 
 ## Non-Functional Requirements

@@ -15,14 +15,18 @@
 > **Revision (2026-07-12, `ADR-0015`/`BL-0093`):** `FR-9130` (the "exactly one `KeyItem` per
 > region" rule this document's own §5/§6/§15 AC-5 originally specified and `IP-1020` shipped) is
 > **superseded by `FR-9160`**. §6 Workflow A step 5 and §15 AC-5 below are updated to describe the
-> new target behavior. **Planned 2026-07-12 as
-> [IP-1021](../implementation/packages/IP-1021-win-condition-redesign.md)** (`NOT STARTED`, not
-> yet authorized) — resolves this document's own Open Question 5 (the per-region encoding, decided
-> as a widened `KEYITEM_FLAGS` value domain). §6 Workflow B step 4's victory-condition forward
-> reference is also corrected
-> (it previously stated a formula — `KeyItemCount == WorldScale²`, i.e. full 100% collection —
-> that was never actually decided by any binding artifact and is now superseded by `FR-9161`'s
-> `KeyItemCount == WorldScale`; see the correction below and Open Question 4).
+> new target behavior. §6 Workflow B step 4's victory-condition forward reference is also
+> corrected (it previously stated a formula — `KeyItemCount == WorldScale²`, i.e. full 100%
+> collection — that was never actually decided by any binding artifact and is now superseded by
+> `FR-9161`'s `KeyItemCount == WorldScale`; see the correction below and Open Question 4).
+>
+> **Implemented 2026-07-13 as
+> [IP-1021](../implementation/packages/IP-1021-win-condition-redesign.md)** (`COMPLETE`;
+> `VERIFIED` pending, same-session-independence rule) — resolves this document's own **Open
+> Question 5** (the per-region encoding: `KEYITEM_FLAGS`'s existing value domain widened in place
+> to a tri-state, 0=present/uncollected, 1=present/collected, 2=absent, rather than a new bitmap).
+> `test_rom.py` T12.e (revised)/T12.n; `worldgen.py` oracle-mirrored, zero mismatches across the
+> full corpus.
 
 [↑ Features index](INDEX.md) · [Feature Catalog](../feature-planning/03-feature-catalog.md) ·
 [Epic Catalog](../feature-planning/02-epic-catalog.md)
@@ -409,11 +413,15 @@ ordinary implementation risk for `07`/`08`.
    remains true for `FR-9161` too. Resolves at: `05-feature-decomposition`, if a formal ownership
    assignment for the victory-condition requirement family is ever wanted; not blocking this
    Feature's own implementation-readiness, since `FS-102` never claimed to own it either.
-5. **(New, 2026-07-12) The exact per-region tri-state encoding** (`GDS-07` §7c's two named
-   candidates: widen `KEYITEM_FLAGS`' value domain, or a new separate presence bitmap) is left
-   undecided by `ADR-0015`/`GDS-07` deliberately. Resolves at: `07-implementation-planning`,
-   against the real `KEYITEM_FLAGS`/`setup_zone_collects` code, per `GDS-07` §7c's own explicit
-   deferral.
+5. **(New, 2026-07-12; RESOLVED 2026-07-13) The exact per-region tri-state encoding** (`GDS-07`
+   §7c's two named candidates: widen `KEYITEM_FLAGS`' value domain, or a new separate presence
+   bitmap) was left undecided by `ADR-0015`/`GDS-07` deliberately, to be resolved at
+   `07-implementation-planning` against the real `KEYITEM_FLAGS`/`setup_zone_collects` code. **
+   Resolved by `IP-1021` §6**: `KEYITEM_FLAGS`'s existing value domain is widened in place (0 =
+   present/uncollected, 1 = present/collected, 2 = absent) — both real consumers
+   (`setup_zone_collects`, `check_collisions`) already treat any nonzero value as "no active item
+   here," exactly correct for "absent" too, so no separate bitmap or downstream changes were
+   needed.
 
 ## 20. Related ADRs
 

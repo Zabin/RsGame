@@ -2,7 +2,8 @@
 
 > **Status: 22 of 25 packages VERIFIED (2026-07-12); `IP-1081` (`FS-108` rendering half — content,
 > `BL-0075`) `COMPLETE` same day, awaiting verification; `IP-1082` (render) `BLOCKED` on it;
-> `IP-1021` (win-condition redesign, `BL-0093`) planned same day, `NOT STARTED`, not authorized.**
+> `IP-1021` (win-condition redesign, `BL-0093`) `COMPLETE` 2026-07-13, awaiting verification
+> (same-session-independence rule).**
 > **Bootstrap tranche fully VERIFIED (2026-07-10) — all five packages VERIFIED.**
 > **Release 2 tranche (procgen-world increment): authorized 2026-07-10 (user G3, `BL-0040`, all
 > five packages) — `IP-1020` (foundational, dependency-root) VERIFIED 2026-07-10
@@ -161,7 +162,7 @@ The project owner's own resolved decision ([ADR-0015](../architecture/adr/ADR-00
 `KeyItem` placement becomes selective (`WORLD_SCALE` total, dead-end-prioritized, random-fill
 fallback), win condition becomes `KeyItemCount == WORLD_SCALE`. Closes `BL-0093` once `VERIFIED`.
 
-| [IP-1021](packages/IP-1021-win-condition-redesign.md) | Win-condition redesign — dead-end-anchored treasure placement (FS-102 / FEAT-9000 / BL-0093) | `08-code-implementation` | **READY** | IP-1020 (VERIFIED), IP-1070 (VERIFIED) | **YES — explicit user G3, 2026-07-12 (BL-0096, "Yes, build it")** | Planned 2026-07-12. `generate_world`'s new placement pass (inserted between `maze_carve_done` and the braid pass, reusing `IP-1070`'s own `GW_MAZE_STATE` for leaf classification), `KEYITEM_FLAGS`'s value domain widened to a tri-state (no new WRAM/SRAM — confirmed both real consumers, `setup_zone_collects`/`check_collisions`, already handle any nonzero value correctly), `check_complete`'s comparison operand corrected to a runtime `WORLD_SCALE` read, `worldgen.py` oracle mirror. Supersedes `FR-9130`/`FR-3300` once `VERIFIED`. |
+| [IP-1021](packages/IP-1021-win-condition-redesign.md) | Win-condition redesign — dead-end-anchored treasure placement (FS-102 / FEAT-9000 / BL-0093) | `08-code-implementation` | **COMPLETE** (awaiting `09-package-verification`, session-blocked) | IP-1020 (VERIFIED), IP-1070 (VERIFIED) | **YES — explicit user G3, 2026-07-12 (BL-0096, "Yes, build it")** | Implemented 2026-07-13. `generate_world`'s new placement pass (inserted between `maze_carve_done` and the braid pass, reusing `IP-1070`'s own `GW_MAZE_STATE` for leaf classification), `KEYITEM_FLAGS`'s value domain widened to a tri-state (no new WRAM/SRAM — confirmed both real consumers, `setup_zone_collects`/`check_collisions`, already handle any nonzero value correctly), `check_complete`'s comparison operand corrected to a runtime `WORLD_SCALE` read, `worldgen.py` oracle mirror (zero mismatches, full corpus). Also fixed a same-package defect found during implementation: `st_intro`'s own unconditional `KEYITEM_FLAGS` clear ran *after* `generate_world` and silently destroyed the placement pass's output — the clear moved to the SEED/SCALE ENTRY confirm handler, immediately before `CALL('generate_world')`. Full suite 233/233 (+2 new checks: `T12.e` revised, `T12.n` added). Supersedes `FR-9130`/`FR-3300`, formally recorded in their own Notes. |
 
 ## Post-ship remediation tranche (playtesting bugs, planned 2026-07-11)
 
@@ -517,12 +518,12 @@ first-in-critical-path package.)*
   `VERIFIED` (not merely `COMPLETE`).
 - **Authorization state: both authorized** (user G3, `BL-0092`, "Yes, build both," 2026-07-12).
 
-### Win-condition redesign tranche (`FS-102` revision, planned 2026-07-12)
+### Win-condition redesign tranche (`FS-102` revision, planned 2026-07-12, implemented 2026-07-13)
 
 - **No critical path — a single package, `IP-1021`, no split** (placement and the victory-check
   correction are one coherent Definition of Done, per the TWBS's own split rationale).
 - **`IP-1021`**: `generate_world`'s new placement pass + `check_complete`'s corrected comparison
   operand + `worldgen.py` oracle mirror. Depends on `IP-1020`/`IP-1070` (both `VERIFIED`) — no
-  blocking dependency. Independent of `IP-1081`/`IP-1082` (disjoint files). `NOT STARTED`.
-- **Authorization state: not authorized** — no G3 on record. Forward-design package, not
-  bootstrap-carve-out eligible.
+  blocking dependency. Independent of `IP-1081`/`IP-1082` (disjoint files). `COMPLETE`, awaiting
+  `09-package-verification` in a fresh session (same-session-independence rule).
+- **Authorization state: authorized** — user G3, `BL-0096`, "Yes, build it" (2026-07-12).

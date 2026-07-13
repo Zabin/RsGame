@@ -14,7 +14,7 @@
 
 ## Position
 
-- **Updated:** 2026-07-12 (run #126)
+- **Updated:** 2026-07-13 (run #127)
 - **Increment:** Bootstrap baseline remains fully closed (01–11 ✅, GO recorded). Run #96
   implemented `IP-1080` (`COMPLETE`, 230/230), closing the maze-shaped region adjacency tranche's
   critical-path extent. **Run #97:** the user then directly reported a bug while reviewing that
@@ -421,14 +421,45 @@
   TWBS, Master Build Plan, `packages/INDEX.md`, `FS-102`/`FEAT-9000` metadata, `ROADMAP.md`
   updated. No code touched, ROM byte-identical. Committed (`aeacf85`) and pushed. Harvested: no
   new findings — `BL-0093` updated in place, still `SCHEDULED`. **`IP-1021` is not authorized.**
-- **Next step:** **GATE — `IP-1021` is not authorized** (no G3 on record, a forward-design
-  package, not bootstrap-carve-out eligible). Per `00-pipeline-manager`'s own Step 4, this stops
-  for the user's explicit go-ahead before `08-code-implementation` can begin. Separately, still
-  available: `BL-0082` (streaming/infinite-world research) and `BL-0066` (`NEEDS-USER`). Still
-  session-blocked: `09-package-verification` on `IP-1081`.
-- **Open gates:** G3 authorization for `IP-1021` (win-condition redesign, `BL-0093`) — awaiting
-  the user. **Session-blocked:** `09-package-verification` on `IP-1081` (needs a fresh session
-  before `IP-1082` can build).
+  **User authorized `IP-1021`** ("Yes, build it (Recommended)," `BL-0096` → `DONE`).
+- **Run #127 (advance, user-directed iteration until blocked):** invoked
+  `08-code-implementation` on `IP-1021`. Implemented `generate_world`'s new two-pass placement
+  algorithm (leaf classification reusing `maze_prune_dir`'s own "Check 1" test across all 4
+  directions; Pass A places up to `WORLD_SCALE` leaves, Pass B fills any shortfall from the first
+  non-leaf regions in index order — no new PRNG draws), inserted between `maze_carve_done` and
+  `maze_prune_region`. `check_complete` now reads `WORLD_SCALE` at runtime instead of a hardcoded
+  `9`. Hit and fixed a `JR oor` assembly error (two long loop back-edges converted to `JP_NZ`,
+  matching the codebase's own existing convention). Direct PyBoy verification then surfaced a
+  genuine defect introduced by this package's own change: `st_intro`'s unconditional 81-byte
+  `KEYITEM_FLAGS` clear ran *after* `generate_world` (called earlier, from the SEED/SCALE ENTRY
+  confirm handler) and silently destroyed the placement pass's output — every region showed
+  "present" across 4 tested seed/scale combinations. In scope to fix per this skill's own rule
+  (a failure caused by this package's changes). Fixed by relocating the clear to immediately
+  before `CALL('generate_world')` in the SEED/SCALE ENTRY confirm handler, leaving `st_intro`'s
+  `SCOREITEM_FLAGS` clear untouched. Re-verified via PyBoy across 4 seed/scale pairs (0/3, 1/9,
+  42/2, 7/5): `present == WORLD_SCALE` and forcing `CARROTS_COUNT` to that value correctly
+  triggers `GS_VICTORY` in every case. Added `worldgen.py`'s oracle mirror (`_carve_maze`,
+  reusing its already-built `parent_dir` array for the leaf test) — confirmed 0 mismatches against
+  real SM83 output across the full 15-entry `(seed,scale)` corpus. Revised `T12.e` (was a stale
+  "one KeyItem per region" check that was actually testing region count, not placement — the
+  region-count assertion renamed to `T12.m`, `T12.e` now asserts the real placement-rule/oracle
+  parity), added new `T12.n` (exactly `WORLD_SCALE` placed, every corpus entry). Full suite:
+  233/233 pass (+2 net new checks). Supersession sweep re-confirmed clean against the current
+  tree: `setup_zone_collects`/`check_collisions` both already treat any nonzero `KEYITEM_FLAGS`
+  value as "no active item," correct for the new "absent" (`2`) value too;
+  `save_to_sram`/`try_load_save` are value-agnostic 81-byte memcpys, unaffected. `IP-1021` →
+  `COMPLETE`. Documentation updated: `FR-9160`/`FR-9161` flipped to implemented, citing `IP-1021`;
+  `FR-9130`/`FR-3300` formally superseded in their own Notes (the `FR-1120` precedent's second
+  step); RTM rows filled (`FS-102`/`IP-1021`/tests, replacing `UNASSIGNED`); `FS-102` metadata
+  updated with the implemented-by pointer and Open Question 5 marked resolved; `GDS-07` §7c given
+  a confirming note; Master Build Plan, `packages/INDEX.md`, `ROADMAP.md` updated in sync.
+- **Next step:** **`09-package-verification` on `IP-1021`** — but this session cannot perform it
+  (same-session-independence rule: `IP-1021` was implemented in this same session). Falls back to
+  the next unblocked item. Separately available: `BL-0082` (streaming/infinite-world research) and
+  `BL-0066` (`NEEDS-USER`). Still session-blocked: `09-package-verification` on `IP-1081`.
+- **Open gates:** none — `IP-1021` is authorized and `COMPLETE`. **Session-blocked:**
+  `09-package-verification` on `IP-1081` and now also `IP-1021` (both implemented this session,
+  both need a fresh session to verify).
 
 ## Run log
 
@@ -563,3 +594,4 @@
 | 124 | 2026-07-12 | advance (user-directed iteration until blocked) | `04-requirements-engineering` | `ADR-0015` delta — FR-9160/9161 | ✅ Authored FR-9160 (placement, supersedes FR-9130) and FR-9161 (victory condition, supersedes FR-3300), both target/not-yet-implemented, textually unmodified predecessors per the established coexistence precedent. Corrected an unrelated FR-9130 staleness (IP-1020/VR-1020 already shipped/verified it). RTM +2 rows, Review finding #14 (clean). `docs/requirements/INDEX.md`/`ROADMAP.md` updated. No code touched, ROM unchanged. Committed (`0874ce7`) and pushed. Harvested: no new findings. | No skill invocation is gated. **Recommend:** `06-feature-specification` to update `FS-102`'s KeyItem-placement workflow/AC and the victory-condition FS section. Separately available: `BL-0082`, `BL-0066` (`NEEDS-USER`). Still session-blocked: `09-package-verification` on `IP-1081`. |
 | 125 | 2026-07-12 | advance (user-directed iteration until blocked) | `06-feature-specification` | `FS-102` — revise for win-condition redesign | ✅ Updated Workflow A/B (placement algorithm, corrected a genuine victory-formula drift — the prior text stated `WorldScale²`, never actually decided by any binding artifact), Data Model Changes (§7c tri-state concept), AC (AC-5 revised, AC-9 new), Verification Plan, Dependencies, Related ADRs. Filed 2 non-blocking Open Questions (catalog-citation lag → `05`; encoding choice → `07`). `docs/features/INDEX.md`/`FEAT-9000` metadata/`ROADMAP.md` updated. No code touched, ROM unchanged. Committed (`4b20a85`) and pushed. Harvested: no new findings. | No skill invocation is gated. **Recommend:** `07-implementation-planning` to package `FS-102`'s revised behavior. Separately available: `BL-0082`, `BL-0066` (`NEEDS-USER`). Still session-blocked: `09-package-verification` on `IP-1081`. |
 | 126 | 2026-07-12 | advance (user-directed iteration until blocked) | `07-implementation-planning` | `FS-102` revised behavior — package `BL-0093` | ✅ Packaged as `IP-1021` (`08-code-implementation`): `generate_world`'s new placement pass, `check_complete`'s corrected comparison, `worldgen.py` mirror. Resolved OQ5 (widened `KEYITEM_FLAGS` domain, confirmed zero downstream changes needed via direct code read). TWBS/Master Build Plan/`packages/INDEX.md`/metadata/`ROADMAP.md` updated. No code touched, ROM byte-identical. Committed (`aeacf85`) and pushed. Neither authorized. | **GATE:** G3 authorization needed for `IP-1021` before `08-code-implementation` can begin. |
+| 127 | 2026-07-13 | advance (user-directed iteration until blocked) | `08-code-implementation` | `IP-1021` — win-condition redesign | ✅ Implemented `generate_world`'s two-pass placement algorithm (leaf classification + up-to-`WORLD_SCALE` selection + fallback-fill, no new PRNG draws), `check_complete`'s runtime `WORLD_SCALE` read, `worldgen.py`'s oracle mirror (0 mismatches, full corpus). Found and fixed a same-package defect during implementation: `st_intro`'s `KEYITEM_FLAGS` clear ran after `generate_world` and destroyed the placement output — relocated to the SEED/SCALE ENTRY confirm handler. Direct PyBoy verification across 4 seed/scale pairs confirmed correct present/absent counts and victory triggering. Revised `T12.e` (region-count check renamed `T12.m`; `T12.e` now the real placement/oracle-parity check), added `T12.n`. Full suite 233/233. Supersession sweep re-confirmed clean. `IP-1021` → `COMPLETE`. `FR-9160`/`FR-9161` marked implemented, `FR-9130`/`FR-3300` formally superseded, RTM/`FS-102`/`GDS-07` §7c/Master Build Plan/`packages/INDEX.md`/`ROADMAP.md` updated. | **Session-blocked:** `09-package-verification` on `IP-1021` (and `IP-1081`) needs a fresh session. Next available: `BL-0082` (streaming/infinite-world research) or `BL-0066` (`NEEDS-USER`). |

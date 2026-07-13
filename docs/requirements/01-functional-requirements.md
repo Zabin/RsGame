@@ -647,11 +647,11 @@
 - **Verification Method:** Test.
 - **Source Documents:** GDS-05 C4.
 - **Related ADRs:** None.
-- **Notes:** **Target-state pointer (2026-07-12, `ADR-0015`/`BL-0093`):** this fixed threshold is
-  superseded by **FR-9161** — victory triggers at `KeyItemCount == WORLD_SCALE`, not a hardcoded
-  9. This FR remains accurate for the *currently shipped* game and is not modified here; it will
-  be marked formally superseded only once `FR-9161`'s implementation ships (the same pattern
-  `FR-1120`→`FR-1170`/`1180`/`1190` already established).
+- **Notes:** **Superseded (2026-07-13, `IP-1021`):** this fixed threshold's implementation has
+  now shipped over — `check_complete` no longer compares against a hardcoded `9`; **FR-9161** is
+  the authoritative requirement for the victory condition going forward. This FR's text above is
+  left unmodified as an accurate historical record of the rule as it stood through `IP-1020`'s
+  lifetime, per the `FR-1120`→`FR-1170`/`1180`/`1190` precedent's own second step.
 
 ### FR-3220 — Item-agnostic KeyItem collection (target — 2026-07-09, generalizes FR-3210)
 
@@ -1119,11 +1119,11 @@ FR-6000 for the presentation half)*
   (2026-07-12): this rule was in fact implemented and independently verified** — `IP-1020`
   shipped it, confirmed by `VR-1020`'s own audit (`T12.e`) — this document's prior "Not yet
   implemented" framing was stale, a documentation-only correction unrelated to the point below.
-  **Target-state pointer (2026-07-12, `ADR-0015`/`BL-0093`):** this rule is itself now superseded
-  by **FR-9160** — KeyItem placement becomes selective (`WORLD_SCALE` total, dead-end-prioritized,
-  not one per region). This FR remains accurate for the *currently shipped* game and is not
-  modified here; it will be marked formally superseded only once `FR-9160`'s implementation ships
-  (the same pattern `FR-1120`→`FR-1170`/`1180`/`1190` already established).
+  **Superseded (2026-07-13, `IP-1021`):** this rule's implementation has now shipped over —
+  `generate_world` no longer places exactly one `KeyItem` per region; **FR-9160** is the
+  authoritative requirement for `KeyItem` placement going forward. This FR's text above is left
+  unmodified as an accurate historical record of the rule as it stood through `IP-1020`'s
+  lifetime, per the `FR-1120`→`FR-1170`/`1180`/`1190` precedent's own second step.
 
 ### FR-9140 — Maze-shaped region adjacency (implemented — 2026-07-11)
 
@@ -1213,7 +1213,7 @@ FR-6000 for the presentation half)*
   field, a derived value, or the fixed non-exposed default this FR shipped with) remains
   undecided, as this FR's own text always allowed.
 
-### FR-9160 — Scale-relative, dead-end-prioritized KeyItem placement (target — 2026-07-12)
+### FR-9160 — Scale-relative, dead-end-prioritized KeyItem placement (implemented — 2026-07-13)
 
 - **ID:** FR-9160
 - **Title:** The system shall generate exactly `WORLD_SCALE` KeyItems per generated world,
@@ -1228,7 +1228,7 @@ FR-6000 for the presentation half)*
   remainder in additional regions chosen randomly (excluding regions already selected) until
   exactly `WORLD_SCALE` regions hold a `KeyItem`. Every other region holds none.
 - **Rationale:** `ADR-0015` (`BL-0093`, project-owner direct decision resolving `BL-0081`/`R215`).
-- **Priority:** Must (target — not yet implemented)
+- **Priority:** Must (implemented by `IP-1021`, `COMPLETE`; `VERIFIED` pending)
 - **Inputs:** `WORLD_SCALE`; the pre-braid spanning tree's own per-region degree (`GDS-07` §7c).
 - **Outputs:** Exactly `WORLD_SCALE` regions marked as holding a `KeyItem`; every other region
   marked as holding none.
@@ -1253,10 +1253,12 @@ FR-6000 for the presentation half)*
 - **Related ADRs:** ADR-0015, ADR-0012 (the maze pass this decision's leaf data comes from),
   ADR-0009.
 - **Notes:** Supersedes `FR-9130` (see that FR's own Notes for the reverse pointer). The exact
-  per-region data representation `GDS-07` §7c names as needed is left to `07-implementation-
-  planning`/`08-code-implementation`, not specified here.
+  per-region data representation `GDS-07` §7c names as needed was resolved by `IP-1021` §6: the
+  existing `KEYITEM_FLAGS` value domain was widened in place to a tri-state (0=present/
+  uncollected, 1=present/collected, 2=absent) rather than adding a new bitmap — implemented
+  2026-07-13, `test_rom.py` T12.e (revised)/T12.n, oracle-mirrored in `worldgen.py`.
 
-### FR-9161 — Scale-relative victory condition (target — 2026-07-12)
+### FR-9161 — Scale-relative victory condition (implemented — 2026-07-13)
 
 - **ID:** FR-9161
 - **Title:** The system shall trigger victory the instant `KeyItemCount` reaches `WORLD_SCALE`.
@@ -1264,7 +1266,7 @@ FR-6000 for the presentation half)*
   `KeyItemCount` equals `WORLD_SCALE` (read directly), the system shall trigger the PLAYING →
   VICTORY transition (`FR-1160`).
 - **Rationale:** `ADR-0015` (`BL-0093`).
-- **Priority:** Must (target — not yet implemented)
+- **Priority:** Must (implemented by `IP-1021`, `COMPLETE`; `VERIFIED` pending)
 - **Inputs:** `KeyItemCount` value; `WORLD_SCALE` value.
 - **Outputs:** Victory transition trigger (`FR-1160`).
 - **Preconditions:** State is PLAYING; `KeyItemCount == WORLD_SCALE`.
@@ -1280,7 +1282,8 @@ FR-6000 for the presentation half)*
 - **Notes:** Supersedes `FR-3300` (see that FR's own Notes for the reverse pointer). Always
   achievable by construction: `FR-9160` guarantees exactly `WORLD_SCALE` `KeyItem`s exist, and
   `FR-9120`'s full-reachability guarantee (unaffected by this decision) ensures every one of them
-  is reachable.
+  is reachable. Implemented 2026-07-13 (`IP-1021`): `check_complete` reads `WORLD_SCALE` at
+  runtime in place of the old hardcoded `9`; `test_rom.py` T4.8 (corrected)/T12.n.
 
 ### FR-9200 — Save-format extension: seed, scale, and per-region flags
 
