@@ -217,6 +217,10 @@ GS_MAIN_MENU, GS_SEED_SCALE_ENTRY = 6, 7
 GS_SELECT_MENU, GS_LEGEND = 8, 9  # IP-1090: SELECT now opens a small
                                   # map/legend cursor menu instead of
                                   # jumping directly to GS_MAP (GDS-01 §4c)
+GS_MODE_SELECT, GS_INFINITE_SEED_ENTRY = 10, 11  # IP-1100: MAIN MENU's
+                                  # "new game" now opens a finite/infinite
+                                  # cursor menu instead of jumping directly
+                                  # to GS_SEED_SCALE_ENTRY (GDS-01 §4d)
 
 
 def build_game_asm(rom: ROM) -> dict:
@@ -355,6 +359,8 @@ def build_game_asm(rom: ROM) -> dict:
     rom.CP_n(GS_SEED_SCALE_ENTRY); rom.JP_Z('st_seed_scale_entry')
     rom.CP_n(GS_SELECT_MENU); rom.JP_Z('st_select_menu')
     rom.CP_n(GS_LEGEND); rom.JP_Z('st_legend')
+    rom.CP_n(GS_MODE_SELECT); rom.JP_Z('st_mode_select')
+    rom.CP_n(GS_INFINITE_SEED_ENTRY); rom.JP_Z('st_infinite_seed_entry')
     rom.JP('end_frame')
 
     # ── State: TITLE ─────────────────────────────────────
@@ -476,8 +482,22 @@ def build_game_asm(rom: ROM) -> dict:
     rom.label('mm_ng_clr'); rom.LD_HLI_A(); rom.DEC_B(); rom.JR_NZ('mm_ng_clr')
     rom.LD_A_n(3); rom.LD_nn_A(SSE_SCALE)   # default scale (ADR-0010)
     rom.XOR_A(); rom.LD_nn_A(SSE_CURSOR)
-    rom.LD_A_n(GS_SEED_SCALE_ENTRY); rom.LD_nn_A(TRANSITION_TO)
-    rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW)
+    # IP-1100 (GDS-01 §4d): "new game" now opens MODE SELECT, not SEED/SCALE
+    # ENTRY directly. GAME_MODE is explicitly reset to 0 (finite) here, on
+    # every "new game" entry -- a defensive fix caught during implementation:
+    # without it, a player who picks "infinite" at MODE SELECT (setting
+    # GAME_MODE=1), then B-cancels all the way back to MAIN MENU, then
+    # starts a fresh "new game" and picks "finite" this time, would have
+    # GAME_MODE still stuck at 1 (st_mode_select's own "finite" branch,
+    # mirroring GDS-01 §4d's diagram, does not itself write GAME_MODE) --
+    # silently routing an intended finite-mode game through IP-1102's
+    # infinite-mode dsr_p/check_zone_transition paths. Resetting here, once,
+    # at the single genuine "new game" entry point, is the simplest correct
+    # fix -- st_mode_select's own "infinite" branch is still the only place
+    # that ever sets GAME_MODE=1.
+    rom.XOR_A(); rom.LD_nn_A(GAME_MODE)
+    rom.LD_A_n(GS_MODE_SELECT); rom.LD_nn_A(TRANSITION_TO)
+    rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW); rom.LD_nn_A(MM_JUST_ENTERED)
     rom.JP('end_frame')
 
     # ── State: SEED/SCALE ENTRY (IP-1040) ─────────────────
@@ -539,6 +559,115 @@ def build_game_asm(rom: ROM) -> dict:
 
     rom.label('sse_redraw')
     rom.CALL('draw_sse_digits')
+    rom.JP('end_frame')
+
+    # ── State: MODE SELECT (IP-1100, GDS-01 §4d) ──────────
+    # D-pad up/down toggles MM_CURSOR unconditionally between 0 ("finite")
+    # and 1 ("infinite") -- both options always offered, mirrors
+    # st_select_menu's own unconditional toggle exactly (no MM_SAVE_VALID-
+    # style gate needed here). A confirms: "finite" -> GS_SEED_SCALE_ENTRY,
+    # completely unchanged (GAME_MODE already reset to 0 at mm_newgame,
+    # not touched again here); "infinite" -> GS_INFINITE_SEED_ENTRY, writing
+    # GAME_MODE=1 on this transition only, not on mere highlight. B cancels
+    # directly to MAIN MENU, writing nothing (the named asymmetric-tradeoff
+    # counterpart is SEED/SCALE ENTRY's own unchanged B-cancel target,
+    # GDS-01 §4d's own explicit framing -- not this state).
+    rom.label('st_mode_select')
+    rom.LD_A_nn(JOY_NEW); rom.LD_B_A()
+    rom.BIT_b_B(J_UP); rom.JR_NZ('ms_toggle')
+    rom.BIT_b_B(J_DOWN); rom.JP_Z('ms_check_b')
+    rom.label('ms_toggle')
+    rom.LD_A_nn(MM_CURSOR); rom.XOR_n(1); rom.LD_nn_A(MM_CURSOR)
+    rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW)
+    rom.JP('end_frame')
+    rom.label('ms_check_b')
+    rom.BIT_b_B(J_B); rom.JR_Z('ms_check_a')
+    rom.LD_A_n(GS_MAIN_MENU); rom.LD_nn_A(TRANSITION_TO)
+    rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW); rom.LD_nn_A(MM_JUST_ENTERED)
+    rom.JP('end_frame')
+    rom.label('ms_check_a')
+    rom.BIT_b_B(J_A); rom.JP_Z('end_frame')
+    rom.LD_A_nn(MM_CURSOR); rom.OR_A(); rom.JR_NZ('ms_infinite')
+    rom.LD_A_n(GS_SEED_SCALE_ENTRY); rom.LD_nn_A(TRANSITION_TO)
+    rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW)
+    rom.JP('end_frame')
+    rom.label('ms_infinite')
+    rom.LD_A_n(1); rom.LD_nn_A(GAME_MODE)
+    rom.LD_A_n(GS_INFINITE_SEED_ENTRY); rom.LD_nn_A(TRANSITION_TO)
+    rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW)
+    rom.JP('end_frame')
+
+    # ── State: INFINITE SEED ENTRY (IP-1100, GDS-01 §4d) ──
+    # Reuses SEED/SCALE ENTRY's own digit-cursor picker convention
+    # (ADR-0010) over the same SSE_DIGITS/SSE_CURSOR bytes -- safe since
+    # GS_SEED_SCALE_ENTRY and GS_INFINITE_SEED_ENTRY are never
+    # simultaneously active (mirrors MM_CURSOR's own established reuse
+    # precedent, IP-1090). LEFT/RIGHT are bounded to cursor 0-4 only (never
+    # 5, the finite mode's own scale slot -- there is no scale digit here);
+    # UP/DOWN reuse sse_adjust_up/sse_adjust_down verbatim (their own
+    # CP_n(5) scale branch never triggers, since cursor never reaches 5
+    # from this state). A composes the seed via sse_compose_seed (IP-1040,
+    # reused verbatim -- it also writes WORLD_SCALE from SSE_SCALE's
+    # leftover value, harmless here since no Infinite Mode code path ever
+    # reads WORLD_SCALE), sets INF_ROW=INF_COL=0, then calls IP-1102's own
+    # inf_ensure_window (not a single direct inf_materialize_region call --
+    # a deliberate deviation from this package's own original §6 text,
+    # which predates IP-1102's existence: inf_ensure_window populates the
+    # full 3x3 INF_WINDOW correctly in one call, reusing IP-1102's already-
+    # built routine instead of duplicating its 9-cell logic here, and avoids
+    # leaving INF_WINDOW's 8 non-center cells as uninitialized WRAM --
+    # GAME_MODE's own identical boot-clear-gap lesson from IP-1102, applied
+    # proactively here rather than rediscovered the same way). B cancels to
+    # GS_MODE_SELECT (not GS_MAIN_MENU -- this state has no shipped
+    # precedent to protect, GDS-01 §4d's own "one step back" framing),
+    # writing nothing -- MM_JUST_ENTERED is deliberately NOT set on this
+    # transition, so MODE SELECT's own cursor stays on "infinite" (whatever
+    # is normal, given B-cancel only happens after choosing it), letting the
+    # player retry immediately rather than resetting back to "finite".
+    rom.label('st_infinite_seed_entry')
+    rom.LD_A_nn(JOY_NEW); rom.LD_B_A()
+
+    rom.BIT_b_B(J_B); rom.JP_Z('ise_no_b')
+    rom.LD_A_n(GS_MODE_SELECT); rom.LD_nn_A(TRANSITION_TO)
+    rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW)
+    rom.JP('end_frame')
+    rom.label('ise_no_b')
+
+    rom.BIT_b_B(J_LEFT); rom.JP_Z('ise_no_left')
+    rom.LD_A_nn(SSE_CURSOR); rom.OR_A(); rom.JP_Z('ise_redraw')
+    rom.DEC_A(); rom.LD_nn_A(SSE_CURSOR)
+    rom.JP('ise_redraw')
+    rom.label('ise_no_left')
+
+    rom.BIT_b_B(J_RIGHT); rom.JP_Z('ise_no_right')
+    rom.LD_A_nn(SSE_CURSOR); rom.CP_n(4); rom.JP_NC('ise_redraw')
+    rom.INC_A(); rom.LD_nn_A(SSE_CURSOR)
+    rom.JP('ise_redraw')
+    rom.label('ise_no_right')
+
+    rom.BIT_b_B(J_UP); rom.JP_Z('ise_no_up')
+    rom.CALL('sse_adjust_up')
+    rom.JP('ise_redraw')
+    rom.label('ise_no_up')
+
+    rom.BIT_b_B(J_DOWN); rom.JP_Z('ise_no_down')
+    rom.CALL('sse_adjust_down')
+    rom.JP('ise_redraw')
+    rom.label('ise_no_down')
+
+    rom.LD_A_nn(JOY_NEW); rom.AND_n(1 << J_A)
+    rom.JP_Z('end_frame')
+    rom.CALL('sse_compose_seed')
+    rom.XOR_A()
+    rom.LD_nn_A(INF_ROW); rom.LD_nn_A(INF_ROW + 1)
+    rom.LD_nn_A(INF_COL); rom.LD_nn_A(INF_COL + 1)
+    rom.CALL('inf_ensure_window')
+    rom.LD_A_n(GS_INTRO); rom.LD_nn_A(TRANSITION_TO)
+    rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW)
+    rom.JP('end_frame')
+
+    rom.label('ise_redraw')
+    rom.CALL('draw_ise_digits')
     rom.JP('end_frame')
 
     # ── State: SELECT MENU (IP-1090) ──────────────────────
@@ -1057,7 +1186,8 @@ def build_game_asm(rom: ROM) -> dict:
     for gs, lbl in [(GS_TITLE,'dsr_t'),(GS_INTRO,'dsr_i'),(GS_PLAYING,'dsr_p'),
                     (GS_SAVE,'dsr_sv'),(GS_MAP,'dsr_m'),(GS_VICTORY,'dsr_v'),
                     (GS_MAIN_MENU,'dsr_mm'),(GS_SEED_SCALE_ENTRY,'dsr_sse'),
-                    (GS_SELECT_MENU,'dsr_sm'),(GS_LEGEND,'dsr_lg')]:
+                    (GS_SELECT_MENU,'dsr_sm'),(GS_LEGEND,'dsr_lg'),
+                    (GS_MODE_SELECT,'dsr_ms'),(GS_INFINITE_SEED_ENTRY,'dsr_ise')]:
         rom.LD_A_nn(GAMESTATE); rom.CP_n(gs); rom.JP_Z(lbl)
     rom.JP('dsr_done')
 
@@ -1086,6 +1216,12 @@ def build_game_asm(rom: ROM) -> dict:
     # per-entry logic needed, plain copy_screen suffices.
     _dsr_screen('dsr_sm', 'sm_t', 'sm_a', extra='sm_on_entry')
     _dsr_screen('dsr_lg', 'lg_t', 'lg_a')
+    # IP-1100: mode select draws/resets its own cursor on every entry
+    # (ms_on_entry, mirroring sm_on_entry); infinite seed entry redraws its
+    # digits + cursor on every entry (draw_ise_digits, also called directly
+    # on every digit-cursor edit — see st_infinite_seed_entry).
+    _dsr_screen('dsr_ms',  'ms_t',  'ms_a',  extra='ms_on_entry')
+    _dsr_screen('dsr_ise', 'ise_t', 'ise_a', extra='draw_ise_digits')
 
     # PLAYING: biome-family screen dispatch (IP-1030, generalizes the
     # former fixed 9-entry zs_table). CUR_ZONE is read as the current
@@ -1384,6 +1520,40 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_n(TL_ARROW_R); rom.LD_HL_A()
     rom.RET()
 
+    # ── ms_on_entry / draw_mode_select_cursor (IP-1100) ───────
+    # Mirrors sm_on_entry/draw_select_menu_cursor exactly (no save-validity
+    # gate -- "finite" and "infinite" are always both offered). MM_CURSOR
+    # is reused (GS_MODE_SELECT is never simultaneously active with
+    # GS_MAIN_MENU/GS_SELECT_MENU), reset to 0 ("finite") only on a genuine
+    # state entry (MM_JUST_ENTERED, set by mm_newgame's own transition into
+    # this state) -- a same-state redraw from the player's own toggle
+    # (ms_toggle) leaves MM_CURSOR at its just-toggled value, and the B-
+    # cancel-from-INFINITE-SEED-ENTRY return path deliberately does not set
+    # MM_JUST_ENTERED, so the cursor stays wherever it was. mode_select_
+    # screen() reuses select_menu_screen()'s own row/column layout (rows
+    # 7/9, cursor col 6, label start col 8).
+    MS_CURSOR_FINITE_ADDR   = 0x9800 + 7*32 + 6
+    MS_CURSOR_INFINITE_ADDR = 0x9800 + 9*32 + 6
+
+    rom.label('ms_on_entry')
+    rom.LD_A_nn(MM_JUST_ENTERED); rom.OR_A(); rom.JR_Z('ms_oe_no_reset')
+    rom.XOR_A(); rom.LD_nn_A(MM_JUST_ENTERED)
+    rom.LD_nn_A(MM_CURSOR)
+    rom.label('ms_oe_no_reset')
+    rom.CALL('draw_mode_select_cursor')
+    rom.RET()
+
+    rom.label('draw_mode_select_cursor')
+    rom.LD_HL_nn(MS_CURSOR_FINITE_ADDR);   rom.LD_A_n(TL_BG_BLANK); rom.LD_HL_A()
+    rom.LD_HL_nn(MS_CURSOR_INFINITE_ADDR); rom.LD_A_n(TL_BG_BLANK); rom.LD_HL_A()
+    rom.LD_A_nn(MM_CURSOR); rom.OR_A(); rom.JR_NZ('dmsc_infinite')
+    rom.LD_HL_nn(MS_CURSOR_FINITE_ADDR); rom.JR('dmsc_write')
+    rom.label('dmsc_infinite')
+    rom.LD_HL_nn(MS_CURSOR_INFINITE_ADDR)
+    rom.label('dmsc_write')
+    rom.LD_A_n(TL_ARROW_R); rom.LD_HL_A()
+    rom.RET()
+
     # ── draw_sse_digits (IP-1040) ──────────────────────────
     # Writes the 5 seed digit tiles + 1 scale digit tile, then the cursor
     # (a down-arrow above the currently-selected digit/scale slot). Called
@@ -1416,6 +1586,33 @@ def build_game_asm(rom: ROM) -> dict:
     rom.RET()
     rom.label('dsd_scale_cursor')
     rom.LD_HL_nn(0x9800 + SSE_CURSOR_SCALE_ROW*32 + SSE_SCALE_COL)
+    rom.LD_A_n(TL_ARROW_D); rom.LD_HL_A()
+    rom.RET()
+
+    # ── draw_ise_digits (IP-1100) ───────────────────────────
+    # Mirrors draw_sse_digits, minus the scale-digit/scale-cursor writes
+    # entirely -- INFINITE SEED ENTRY has no scale slot, and SSE_CURSOR
+    # never reaches 5 from this state (st_infinite_seed_entry's own
+    # LEFT/RIGHT bound it to 0-4), so the cursor-arrow placement is always
+    # over a seed digit, never needing dsd_scale_cursor's own branch.
+    # Reuses infinite_seed_entry_screen()'s own SEED row/col (same as
+    # seed_scale_entry_screen()'s, SSE_SEED_ROW/SSE_SEED_COL0/
+    # SSE_CURSOR_SEED_ROW -- both screens share the identical seed-row
+    # layout by design).
+    rom.label('draw_ise_digits')
+    for i in range(5):
+        addr = 0x9800 + SSE_SEED_ROW*32 + (SSE_SEED_COL0 + i)
+        rom.LD_A_nn(SSE_DIGITS + i); rom.ADD_A_n(TL_DIGIT_0)
+        rom.LD_HL_nn(addr); rom.LD_HL_A()
+
+    for i in range(5):
+        addr = 0x9800 + SSE_CURSOR_SEED_ROW*32 + (SSE_SEED_COL0 + i)
+        rom.LD_HL_nn(addr); rom.LD_A_n(TL_BG_BLANK); rom.LD_HL_A()
+
+    rom.LD_A_nn(SSE_CURSOR)
+    rom.LD_E_A(); rom.LD_D_n(0)
+    rom.LD_HL_nn(0x9800 + SSE_CURSOR_SEED_ROW*32 + SSE_SEED_COL0)
+    rom.ADD_HL_DE()
     rom.LD_A_n(TL_ARROW_D); rom.LD_HL_A()
     rom.RET()
 

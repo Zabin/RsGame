@@ -337,8 +337,17 @@ derive `CR-06`'s real FR from this delta next. No merge-gate box above is reopen
 **Delta record (2026-07-14):** §4d added, per `BL-0113` (`06-feature-specification`, `FS-110`
 Open Question 6, routed here since a new-game mode-choice UI shape is an architecture-target-state
 question, not a requirement or a Feature-catalog scoping question). Delta, not re-authoring —
-§§1–4c remain accurate (as-shipped or already-established target state); §4d is new **target
-state, not yet shipped** — no `IP-xxxx` package exists for it yet, and it deliberately does not
-alter `SEED/SCALE ENTRY`'s own already-shipped (`IP-1040`) behavior. `04-requirements-engineering`
-derives the real FR from this delta next (a future pass on `FEAT-10000`, alongside `BL-0112`'s
-own open run-end-trigger question). No merge-gate box above is reopened.
+§§1–4c remain accurate (as-shipped or already-established target state); §4d was **target
+state, not yet shipped** at authoring time — no `IP-xxxx` package existed for it yet, and it
+deliberately did not alter `SEED/SCALE ENTRY`'s own already-shipped (`IP-1040`) behavior.
+`04-requirements-engineering` derives the real FR from this delta next (a future pass on
+`FEAT-10000`, alongside `BL-0112`'s own open run-end-trigger question). No merge-gate box above is
+reopened.
+
+**Confirmed as shipped (2026-07-14, `IP-1100`):** §4d's target-state diagram is now the real,
+implemented state machine — `GS_MODE_SELECT=10`/`GS_INFINITE_SEED_ENTRY=11` (the next two free
+`GAMESTATE` values, exactly as this section's own "not decided here" note anticipated), reached
+and cancelling exactly per the diagram above, including the named asymmetric-cancel-path tradeoff
+(`SEED/SCALE ENTRY`'s own `B`-cancel target left unredirected). `T25` (`test_rom.py`, 10 checks)
+exercises the full diagram end to end. `MODE SELECT`'s own cursor byte reuses `MM_CURSOR`
+(the choice this section left open, resolved the same way §4c's `SELECT MENU` precedent was).

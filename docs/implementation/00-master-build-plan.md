@@ -1,17 +1,19 @@
 # Master Build Plan
 
-> **Status (updated 2026-07-14, `09-package-verification` on `IP-1102`): 28 of 31 packages
-> VERIFIED; `IP-1102` (Infinite Mode, streaming window/navigation/render) independently verified —
+> **Status (updated 2026-07-14, `08-code-implementation` on `IP-1100`): 28 of 31 packages
+> VERIFIED; `IP-1100` (Infinite Mode, mode selection & new-game entry) implemented — `COMPLETE`,
+> 280/280 full suite (`T25`, 10 checks). `IP-1102` (Infinite Mode, streaming window/navigation/
+> render) independently verified —
 > `VERIFIED`, 260/260 full suite (`T24`, 7 checks; `NFR-4300` Met, `NFR-1400` honestly measured
 > `NOT MET`, independently re-confirmed by a standalone re-measurement — see
 > [VR-1102](verification/VR-1102-infinite-mode-streaming-window-and-render.md) and
 > `02-non-functional-requirements.md`). `IP-1101` (per-region
 > materialization) independently verified `VERIFIED` — 253/253 checks pass, fresh session, 0 open
 > findings ([VR-1101](verification/VR-1101-infinite-mode-region-materialization.md); three
-> Low-severity documentation findings noted, none blocking). `IP-1100` remains `READY` (its sole
-> hard dependency, `IP-1101`, is `VERIFIED`); `IP-1103` is now eligible — `READY` — since both of
-> its dependencies (`IP-1101`, `IP-1102`) are now `VERIFIED`; `IP-1104` remains `NOT STARTED` —
-> still depends on `IP-1100`/`1102`/`1103` (only `IP-1102` of the three cleared).**
+> Low-severity documentation findings noted, none blocking). `IP-1103` is `READY` (both its
+> dependencies, `IP-1101`/`IP-1102`, are `VERIFIED`); `IP-1104` remains `NOT STARTED` —
+> still depends on `IP-1100`/`1102`/`1103` reaching `VERIFIED` (`IP-1100` awaiting its own
+> `09-package-verification` pass; `IP-1102` cleared; `IP-1103` not yet built).**
 > Every prior package remains `VERIFIED` —
 > nothing below this line is re-opened by the new tranche. **Prior status (corrected 2026-07-13, `09-package-verification` on `IP-1082`):
 > 26 of 26 packages VERIFIED.** `IP-1090` (SELECT Menu & Edge-Indicator Legend Screen, `BL-0100`)
@@ -291,14 +293,30 @@ re-confirmed in a fresh session, all Definition-of-Done/Verification-Checklist i
 direct code read, `NFR-1400`'s `NOT MET` result independently re-measured via a standalone script
 against a disjoint corpus (77,812–81,816 cycles, same order of magnitude and conclusion); one
 Low-severity documentation finding noted (an `ADR-0016` point-7 citation mismatch), not blocking.
-`IP-1100` lists `IP-1101` as its sole hard dependency and remains **`READY`**. `IP-1103` now
-depends on `IP-1101`/`IP-1102`, both `VERIFIED` — **now `READY`**, unblocked by this verification
-pass. `IP-1104` still depends on `IP-1100`/`1102`/`1103` — only `IP-1102` of the three has cleared;
-`IP-1100`/`IP-1103` remain unimplemented, so `IP-1104` stays `NOT STARTED`/blocked-in-substance.
+`IP-1103` depends on `IP-1101`/`IP-1102`, both `VERIFIED` — **`READY`**. `IP-1104` still depends on
+`IP-1100`/`1102`/`1103` reaching `VERIFIED` — `IP-1102` cleared, `IP-1100` is `COMPLETE` (own
+`09-package-verification` pass pending, independent session required), `IP-1103` not yet built —
+`IP-1104` stays `NOT STARTED`/blocked-in-substance. **`IP-1100` implemented 2026-07-14 —
+`COMPLETE`, 280/280 checks pass** (new suite `T25`, 10 checks — planned as `T22`, renamed since
+`IP-1101` already claimed `T22` earlier this same tranche, mirroring `IP-1101`'s own identical
+renaming precedent): `GS_MODE_SELECT`/`GS_INFINITE_SEED_ENTRY` (`GDS-01` §4d) reachable exactly
+per the diagram, including the named asymmetric-cancel-path tradeoff (`T25.b1c`); `MAIN MENU`'s
+own `advance_to_playing()`/`enter_seed_scale()` test helpers updated project-wide for the new
+`MODE SELECT` hop (a real, expected ripple from inserting a new state ahead of the shipped
+`SEED/SCALE ENTRY` flow — ~10 pre-existing call sites across `T4`/`T14`–`T18` needed the extra
+confirm press, not a regression in any of them). `INFINITE SEED ENTRY`'s own A-confirm calls
+`IP-1102`'s `inf_ensure_window` (not a single direct `inf_materialize_region` call, a deliberate
+deviation from this package's own §6 text — written before `IP-1102` existed — documented in code
+and in `FR-10100`'s own Notes). `GAME_MODE` explicitly reset to 0 at `mm_newgame` (a defensive
+correctness fix caught during implementation: without it, a canceled "infinite" attempt followed
+by a fresh "finite" new-game would leave `GAME_MODE` stuck at 1). Implements FR-10100 (mode-choice
+half, now fully Implemented alongside `IP-1101`'s generate half). `docs/architecture/01-concept-
+of-play.md` (§4d confirmed shipped), `docs/requirements/01`/`04`, `FS-110`'s own metadata + §19
+OQ6 marked Resolved, this Master Build Plan, `packages/INDEX.md` all updated in sync.
 
 | Package | Title | Owner | Status | Depends on | Authorized? |
 |---|---|---|---|---|---|
-| [IP-1100](packages/IP-1100-infinite-mode-mode-selection.md) | Mode selection & new-game entry | `08-code-implementation` | **READY** | IP-1101 (VERIFIED) | **YES — explicit user G3, 2026-07-14 ("Yes, build all five")** |
+| [IP-1100](packages/IP-1100-infinite-mode-mode-selection.md) | Mode selection & new-game entry | `08-code-implementation` | **COMPLETE** (280/280, 2026-07-14) | IP-1101 (VERIFIED) | **YES — explicit user G3, 2026-07-14 ("Yes, build all five")** |
 | [IP-1101](packages/IP-1101-infinite-mode-region-materialization.md) | Per-region materialization | `08-code-implementation` | **VERIFIED** ([VR-1101](verification/VR-1101-infinite-mode-region-materialization.md), 2026-07-14) | — (tranche root) | **YES — explicit user G3, 2026-07-14 ("Yes, build all five")** |
 | [IP-1102](packages/IP-1102-infinite-mode-streaming-window-and-render.md) | Streaming window, navigation & render integration | `08-code-implementation` | **VERIFIED** ([VR-1102](verification/VR-1102-infinite-mode-streaming-window-and-render.md), 2026-07-14) | IP-1101 (VERIFIED) | **YES — explicit user G3, 2026-07-14 ("Yes, build all five")** |
 | [IP-1103](packages/IP-1103-infinite-mode-treasure-and-win-condition.md) | Treasure placement & win-condition state | `08-code-implementation` | **READY** | IP-1101 (VERIFIED), IP-1102 (VERIFIED) | **YES — explicit user G3, 2026-07-14 ("Yes, build all five")** |
@@ -398,7 +416,7 @@ graph TD
 
     style IP1090 fill:#cfc,stroke:#333,stroke-width:2px
 
-    IP1100["IP-1100 mode selection<br/>& new-game entry<br/>(READY)"]
+    IP1100["IP-1100 mode selection<br/>& new-game entry<br/>(COMPLETE)"]
     IP1101["IP-1101 per-region<br/>materialization<br/>(VERIFIED)"]
     IP1102["IP-1102 streaming window<br/>& render integration<br/>(VERIFIED)"]
     IP1103["IP-1103 treasure &<br/>win-condition state<br/>(READY)"]

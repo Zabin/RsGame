@@ -146,9 +146,11 @@ def fresh_boot(frames=180):
 
 def advance_to_playing(pb):
     """From MAIN MENU (IP-1040 — boot always lands here; a fresh boot has no
-    save, so 'new game' is the only/forced option): A -> SEED/SCALE ENTRY,
-    A (confirm defaults: seed=0 -> normalized to 1 internally, scale=3) ->
-    INTRO (runs generate_world), A -> PLAYING."""
+    save, so 'new game' is the only/forced option): A -> MODE SELECT (IP-1100,
+    GDS-01 §4d), A (confirm default: MM_CURSOR=0="finite") -> SEED/SCALE
+    ENTRY, A (confirm defaults: seed=0 -> normalized to 1 internally,
+    scale=3) -> INTRO (runs generate_world), A -> PLAYING."""
+    pb.button('a'); [pb.tick() for _ in range(40)]
     pb.button('a'); [pb.tick() for _ in range(40)]
     pb.button('a'); [pb.tick() for _ in range(80)]
     pb.button('a'); [pb.tick() for _ in range(80)]
@@ -308,7 +310,8 @@ pb.stop()
 
 # ══════════════════════════════════════════════════════
 # T4 — State Machine (GS: 0=TITLE[superseded] 1=INTRO 2=PLAYING 3=SAVE
-#      4=MAP 5=VICTORY 6=MAIN_MENU 7=SEED_SCALE_ENTRY — IP-1040)
+#      4=MAP 5=VICTORY 6=MAIN_MENU 7=SEED_SCALE_ENTRY — IP-1040;
+#      8=SELECT_MENU 9=LEGEND — IP-1090; 10=MODE_SELECT 11=INFINITE_SEED_ENTRY — IP-1100)
 # ══════════════════════════════════════════════════════
 print("\n=== T4: State Machine ===")
 pb = fresh_boot()
@@ -321,7 +324,12 @@ check("T4.1 Clean boot -> MAIN MENU (GS=6)", pb.memory[GAMESTATE] == 6, f"GS={pb
 shoot(pb, "T4_main_menu")
 
 pb.button('a'); [pb.tick() for _ in range(40)]
-check("T4.2 A (new game, no save) -> SEED/SCALE ENTRY (GS=7)",
+check("T4.2 A (new game, no save) -> MODE SELECT (GS=10, IP-1100/GDS-01 §4d)",
+      pb.memory[GAMESTATE] == 10, f"GS={pb.memory[GAMESTATE]}")
+shoot(pb, "T4_mode_select")
+
+pb.button('a'); [pb.tick() for _ in range(40)]
+check("T4.2a A (confirm default: finite) -> SEED/SCALE ENTRY (GS=7)",
       pb.memory[GAMESTATE] == 7, f"GS={pb.memory[GAMESTATE]}")
 shoot(pb, "T4_seed_scale_entry")
 
@@ -1243,6 +1251,12 @@ check("T13.d Screen-visibility audit: every arrow address falls inside the true 
 # ══════════════════════════════════════════════════════
 print("\n=== T14: Main Menu & New-Game Flow ===")
 
+def enter_new_game_finite(pb):
+    """From MAIN MENU: A (new game) -> MODE SELECT (IP-1100, GDS-01 §4d),
+    A (confirm default: MM_CURSOR=0="finite") -> SEED/SCALE ENTRY."""
+    pb.button('a'); [pb.tick() for _ in range(40)]
+    pb.button('a'); [pb.tick() for _ in range(40)]
+
 def enter_seed_scale(pb, digits, scale):
     """From SEED/SCALE ENTRY at its just-entered defaults (cursor=0, all
     digits 0, scale=3): drive the digit-cursor picker to the given 5 seed
@@ -1305,7 +1319,7 @@ wipe_save()
 # T14.b1/b2 — digit-cursor entry for a known (seed, scale): confirm -> INTRO,
 # region count == scale^2 (AC-3).
 pb = fresh_boot(200)
-pb.button('a'); [pb.tick() for _ in range(40)]           # MAIN MENU -> new game -> SEED/SCALE ENTRY
+enter_new_game_finite(pb)                                # MAIN MENU -> new game -> MODE SELECT -> finite -> SEED/SCALE ENTRY
 enter_seed_scale(pb, [1, 2, 3, 4, 5], 5)                 # seed=12345, scale=5
 check("T14.b1 Confirm -> INTRO (GS=1)", pb.memory[GAMESTATE] == 1, f"GS={pb.memory[GAMESTATE]}")
 check("T14.b1b SEED written correctly (12345)",
@@ -1323,7 +1337,7 @@ pb.stop()
 # own oracle/SM83 lockstep, T12.b — this confirms this Feature's own
 # trigger path reaches generate_world with the same inputs both times).
 pb = fresh_boot(200)
-pb.button('a'); [pb.tick() for _ in range(40)]
+enter_new_game_finite(pb)
 enter_seed_scale(pb, [1, 2, 3, 4, 5], 5)
 region_graph_b2 = read_region_graph(pb, 5)
 pb.stop()
@@ -1333,7 +1347,7 @@ check("T14.b3 Same (seed,scale) -> identical region graph across two new-game cr
 # T14.c1 — SEED/SCALE ENTRY, B -> MAIN MENU, without writing SEED/WORLD_SCALE
 # (FS-104 Open Question 1's resolution, tested directly).
 pb = fresh_boot(200)
-pb.button('a'); [pb.tick() for _ in range(40)]
+enter_new_game_finite(pb)
 seed_before = pb.memory[SEED] | (pb.memory[SEED+1] << 8)
 scale_before = pb.memory[WORLD_SCALE]
 pb.button('up'); [pb.tick() for _ in range(10)]   # touch a digit, then abandon via B
@@ -1436,7 +1450,7 @@ print("\n=== T15: Generated-World Save Persistence ===")
 # assert the regenerated region graph matches the pre-save graph (AC-1).
 wipe_save()
 pb = fresh_boot(200)
-pb.button('a'); [pb.tick() for _ in range(40)]
+enter_new_game_finite(pb)
 enter_seed_scale(pb, [5, 4, 3, 2, 1], 3)   # seed=54321, scale=3
 seed_pre15 = pb.memory[SEED] | (pb.memory[SEED + 1] << 8)
 scale_pre15 = pb.memory[WORLD_SCALE]
@@ -1653,7 +1667,7 @@ wipe_save()
 # (49 regions) so the region range genuinely exceeds the old 9-zone model.
 wipe_save()
 pb = fresh_boot(200)
-pb.button('a'); [pb.tick() for _ in range(40)]
+enter_new_game_finite(pb)
 enter_seed_scale(pb, [0, 0, 7, 7, 7], 7)   # seed=777, scale=7
 seed_pre16e = pb.memory[SEED] | (pb.memory[SEED + 1] << 8)
 scale_pre16e = pb.memory[WORLD_SCALE]
@@ -1786,7 +1800,7 @@ def _t17_do_move(pb, direction):
 # (not replacing) T12.c's/T19.b's existing oracle-only checks.
 T17_SEED, T17_SCALE = 4242, 5
 pb = fresh_boot(200)
-pb.button('a'); [pb.tick() for _ in range(40)]        # MAIN MENU -> new game -> SEED/SCALE ENTRY
+enter_new_game_finite(pb)
 enter_seed_scale(pb, [int(c) for c in f"{T17_SEED:05d}"], T17_SCALE)   # -> INTRO
 pb.button('a'); [pb.tick() for _ in range(80)]        # INTRO -> PLAYING
 check("T17.a0 New game at scale=5 reaches PLAYING", pb.memory[GAMESTATE] == 2,
@@ -1827,7 +1841,7 @@ wipe_save()
 # region-24 bytes unpopulated, which previously produced a spurious
 # transition off stale WRAM rather than a genuine boundary-halt result.
 pb = fresh_boot(200)
-pb.button('a'); [pb.tick() for _ in range(40)]
+enter_new_game_finite(pb)
 enter_seed_scale(pb, [int(c) for c in f"{T17_SEED:05d}"], T17_SCALE)
 pb.button('a'); [pb.tick() for _ in range(80)]
 check("T17.c0 Region 24 (scale=5 oracle) genuinely has no right/down neighbor",
@@ -1925,8 +1939,9 @@ check("T18.a4 UP toggles MM_CURSOR to 1",
 # T18.d — "new game" is actually reachable end-to-end from this toggled
 # state (the full regression test proving the reported symptom is
 # resolved, not just that the byte value changes).
-pb.button('a'); [pb.tick() for _ in range(40)]
-check("T18.d New game reachable: A from MM_CURSOR=1 -> SEED/SCALE ENTRY (GS=7)",
+pb.button('a'); [pb.tick() for _ in range(40)]   # A from MM_CURSOR=1 -> MODE SELECT (IP-1100)
+pb.button('a'); [pb.tick() for _ in range(40)]   # A (confirm default: finite) -> SEED/SCALE ENTRY
+check("T18.d New game reachable: A from MM_CURSOR=1 -> MODE SELECT -> SEED/SCALE ENTRY (GS=7)",
       pb.memory[GAMESTATE] == 7, f"GS={pb.memory[GAMESTATE]}")
 pb.stop()
 wipe_save()
@@ -1963,7 +1978,8 @@ for _ in range(180): pb.tick()
 pb.button('down'); [pb.tick() for _ in range(40)]
 check("T18.c1 MM_CURSOR toggled to 1 before navigating away",
       pb.memory[MM_CURSOR] == 1, f"cursor={pb.memory[MM_CURSOR]}")
-pb.button('a'); [pb.tick() for _ in range(40)]   # A from cursor=1 -> SEED/SCALE ENTRY
+pb.button('a'); [pb.tick() for _ in range(40)]   # A from cursor=1 -> MODE SELECT (IP-1100)
+pb.button('a'); [pb.tick() for _ in range(40)]   # A (confirm default: finite) -> SEED/SCALE ENTRY
 check("T18.c2 Reached SEED/SCALE ENTRY (GS=7)", pb.memory[GAMESTATE] == 7,
       f"GS={pb.memory[GAMESTATE]}")
 pb.button('b'); [pb.tick() for _ in range(40)]   # B-cancel -> MAIN MENU (genuine re-entry)
@@ -2131,7 +2147,7 @@ t20_absent_n = 0
 
 for seed, scale in T20_CORPUS:
     pb = fresh_boot(200)
-    pb.button('a'); [pb.tick() for _ in range(40)]   # MAIN MENU -> new game -> SEED/SCALE ENTRY
+    enter_new_game_finite(pb)
     enter_seed_scale(pb, [int(c) for c in f"{seed:05d}"], scale)   # -> INTRO
     pb.button('a'); [pb.tick() for _ in range(80)]   # INTRO -> PLAYING
     regions = worldgen.generate(seed, scale)   # oracle -- T19.c already
@@ -2687,6 +2703,151 @@ t24e_met = bool(t24e_valid) and max(t24e_valid) <= FRAME_BUDGET_CYCLES
 check("T24.e NFR-1400 Analysis: inf_ensure_window's real per-transition cost, direct cycle-count, measured and recorded (Met or not, not asserted un-measured)",
       len(t24e_valid) == len(T24E_CORPUS),
       f"cycles={t24e_measurements} budget={FRAME_BUDGET_CYCLES} status={'MET' if t24e_met else 'NOT MET'}")
+
+# ══════════════════════════════════════════════════════
+# T25 — Infinite Mode: Mode Selection & New-Game Entry (IP-1100)
+# (FS-110's own template names "T22"; renumbered — IP-1101 already claimed
+# T22 earlier this same tranche, mirroring IP-1101's own identical renaming
+# of its planned "T23" -> "T22" when it shipped before IP-1100.)
+# ══════════════════════════════════════════════════════
+print("\n=== T25: Infinite Mode — Mode Selection & New-Game Entry ===")
+
+def enter_infinite_seed(pb, digits):
+    """From INFINITE SEED ENTRY at its just-entered defaults (cursor=0, all
+    digits 0): drive the digit-cursor picker to the given 5 seed digits,
+    then confirm with A. No scale slot exists in this state (bounded 0-4)."""
+    for i, d in enumerate(digits):
+        for _ in range(d):
+            pb.button('up'); [pb.tick() for _ in range(10)]
+        if i < 4:
+            pb.button('right'); [pb.tick() for _ in range(10)]
+    pb.button('a'); [pb.tick() for _ in range(80)]
+
+# T25.a1/a2 — from MAIN MENU, "new game" -> MODE SELECT (not SEED/SCALE
+# ENTRY directly); D-pad toggle moves the highlight between finite/infinite.
+pb = fresh_boot(200)
+pb.button('a'); [pb.tick() for _ in range(40)]
+check("T25.a1 MAIN MENU, new game -> MODE SELECT (GS=10)", pb.memory[GAMESTATE] == 10,
+      f"GS={pb.memory[GAMESTATE]}")
+check("T25.a1b MODE SELECT defaults to MM_CURSOR=0 (finite)", pb.memory[MM_CURSOR] == 0,
+      f"cursor={pb.memory[MM_CURSOR]}")
+pb.button('down'); [pb.tick() for _ in range(40)]
+check("T25.a2 D-pad toggles MM_CURSOR to 1 (infinite highlighted)", pb.memory[MM_CURSOR] == 1,
+      f"cursor={pb.memory[MM_CURSOR]}")
+pb.stop()
+
+# T25.b1 — MODE SELECT, confirm "finite" -> SEED/SCALE ENTRY, GAME_MODE==0
+# -- and SEED/SCALE ENTRY's own B-cancel still returns directly to MAIN
+# MENU (regression check: GDS-01 §4d's named asymmetric-tradeoff is
+# actually shipped as specified, not accidentally routed through MODE
+# SELECT).
+pb = fresh_boot(200)
+pb.button('a'); [pb.tick() for _ in range(40)]        # MAIN MENU -> MODE SELECT
+pb.button('a'); [pb.tick() for _ in range(40)]        # confirm finite -> SEED/SCALE ENTRY
+check("T25.b1a MODE SELECT, confirm finite -> SEED/SCALE ENTRY (GS=7)",
+      pb.memory[GAMESTATE] == 7, f"GS={pb.memory[GAMESTATE]}")
+check("T25.b1b GAME_MODE == 0 (finite)", pb.memory[GAME_MODE] == 0,
+      f"GAME_MODE={pb.memory[GAME_MODE]}")
+pb.button('b'); [pb.tick() for _ in range(40)]
+check("T25.b1c SEED/SCALE ENTRY's own B-cancel target is still MAIN MENU (GS=6) directly, not redirected through MODE SELECT",
+      pb.memory[GAMESTATE] == 6, f"GS={pb.memory[GAMESTATE]}")
+pb.stop()
+
+# T25.b2 — MODE SELECT, confirm "infinite" -> INFINITE SEED ENTRY, GAME_MODE==1.
+pb = fresh_boot(200)
+pb.button('a'); [pb.tick() for _ in range(40)]        # MAIN MENU -> MODE SELECT
+pb.button('down'); [pb.tick() for _ in range(40)]     # toggle to infinite
+pb.button('a'); [pb.tick() for _ in range(40)]        # confirm infinite
+check("T25.b2a MODE SELECT, confirm infinite -> INFINITE SEED ENTRY (GS=11)",
+      pb.memory[GAMESTATE] == 11, f"GS={pb.memory[GAMESTATE]}")
+check("T25.b2b GAME_MODE == 1 (infinite)", pb.memory[GAME_MODE] == 1,
+      f"GAME_MODE={pb.memory[GAME_MODE]}")
+pb.stop()
+
+# T25.c1 — MODE SELECT, press B -> MAIN MENU, GAME_MODE unchanged from its
+# prior value (nothing written on cancel) -- toggling the highlight to
+# "infinite" without confirming must not itself write GAME_MODE; only
+# ms_infinite's own A-confirm branch ever does.
+pb = fresh_boot(200)
+pb.button('a'); [pb.tick() for _ in range(40)]        # MAIN MENU -> MODE SELECT
+pb.button('down'); [pb.tick() for _ in range(40)]     # highlight infinite, do NOT confirm
+pb.button('b'); [pb.tick() for _ in range(40)]
+check("T25.c1a MODE SELECT, B -> MAIN MENU (GS=6)", pb.memory[GAMESTATE] == 6,
+      f"GS={pb.memory[GAMESTATE]}")
+check("T25.c1b B-cancel writes no GAME_MODE (still 0, mere highlight never wrote it)",
+      pb.memory[GAME_MODE] == 0, f"GAME_MODE={pb.memory[GAME_MODE]}")
+pb.stop()
+
+# T25.d1/d2 — INFINITE SEED ENTRY: drive digit-cursor entry for a known
+# seed, confirm via A -> GS_INTRO, SEED equals the entered value,
+# INF_ROW==INF_COL==0, and the starting region's materialized data
+# (IP-1101's own output shape, oracle-cross-checked) is present in
+# INF_WINDOW's center cell.
+pb = fresh_boot(200)
+pb.button('a'); [pb.tick() for _ in range(40)]        # MAIN MENU -> MODE SELECT
+pb.button('down'); [pb.tick() for _ in range(40)]
+pb.button('a'); [pb.tick() for _ in range(40)]        # confirm infinite -> INFINITE SEED ENTRY
+enter_infinite_seed(pb, [1, 2, 3, 4, 5])              # seed=12345
+check("T25.d1 Confirm -> INTRO (GS=1)", pb.memory[GAMESTATE] == 1, f"GS={pb.memory[GAMESTATE]}")
+check("T25.d1b SEED written correctly (12345)",
+      pb.memory[SEED] | (pb.memory[SEED+1] << 8) == 12345,
+      f"seed={pb.memory[SEED] | (pb.memory[SEED+1] << 8)}")
+inf_row_d1 = pb.memory[INF_ROW] | (pb.memory[INF_ROW+1] << 8)
+inf_col_d1 = pb.memory[INF_COL] | (pb.memory[INF_COL+1] << 8)
+check("T25.d2a INF_ROW == 0, INF_COL == 0 at new-game entry",
+      inf_row_d1 == 0 and inf_col_d1 == 0, f"row={inf_row_d1} col={inf_col_d1}")
+expected_center, _ = worldgen.materialize_region(12345, 0, 0)
+check("T25.d2b Starting region's materialized data present in INF_WINDOW's center cell, oracle-matched (IP-1101's own output shape)",
+      pb.memory[INF_WINDOW + 4] == expected_center,
+      f"got=0x{pb.memory[INF_WINDOW + 4]:02X} expected=0x{expected_center:02X}")
+pb.button('a'); [pb.tick() for _ in range(80)]        # INTRO -> PLAYING
+check("T25.d2c Reaches PLAYING cleanly (GS=2)", pb.memory[GAMESTATE] == 2,
+      f"GS={pb.memory[GAMESTATE]}")
+pb.stop()
+
+# T25.e1 — INFINITE SEED ENTRY, press B -> MODE SELECT (not MAIN MENU --
+# this state has no shipped precedent to protect, GDS-01 §4d's own "one
+# step back" framing), SEED/GAME_MODE unchanged.
+pb = fresh_boot(200)
+pb.button('a'); [pb.tick() for _ in range(40)]
+pb.button('down'); [pb.tick() for _ in range(40)]
+pb.button('a'); [pb.tick() for _ in range(40)]        # -> INFINITE SEED ENTRY
+seed_before_e1 = pb.memory[SEED] | (pb.memory[SEED+1] << 8)
+mode_before_e1 = pb.memory[GAME_MODE]
+pb.button('up'); [pb.tick() for _ in range(10)]       # touch a digit, then abandon via B
+pb.button('b'); [pb.tick() for _ in range(40)]
+check("T25.e1a INFINITE SEED ENTRY, B -> MODE SELECT (GS=10)", pb.memory[GAMESTATE] == 10,
+      f"GS={pb.memory[GAMESTATE]}")
+check("T25.e1b B-cancel writes no SEED/GAME_MODE",
+      pb.memory[SEED] | (pb.memory[SEED+1] << 8) == seed_before_e1
+      and pb.memory[GAME_MODE] == mode_before_e1,
+      f"seed={pb.memory[SEED] | (pb.memory[SEED+1] << 8)} mode={pb.memory[GAME_MODE]}")
+pb.stop()
+
+# T25.f — seed=0 entered: SEED WRAM itself is left at exactly 0 (not
+# force-normalized to 1) -- matching the finite mode's own established,
+# already-verified precedent (sse_compose_seed, reused verbatim here, has
+# never written a normalized value back to SEED WRAM; only the internal
+# PRNG working state normalizes 0->1, T22.f's own already-existing check).
+# This package's own §8 text describes this as "SEED normalized to 1",
+# imprecise relative to the actual shipped behavior -- tested here as it
+# actually, correctly works, not as literally worded (same class of small
+# drift as VR-1101's own citation findings this tranche). What IS asserted:
+# the internal materialization for (0,0) still produces a valid,
+# non-degenerate result despite the raw SEED==0 (AC-7's own real intent).
+pb = fresh_boot(200)
+pb.button('a'); [pb.tick() for _ in range(40)]
+pb.button('down'); [pb.tick() for _ in range(40)]
+pb.button('a'); [pb.tick() for _ in range(40)]
+enter_infinite_seed(pb, [0, 0, 0, 0, 0])              # seed=0
+check("T25.f1 SEED left at exactly 0 as entered (not force-written to 1, matches finite mode's own precedent)",
+      pb.memory[SEED] | (pb.memory[SEED+1] << 8) == 0,
+      f"seed={pb.memory[SEED] | (pb.memory[SEED+1] << 8)}")
+expected_center_0, _ = worldgen.materialize_region(0, 0, 0)
+check("T25.f2 seed=0 still produces a valid materialized starting region (internal PRNG normalization, AC-7)",
+      pb.memory[INF_WINDOW + 4] == expected_center_0 and expected_center_0 is not None,
+      f"got=0x{pb.memory[INF_WINDOW + 4]:02X} expected=0x{expected_center_0:02X}")
+pb.stop()
 
 # ══════════════════════════════════════════════════════
 # SUMMARY

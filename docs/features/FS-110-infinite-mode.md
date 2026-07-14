@@ -12,10 +12,13 @@
 > **`VERIFIED` 2026-07-14** — Workflow B step 2/Workflow C step 1 (per-region materialization,
 > treasure-presence) implemented and independently verified, `T22` (7 checks).
 > [IP-1102](../implementation/packages/IP-1102-infinite-mode-streaming-window-and-render.md)
-> **`COMPLETE` 2026-07-14** — Workflow B steps 1/3/4 (streaming materialized-window management,
+> **`VERIFIED` 2026-07-14** — Workflow B steps 1/3/4 (streaming materialized-window management,
 > transition-triggered materialization, biome-dispatch/arrow-draw render integration)
-> implemented, `T24` (7 checks, 260/260 full suite). `IP-1100`/`1103`/`1104` remain `NOT STARTED`.
-> See the
+> implemented and independently verified, `T24` (7 checks).
+> [IP-1100](../implementation/packages/IP-1100-infinite-mode-mode-selection.md)
+> **`COMPLETE` 2026-07-14** — Workflow A (`MODE SELECT`/`INFINITE SEED ENTRY`, `GDS-01` §4d)
+> implemented, `T25` (10 checks, 280/280 full suite). `IP-1103`/`1104` remain `NOT STARTED`
+> (`IP-1103` now `READY`, both its dependencies `VERIFIED`). See the
 > [Technical Work Breakdown](../implementation/01-technical-work-breakdown.md#infinite-mode-fs-110feat-10000ep-6000-planned-2026-07-14)
 > for the split rationale. This Feature sits in the `Future` release bucket (no release commitment
 > made) — planning does not require or imply scheduling, per `05-feature-decomposition`'s own
@@ -413,11 +416,10 @@ Feature up next — named here, not decided.
    both unsized** (`NFR-5400`, `BL-0108`). Resolves at: `02-research-gbc-hardware`/
    `07-implementation-planning`, per `R114`'s own recommendation that `R106`'s SRAM/battery-save
    grounding is the starting point.
-6. **The mode-selection UI shape (Workflow A) has no `GDS-01` delta authored yet** — whether it
-   is a new menu step, a repurposed SEED/SCALE ENTRY screen, or another shape, and whether it
-   implies a new `GameState` value, is undecided. Resolves at: `03-architecture-design-synthesis`,
-   mirroring `CR-06`'s own `01→02→03→04` precedent for the last comparable missing-concept gap
-   this project's pipeline resolved.
+6. **Resolved (`GDS-01` §4d, `IP-1100`, 2026-07-14).** A new `MODE SELECT` cursor menu (reusing
+   `MAIN MENU`'s own convention) forks "new game" into the Finite mode's unchanged `SEED/SCALE
+   ENTRY` flow or a new seed-only `INFINITE SEED ENTRY` state — two new `GameState` values
+   (`GS_MODE_SELECT=10`, `GS_INFINITE_SEED_ENTRY=11`), shipped exactly per the diagram, `T25`.
 7. **The new save-format version value this Feature's ledger-based format needs is not named.**
    Resolves at: `07-implementation-planning`, mirroring `FEAT-5300`'s own `SAVE_VERSION_VAL`
    precedent (a monotonic bump, never a reused value).

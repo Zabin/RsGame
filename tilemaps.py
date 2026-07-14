@@ -409,6 +409,33 @@ def legend_screen():
     _str(t, a, 6, 15, "B: EXIT", 2)
     return t, a
 
+# ── Mode select / infinite seed entry screens (IP-1100, GDS-01 §4d) ───
+# mode_select_screen() reuses select_menu_screen()'s own row/column layout
+# (rows 7/9, cursor col 6, label start col 8) — same cursor-menu shape,
+# different labels (ms_on_entry/draw_mode_select_cursor in asm_game.py).
+# infinite_seed_entry_screen() reuses seed_scale_entry_screen()'s own
+# digit-cursor layout primitives (SEED label/row, digit cursor row) minus
+# the SCALE row entirely — Infinite Mode has no scale concept (ADR-0016).
+def mode_select_screen():
+    t, a = _blank(TL_BG_BLANK, 2)
+    _str(t, a, 5, 3, "BUNNY QUEST", 2)
+    _str(t, a, 8, 7, "FINITE", 2)
+    _str(t, a, 8, 9, "INFINITE", 2)
+    for x in range(2, 18):
+        _put(t, a, x, 2,  TL_BORDER_H, 2)
+        _put(t, a, x, 14, TL_BORDER_H, 2)
+    return t, a
+
+def infinite_seed_entry_screen():
+    t, a = _blank(TL_BG_BLANK, 2)
+    _str(t, a, 3, 3, "INFINITE MODE", 2)
+    _str(t, a, 4, 6, "SEED", 2)
+    _str(t, a, 4, 10, "A:GO B:BACK", 2)
+    for x in range(2, 18):
+        _put(t, a, x, 2,  TL_BORDER_H, 2)
+        _put(t, a, x, 12, TL_BORDER_H, 2)
+    return t, a
+
 # All screens (5 biome-family representatives first, then UI screens).
 # IP-1030: generalizes from one entry per fixed zone (9) to one entry per
 # biome family (5), matching generate_world's Water=0..Brick=4 axis and
@@ -433,6 +460,8 @@ ALL_SCREENS = [
     ("seed_scale_entry", seed_scale_entry_screen),
     ("select_menu", select_menu_screen),
     ("legend",      legend_screen),
+    ("mode_select", mode_select_screen),
+    ("infinite_seed_entry", infinite_seed_entry_screen),
 ]
 
 # ── Collectibles per zone ─────────────────────────────────

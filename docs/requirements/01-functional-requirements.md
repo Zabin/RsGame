@@ -1553,7 +1553,8 @@ FR-9000's own leaves are amended or superseded by this group)*
   world-scale value — Infinite Mode has no fixed grid extent for a scale to bound.
 - **Rationale:** ADR-0016 point 1; ADS-001 §System Architecture ("Infinite mode (new, this
   synthesis): (seed) alone — no scale").
-- **Priority:** Must (target — not yet implemented)
+- **Priority:** Must (**Implemented, 2026-07-14, `IP-1100`** — mode-choice half; region
+  materialization for the starting region is `IP-1101`'s own scope, already Implemented)
 - **Inputs:** A mode selection (Finite/Infinite); a seed value if Infinite Mode is chosen.
 - **Outputs:** A new save whose generation model is Infinite Mode, seeded from the given value.
 - **Preconditions:** The player is at the new-game creation flow (FR-1180's existing entry point).
@@ -1574,9 +1575,15 @@ FR-9000's own leaves are amended or superseded by this group)*
 - **Source Documents:** ADR-0016 point 1; ADS-001 §System Architecture; `GDS-01` §4d (the
   mode-selection UI shape, landed 2026-07-14).
 - **Related ADRs:** ADR-0016.
-- **Notes:** Not yet implemented (packaged as `IP-1100`, `NOT STARTED`, authorized). **`GDS-01`
-  §4d landed 2026-07-14** (`BL-0113`, resolving what this Notes field previously flagged as
-  missing) and names the concrete UI shape this FR's own Acceptance Criteria above now reflects:
+- **Notes:** **Implemented, `IP-1100`, 2026-07-14** — `T25` (10 checks): `GS_MODE_SELECT`/
+  `GS_INFINITE_SEED_ENTRY` reachable exactly per `GDS-01` §4d's own diagram, including the named
+  asymmetric-cancel-path tradeoff (`T25.b1c`); `GAME_MODE` written only on `MODE SELECT`'s own
+  "infinite" A-confirm, never on mere highlight or cancel (`T25.c1b`); `INFINITE SEED ENTRY`'s own
+  A-confirm calls `IP-1102`'s `inf_ensure_window` (not a single direct `inf_materialize_region`
+  call as this package's own §6 text — written before `IP-1102` existed — originally described;
+  reusing the already-built full-window routine avoids duplicating its 9-cell logic and avoids
+  leaving `INF_WINDOW`'s 8 non-center cells uninitialized). **`GDS-01` §4d landed 2026-07-14**
+  (`BL-0113`, resolving what this Notes field previously flagged as missing) and names the concrete UI shape this FR's own Acceptance Criteria above now reflects:
   a `MODE SELECT` cursor menu (reusing `MAIN MENU`'s own convention) forking into the Finite
   mode's completely unchanged `SEED/SCALE ENTRY` flow or a new seed-only `INFINITE SEED ENTRY`
   state. `GDS-01` §4d also names a deliberate, out-of-scope-for-this-FR asymmetry: `SEED/SCALE
