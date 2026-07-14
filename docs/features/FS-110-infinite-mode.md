@@ -390,9 +390,10 @@ Feature up next — named here, not decided.
    `draw_region_arrows_inf` routine (not a `FEAT-2100` modification) replaces
    `draw_region_arrows` for the infinite-mode path, reading connectivity from `INF_WINDOW`
    directly. No missing dependency after all — `FEAT-4100`'s catalog entry needed no change.
-2. **The treasure-density constant `K` is not fixed** — `ADR-0017` recommends anchoring near
-   `R215`'s measured `scale=9` finite-world dead-end density (~6.4%) as a starting point, not a
-   binding number. Resolves at: `07-implementation-planning`/`08-code-implementation`.
+2. **Resolved (`IP-1101`, 2026-07-14 — marking landed here per `BL-0116`, one `08-code-
+   implementation` cycle late).** `K=16` (~6.25% density), implemented in
+   `inf_materialize_region`'s own treasure-presence draw and confirmed by `T22.d`'s statistical
+   check (measured 6.25% over an 800-region corpus, within the 2%-11% band).
 3. **The run-end trigger for the top-3 comparison (Workflow C step 3) is not decided.** `FR-10600`
    resolved *whether* a forced end-condition mechanic exists (no) but not *when* the running
    count is compared against the top-3 table, given that a run is now indefinitely resumable
@@ -403,11 +404,11 @@ Feature up next — named here, not decided.
    choice, not obviously implied by any binding artifact. Resolves at: `04-requirements-
    engineering` (a delta to `FR-10400`'s own Preconditions) or a direct user decision, mirroring
    `CR-07`'s own resolution path.
-4. **Whether Infinite Mode's spawn region gets a special-cased starting biome** (mirroring the
-   finite mode's hardcoded `(0,0)` = Grass) is not confirmed by any binding artifact — this
-   specification states "no special case" as the expected behavior (§7) but flags it as
-   unconfirmed. Resolves at: `07-implementation-planning`, a small implementation-level choice
-   unless a design reason for a special case emerges.
+4. **Resolved (`IP-1101`, 2026-07-14 — marking landed here per `BL-0116`, one `08-code-
+   implementation` cycle late).** No special case: `inf_materialize_region` treats every region,
+   including `(0,0)`, identically — a Grass-at-spawn special case would have required an explicit
+   branch that was never added, and `T22.b`'s own oracle-parity corpus includes `(0,0)`
+   specifically to confirm this by direct implementation, not merely by absence of a branch.
 5. **The visited-region ledger's real SRAM capacity, and what happens when it is exceeded, are
    both unsized** (`NFR-5400`, `BL-0108`). Resolves at: `02-research-gbc-hardware`/
    `07-implementation-planning`, per `R114`'s own recommendation that `R106`'s SRAM/battery-save
