@@ -531,7 +531,8 @@
   rendered); FEAT-4000 (extends its zone/screen composition existence layer); FEAT-6000 (reuses
   the existing terrain-fill-plus-landmarks rendering pattern, per GDS-08 §8's extension).
 - **Dependent Features:** FEAT-6100 (judges this Feature's biome-family screen output for
-  palette-stepping quality).
+  palette-stepping quality); FEAT-10000 (Infinite Mode — a materialized region's rendering path
+  reuses this Feature's own biome-family screen-composition dispatch; added `BL-0111`, 2026-07-14).
 - **Affected Modules:** `tilemaps.py` (screen generator, generalized from one-function-per-zone to
   one-function-per-biome-family per GDS-09's delta), `tiles.py` (biome-family terrain tile sets,
   content-authoring scope for whichever content package implements this).
@@ -755,15 +756,14 @@
 
 > **Forward reference (metadata only):** specified by
 > [FS-110](../features/FS-110-infinite-mode.md) (2026-07-14). 8 Open Questions, all routed
-> upstream (`03`/`04`/`05`) or to `07-implementation-planning`, per that document's own §19 —
-> most notably **OQ1: this catalog entry's own Dependencies field may be missing `FEAT-4100`**
-> (rendering integration), a finding for a future `05-feature-decomposition` pass to reconcile,
-> not applied here (this note is metadata only, per this skill's own SHALL-NOT-edit-content
-> rule). `CR-07`'s run/session-shape question is already resolved (`FR-10600`); `CR-05`'s
-> finite-mode blob mechanism (`ADR-0018`) remains a separate, unrelated Candidate, not part of
-> this Feature's own scope (see Excluded Requirements). `BL-0107`/`BL-0108`/`BL-0109` (Binary
-> Tree aesthetic, ledger SRAM sizing, materialization timing) remain real open implementation-time
-> questions, correctly deferred past this stage.
+> upstream (`03`/`04`/`05`) or to `07-implementation-planning`, per that document's own §19.
+> **OQ1 (`FEAT-4100` missing from Dependencies) resolved 2026-07-14 (`BL-0111`)** — this catalog
+> entry's own Dependencies field now names `FEAT-4100`; `04-feature-dependency-graph.md`'s edge
+> and dependency-summary row updated in the same pass. `CR-07`'s run/session-shape question is
+> already resolved (`FR-10600`); `CR-05`'s finite-mode blob mechanism (`ADR-0018`) remains a
+> separate, unrelated Candidate, not part of this Feature's own scope (see Excluded Requirements).
+> `BL-0107`/`BL-0108`/`BL-0109` (Binary Tree aesthetic, ledger SRAM sizing, materialization
+> timing) remain real open implementation-time questions, correctly deferred past this stage.
 
 - **Feature ID:** FEAT-10000
 - **Title:** Infinite Mode
@@ -806,7 +806,13 @@
   shape); FEAT-9000 (Procedural World Generation — shares the underlying `gw_prng_step` xorshift
   construction this Feature's own per-region reseeding reuses, per `ADR-0016` point 3; a
   code-reuse dependency, not a structural one — Infinite Mode's own generation routine is
-  independent and additive, per `ADR-0016`'s own explicit framing).
+  independent and additive, per `ADR-0016`'s own explicit framing); **FEAT-4100 (Generated-Region
+  Screen Composition — rendering a materialized region requires this Feature's own biome-family
+  screen-composition dispatch; the same dispatch the finite mode's `REGION_GRAPH`-sourced
+  biome-id already selects through, per `FS-103`. Added `BL-0111`, 2026-07-14 — omitted from the
+  original 2026-07-14 cataloging pass, correctly surfaced by `06-feature-specification`'s own
+  `FS-110` Open Question 1, this skill's own SHALL-NOT-modify-the-catalog-entry rule routing the
+  correction back here rather than being applied inline by `06`).**
 - **Dependent Features:** None yet — no Feature in this catalog builds on Infinite Mode's own
   output.
 - **Affected Modules:** `asm_game.py` (new Infinite Mode routines — mode dispatch, per-region

@@ -3,7 +3,8 @@
 > **Status: ✅ Authored (bootstrap as-built, 2026-07-07); delta 2026-07-10 (procgen-world
 > increment); delta 2026-07-11 (`ADR-0012` maze-adjacency remediation, `FEAT-9100`/`FEAT-2100`);
 > delta 2026-07-13 (edge-indicator legend screen, `FEAT-1200`, `CR-06`/`BL-0100`); delta
-> 2026-07-14 (Infinite Mode, `FEAT-10000`, `ADS-001`/`ADR-0016`/`ADR-0017`/`BL-0082`).**
+> 2026-07-14 (Infinite Mode, `FEAT-10000`, `ADS-001`/`ADR-0016`/`ADR-0017`/`BL-0082`); delta
+> 2026-07-14 (cont'd) (`FEAT-10000`'s missing `FEAT-4100` edge added, `BL-0111`).**
 > Owned by `05-feature-decomposition`. Analyzes dependencies among [FP-03](03-feature-catalog.md)'s
 > seventeen Features. **No circular dependency found.**
 
@@ -68,6 +69,7 @@ graph TD
     FEAT3000 --> FEAT10000
     FEAT5000 --> FEAT10000
     FEAT9000 --> FEAT10000
+    FEAT4100 --> FEAT10000
 
     FEAT7000 -.underpins.-> FEAT1000
     FEAT7000 -.underpins.-> FEAT2000
@@ -110,7 +112,11 @@ FEAT-2100's own in-flight render branch (`IP-1082`). FEAT-10000 highlighted purp
 2026-07-14 Infinite Mode delta (`ADS-001`/`ADR-0016`/`ADR-0017`, `BL-0082`), a fourth, independent
 thread: its five dependencies (FEAT-1000/1100/3000/5000/9000) are all already shipped/`VERIFIED`,
 so it too is immediately buildable once specified — not serialized behind any other pink/orange/
-blue Feature's own in-flight work.
+blue Feature's own in-flight work. **`FEAT-4100 → FEAT-10000` added same-day (`BL-0111`)** — a
+materialized Infinite Mode region's rendering path reuses `FEAT-4100`'s own biome-family
+screen-composition dispatch, omitted from the original cataloging pass and correctly surfaced by
+`06-feature-specification`'s own `FS-110` Open Question 1; `FEAT-4100` is already shipped/
+`VERIFIED`, so this addition does not change `FEAT-10000`'s immediate-buildability.
 Solid arrows are hard dependencies (A → B means B depends on A); dotted arrows from FEAT-7000
 represent the non-blocking "underpins" relationship its cross-cutting NFRs have with every
 player-visible Feature.)*
@@ -128,14 +134,14 @@ player-visible Feature.)*
 | FEAT-5100 | FEAT-3000, FEAT-5000 | FEAT-5300 |
 | FEAT-7000 | — (infrastructure floor) | all others, non-blocking |
 | **FEAT-9000** | FEAT-1000, FEAT-3000, FEAT-4000 | FEAT-4100, FEAT-1100, FEAT-5300, FEAT-9100, FEAT-10000 |
-| **FEAT-4100** | FEAT-9000, FEAT-4000, FEAT-6000 | FEAT-6100 |
+| **FEAT-4100** | FEAT-9000, FEAT-4000, FEAT-6000 | FEAT-6100, FEAT-10000 |
 | **FEAT-1100** | FEAT-1000, FEAT-9000, FEAT-5000 | FEAT-1200, FEAT-10000 |
 | **FEAT-5300** | FEAT-9000, FEAT-5000, FEAT-5100 | — (nothing yet) |
 | **FEAT-6100** | FEAT-4100, FEAT-6000 | — (nothing yet) |
 | **FEAT-9100** | FEAT-9000 | FEAT-2100 |
 | **FEAT-2100** | FEAT-9100, FEAT-2000 | FEAT-1200 |
 | **FEAT-1200** | FEAT-1000, FEAT-1100, FEAT-2100 | — (nothing yet) |
-| **FEAT-10000** | FEAT-1000, FEAT-1100, FEAT-3000, FEAT-5000, FEAT-9000 | — (nothing yet) |
+| **FEAT-10000** | FEAT-1000, FEAT-1100, FEAT-3000, FEAT-5000, FEAT-9000, FEAT-4100 | — (nothing yet) |
 
 ## Critical path
 
@@ -164,10 +170,12 @@ not its still-in-flight render branch `IP-1082`) — this thread's own *effectiv
 is 1 node (`FEAT-1200` itself), the shortest of the three active threads, and does not extend the
 critical path.
 
-**Infinite Mode (new, 2026-07-14):** all five of `FEAT-10000`'s own dependencies
-(`FEAT-1000`/`FEAT-1100`/`FEAT-3000`/`FEAT-5000`/`FEAT-9000`) are already shipped/`VERIFIED` — this
-thread's own *effective* new-work length is 1 node (`FEAT-10000` itself), tied with `FEAT-1200`
-for the shortest active thread, and does not extend the critical path.
+**Infinite Mode (new, 2026-07-14):** all six of `FEAT-10000`'s own dependencies
+(`FEAT-1000`/`FEAT-1100`/`FEAT-3000`/`FEAT-5000`/`FEAT-9000`, plus `FEAT-4100`, added `BL-0111`
+the same day) are already shipped/`VERIFIED` — this thread's own *effective* new-work length is
+still 1 node (`FEAT-10000` itself), tied with `FEAT-1200` for the shortest active thread, and does
+not extend the critical path. The `BL-0111` correction only names an already-satisfied
+dependency explicitly; it does not add build-order risk.
 
 ## Blocking Features (high fan-out)
 
@@ -183,6 +191,9 @@ for the shortest active thread, and does not extend the critical path.
   not a structural build-order dependency on anything `FEAT-9000`-specific — see `FEAT-10000`'s
   own catalog entry.
 - **FEAT-4000** (5 direct dependents) — unchanged from the prior delta.
+- **FEAT-4100** (2 direct dependents: FEAT-6100, FEAT-10000) — grows by one with this delta
+  (`BL-0111`); still well below the "high fan-out" threshold the three Features above meet, noted
+  here only because the correction changed the count, not because it newly qualifies as blocking.
 
 ## Parallel opportunities
 
