@@ -10,7 +10,9 @@
 > decision, `ADR-0018` adopted, not yet baselined pending a future `04` pass; delta 2026-07-14
 > (cont'd) — `IP-1101` partially implements FR-10200/10210/10300 (per-region materialization/
 > treasure-presence half; streaming window, render, and collection remain `IP-1102`/`1103`'s own
-> scope) — see Changelog).**
+> scope); delta 2026-07-14 (cont'd) — `CR-05` baselined as `FR-9170` (finite-mode biome-blob
+> clustering); `FR-10100`'s Notes/Acceptance Criteria refreshed against `GDS-01` §4d, now landed
+> — see Changelog).**
 > Owned by `04-requirements-engineering`.
 > Derives from [GDS-05](../architecture/05-functional-requirements.md)'s six capability groupings
 > (C1–C6) — this document formalizes each into numbered, testable `FR-xxxx` requirements per
@@ -23,6 +25,18 @@
 
 ## Changelog
 
+- **2026-07-14 — CR-05 baselined as FR-9170** (finite-mode biome-blob clustering, `BL-0066`).
+  Derives the real requirement from `ADR-0018`'s per-super-cell `hash(SEED, supercell_row,
+  supercell_col)` snap-to-blob mechanism, layered on `ADR-0009` point 2's existing draw as
+  fallback. `CR-05` closed — see its own entry for the full resolution trail.
+- **2026-07-14 — FR-10100 refreshed against `GDS-01` §4d** (mode-selection UI, `BL-0113`, now
+  landed). Acceptance Criteria extended to state the mode-choice-before-either-entry-step
+  sequencing and both new cancel-path targets at the observable-behavior level; Notes updated to
+  point at the concrete UI shape instead of flagging it as missing. No new FR-ID — the existing
+  FR-10100 already covered the substantive "what" (mode choice offered, seed-only); `GDS-01`
+  §4d supplies the "how," which is a Notes/Acceptance-Criteria-level refinement here, not a
+  missing capability the way `CR-06`'s edge-indicator legend screen was (no FR existed for that
+  at all). No FR/NFR contradicts another as a result of this refresh.
 - **2026-07-14 — FR-10200/10210/10300 partially implemented** (`IP-1101`, per-region
   materialization/treasure-presence). `T22` (7 checks) confirms determinism, oracle parity,
   revisit-consistency at the data layer, treasure-density near `K=16`'s target, and a static
@@ -1421,6 +1435,71 @@ FR-6000 for the presentation half)*
   is reachable. Implemented 2026-07-13 (`IP-1021`): `check_complete` reads `WORLD_SCALE` at
   runtime in place of the old hardcoded `9`; `test_rom.py` T4.8 (corrected)/T12.n.
 
+### FR-9170 — Finite-mode biome-blob clustering via per-super-cell positional hash
+
+- **ID:** FR-9170
+- **Title:** The system shall bias finite-mode biome assignment toward cohesive multi-region
+  "blobs," using a deterministic per-super-cell positional hash layered on the existing
+  grammar-constrained draw — never replacing it.
+- **Description:** The `scale`×`scale` grid shall be partitioned into fixed-size super-cells, each
+  with a target biome-id (`0`–`4`, the existing `Water`…`Brick` axis) derived once via
+  `hash(SEED, supercell_row, supercell_col)` — the same shift/XOR-only reseed construction
+  `FR-9100`'s own generation routine already uses. For each non-root region, the system shall
+  first compute its legal biome range `[lo, hi]` exactly as today (the intersection of its
+  already-placed top/left neighbors' biome-ids ±1, clamped to `[0, 4]` — unchanged by this FR).
+  If the region's own super-cell target lies within `[lo, hi]`, the system shall set that region's
+  biome-id directly to the target, consuming no PRNG draw for that region. If the target lies
+  outside `[lo, hi]`, the system shall fall back to today's unbiased `anchor + delta` draw,
+  entirely unchanged, consuming one PRNG draw exactly as now.
+- **Rationale:** `ADR-0018` (`BL-0066`/`CR-05`, resolving a project-owner request via direct user
+  instruction, 2026-07-14: "If there is a blob mechanism that works for infinite mode, use that
+  concept for the finite mode as well.").
+- **Priority:** Must (target — not yet implemented)
+- **Inputs:** `SEED`; `WORLD_SCALE`; the super-cell size (an implementation-time tuning constant,
+  not fixed by this FR — see Notes); each region's own already-computed `[lo, hi]` range.
+- **Outputs:** Each non-root region's biome-id, either snapped to its super-cell's target or drawn
+  via the existing unbiased mechanism.
+- **Preconditions:** `SEED`/`WORLD_SCALE` are set (`FR-1180`); region `(0,0)`'s hardcoded `Grass`
+  anchor has already been placed (unaffected by this FR — the bias applies only from region index
+  1 onward, per `ADR-0018` point 6).
+- **Postconditions:** Every region's biome-id is grammar-valid (`FR-4310` — adjacent regions'
+  biome-ids differ by at most 1, unaffected by this FR); regions within a super-cell whose target
+  is locally grammar-compatible read as a cohesive, uniform-biome area; regions at a boundary
+  between differently-targeted super-cells still fall back to a gradual `±1`-per-step transition,
+  with no separate transition-zone logic.
+- **Acceptance Criteria:** For a corpus of `(seed, scale)` pairs: (a) every region whose super-cell
+  target lies within its own `[lo, hi]` range has a biome-id exactly equal to that target; (b)
+  every region whose target lies outside `[lo, hi]` has a biome-id produced by the existing
+  `anchor + delta` draw, unchanged from `FR-9100`'s own pre-existing behavior; (c) the full
+  grammar-validity invariant (`FR-4310`) holds for every generated edge; (d) generating the same
+  `(seed, scale)` pair twice — including via the Python reference-generator oracle vs. the SM83
+  routine — produces byte-identical output both times (extends `FR-9100`'s own determinism
+  guarantee to the new snap/fallback branch, per `ADR-0018` point 8's explicit requirement that
+  the oracle and the SM83 routine agree on the branch condition byte-for-byte, not merely the
+  draw's outcome).
+- **Dependencies:** FR-9100 (the generation routine this bias layers onto), FR-4310 (the
+  grammar-validity invariant this FR must preserve, not merely avoid violating).
+- **Verification Method:** Test (property test across a `(seed, scale)` corpus, mirroring
+  `FR-9100`'s own determinism-test shape, extended with the snap/fallback branch-condition
+  comparison `ADR-0018` point 8 requires) / Inspection (static audit confirming the per-region
+  draw is skipped exactly when the snap branch fires, mirroring `T20.d`'s established
+  pipeline-ordering static-audit precedent).
+- **Source Documents:** `ADR-0018`; `ADR-0009` point 2 (the existing draw this FR biases, cited
+  verbatim, not restated).
+- **Related ADRs:** ADR-0018, ADR-0009 (refined, not superseded — points 1, 3–7 unaffected),
+  ADR-0012 (explicitly not touched — this FR needs no maze-pass reordering, which is the whole
+  reason it resolves `CR-05`'s original conflict rather than reopening it).
+- **Notes:** Resolves `CR-05`/`BL-0066` — see `CR-05`'s own entry below for the closed-out
+  resolution trail. **Super-cell size is not fixed by this FR** — `ADR-0018`'s own Consequences
+  section names this an explicit implementation-time tuning question (`BL-0110`, `SCHEDULED`,
+  rides a future `07-implementation-planning` pass), mirroring `ADR-0017`'s own precedent for
+  leaving its density constant `K` open at the requirements level. Not yet implemented. This FR
+  is deliberately silent on PRNG draw *count* per generation — `ADR-0018`'s own Consequences
+  section notes the count is no longer fixed at exactly one draw per non-root region, and that no
+  currently-baselined requirement assumes a fixed count (`T12`'s existing checks assert
+  determinism/reachability/grammar-validity, not draw count) — flagged there, not restated as a
+  new constraint here.
+
 ### FR-9200 — Save-format extension: seed, scale, and per-region flags
 
 - **ID:** FR-9200
@@ -1480,19 +1559,35 @@ FR-9000's own leaves are amended or superseded by this group)*
 - **Preconditions:** The player is at the new-game creation flow (FR-1180's existing entry point).
 - **Postconditions:** The new save's generation mode (Finite or Infinite) and seed are fixed for
   the life of that save, mirroring FR-9110's existing immutability guarantee for the finite mode.
-- **Acceptance Criteria:** Selecting Infinite Mode at new-game creation presents a seed-entry
-  step only (no scale step); the resulting save's mode is recorded and does not change without
-  starting a new game.
+- **Acceptance Criteria:** Choosing "new game" presents a mode choice (Finite/Infinite) before
+  either mode's own entry step; selecting Infinite Mode presents a seed-entry step only (no scale
+  step); the resulting save's mode is recorded and does not change without starting a new game;
+  cancelling out of the mode choice returns to the point "new game" was chosen from, without
+  recording any mode or seed; cancelling out of Infinite Mode's own seed-entry step returns to the
+  mode choice (not past it), also without recording any mode or seed. The Finite Mode path's own
+  existing seed/scale entry screen and its own existing cancel behavior are unaffected by this FR
+  — selecting Finite Mode reaches that unchanged flow, not a new one.
 - **Dependencies:** FR-1180 (the existing new-game entry flow this extends), FR-9110 (the
   immutability pattern this mirrors for Infinite Mode's own seed).
 - **Verification Method:** Test (drive the new-game flow, confirm no scale-entry step appears
   for Infinite Mode and the recorded mode/seed match the player's input).
-- **Source Documents:** ADR-0016 point 1; ADS-001 §System Architecture.
+- **Source Documents:** ADR-0016 point 1; ADS-001 §System Architecture; `GDS-01` §4d (the
+  mode-selection UI shape, landed 2026-07-14).
 - **Related ADRs:** ADR-0016.
-- **Notes:** Not yet implemented. No `GDS-01`/`GDS-04` delta exists yet naming the exact
-  mode-selection UI shape (a new menu step vs. an extension of the existing SEED/SCALE ENTRY
-  screen) — this FR states the observable behavior only; the UI's own layout is `06`/`07`'s
-  scope once a Feature Specification is authored.
+- **Notes:** Not yet implemented (packaged as `IP-1100`, `NOT STARTED`, authorized). **`GDS-01`
+  §4d landed 2026-07-14** (`BL-0113`, resolving what this Notes field previously flagged as
+  missing) and names the concrete UI shape this FR's own Acceptance Criteria above now reflects:
+  a `MODE SELECT` cursor menu (reusing `MAIN MENU`'s own convention) forking into the Finite
+  mode's completely unchanged `SEED/SCALE ENTRY` flow or a new seed-only `INFINITE SEED ENTRY`
+  state. `GDS-01` §4d also names a deliberate, out-of-scope-for-this-FR asymmetry: `SEED/SCALE
+  ENTRY`'s own already-shipped (`IP-1040`) cancel target (straight to `MAIN MENU`) is preserved
+  unchanged rather than redirected through `MODE SELECT`, while `INFINITE SEED ENTRY`'s own
+  cancel target is `MODE SELECT` — a UI/state-machine implementation choice this FR's Acceptance
+  Criteria states at the observable-behavior level ("returns to the point `new game` was chosen
+  from" vs. "returns to the mode choice") without naming the underlying asymmetry's own
+  rationale, which `GDS-01` §4d owns. This FR still does not name exact `GameState` values or
+  WRAM addresses — that remains `07`/`08`'s scope (`IP-1100`'s own package already resolves
+  those choices).
 
 ### FR-10200 — Streaming, positionally-deterministic region generation
 
@@ -1776,7 +1871,7 @@ excluded from the numbered baseline above; marked `CANDIDATE — NOT BASELINED` 
 - **Disposition:** SCHEDULED per BL-0017 — recommended as a Verification Checklist item on any
   future package touching `ZONE_COLLECTS`, not a standalone requirement today.
 
-### CR-05 — Biome-blob clustering seeded from the maze's own dead-ends (`BL-0066`) — superseded 2026-07-14, see resolution below
+### CR-05 — Biome-blob clustering seeded from the maze's own dead-ends (`BL-0066`) — RESOLVED, BASELINED 2026-07-14
 
 - **Description:** Cluster biome assignment into cohesive multi-region blobs (so a "Forest area"
   spans several regions before drifting, per `BL-0066`'s own ask), with blob centers seeded from
@@ -1814,8 +1909,10 @@ excluded from the numbered baseline above; marked `CANDIDATE — NOT BASELINED` 
   grammar-constrained draw (unchanged as the fallback), requiring no `ADR-0012` pass-ordering
   change at all, since the hash needs no maze to exist first. This Candidate's own original
   dead-end-seeding proposal is superseded, not adopted — see `ADR-0018` for the full mechanism.
-  This Candidate is now ready for `04-requirements-engineering` to derive its real FR from, still
-  un-baselined until that pass runs (mirroring `CR-06`'s own `03→04` precedent below).
+  **Baselined 2026-07-14 as [FR-9170](#fr-9170--finite-mode-biome-blob-clustering-via-per-super-cell-positional-hash)**
+  — the per-super-cell snap-to-blob mechanism, layered on `ADR-0009` point 2's existing draw as
+  fallback, exactly as `ADR-0018` decides. This Candidate is now closed — `CR-05` is no longer an
+  open item; `BL-0066` closes in step (mirroring `CR-06`'s own `03→04` precedent above).
 
 ### CR-06 — Edge-indicator legend/help screen, reachable via SELECT (`BL-0100`) — RESOLVED, BASELINED 2026-07-13
 

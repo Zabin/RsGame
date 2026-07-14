@@ -4,7 +4,8 @@
 > increment, NFR-1300/2200/4200/5300/6500/6510; delta 2026-07-11 — NFR-6500/6510 flipped to Met;
 > delta 2026-07-11 — NFR-4200 extended for ADR-0012's maze-generation WRAM cost; delta 2026-07-13
 > for the Infinite Mode epic, NFR-1400/2300/4300/5400; delta 2026-07-14 — NFR-2300 flipped to Met
-> (`IP-1101`) — see Changelog).** Owned by
+> (`IP-1101`); delta 2026-07-14 (cont'd) — NFR-2200 extended for `FR-9170`/`ADR-0018`'s
+> biome-blob-clustering pass, no new NFR needed — see Changelog).** Owned by
 > `04-requirements-engineering`. Derives from
 > [GDS-06](../architecture/06-non-functional-requirements.md)'s five NFRs (N1–N5) — formalized
 > into numbered `NFR-xxxx` requirements per
@@ -15,6 +16,10 @@
 
 ## Changelog
 
+- **2026-07-14 — NFR-2200 extended for `FR-9170`/`ADR-0018`** (finite-mode biome-blob
+  clustering). The new super-cell-hash snap/fallback branch is confirmed determinism-preserving
+  by construction (`ADR-0018` point 7) — no new NFR needed; `NFR-2200`'s existing guarantee
+  already covers the extended `generate_world` routine.
 - **2026-07-14 — NFR-2300 flipped to Met** (`IP-1101`, per-region materialization). `T22.e`
   (static audit) and `T22.a`/`T22.b` (determinism/oracle parity) confirm the per-region reseed
   routine is a pure function of `(SEED, row, col)` with no `DIV`/uninitialized-WRAM read.
@@ -236,7 +241,14 @@
   degenerate byteswap-XOR final step) — this NFR's own "no `DIV`/multiply" constraint remains
   satisfied unchanged (the fix is shift/XOR-only, confirmed by `T12.h`'s unchanged static audit);
   this NFR governs determinism and opcode discipline, not output *quality*, so the repair is
-  orthogonal to it, not a violation being fixed.
+  orthogonal to it, not a violation being fixed. **2026-07-14 delta (`FR-9170`/`ADR-0018`):** the
+  finite-mode biome-blob-clustering pass extends `generate_world` with a super-cell-hash snap/
+  fallback branch — still keyed only on `(SEED, WORLD_SCALE, coordinates)` and the existing PRNG
+  stream where the fallback draw fires, no new non-reproducible input introduced (`ADR-0018`
+  point 7's own explicit "determinism is unaffected, by construction" claim). This NFR's existing
+  guarantee already covers the extended routine; no new NFR is needed, and `FR-9170`'s own
+  Acceptance Criteria (c)/(d) restate the determinism/oracle-parity obligation at the requirement
+  level rather than duplicating this NFR's own text. Not yet implemented.
 
 ### NFR-2300 — Positional determinism for Infinite Mode generation (Met, `IP-1101`, 2026-07-14)
 
