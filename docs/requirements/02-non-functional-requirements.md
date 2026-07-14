@@ -2,8 +2,10 @@
 
 > **Status: ✅ Authored (bootstrap as-built, 2026-07-06; delta 2026-07-09 for the procgen-world
 > increment, NFR-1300/2200/4200/5300/6500/6510; delta 2026-07-11 — NFR-6500/6510 flipped to Met;
-> delta 2026-07-11 — NFR-4200 extended for ADR-0012's maze-generation WRAM cost — see
-> Changelog).** Owned by
+> delta 2026-07-11 — NFR-4200 extended for ADR-0012's maze-generation WRAM cost; delta 2026-07-13
+> for the Infinite Mode epic, NFR-1400/2300/4300/5400; delta 2026-07-14 — NFR-2300 flipped to Met
+> (`IP-1101`); delta 2026-07-14 (cont'd) — NFR-2200 extended for `FR-9170`/`ADR-0018`'s
+> biome-blob-clustering pass, no new NFR needed — see Changelog).** Owned by
 > `04-requirements-engineering`. Derives from
 > [GDS-06](../architecture/06-non-functional-requirements.md)'s five NFRs (N1–N5) — formalized
 > into numbered `NFR-xxxx` requirements per
@@ -14,6 +16,25 @@
 
 ## Changelog
 
+- **2026-07-14 — NFR-2200 extended for `FR-9170`/`ADR-0018`** (finite-mode biome-blob
+  clustering). The new super-cell-hash snap/fallback branch is confirmed determinism-preserving
+  by construction (`ADR-0018` point 7) — no new NFR needed; `NFR-2200`'s existing guarantee
+  already covers the extended `generate_world` routine.
+- **2026-07-14 — NFR-2300 flipped to Met** (`IP-1101`, per-region materialization). `T22.e`
+  (static audit) and `T22.a`/`T22.b` (determinism/oracle parity) confirm the per-region reseed
+  routine is a pure function of `(SEED, row, col)` with no `DIV`/uninitialized-WRAM read.
+  `NFR-1400`/`4300`/`5400` remain target-only — `IP-1102`/`1104`'s own scope.
+- **2026-07-13 — Delta for the Infinite Mode epic** (`ADS-001`/`ADR-0016`/`ADR-0017`; re-run
+  Step 0 on the delta only, per this skill's own Gotchas). **Four new NFRs added, all target —
+  none met yet, two explicitly `UNCONFIRMED`/`NOT YET SIZED` rather than a bare "not yet
+  implemented"** (honest status per this document's own discipline, since the underlying
+  research already flags these as genuinely open, not merely unbuilt): **NFR-1400** (Performance
+  — region-materialization timing, `UNCONFIRMED` per R114's own explicit flag), **NFR-2300**
+  (Reliability — positional determinism for streaming generation, extending NFR-2200's theme),
+  **NFR-4300** (ROM/RAM budget — materialized-window WRAM headroom, `NOT YET SIZED`), **NFR-5400**
+  (Data Integrity — visited-region-ledger round-trip integrity and bounded capacity, `NOT YET
+  SIZED`). None of NFR-4200/2200's finite-mode content is amended — Infinite Mode's budgets and
+  determinism guarantee are stated as new, parallel NFRs, not a widening of the existing ones.
 - **2026-07-09 — Delta for the adopted aesthetics/visual-story-narrative/procgen-world-map
   increment** ([PLAN-requirements-aesthetics-story-map.md](../pipeline/PLAN-requirements-aesthetics-story-map.md),
   Phase 4; grounds `MSTR-001` v3.0's C8/C9/C10). **Six new NFRs added, all target requirements —
@@ -132,6 +153,50 @@
   per-transition — so it is explicitly out of scope for this NFR's in-session smoothness bar
   (GDS-08 §7's own framing).
 
+### NFR-1400 — Infinite Mode region-materialization timing (target — 2026-07-13, status UNCONFIRMED)
+
+- **ID:** NFR-1400
+- **Title:** A single Infinite Mode region's materialization (FR-10200) shall complete within
+  whatever safe timing window `check_zone_transition`'s existing call context provides, without
+  a new LCD-off-style bracket or a player-visible stall.
+- **Description:** Unlike FR-9100's finite-mode generation (a one-time, whole-grid, LCD-off
+  pass at new-game creation, NFR-1300's existing sibling bar), Infinite Mode materializes one
+  region at a time, at the moment the player approaches it — a genuinely new "safe window"
+  question this codebase has not had to answer before. This NFR states the bar; it does not
+  itself confirm compliance.
+- **Rationale:** ADR-0016 point 7 (Consequences: "a real open engineering risk, not resolved
+  here... flagged for 07/08-time direct cycle-counting"); R114 §Implementation Guidance
+  ("Materialization timing needs direct cycle-counting against `check_zone_transition`'s actual
+  call context before being treated as settled").
+- **Priority:** Must (**measured, `NOT MET`, 2026-07-14, `IP-1102`**)
+- **Status: NOT MET (honestly measured, `IP-1102`/T24.e).** Direct cycle-counting (PC/SP hijack
+  into `inf_ensure_window`, two ROM-address `hook_register` callpoints reading PyBoy's own cycle
+  counter — exact, not frame-quantized) measured `inf_ensure_window`'s real per-transition cost
+  (a fresh, unconditional recompute of all 9 window cells — `IP-1102`'s own §6 design explicitly
+  has no incremental-shift logic, so this is the actual cost of *every* transition, not a rare
+  worst case) at **78,860–81,792 T-cycles** across a 3-entry `(seed,row,col)` corpus, against a
+  single CGB-single-speed frame's 70,224-cycle budget — **exceeds it by ~12–16%**. R114's own
+  "small constant amount of work" judgment did not anticipate `gw_prng_step`'s own shift-heavy
+  cost (13 calls per `inf_materialize_region`, ~9,000 cycles each) compounding across 9 cells per
+  transition. This is a real, measured stall risk (an observable ~1-frame hitch on region entry),
+  not merely unconfirmed — see `BL-0109`'s successor finding for the follow-up optimization
+  package this now schedules (candidates: incremental window-shift instead of full recompute, a
+  cheaper per-region PRNG, or accepting the stall as within tolerance — not decided by this NFR).
+- **Acceptance Criteria:** Direct cycle-counting of a single region's materialization routine,
+  run inside `check_zone_transition`'s actual call context, stays within the same per-frame
+  budget every other VRAM-adjacent write in that context already respects (no new LCD-off
+  bracket introduced, no measured player-visible stall). **Not met** — see Status above.
+- **Verification Method:** Analysis (cycle-counting against the real call context) — performed,
+  `IP-1102`/T24.e (3-entry corpus, `test_rom.py`).
+- **Source Documents:** ADR-0016 point 7; R114 §Implementation Guidance, §Operational Context.
+- **Related ADRs:** ADR-0016.
+- **Notes:** Measured `NOT MET`, `IP-1102`, 2026-07-14. Not a blocker for `IP-1102`'s own
+  completion (this package's own Definition of Done requires only an honest measurement, not
+  compliance) nor for Infinite Mode's MVP playability (the measured cost is a single-frame-class
+  hitch on region entry, not a crash, data-loss, or unplayable stall). Routed to a new backlog
+  entry for a follow-up optimization package to actually close the gap, rather than
+  discovering the requirement only after a stutter is reported.
+
 ## Reliability
 
 ### NFR-2100 — Deterministic state-machine behavior
@@ -184,7 +249,49 @@
   degenerate byteswap-XOR final step) — this NFR's own "no `DIV`/multiply" constraint remains
   satisfied unchanged (the fix is shift/XOR-only, confirmed by `T12.h`'s unchanged static audit);
   this NFR governs determinism and opcode discipline, not output *quality*, so the repair is
-  orthogonal to it, not a violation being fixed.
+  orthogonal to it, not a violation being fixed. **2026-07-14 delta (`FR-9170`/`ADR-0018`):** the
+  finite-mode biome-blob-clustering pass extends `generate_world` with a super-cell-hash snap/
+  fallback branch — still keyed only on `(SEED, WORLD_SCALE, coordinates)` and the existing PRNG
+  stream where the fallback draw fires, no new non-reproducible input introduced (`ADR-0018`
+  point 7's own explicit "determinism is unaffected, by construction" claim). This NFR's existing
+  guarantee already covers the extended routine; no new NFR is needed, and `FR-9170`'s own
+  Acceptance Criteria (c)/(d) restate the determinism/oracle-parity obligation at the requirement
+  level rather than duplicating this NFR's own text. Not yet implemented.
+
+### NFR-2300 — Positional determinism for Infinite Mode generation (Met, `IP-1101`, 2026-07-14)
+
+- **ID:** NFR-2300
+- **Title:** Infinite Mode region materialization shall be deterministic in `(SEED, row, col)`
+  alone — no dependence on `DIV`, uninitialized RAM, generation order, or any other
+  history-dependent input.
+- **Description:** Extends NFR-2200's determinism theme to Infinite Mode's own generation shape:
+  where NFR-2200 requires the finite mode's *whole-graph* output to be a pure function of
+  `(seed, scale)`, this NFR requires each Infinite Mode *region's* output to be a pure function
+  of `(SEED, row, col)` alone — never of the order regions were materialized, nor of any other
+  region's own materialization history, with no read of the `DIV` register, uninitialized WRAM,
+  or any other non-reproducible value anywhere in the per-region reseed routine. This is the
+  property FR-10200/FR-10210's own Acceptance Criteria test; this NFR states it as the
+  underlying reliability bar.
+- **Rationale:** ADR-0016 points 2–3; R114 (the positional-determinism finding — a per-region
+  xorshift instance reseeded from `SEED` XOR/shift-mixed with `(row, col)`, reusing
+  `gw_prng_step`'s existing shift/XOR-only construction, never a multiplication-based hash).
+- **Priority:** Must (**Met, 2026-07-14, `IP-1101`**)
+- **Acceptance Criteria:** Static inspection of the per-region reseed routine finds no read of
+  `DIV` or any WRAM address not explicitly derived from `SEED`/`(row, col)`; a positional-
+  determinism property test (FR-10200) confirms identical output for the same `(SEED, row, col)`
+  regardless of materialization order or history.
+- **Verification Method:** Inspection (static code audit, mirroring NFR-2200's own T12.h
+  precedent) / Test (FR-10200's own determinism property test) — both now exercised: `T22.e`
+  (static audit, `inf_materialize_region`/`inf_region_seed0`/`inf_mod5`) and `T22.a`/`T22.b`
+  (determinism/oracle parity).
+- **Source Documents:** ADR-0016 points 2–3; R114 §Concepts.
+- **Related ADRs:** ADR-0016.
+- **Notes:** **Met (`IP-1101`, 2026-07-14)** — this NFR does not repair or alter `gw_prng_step`
+  itself (`ADR-0013`'s own known-degeneracy deferral, `NFR-2200`'s Notes, is entirely unaffected)
+  — it reuses the existing construction for a new, per-region reseeding purpose, per R114's
+  explicit guidance not to introduce a multiply-based hash on hardware with no `MUL`/`DIV`.
+  `T22.e`'s source-text scan confirms no `LDH` (hardware register, incl. `DIV`) read anywhere in
+  the three new subroutines.
 
 ## Maintainability
 
@@ -288,6 +395,38 @@
   **T19.g**; no SRAM impact (this pass never persists its own state, `T15.d`'s non-persistence
   invariant unaffected).
 
+### NFR-4300 — Infinite Mode materialized-window WRAM headroom (target — 2026-07-13)
+
+- **ID:** NFR-4300
+- **Title:** Infinite Mode's materialized-region working set shall fit within bank-0's confirmed
+  headroom without requiring `SVBK` banking, for a window sized to bank-0's own capacity first.
+- **Description:** Unlike NFR-4200's finite-mode budget (a whole-`scale²`-region graph, bounded
+  by `WORLD_SCALE<=9`), Infinite Mode's working set is a small, bounded "materialized window" of
+  regions around the player — sized to fit bank-0's own headroom before any `SVBK` banking is
+  considered.
+- **Rationale:** ADR-0016 point 6; R114 ("Bound any 'materialized window' to bank-0's ~3 KiB
+  headroom first; only reach for `SVBK` banking if a specific chosen window radius concretely
+  exceeds it").
+- **Priority:** Must (**Met, 2026-07-14, `IP-1102`**)
+- **Status: Met.** Sized by `IP-1102`: a 3×3 materialized window (`INF_WINDOW`, 9 bytes,
+  `0xC3FB`–`0xC403`, 1 byte/region — biome-id + connectivity nibble, per `IP-1101`'s own output
+  format) plus the 4-byte center-anchor (`INF_ROW`/`INF_COL`, 2 bytes each) = 13 bytes, plus
+  `GAME_MODE` (1 byte) and `INF_TREASURE_HERE` (1 byte, `IP-1103`'s own scope to populate) = 15
+  bytes total (`0xC3F6`–`0xC404`) — comfortably inside R114's own re-measured ~3082-byte bank-0
+  headroom, no `SVBK` banking needed. Confirms R114's own 5×5/7×7 estimate was conservative; the
+  shipped design uses the smaller 3×3 radius the Technical Work Breakdown settled on.
+- **Acceptance Criteria:** At the chosen materialized-window radius, the working set (biome-id +
+  connectivity + treasure-collected state per resident region) fits within bank-0's confirmed
+  headroom without `SVBK` banking; if it does not, banking is adopted deliberately (new
+  `gbc_lib.py` toolchain work) rather than silently overflowing bank-0. **Met** — see Status above.
+- **Verification Method:** Inspection (WRAM layout audit at implementation, mirroring NFR-4200's
+  own precedent) — performed, `IP-1102`.
+- **Source Documents:** ADR-0016 point 6; R114 §Concepts ("WRAM budget...").
+- **Related ADRs:** ADR-0016.
+- **Notes:** Implemented, `IP-1102`, 2026-07-14. `SVBK` banked WRAM (R111) remains entirely
+  untouched and available as a fallback (7 more 4 KiB banks) if a future window-radius increase
+  ever needs it — not needed at the shipped 3×3 radius.
+
 ## Data Integrity
 
 ### NFR-5100 — MBC1 SRAM enable/disable bracketing
@@ -366,6 +505,38 @@
 - **Notes:** Implemented 2026-07-10 (`IP-1050`), extended 2026-07-11 (`IP-9070`). The
   version-value sequence (`0x01`→`0x02`→`0x03`) is strictly monotonic by convention — a future
   save-format extension must bump to `0x04`, never reuse a prior value.
+
+### NFR-5400 — Infinite Mode visited-region-ledger integrity and bounded capacity (target — 2026-07-13)
+
+- **ID:** NFR-5400
+- **Title:** The visited-region ledger shall round-trip exactly across save/load, and its
+  capacity shall be a deliberately sized, SRAM-bounded limit — never an unbounded array assuming
+  every region a save could ever visit.
+- **Description:** Extends this category's save-integrity discipline (NFR-5100/5200/5300) to
+  Infinite Mode's own save shape (FR-10500): the ledger of visited-region treasure-collected
+  state shall restore exactly on load, and its maximum entry count shall be a fixed, sized
+  capacity against real SRAM budget — since an unbounded world cannot reserve SRAM for every
+  region that could ever exist (R114).
+- **Rationale:** ADR-0016 point 5; R114 ("Sizing that ledger's real capacity... is new
+  SRAM-budget work this topic flags but does not size — R106's existing SRAM/battery-save
+  grounding is the starting point").
+- **Priority:** Must (target — not yet implemented)
+- **Status: NOT YET SIZED.** No FR/NFR in this baseline fixes the ledger's actual entry-count
+  capacity — tracked separately as `BL-0108`, routed to `02-research-gbc-hardware`/
+  `07-implementation-planning`. A save-format version bump is implied (mirroring NFR-5300's own
+  precedent) but not itself specified here.
+- **Acceptance Criteria:** Saving then loading an Infinite Mode game restores the exact
+  treasure-collected state for every ledger entry present at save time; the ledger's maximum
+  entry count is a documented, fixed constant against real SRAM headroom (R106), never an
+  assumption of unbounded capacity.
+- **Verification Method:** Test (save/reload two-instance harness, mirroring NFR-5300's own
+  fixture pattern) — not yet possible; no implementation exists.
+- **Source Documents:** ADR-0016 point 5; R114 §Implementation Guidance.
+- **Related ADRs:** ADR-0016.
+- **Notes:** Not yet implemented. What happens when a player visits more distinct regions than
+  the ledger's capacity allows (oldest-entry eviction, a hard cap on further materialization, or
+  another policy) is not decided by this NFR — a real design question for whichever
+  `07-implementation-planning` pass sizes the capacity, not resolved here.
 
 ## Portability
 

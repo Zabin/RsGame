@@ -3,8 +3,17 @@
 > **Status: ✅ Authored (bootstrap as-built, 2026-07-06; delta 2026-07-09 for the procgen-world
 > increment, FR-1170–9200; delta 2026-07-11 for `ADR-0012`'s maze-shaped region adjacency,
 > FR-9140/9150/2330; delta 2026-07-12 for `ADR-0015`'s win-condition redesign, FR-9160/9161;
-> delta 2026-07-13 for the edge-indicator legend screen, FR-1200/1210, `CR-06`/`BL-0100` — see
-> Changelog).** Owned by `04-requirements-engineering`.
+> delta 2026-07-13 for the edge-indicator legend screen, FR-1200/1210, `CR-06`/`BL-0100`; delta
+> 2026-07-13 (cont'd) for the Infinite Mode epic, FR-10000–10500, `CR-07`, `ADS-001`/`ADR-0016`/
+> `ADR-0017`/`BL-0094`/`BL-0106`; delta 2026-07-13 (cont'd) — `CR-07` resolved by direct user
+> decision, baselined as FR-10600; delta 2026-07-14 — `CR-05` mechanism resolved by direct user
+> decision, `ADR-0018` adopted, not yet baselined pending a future `04` pass; delta 2026-07-14
+> (cont'd) — `IP-1101` partially implements FR-10200/10210/10300 (per-region materialization/
+> treasure-presence half; streaming window, render, and collection remain `IP-1102`/`1103`'s own
+> scope); delta 2026-07-14 (cont'd) — `CR-05` baselined as `FR-9170` (finite-mode biome-blob
+> clustering); `FR-10100`'s Notes/Acceptance Criteria refreshed against `GDS-01` §4d, now landed
+> — see Changelog).**
+> Owned by `04-requirements-engineering`.
 > Derives from [GDS-05](../architecture/05-functional-requirements.md)'s six capability groupings
 > (C1–C6) — this document formalizes each into numbered, testable `FR-xxxx` requirements per
 > [GDS-10](../architecture/10-requirements-traceability-matrix.md) §3's stated contract: *cite
@@ -16,6 +25,55 @@
 
 ## Changelog
 
+- **2026-07-14 — CR-05 baselined as FR-9170** (finite-mode biome-blob clustering, `BL-0066`).
+  Derives the real requirement from `ADR-0018`'s per-super-cell `hash(SEED, supercell_row,
+  supercell_col)` snap-to-blob mechanism, layered on `ADR-0009` point 2's existing draw as
+  fallback. `CR-05` closed — see its own entry for the full resolution trail.
+- **2026-07-14 — FR-10100 refreshed against `GDS-01` §4d** (mode-selection UI, `BL-0113`, now
+  landed). Acceptance Criteria extended to state the mode-choice-before-either-entry-step
+  sequencing and both new cancel-path targets at the observable-behavior level; Notes updated to
+  point at the concrete UI shape instead of flagging it as missing. No new FR-ID — the existing
+  FR-10100 already covered the substantive "what" (mode choice offered, seed-only); `GDS-01`
+  §4d supplies the "how," which is a Notes/Acceptance-Criteria-level refinement here, not a
+  missing capability the way `CR-06`'s edge-indicator legend screen was (no FR existed for that
+  at all). No FR/NFR contradicts another as a result of this refresh.
+- **2026-07-14 — FR-10200/10210/10300 partially implemented** (`IP-1101`, per-region
+  materialization/treasure-presence). `T22` (7 checks) confirms determinism, oracle parity,
+  revisit-consistency at the data layer, treasure-density near `K=16`'s target, and a static
+  no-`DIV`/`MUL` audit. Streaming window management, transition-triggered materialization,
+  render integration (`FR-10200`'s own navigate/render half), and treasure collection
+  (`FR-10300`'s own collection half) are `IP-1102`/`1103`'s own scope, not yet implemented.
+- **2026-07-14 — CR-05 mechanism resolved by explicit user decision** (`ADR-0018`,
+  `BL-0066`/`CR-05`). The project owner directed reusing Infinite Mode's own per-super-cell
+  `hash(SEED, supercell_row, supercell_col)` blob technique for the finite mode too, superseding
+  CR-05's original dead-end-seeding proposal — [ADR-0018](../architecture/adr/ADR-0018-finite-mode-biome-blob-clustering.md)
+  adopts it, refining `ADR-0009` point 2, needing no `ADR-0012` pass-ordering change. CR-05 is now
+  ready for a future `04-requirements-engineering` pass to derive the real FR from — not yet
+  baselined, mirroring `CR-06`'s own `03→04` precedent.
+- **2026-07-13 — CR-07 resolved by explicit user decision.** The project owner decided directly:
+  "for now assume indefinitely resumable." **CR-07** (run/session shape) is RESOLVED and
+  BASELINED — promoted to new **FR-10600** (Indefinitely resumable Infinite Mode run, no
+  death/retreat/checkpoint mechanic). No `GDS-01` delta was needed (the no-new-mechanic branch of
+  CR-07's own analysis applies), so this resolves entirely within `04`, without a
+  `03-architecture-design-synthesis` round-trip. Explicitly a "for now" decision — revisitable,
+  not permanently closed, per the owner's own wording (carried into `FR-10600`'s Notes verbatim).
+- **2026-07-13 — Delta for the Infinite Mode epic** (`ADS-001`/`ADR-0016`/`ADR-0017`, `BL-0082`'s
+  architecture-adoption decision; carries `BL-0094`'s score-chasing win condition and `BL-0106`'s
+  run/session-shape question forward; re-run Step 0 on the delta only, per this skill's own
+  Gotchas — not a wholesale regeneration). **Seven new FRs added**, all target — none shipped
+  yet: **FR-10100** (new-game entry, seed-only), **FR-10200** (streaming positionally-
+  deterministic generation), **FR-10210** (revisit-consistent materialization), **FR-10300**
+  (hash-density treasure placement, decoupled from maze structure — a named departure from
+  `BL-0094`'s literal "at dead ends" wording, per `ADR-0017`), **FR-10400** (score-chasing win
+  condition — running count + top-3, no name entry), **FR-10500** (visited-region-ledger
+  save/load). **None of FR-9000's finite-mode leaves are amended or superseded** — Infinite Mode
+  is additive, per `ADR-0016`/`ADR-0017`'s own text. **One Candidate filed, not baselined:**
+  **CR-07** (run/session shape — indefinitely resumable vs. a new bounded-run end-condition
+  mechanic) — `R216`/`ADR-0017` both explicitly surface this as an unresolved design question,
+  not a gap this stage can close by inventing an answer; routed as a future `NEEDS-USER` decision
+  (see RQ-03 finding #17). Two new Recommendation-type backlog items (`BL-0107` Binary Tree
+  aesthetic, `BL-0108` visited-region ledger SRAM sizing) are referenced in Notes but not
+  restated as requirements — both are implementation-time concerns, not requirements-level gaps.
 - **2026-07-07 — BL-0018 resolved by explicit user decision.** The user determined: (1) player
   facing direction and animation frame are **not important** — no persistence requirement added;
   (2) per-zone `ScoreItem` collected-state **should persist** across save/load. Accordingly:
@@ -1377,6 +1435,71 @@ FR-6000 for the presentation half)*
   is reachable. Implemented 2026-07-13 (`IP-1021`): `check_complete` reads `WORLD_SCALE` at
   runtime in place of the old hardcoded `9`; `test_rom.py` T4.8 (corrected)/T12.n.
 
+### FR-9170 — Finite-mode biome-blob clustering via per-super-cell positional hash
+
+- **ID:** FR-9170
+- **Title:** The system shall bias finite-mode biome assignment toward cohesive multi-region
+  "blobs," using a deterministic per-super-cell positional hash layered on the existing
+  grammar-constrained draw — never replacing it.
+- **Description:** The `scale`×`scale` grid shall be partitioned into fixed-size super-cells, each
+  with a target biome-id (`0`–`4`, the existing `Water`…`Brick` axis) derived once via
+  `hash(SEED, supercell_row, supercell_col)` — the same shift/XOR-only reseed construction
+  `FR-9100`'s own generation routine already uses. For each non-root region, the system shall
+  first compute its legal biome range `[lo, hi]` exactly as today (the intersection of its
+  already-placed top/left neighbors' biome-ids ±1, clamped to `[0, 4]` — unchanged by this FR).
+  If the region's own super-cell target lies within `[lo, hi]`, the system shall set that region's
+  biome-id directly to the target, consuming no PRNG draw for that region. If the target lies
+  outside `[lo, hi]`, the system shall fall back to today's unbiased `anchor + delta` draw,
+  entirely unchanged, consuming one PRNG draw exactly as now.
+- **Rationale:** `ADR-0018` (`BL-0066`/`CR-05`, resolving a project-owner request via direct user
+  instruction, 2026-07-14: "If there is a blob mechanism that works for infinite mode, use that
+  concept for the finite mode as well.").
+- **Priority:** Must (target — not yet implemented)
+- **Inputs:** `SEED`; `WORLD_SCALE`; the super-cell size (an implementation-time tuning constant,
+  not fixed by this FR — see Notes); each region's own already-computed `[lo, hi]` range.
+- **Outputs:** Each non-root region's biome-id, either snapped to its super-cell's target or drawn
+  via the existing unbiased mechanism.
+- **Preconditions:** `SEED`/`WORLD_SCALE` are set (`FR-1180`); region `(0,0)`'s hardcoded `Grass`
+  anchor has already been placed (unaffected by this FR — the bias applies only from region index
+  1 onward, per `ADR-0018` point 6).
+- **Postconditions:** Every region's biome-id is grammar-valid (`FR-4310` — adjacent regions'
+  biome-ids differ by at most 1, unaffected by this FR); regions within a super-cell whose target
+  is locally grammar-compatible read as a cohesive, uniform-biome area; regions at a boundary
+  between differently-targeted super-cells still fall back to a gradual `±1`-per-step transition,
+  with no separate transition-zone logic.
+- **Acceptance Criteria:** For a corpus of `(seed, scale)` pairs: (a) every region whose super-cell
+  target lies within its own `[lo, hi]` range has a biome-id exactly equal to that target; (b)
+  every region whose target lies outside `[lo, hi]` has a biome-id produced by the existing
+  `anchor + delta` draw, unchanged from `FR-9100`'s own pre-existing behavior; (c) the full
+  grammar-validity invariant (`FR-4310`) holds for every generated edge; (d) generating the same
+  `(seed, scale)` pair twice — including via the Python reference-generator oracle vs. the SM83
+  routine — produces byte-identical output both times (extends `FR-9100`'s own determinism
+  guarantee to the new snap/fallback branch, per `ADR-0018` point 8's explicit requirement that
+  the oracle and the SM83 routine agree on the branch condition byte-for-byte, not merely the
+  draw's outcome).
+- **Dependencies:** FR-9100 (the generation routine this bias layers onto), FR-4310 (the
+  grammar-validity invariant this FR must preserve, not merely avoid violating).
+- **Verification Method:** Test (property test across a `(seed, scale)` corpus, mirroring
+  `FR-9100`'s own determinism-test shape, extended with the snap/fallback branch-condition
+  comparison `ADR-0018` point 8 requires) / Inspection (static audit confirming the per-region
+  draw is skipped exactly when the snap branch fires, mirroring `T20.d`'s established
+  pipeline-ordering static-audit precedent).
+- **Source Documents:** `ADR-0018`; `ADR-0009` point 2 (the existing draw this FR biases, cited
+  verbatim, not restated).
+- **Related ADRs:** ADR-0018, ADR-0009 (refined, not superseded — points 1, 3–7 unaffected),
+  ADR-0012 (explicitly not touched — this FR needs no maze-pass reordering, which is the whole
+  reason it resolves `CR-05`'s original conflict rather than reopening it).
+- **Notes:** Resolves `CR-05`/`BL-0066` — see `CR-05`'s own entry below for the closed-out
+  resolution trail. **Super-cell size is not fixed by this FR** — `ADR-0018`'s own Consequences
+  section names this an explicit implementation-time tuning question (`BL-0110`, `SCHEDULED`,
+  rides a future `07-implementation-planning` pass), mirroring `ADR-0017`'s own precedent for
+  leaving its density constant `K` open at the requirements level. Not yet implemented. This FR
+  is deliberately silent on PRNG draw *count* per generation — `ADR-0018`'s own Consequences
+  section notes the count is no longer fixed at exactly one draw per non-root region, and that no
+  currently-baselined requirement assumes a fixed count (`T12`'s existing checks assert
+  determinism/reachability/grammar-validity, not draw count) — flagged there, not restated as a
+  new constraint here.
+
 ### FR-9200 — Save-format extension: seed, scale, and per-region flags
 
 - **ID:** FR-9200
@@ -1411,6 +1534,325 @@ FR-6000 for the presentation half)*
   ADR-0010's explicit reasoning (following the FS-101 precedent for resolving this class of
   question directly rather than escalating). Not yet implemented.
 
+## FR-10000 — Infinite Mode (target — 2026-07-13, new capability, not yet shipped)
+
+*(formalizes [ADS-001](../architecture/ADS-001-streaming-infinite-world-generation.md),
+[ADR-0016](../architecture/adr/ADR-0016-streaming-infinite-mode-generation-architecture.md),
+[ADR-0017](../architecture/adr/ADR-0017-infinite-mode-treasure-placement-and-win-condition.md) —
+a second, additive world-generation mode selectable alongside FR-9000's finite mode; none of
+FR-9000's own leaves are amended or superseded by this group)*
+
+### FR-10100 — Infinite Mode new-game entry (seed-only, no world-scale)
+
+- **ID:** FR-10100
+- **Title:** The system shall offer Infinite Mode as a distinct new-game choice, accepting a seed
+  value only — no world-scale parameter.
+- **Description:** At new-game creation, the system shall let the player choose between Finite
+  Mode (FR-1180's existing seed+scale flow) and Infinite Mode. Choosing Infinite Mode shall
+  accept a seed value (the same 16-bit domain FR-1180/ADR-0010 already establish) and no
+  world-scale value — Infinite Mode has no fixed grid extent for a scale to bound.
+- **Rationale:** ADR-0016 point 1; ADS-001 §System Architecture ("Infinite mode (new, this
+  synthesis): (seed) alone — no scale").
+- **Priority:** Must (**Implemented, 2026-07-14, `IP-1100`** — mode-choice half; region
+  materialization for the starting region is `IP-1101`'s own scope, already Implemented)
+- **Inputs:** A mode selection (Finite/Infinite); a seed value if Infinite Mode is chosen.
+- **Outputs:** A new save whose generation model is Infinite Mode, seeded from the given value.
+- **Preconditions:** The player is at the new-game creation flow (FR-1180's existing entry point).
+- **Postconditions:** The new save's generation mode (Finite or Infinite) and seed are fixed for
+  the life of that save, mirroring FR-9110's existing immutability guarantee for the finite mode.
+- **Acceptance Criteria:** Choosing "new game" presents a mode choice (Finite/Infinite) before
+  either mode's own entry step; selecting Infinite Mode presents a seed-entry step only (no scale
+  step); the resulting save's mode is recorded and does not change without starting a new game;
+  cancelling out of the mode choice returns to the point "new game" was chosen from, without
+  recording any mode or seed; cancelling out of Infinite Mode's own seed-entry step returns to the
+  mode choice (not past it), also without recording any mode or seed. The Finite Mode path's own
+  existing seed/scale entry screen and its own existing cancel behavior are unaffected by this FR
+  — selecting Finite Mode reaches that unchanged flow, not a new one.
+- **Dependencies:** FR-1180 (the existing new-game entry flow this extends), FR-9110 (the
+  immutability pattern this mirrors for Infinite Mode's own seed).
+- **Verification Method:** Test (drive the new-game flow, confirm no scale-entry step appears
+  for Infinite Mode and the recorded mode/seed match the player's input).
+- **Source Documents:** ADR-0016 point 1; ADS-001 §System Architecture; `GDS-01` §4d (the
+  mode-selection UI shape, landed 2026-07-14).
+- **Related ADRs:** ADR-0016.
+- **Notes:** **Implemented, `IP-1100`, 2026-07-14** — `T25` (10 checks): `GS_MODE_SELECT`/
+  `GS_INFINITE_SEED_ENTRY` reachable exactly per `GDS-01` §4d's own diagram, including the named
+  asymmetric-cancel-path tradeoff (`T25.b1c`); `GAME_MODE` written only on `MODE SELECT`'s own
+  "infinite" A-confirm, never on mere highlight or cancel (`T25.c1b`); `INFINITE SEED ENTRY`'s own
+  A-confirm calls `IP-1102`'s `inf_ensure_window` (not a single direct `inf_materialize_region`
+  call as this package's own §6 text — written before `IP-1102` existed — originally described;
+  reusing the already-built full-window routine avoids duplicating its 9-cell logic and avoids
+  leaving `INF_WINDOW`'s 8 non-center cells uninitialized). **`GDS-01` §4d landed 2026-07-14**
+  (`BL-0113`, resolving what this Notes field previously flagged as missing) and names the concrete UI shape this FR's own Acceptance Criteria above now reflects:
+  a `MODE SELECT` cursor menu (reusing `MAIN MENU`'s own convention) forking into the Finite
+  mode's completely unchanged `SEED/SCALE ENTRY` flow or a new seed-only `INFINITE SEED ENTRY`
+  state. `GDS-01` §4d also names a deliberate, out-of-scope-for-this-FR asymmetry: `SEED/SCALE
+  ENTRY`'s own already-shipped (`IP-1040`) cancel target (straight to `MAIN MENU`) is preserved
+  unchanged rather than redirected through `MODE SELECT`, while `INFINITE SEED ENTRY`'s own
+  cancel target is `MODE SELECT` — a UI/state-machine implementation choice this FR's Acceptance
+  Criteria states at the observable-behavior level ("returns to the point `new game` was chosen
+  from" vs. "returns to the mode choice") without naming the underlying asymmetry's own
+  rationale, which `GDS-01` §4d owns. This FR still does not name exact `GameState` values or
+  WRAM addresses — that remains `07`/`08`'s scope (`IP-1100`'s own package already resolves
+  those choices).
+
+### FR-10200 — Streaming, positionally-deterministic region generation
+
+- **ID:** FR-10200
+- **Title:** In Infinite Mode, the system shall compute each region's biome and maze
+  connectivity as a pure function of (seed, row, col), materialized only when the player
+  approaches that region — never as an upfront whole-grid pass.
+- **Description:** Unlike FR-9100's finite-mode generation (one global pass over the entire
+  `scale`×`scale` grid at new-game creation), Infinite Mode shall derive each region's biome and
+  connectivity on demand, at the moment the player approaches it, using a per-region reseeded
+  PRNG instance derived from `SEED` XOR/shift-mixed with `(row, col)` — never from replayed
+  generation history. Regions outside a small materialized window around the player are not held
+  in memory.
+- **Rationale:** ADR-0016 points 2–3; R114 (the positional-determinism finding this decision is
+  grounded in — the shipped finite-mode algorithm's two global-sequential dependencies are not
+  directly streamable, requiring this different, positionally-deterministic construction).
+- **Priority:** Must (**Implemented, 2026-07-14, `IP-1101`+`IP-1102`** — the per-region
+  generation half: `inf_materialize_region`/`worldgen.materialize_region` produce a region's
+  biome/connectivity as a pure function of `(SEED, row, col)`, `T22` (7 checks); the streaming
+  materialized-window management (`inf_ensure_window`), transition-triggered materialization
+  (`czt_infinite`), and render integration (`dsr_p`'s `GAME_MODE`-gated dispatch,
+  `draw_region_arrows_inf`) are `IP-1102`'s own scope, `T24` (7 checks).)
+- **Inputs:** SEED (Infinite Mode's own, per FR-10100); the region coordinate `(row, col)` the
+  player is approaching.
+- **Outputs:** That region's biome assignment and maze connectivity (which of its up to four
+  grid-adjacent neighbors are open).
+- **Preconditions:** An Infinite Mode save is active (FR-10100); the player's movement has
+  triggered materialization of a not-yet-resident region.
+- **Postconditions:** The materialized region's biome/connectivity depend only on
+  `(SEED, row, col)` — never on the order regions were visited, nor on any other region's own
+  materialization history.
+- **Acceptance Criteria:** Materializing the same `(row, col)` twice — in the same session, or
+  after the region has left and re-entered the materialized window — produces byte-identical
+  biome/connectivity output both times, for a corpus of `(seed, row, col)` triples.
+- **Dependencies:** FR-10100.
+- **Verification Method:** Test (positional-determinism property test — re-materialize a corpus
+  of previously-materialized regions and confirm identical output — mirroring FR-9100's own
+  determinism test shape, extended to per-region rather than whole-graph scope).
+- **Source Documents:** ADR-0016 points 2–3; R114 §Concepts/§Implementation Guidance.
+- **Related ADRs:** ADR-0016.
+- **Notes:** **Implemented (`IP-1101`+`IP-1102`, 2026-07-14)** — see Priority above. The maze
+  algorithm is the Binary Tree family (ADR-0016 point 4), operationalized as a "carve north or
+  west" bias per region with south/east openness read from the corresponding neighbor's own
+  bias (no grid-boundary special case — Infinite Mode's world is unbounded, confirmed by direct
+  implementation, not merely asserted); its own aesthetic acceptability (directional corridor
+  bias) is not decided by this FR, tracked separately (`BL-0107`, routed to
+  `02-research-game-design`/`09-content-review` once a package exists to review). `IP-1102`'s own
+  `inf_ensure_window` recomputes the full 3×3 window fresh on every center change (no incremental
+  shift logic) — see NFR-1400's own updated status for this design choice's measured cost.
+  Materialization-window sizing against bank-0's WRAM headroom is an NFR concern (NFR-4300
+  below), owned by `IP-1102`, not restated here.
+
+### FR-10210 — Revisit-consistent region materialization
+
+- **ID:** FR-10210
+- **Title:** Walking away from an Infinite Mode region and back shall reproduce the identical
+  region — biome, connectivity, and (if not yet collected) its treasure state.
+- **Description:** When a previously-materialized region leaves the materialized window (per
+  FR-10200) and the player later re-approaches it, the system shall re-derive that region and
+  produce output identical to its first materialization, except for any treasure the player has
+  since collected (which stays collected, per FR-10500's persisted ledger).
+- **Rationale:** ADS-001 §User Stories ("walking away from a region and back reproduces the
+  identical region... because both are pure functions of (seed, row, col), not of my own path
+  history"); a direct consequence of FR-10200's positional-determinism guarantee, stated
+  separately because it is the player-observable property that guarantee exists to deliver.
+- **Priority:** Must (**partially implemented, 2026-07-14, `IP-1101`** — `T22.c` confirms the
+  data-layer revisit-consistency property (re-materializing after an intervening call
+  reproduces the first result byte-for-byte). The player-observable, materialized-window-based
+  revisit path — and the treasure-state-preserved-through-collection half, which depends on
+  `IP-1104`'s own ledger — are not yet implemented, `IP-1102`/`IP-1104`'s own scope.)
+- **Inputs:** A region coordinate the player is re-approaching after it left the materialized
+  window.
+- **Outputs:** The re-materialized region's biome, connectivity, and treasure-presence/collected
+  state.
+- **Preconditions:** The region was previously materialized at least once (FR-10200) during the
+  current save's play history.
+- **Postconditions:** The re-materialized region's biome and connectivity exactly match the
+  first materialization; its treasure state reflects the persisted ledger (FR-10500), not a
+  fresh re-roll.
+- **Acceptance Criteria:** For a corpus of `(seed, row, col)` triples, materializing, evicting
+  (simulated by re-deriving from scratch rather than from cached in-memory state), and
+  re-materializing produces identical biome/connectivity, and — for a region whose treasure was
+  collected between the two materializations — the treasure reads as collected on the second.
+- **Dependencies:** FR-10200, FR-10500.
+- **Verification Method:** Test (re-derive-from-scratch comparison, since a streaming
+  implementation's correctness specifically depends on not relying on cached state that a real
+  materialized-window eviction would discard).
+- **Source Documents:** ADR-0016 points 2, 5; ADS-001 §User Stories.
+- **Related ADRs:** ADR-0016.
+- **Notes:** **Partially implemented (`IP-1101`, 2026-07-14)** — see Priority above.
+
+### FR-10300 — Treasure placement decoupled from maze structure
+
+- **ID:** FR-10300
+- **Title:** In Infinite Mode, a region shall hold treasure if and only if
+  `hash(SEED, row, col) mod K == 0`, for a tuned density constant K — independent of that
+  region's maze connectivity or dead-end status.
+- **Description:** Unlike FR-9160's finite-mode placement (dead-end-prioritized, read from the
+  spanning-tree's own leaf structure), Infinite Mode shall place treasure using the same
+  per-region positional-hash technique FR-10200 uses for biome/connectivity, evaluated against a
+  tuned density constant `K` — computable the instant a region is materialized, with no
+  dependency on maze-carve completion or connectivity degree.
+- **Rationale:** ADR-0017 point 1; R216 (resolves R114's finding that the cheapest
+  streaming-compatible maze algorithm, Binary Tree, has zero dead-ends in two of four
+  directions — a direct conflict with a literal dead-end-only rule). This is a deliberate,
+  named departure from `BL-0094`'s original "at dead ends" wording, not a silent substitution —
+  see Notes.
+- **Priority:** Must (**partially implemented, 2026-07-14, `IP-1101`** — the presence-predicate
+  half: `hash(SEED, row, col) mod K == 0`, `K=16` (`T22.d` measures 6.25%, matching target).
+  Collection (reusing `check_collisions`) is `IP-1103`'s own scope, not yet implemented.)
+- **Inputs:** SEED; the region coordinate `(row, col)`; the tuned density constant `K`.
+- **Outputs:** A boolean treasure-presence value for that region.
+- **Preconditions:** The region has been materialized (FR-10200).
+- **Postconditions:** Treasure-presence for a given region is a pure function of
+  `(SEED, row, col, K)` — never of maze connectivity, dead-end status, or generation order.
+- **Acceptance Criteria:** For a corpus of `(seed, row, col)` triples, treasure-presence matches
+  the `hash(SEED, row, col) mod K == 0` predicate exactly, regardless of that region's maze
+  connectivity.
+- **Dependencies:** FR-10200.
+- **Verification Method:** Test (property test against the hash predicate, mirroring FR-9160's
+  own placement-verification shape).
+- **Source Documents:** ADR-0017 point 1; R216 §Concepts/§Implementation Guidance.
+- **Related ADRs:** ADR-0017.
+- **Notes:** **Partially implemented (`IP-1101`, 2026-07-14)** — see Priority above. **`K`'s
+  exact value is an implementation-time tuning question, not fixed by this FR** — ADR-0017
+  recommends anchoring near R215's measured `scale=9` finite-world dead-end density (~6.4%) as a
+  starting point; `07-implementation-planning` settled `K=16` (a power-of-two divisor, `AND
+  0x0F`, no `DIV`/`MUL`, ≈6.25%), confirmed by `IP-1101`'s own `T22.d`. This FR deliberately
+  diverges from
+  `BL-0094`'s literal "treasure only at dead ends" request — flagged explicitly per this
+  document's own traceability discipline (a genuine design substitution, not an oversight);
+  `FR-9160` (the finite mode's own dead-end-anchored placement) is entirely unaffected and
+  remains as shipped.
+
+### FR-10400 — Score-chasing win condition (running count + top-3 persisted, no name entry)
+
+- **ID:** FR-10400
+- **Title:** In Infinite Mode, the system shall track a running count of treasures collected
+  during the current run and, on run end, compare it against a persisted top-3 high-score table,
+  inserting it if it qualifies — with no character-name-entry step.
+- **Description:** Replacing FR-9161's finite-mode fixed-threshold victory condition (collect
+  `WORLD_SCALE` KeyItems), Infinite Mode has no completion threshold — the goal is a persisted
+  high score. The system shall maintain a running count of treasures collected (FR-10300) during
+  the current run, and on run end, compare that count against the three highest previously
+  recorded scores, inserting it into the table (displacing the lowest, if any) if it qualifies.
+  No UI step for entering a player name or initials is required.
+- **Rationale:** ADR-0017 points 2–3; R216 (the arcade high-score convention as the historically
+  correct genre answer for non-terminating play; the name-entry UI's original social/cabinet
+  purpose does not transfer to a single-player handheld cartridge with one save slot).
+- **Priority:** Must (target — not yet implemented)
+- **Inputs:** Treasure-collection events (FR-10300) during the current run; the persisted top-3
+  table.
+- **Outputs:** An updated running count; on run end, an updated top-3 table if the run's count
+  qualifies.
+- **Preconditions:** An Infinite Mode run is active (FR-10100); the run has ended (see Notes —
+  the exact end-of-run trigger is not decided by this FR).
+- **Postconditions:** The top-3 table contains the three highest scores ever achieved, most
+  recent qualifying run included if applicable; no player-entered name is recorded with any
+  entry.
+- **Acceptance Criteria:** A run's final treasure count that exceeds the lowest of the current
+  top-3 is inserted, displacing the previous lowest; a run's count that does not exceed any
+  current top-3 entry leaves the table unchanged; no name-entry prompt appears at any point.
+- **Dependencies:** FR-10300, FR-10500.
+- **Verification Method:** Test (drive a corpus of run outcomes against a seeded top-3 table,
+  confirm correct insertion/non-insertion; confirm no name-entry state is reachable).
+- **Source Documents:** ADR-0017 points 2–3; R216 §Concepts.
+- **Related ADRs:** ADR-0017.
+- **Notes:** Not yet implemented. **This FR's Preconditions name "the run has ended" without
+  defining what ends a run** — whether an Infinite Mode playthrough is indefinitely resumable
+  (matching FR-5100/FR-1190's existing save/continue convention) or is its own bounded "run"
+  needing a new end-condition mechanic (death/retreat/checkpoint) this game does not currently
+  have is a genuine, unresolved design question (R216 surfaces it, deliberately does not answer
+  it; ADR-0017 point 4 explicitly declines to decide it here). **Not baselined as part of this
+  FR** — see CR-07 below and RQ-03 finding #17. This FR's own win-condition *state* (running
+  count, top-3 table) is compatible with either eventual answer and needs no rework once decided
+  (ADR-0017 point 4), which is why it is safe to baseline now despite that open question.
+
+### FR-10500 — Visited-region-ledger save/load (position + collected-state only)
+
+- **ID:** FR-10500
+- **Title:** In Infinite Mode, the system shall persist the player's current position and a
+  bounded ledger of which visited regions have had their treasure collected — never the region
+  graph itself.
+- **Description:** Unlike FR-9200's finite-mode save format (persist `SEED`/`WORLD_SCALE`,
+  regenerate the graph, restore per-region flags onto it), Infinite Mode has no fixed `scale` to
+  regenerate against. On save, the system shall write the player's position (an unbounded
+  coordinate pair, not a bounded zone index) and a bounded-by-SRAM-capacity ledger of
+  visited-region treasure-collected state. On load, the system shall restore position directly
+  and restore the ledger; biome/connectivity for any region are re-derived on demand (FR-10200),
+  never read from SRAM.
+- **Rationale:** ADR-0016 point 5; R114 (save/load needs "a bounded-by-SRAM-capacity
+  visited-region ledger, not a flat whole-grid array, since an unbounded world cannot reserve
+  SRAM for every region that could ever exist").
+- **Priority:** Must (target — not yet implemented)
+- **Inputs:** Player position; visited-region treasure-collected state at save time; SRAM
+  contents at load time.
+- **Outputs:** SRAM updated with position and ledger entries (save); in-memory position and
+  ledger restored, with any region's biome/connectivity re-derived on demand rather than read
+  from SRAM (load).
+- **Preconditions:** An Infinite Mode save-confirm or exit-to-main-menu action (save); a
+  version-matching Infinite Mode save exists (load).
+- **Postconditions:** SRAM's position and ledger match in-memory values at save time (save); the
+  restored position and ledger, combined with FR-10210's revisit-consistency guarantee, exactly
+  reproduce the pre-save world state as the player re-encounters it (load).
+- **Acceptance Criteria:** Saving then loading an Infinite Mode game restores the exact player
+  position and treasure-collected state for every previously-visited region in the ledger; no
+  SRAM field represents biome or connectivity for any region.
+- **Dependencies:** FR-10100, FR-10200, FR-10210.
+- **Verification Method:** Test (save/reload two-instance harness, mirroring FR-9200's existing
+  pattern, extended to the ledger's own bounded-capacity shape).
+- **Source Documents:** ADR-0016 point 5; R114 §Implementation Guidance.
+- **Related ADRs:** ADR-0016.
+- **Notes:** Not yet implemented. **The ledger's real SRAM capacity (how many distinct visited
+  regions a save can remember) is not sized by this FR** — tracked separately (`BL-0108`, routed
+  to `02-research-gbc-hardware`/`07-implementation-planning`). A save-format version bump is
+  implied (mirroring FR-9200's own precedent) but not itself specified here — an `07`-level
+  detail once packaged.
+
+### FR-10600 — Indefinitely resumable Infinite Mode run (no bounded end-condition mechanic)
+
+- **ID:** FR-10600
+- **Title:** An Infinite Mode run shall be indefinitely resumable — the same save/continue
+  convention the finite mode already uses — with no death/retreat/checkpoint mechanic ending it.
+- **Description:** Resolves `CR-07`'s open question (project owner, 2026-07-13: "for now assume
+  indefinitely resumable"). An Infinite Mode save persists exactly as FR-1190/FR-5100 already
+  describe for the finite mode: the player exits to the main menu (or the console powers off) at
+  any point, and "continue" resumes from the exact persisted state (FR-10500's position +
+  visited-region ledger) — there is no in-game action, timer, or hazard that forcibly ends a run.
+  "Run end" for the purposes of FR-10400's top-3 comparison (see Notes) is therefore a player
+  choice, not a game-imposed event.
+- **Rationale:** Project owner, direct decision, 2026-07-13 ("for now assume indefinitely
+  resumable") — resolves `CR-07`, itself grounded in R216's own framing of this exact choice
+  ("indefinitely resumable... matching this project's existing save/continue convention").
+- **Priority:** Must (target — not yet implemented)
+- **Inputs:** A save-confirm or exit-to-main-menu action (mirroring FR-1190); a "continue" action
+  from the MAIN MENU (mirroring FR-1170).
+- **Outputs:** None beyond FR-10500's own save/restore behavior — this FR adds no new state of
+  its own; it states that no mechanic exists to *forcibly* end a run.
+- **Preconditions:** An Infinite Mode save exists.
+- **Postconditions:** No reachable input sequence ends an Infinite Mode run other than the
+  player's own choice to exit; "continue" always resumes exactly where the player left off.
+- **Acceptance Criteria:** No in-game state, timer, or hazard exists that transitions an Infinite
+  Mode save out of active play without the player's own exit action; repeated
+  save/exit/continue cycles never lose or forcibly reset run state.
+- **Dependencies:** FR-10500, FR-1170, FR-1190.
+- **Verification Method:** Test (negative test — attempt every reachable input sequence, confirm
+  none forcibly ends a run; mirroring FR-9110's own negative-test shape).
+- **Source Documents:** Project owner decision, 2026-07-13; R216 §Concepts.
+- **Related ADRs:** ADR-0017 (point 4 — this FR is the decision that ADR point deferred).
+- **Notes:** Not yet implemented. **This is explicitly a "for now" decision, not a permanently
+  closed one** — the project owner's own wording leaves room to revisit if a bounded-run mechanic
+  later proves desirable; any such change would be a new, dated RQ-01 delta at that time, not an
+  amendment to this FR's own text. `FR-10400`'s own win-condition Preconditions field ("the run
+  has ended") should be read, per this FR, as "the player has chosen to stop, at any point they
+  like" — not a game-imposed event — since no bounded-run mechanic exists. No `GDS-01` delta is
+  needed: an indefinitely-resumable run introduces no new `GAMESTATE`, matching `CR-07`'s own
+  analysis that this answer carries no architecture gap.
+
 ## Candidate Requirements
 
 *(untraceable to a current source, or contingent on an unresolved design decision — explicitly
@@ -1439,7 +1881,7 @@ excluded from the numbered baseline above; marked `CANDIDATE — NOT BASELINED` 
 - **Disposition:** SCHEDULED per BL-0017 — recommended as a Verification Checklist item on any
   future package touching `ZONE_COLLECTS`, not a standalone requirement today.
 
-### CR-05 — Biome-blob clustering seeded from the maze's own dead-ends (`BL-0066`)
+### CR-05 — Biome-blob clustering seeded from the maze's own dead-ends (`BL-0066`) — RESOLVED, BASELINED 2026-07-14
 
 - **Description:** Cluster biome assignment into cohesive multi-region blobs (so a "Forest area"
   spans several regions before drifting, per `BL-0066`'s own ask), with blob centers seeded from
@@ -1468,6 +1910,19 @@ excluded from the numbered baseline above; marked `CANDIDATE — NOT BASELINED` 
   `03-architecture-design-synthesis` (or directly to the user, if the owner has a preference
   between "revisit `ADR-0012`'s pass ordering to allow dead-end-seeding" vs. "keep the ordering,
   use flood-fill instead") — see `RQ-03`'s finding for the full conflict write-up.
+  **Resolved (2026-07-14): the project owner picked neither original option** — direct
+  instruction: "If there is a blob mechanism that works for infinite mode, use that concept for
+  the finite mode as well," pointing at the per-super-cell `hash(SEED, supercell_row,
+  supercell_col)` technique `R114`/`ADR-0016` already established for Infinite Mode.
+  [ADR-0018](../architecture/adr/ADR-0018-finite-mode-biome-blob-clustering.md) adopts it for the
+  finite mode too — a deterministic snap-to-blob layered on top of `ADR-0009` point 2's existing
+  grammar-constrained draw (unchanged as the fallback), requiring no `ADR-0012` pass-ordering
+  change at all, since the hash needs no maze to exist first. This Candidate's own original
+  dead-end-seeding proposal is superseded, not adopted — see `ADR-0018` for the full mechanism.
+  **Baselined 2026-07-14 as [FR-9170](#fr-9170--finite-mode-biome-blob-clustering-via-per-super-cell-positional-hash)**
+  — the per-super-cell snap-to-blob mechanism, layered on `ADR-0009` point 2's existing draw as
+  fallback, exactly as `ADR-0018` decides. This Candidate is now closed — `CR-05` is no longer an
+  open item; `BL-0066` closes in step (mirroring `CR-06`'s own `03→04` precedent above).
 
 ### CR-06 — Edge-indicator legend/help screen, reachable via SELECT (`BL-0100`) — RESOLVED, BASELINED 2026-07-13
 
@@ -1503,3 +1958,43 @@ excluded from the numbered baseline above; marked `CANDIDATE — NOT BASELINED` 
   (SELECT MENU state, supersedes FR-1150's own SELECT→MAP clause) **and FR-1210** (LEGEND state
   itself, citing GDS-08 §11 directly) — both target, not yet implemented. This Candidate is now
   closed; further tracking lives on FR-1200/FR-1210 themselves.
+
+### CR-07 — Infinite Mode run/session shape: indefinitely resumable vs. a bounded run with a new end-condition mechanic (`BL-0106`) — RESOLVED, BASELINED 2026-07-13
+
+- **Description:** Whether an Infinite Mode playthrough is expected to be resumed indefinitely
+  (matching FR-5100/FR-1190's existing finite-mode save/continue convention — a run simply
+  continues across power-off, with no "end" until the player chooses to start a new game) or is
+  its own bounded "run" that ends deliberately, needing a new end-condition mechanic
+  (death/retreat/checkpoint) this game does not currently have.
+- **Why excluded:** **Genuine missing concept, not an ambiguity fixable by rewording, and not a
+  direct architecture conflict either — R216 and ADR-0017 both explicitly surface this question
+  without answering it.** R216 states plainly: "a future spec pass should decide whether an
+  infinite run is expected to be resumed indefinitely... or is itself a bounded 'run' that ends
+  deliberately... this topic surfaces the question, deliberately does not answer it, since it is
+  a genuine new mechanic decision outside a pure win-condition-scaling scope." ADR-0017 point 4
+  repeats this explicitly: "Run/session shape is explicitly NOT decided by this ADR." If the
+  answer turns out to be "a bounded run with a death/retreat/checkpoint mechanic," that is a new
+  `GAMESTATE`-level concept `GDS-01`'s six-state (soon eight-state, per `FR-1200`/`FR-1210`) game
+  loop has no node for today — the same class of gap `CR-06` (above) named for the LEGEND
+  screen, resolved the same way: routed upstream rather than invented here. If the answer is
+  simply "indefinitely resumable, no new mechanic," no architecture gap exists at all — but this
+  stage has no basis in the current inputs to know which answer is correct, and inventing either
+  one would be "originating an architecture decision, not deriving a requirement from one" (the
+  same standard `CR-06` applied).
+- **Disposition:** Not routed to `03-architecture-design-synthesis` outright, unlike `CR-05`/`CR-06`
+  — this is a genuine **player-experience preference**, not a technical architecture question a
+  research-driven synthesis pass is well-positioned to decide unilaterally (contrast `ADR-0012`'s
+  maze-algorithm choice, correctly delegated to `03` per that ADR's own reasoning). Recommend the
+  pipeline manager surface this directly to the user (`NEEDS-USER`) the next time Infinite Mode's
+  own implementation is imminent (i.e., once `05-feature-decomposition`/`06-feature-specification`
+  reach this epic) — not urgent now, since `FR-10400`'s own win-condition state is compatible with
+  either answer and needs no rework once decided (`ADR-0017` point 4). If the answer requires a
+  new mechanic, that decision then routes to `03-architecture-design-synthesis` for the resulting
+  `GDS-01` delta before this Candidate can be baselined into a real FR. See `RQ-03` finding #17
+  for the full write-up. **Resolved (2026-07-13): project owner decided directly — "for now
+  assume indefinitely resumable."** The no-new-mechanic branch of this Candidate's own analysis
+  applies: no `GDS-01` delta is needed, so no `03-architecture-design-synthesis` routing was
+  required after all. Baselined as **FR-10600** (Indefinitely resumable Infinite Mode run). This
+  Candidate is now closed; further tracking lives on `FR-10600` itself. The owner's own wording
+  ("for now") is carried into `FR-10600`'s Notes verbatim — this is a revisitable decision, not a
+  permanently closed one.

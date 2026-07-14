@@ -9,9 +9,10 @@
 > — **with `FEAT-2100` explicitly carried forward as partially delivered** (logic half shipped
 > and `VERIFIED`; rendering half not yet built, tracked as `BL-0075`); delta 2026-07-13
 > (edge-indicator legend screen, `FEAT-1200` joins Release 2 as a second addendum, `CR-06`/
-> `BL-0100`).** Owned by
+> `BL-0100`); delta 2026-07-14 (Infinite Mode, `FEAT-10000` joins Future, `ADS-001`/`ADR-0016`/
+> `ADR-0017`/`BL-0082`).** Owned by
 > `05-feature-decomposition`. Assigns every Feature
-> in [FP-03](03-feature-catalog.md) (now sixteen) to exactly one bucket, using
+> in [FP-03](03-feature-catalog.md) (now seventeen) to exactly one bucket, using
 > [FP-04](04-feature-dependency-graph.md)'s dependency analysis. **Bootstrap framing: seven of
 > eight bootstrap-baseline Features are already shipped** (FEAT-5100 shipped and verified
 > 2026-07-07, correcting this document's prior "no shipped implementation" framing — `BL-0036`).
@@ -107,11 +108,17 @@ Step 4 already established: the fixed bucket vocabulary has no "Release 3."
 Independent of the `ADR-0012` addendum's own ordering constraint (`FEAT-9100` before `FEAT-2100`)
 — `FEAT-1200` can proceed in parallel with either, per FP-04's own dependency analysis.
 
-## Bucket: Future (not yet decomposed into Features)
+## Bucket: Future
 
-These are named here for completeness because they're real, tracked program-level concerns — but
-neither has a baselined `FR-xxxx` yet, so neither gets a `FEAT-xxxx` row per this stage's own
-rule against inventing requirements:
+Two kinds of item live here: program-level concerns not yet decomposed into a Feature at all, and
+real, decomposed Features with no schedule commitment — both belong in "later, not now," but only
+the second kind gets a `FEAT-xxxx` row.
+
+### Not yet decomposed into Features
+
+Named here for completeness because they're real, tracked program-level concerns — but neither
+has a baselined `FR-xxxx` yet, so neither gets a `FEAT-xxxx` row per this stage's own rule against
+inventing requirements:
 
 - **MSTR-001 commitment C7** (Zelda/Pokémon-scale world growth) — tied to `CR-03`
   (bank-switching-ready extensibility, RQ-02) and `ADR-0001`'s named future-supersession trigger
@@ -126,6 +133,25 @@ rule against inventing requirements:
   Both were remediation of `FEAT-7000`'s own `NFR-7100` non-compliance, closed by `IP-9010`
   (VERIFIED 2026-07-07); kept here only as a historical note, since a completed remediation was
   never itself new Feature scope.
+- **`CR-05` (finite-mode biome-blob clustering, `BL-0066`)** — mechanism resolved (`ADR-0018`,
+  2026-07-14), but not yet baselined into a real `FR-xxxx` (a future `04-requirements-engineering`
+  pass, per that ADR's own routing) — still correctly excluded from this bucket's Feature rows
+  until that lands, per this stage's own established discipline (the same reasoning `FEAT-9100`'s
+  own earlier entry already applied to `CR-05` before `ADR-0018` existed).
+
+### Decomposed, not yet scheduled
+
+- **FEAT-10000 (Infinite Mode)** — added 2026-07-14, per `ADS-001`/`ADR-0016`/`ADR-0017`
+  (`BL-0082`, user-directed adoption). Fully decomposed (see [FP-03](03-feature-catalog.md)) with
+  a complete FR/NFR baseline and zero graph-blocking dependencies (all five of its own
+  dependencies are already shipped/`VERIFIED`, per [FP-04](04-feature-dependency-graph.md)) — it
+  is placed in Future rather than a numbered Release **not because anything blocks it technically,
+  but because no release commitment has been made**: this is exploratory, owner-initiated scope
+  with no MSTR-001 commitment driving it and no G3 authorization on record. Ready to move to a
+  real Release bucket the moment the project owner decides to schedule it — `06-feature-
+  specification` can proceed against it in the meantime regardless of bucket, per this pipeline's
+  own stage ordering (bucket assignment doesn't gate specification, only implementation
+  authorization, G3).
 
 ## Callouts
 
@@ -149,10 +175,14 @@ rule against inventing requirements:
   entire plan rather than "Must" — a design-quality guideline, not a hard functional gate; still
   scheduled since it rides the same Feature as `NFR-6500`, not split out. `CR-02`/`CR-03`/`CR-04`
   (RQ-01/RQ-02's remaining Candidate Requirements) remain un-baselined and therefore have no
-  Feature row to mark optional. `CR-05` (`BL-0066`, biome-blob clustering — an `ADR-0012`
-  pass-ordering conflict, `NEEDS-USER`) joins them, added 2026-07-11.
-- **Deferred:** The Future bucket's one remaining item (C7's beyond-`WORLD_SCALE`-9 bank-switched
-  growth — the test-suite remediation item is resolved, kept only as a historical note).
+  Feature row to mark optional. `CR-05` (`BL-0066`, biome-blob clustering) joins them — its
+  original `ADR-0012` pass-ordering conflict is now resolved (`ADR-0018`, 2026-07-14, no longer
+  `NEEDS-USER`), but it is still un-baselined pending a future `04-requirements-engineering` pass.
+- **Deferred:** The Future bucket's not-yet-decomposed items (C7's beyond-`WORLD_SCALE`-9
+  bank-switched growth; the test-suite remediation item is resolved, kept only as a historical
+  note). **`FEAT-10000` (Infinite Mode) is fully decomposed but also placed in Future** — not
+  deferred for any technical reason (zero graph-blocking dependencies), but because no release
+  commitment has been made for it yet; see its own Future-bucket entry above.
 
 ## Sequencing note
 

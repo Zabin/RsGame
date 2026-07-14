@@ -166,6 +166,12 @@ def build(out_path='BunnyQuest.gbc'):
     p16(patches['lg_t'], screen_addrs['legend'][0])
     p16(patches['lg_a'], screen_addrs['legend'][1])
 
+    # IP-1100: mode select + infinite seed entry screens, same title_t/title_a pattern.
+    p16(patches['ms_t'],  screen_addrs['mode_select'][0])
+    p16(patches['ms_a'],  screen_addrs['mode_select'][1])
+    p16(patches['ise_t'], screen_addrs['infinite_seed_entry'][0])
+    p16(patches['ise_a'], screen_addrs['infinite_seed_entry'][1])
+
     # IP-1030: one tile/attr address pair per biome family (5), parallel
     # to the title_t/title_a pattern above — not one pair per region.
     p16(patches['water_t'], screen_addrs['water'][0])

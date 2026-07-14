@@ -140,6 +140,48 @@ GW_KI_PLACED   = 0xC3F5  # 1 byte -- IP-1021 (FR-9160/ADR-0015): the KeyItem-pla
                           # no PRNG draws, so GW_MAZE_DRAW_CTR's own running state is untouched
                           # by it.
 
+# Infinite Mode (IP-1102). GAME_MODE was originally planned as IP-1100's own
+# addition, but IP-1102 was implemented first and needs it (dsr_p/check_
+# zone_transition both gate on it) -- claimed here instead; IP-1100's own
+# future implementation reuses this constant rather than redefining it.
+GAME_MODE      = 0xC3F6  # 1 byte -- 0=finite (default, boot-cleared explicitly, see below --
+                          # outside the 0xC000-C2FF boot-clear range), 1=infinite. No code path
+                          # currently writes 1 (IP-1100, not yet implemented, is what will) --
+                          # only test_rom.py's own T24 suite pokes this directly today.
+INF_ROW        = 0xC3F7  # 2 bytes, C3F7-C3F8 -- player's current region row (signed 16-bit,
+                          # low byte first, mirrors SEED's own byte order), Infinite Mode only
+INF_COL        = 0xC3F9  # 2 bytes, C3F9-C3FA -- player's current region col, same convention
+INF_WINDOW     = 0xC3FB  # 9 bytes, C3FB-C403 -- 3x3 materialized window, row-major (index =
+                          # (dr+1)*3+(dc+1), dr/dc in {-1,0,1}), center cell (index 4, C3FF) =
+                          # current region. 1 byte/region, IP-1101's own output format (bits
+                          # 0-2 biome-id, bits 3-6 connectivity: up/down/left/right, 1=open)
+INF_TREASURE_HERE = 0xC404  # 1 byte -- transient cache: current region's own treasure-
+                          # presence-and-uncollected flag for this materialization. Not yet
+                          # populated by this package (IP-1103's own scope to read/write) --
+                          # reserved here since it sits in the same contiguous address run.
+
+# 0xC3F6-0xC40C is the full range IP-1100/1102/1103's own already-documented
+# WRAM plan reserves (docs/implementation/packages/IP-1100.../IP-1102.../
+# IP-1103...md) -- GAME_MODE/INF_ROW/INF_COL/INF_WINDOW/INF_TREASURE_HERE
+# above (this package, IP-1102) claim 0xC3F6-0xC404; 0xC405-0xC40C remains
+# reserved for IP-1103's own RUNNING_TREASURE_COUNT/TOP_SCORE_TABLE, not
+# claimed here.
+INF_MZ_ROW      = 0xC40D  # 2 bytes, C40D-C40E -- inf_materialize_region's own row input
+                          # (signed 16-bit, low byte first, mirrors SEED's own byte order)
+INF_MZ_COL      = 0xC40F  # 2 bytes, C40F-C410 -- column input, same convention
+INF_MZ_RESULT   = 0xC411  # 1 byte -- output: packed biome (bits 0-2) + connectivity nibble
+                          # (bits 3-6: up/down/left/right, 1=open), the TWBS's own per-region
+                          # encoding decision
+INF_MZ_TREASURE = 0xC412  # 1 byte -- output: 0 or 1, hash(SEED,row,col) mod 16 == 0 (K=16)
+INF_MZ_BIOME    = 0xC413  # 1 byte -- transient scratch: own biome value, held while the
+                          # south/east neighbor consultations run
+INF_MZ_BIAS     = 0xC414  # 1 byte -- transient scratch: own carve-bias (0=carve north,
+                          # 1=carve west) -- Binary Tree construction (ADR-0016 point 5)
+INF_MZ_TROW     = 0xC415  # 2 bytes, C415-C416 -- transient scratch: the row currently being
+                          # hashed by inf_region_seed0 (own region or a neighbor)
+INF_MZ_TCOL     = 0xC417  # 2 bytes, C417-C418 -- transient scratch: the column currently
+                          # being hashed by inf_region_seed0
+
 SAVE_VERSION_ADDR = 0xA012   # save-format version guard (FR-5220 / Design Decision 2)
 SAVE_VERSION_VAL  = 0x04     # bumped 0x03->0x04 (IP-9110, fourth bump since ship — the
                               # value sequence is strictly monotonic, never reused. Excludes
@@ -175,6 +217,10 @@ GS_MAIN_MENU, GS_SEED_SCALE_ENTRY = 6, 7
 GS_SELECT_MENU, GS_LEGEND = 8, 9  # IP-1090: SELECT now opens a small
                                   # map/legend cursor menu instead of
                                   # jumping directly to GS_MAP (GDS-01 §4c)
+GS_MODE_SELECT, GS_INFINITE_SEED_ENTRY = 10, 11  # IP-1100: MAIN MENU's
+                                  # "new game" now opens a finite/infinite
+                                  # cursor menu instead of jumping directly
+                                  # to GS_SEED_SCALE_ENTRY (GDS-01 §4d)
 
 
 def build_game_asm(rom: ROM) -> dict:
@@ -218,6 +264,18 @@ def build_game_asm(rom: ROM) -> dict:
     # Clear shadow OAM
     rom.LD_HL_nn(OAM_BUF); rom.LD_B_n(160); rom.XOR_A()
     rom.label('coam'); rom.LD_HLI_A(); rom.DEC_B(); rom.JR_NZ('coam')
+
+    # Clear GAME_MODE (IP-1102) -- outside the 0xC000-C2FF range above, but
+    # dsr_p/check_zone_transition read it every PLAYING frame with no
+    # guaranteed prior write until IP-1100's own new-game flow exists;
+    # without an explicit boot value this would read uninitialized WRAM and
+    # could spuriously route ordinary finite-mode gameplay into the new,
+    # untested Infinite Mode code paths. Mirrors the shadow-OAM clear
+    # immediately above — a targeted single-purpose clear, not a blind
+    # widening of the existing 0xC000-C2FF loop (which would also needlessly
+    # re-zero OAM_BUF/GW_* in between, both already handled by their own
+    # write-before-read discipline).
+    rom.XOR_A(); rom.LD_nn_A(GAME_MODE)
 
     # Clear VRAM bank 0 (same A-clobber caveat — re-zero each iter)
     rom.XOR_A(); rom.LDH_n_A(VBK)
@@ -301,6 +359,8 @@ def build_game_asm(rom: ROM) -> dict:
     rom.CP_n(GS_SEED_SCALE_ENTRY); rom.JP_Z('st_seed_scale_entry')
     rom.CP_n(GS_SELECT_MENU); rom.JP_Z('st_select_menu')
     rom.CP_n(GS_LEGEND); rom.JP_Z('st_legend')
+    rom.CP_n(GS_MODE_SELECT); rom.JP_Z('st_mode_select')
+    rom.CP_n(GS_INFINITE_SEED_ENTRY); rom.JP_Z('st_infinite_seed_entry')
     rom.JP('end_frame')
 
     # ── State: TITLE ─────────────────────────────────────
@@ -422,8 +482,22 @@ def build_game_asm(rom: ROM) -> dict:
     rom.label('mm_ng_clr'); rom.LD_HLI_A(); rom.DEC_B(); rom.JR_NZ('mm_ng_clr')
     rom.LD_A_n(3); rom.LD_nn_A(SSE_SCALE)   # default scale (ADR-0010)
     rom.XOR_A(); rom.LD_nn_A(SSE_CURSOR)
-    rom.LD_A_n(GS_SEED_SCALE_ENTRY); rom.LD_nn_A(TRANSITION_TO)
-    rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW)
+    # IP-1100 (GDS-01 §4d): "new game" now opens MODE SELECT, not SEED/SCALE
+    # ENTRY directly. GAME_MODE is explicitly reset to 0 (finite) here, on
+    # every "new game" entry -- a defensive fix caught during implementation:
+    # without it, a player who picks "infinite" at MODE SELECT (setting
+    # GAME_MODE=1), then B-cancels all the way back to MAIN MENU, then
+    # starts a fresh "new game" and picks "finite" this time, would have
+    # GAME_MODE still stuck at 1 (st_mode_select's own "finite" branch,
+    # mirroring GDS-01 §4d's diagram, does not itself write GAME_MODE) --
+    # silently routing an intended finite-mode game through IP-1102's
+    # infinite-mode dsr_p/check_zone_transition paths. Resetting here, once,
+    # at the single genuine "new game" entry point, is the simplest correct
+    # fix -- st_mode_select's own "infinite" branch is still the only place
+    # that ever sets GAME_MODE=1.
+    rom.XOR_A(); rom.LD_nn_A(GAME_MODE)
+    rom.LD_A_n(GS_MODE_SELECT); rom.LD_nn_A(TRANSITION_TO)
+    rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW); rom.LD_nn_A(MM_JUST_ENTERED)
     rom.JP('end_frame')
 
     # ── State: SEED/SCALE ENTRY (IP-1040) ─────────────────
@@ -485,6 +559,115 @@ def build_game_asm(rom: ROM) -> dict:
 
     rom.label('sse_redraw')
     rom.CALL('draw_sse_digits')
+    rom.JP('end_frame')
+
+    # ── State: MODE SELECT (IP-1100, GDS-01 §4d) ──────────
+    # D-pad up/down toggles MM_CURSOR unconditionally between 0 ("finite")
+    # and 1 ("infinite") -- both options always offered, mirrors
+    # st_select_menu's own unconditional toggle exactly (no MM_SAVE_VALID-
+    # style gate needed here). A confirms: "finite" -> GS_SEED_SCALE_ENTRY,
+    # completely unchanged (GAME_MODE already reset to 0 at mm_newgame,
+    # not touched again here); "infinite" -> GS_INFINITE_SEED_ENTRY, writing
+    # GAME_MODE=1 on this transition only, not on mere highlight. B cancels
+    # directly to MAIN MENU, writing nothing (the named asymmetric-tradeoff
+    # counterpart is SEED/SCALE ENTRY's own unchanged B-cancel target,
+    # GDS-01 §4d's own explicit framing -- not this state).
+    rom.label('st_mode_select')
+    rom.LD_A_nn(JOY_NEW); rom.LD_B_A()
+    rom.BIT_b_B(J_UP); rom.JR_NZ('ms_toggle')
+    rom.BIT_b_B(J_DOWN); rom.JP_Z('ms_check_b')
+    rom.label('ms_toggle')
+    rom.LD_A_nn(MM_CURSOR); rom.XOR_n(1); rom.LD_nn_A(MM_CURSOR)
+    rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW)
+    rom.JP('end_frame')
+    rom.label('ms_check_b')
+    rom.BIT_b_B(J_B); rom.JR_Z('ms_check_a')
+    rom.LD_A_n(GS_MAIN_MENU); rom.LD_nn_A(TRANSITION_TO)
+    rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW); rom.LD_nn_A(MM_JUST_ENTERED)
+    rom.JP('end_frame')
+    rom.label('ms_check_a')
+    rom.BIT_b_B(J_A); rom.JP_Z('end_frame')
+    rom.LD_A_nn(MM_CURSOR); rom.OR_A(); rom.JR_NZ('ms_infinite')
+    rom.LD_A_n(GS_SEED_SCALE_ENTRY); rom.LD_nn_A(TRANSITION_TO)
+    rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW)
+    rom.JP('end_frame')
+    rom.label('ms_infinite')
+    rom.LD_A_n(1); rom.LD_nn_A(GAME_MODE)
+    rom.LD_A_n(GS_INFINITE_SEED_ENTRY); rom.LD_nn_A(TRANSITION_TO)
+    rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW)
+    rom.JP('end_frame')
+
+    # ── State: INFINITE SEED ENTRY (IP-1100, GDS-01 §4d) ──
+    # Reuses SEED/SCALE ENTRY's own digit-cursor picker convention
+    # (ADR-0010) over the same SSE_DIGITS/SSE_CURSOR bytes -- safe since
+    # GS_SEED_SCALE_ENTRY and GS_INFINITE_SEED_ENTRY are never
+    # simultaneously active (mirrors MM_CURSOR's own established reuse
+    # precedent, IP-1090). LEFT/RIGHT are bounded to cursor 0-4 only (never
+    # 5, the finite mode's own scale slot -- there is no scale digit here);
+    # UP/DOWN reuse sse_adjust_up/sse_adjust_down verbatim (their own
+    # CP_n(5) scale branch never triggers, since cursor never reaches 5
+    # from this state). A composes the seed via sse_compose_seed (IP-1040,
+    # reused verbatim -- it also writes WORLD_SCALE from SSE_SCALE's
+    # leftover value, harmless here since no Infinite Mode code path ever
+    # reads WORLD_SCALE), sets INF_ROW=INF_COL=0, then calls IP-1102's own
+    # inf_ensure_window (not a single direct inf_materialize_region call --
+    # a deliberate deviation from this package's own original §6 text,
+    # which predates IP-1102's existence: inf_ensure_window populates the
+    # full 3x3 INF_WINDOW correctly in one call, reusing IP-1102's already-
+    # built routine instead of duplicating its 9-cell logic here, and avoids
+    # leaving INF_WINDOW's 8 non-center cells as uninitialized WRAM --
+    # GAME_MODE's own identical boot-clear-gap lesson from IP-1102, applied
+    # proactively here rather than rediscovered the same way). B cancels to
+    # GS_MODE_SELECT (not GS_MAIN_MENU -- this state has no shipped
+    # precedent to protect, GDS-01 §4d's own "one step back" framing),
+    # writing nothing -- MM_JUST_ENTERED is deliberately NOT set on this
+    # transition, so MODE SELECT's own cursor stays on "infinite" (whatever
+    # is normal, given B-cancel only happens after choosing it), letting the
+    # player retry immediately rather than resetting back to "finite".
+    rom.label('st_infinite_seed_entry')
+    rom.LD_A_nn(JOY_NEW); rom.LD_B_A()
+
+    rom.BIT_b_B(J_B); rom.JP_Z('ise_no_b')
+    rom.LD_A_n(GS_MODE_SELECT); rom.LD_nn_A(TRANSITION_TO)
+    rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW)
+    rom.JP('end_frame')
+    rom.label('ise_no_b')
+
+    rom.BIT_b_B(J_LEFT); rom.JP_Z('ise_no_left')
+    rom.LD_A_nn(SSE_CURSOR); rom.OR_A(); rom.JP_Z('ise_redraw')
+    rom.DEC_A(); rom.LD_nn_A(SSE_CURSOR)
+    rom.JP('ise_redraw')
+    rom.label('ise_no_left')
+
+    rom.BIT_b_B(J_RIGHT); rom.JP_Z('ise_no_right')
+    rom.LD_A_nn(SSE_CURSOR); rom.CP_n(4); rom.JP_NC('ise_redraw')
+    rom.INC_A(); rom.LD_nn_A(SSE_CURSOR)
+    rom.JP('ise_redraw')
+    rom.label('ise_no_right')
+
+    rom.BIT_b_B(J_UP); rom.JP_Z('ise_no_up')
+    rom.CALL('sse_adjust_up')
+    rom.JP('ise_redraw')
+    rom.label('ise_no_up')
+
+    rom.BIT_b_B(J_DOWN); rom.JP_Z('ise_no_down')
+    rom.CALL('sse_adjust_down')
+    rom.JP('ise_redraw')
+    rom.label('ise_no_down')
+
+    rom.LD_A_nn(JOY_NEW); rom.AND_n(1 << J_A)
+    rom.JP_Z('end_frame')
+    rom.CALL('sse_compose_seed')
+    rom.XOR_A()
+    rom.LD_nn_A(INF_ROW); rom.LD_nn_A(INF_ROW + 1)
+    rom.LD_nn_A(INF_COL); rom.LD_nn_A(INF_COL + 1)
+    rom.CALL('inf_ensure_window')
+    rom.LD_A_n(GS_INTRO); rom.LD_nn_A(TRANSITION_TO)
+    rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW)
+    rom.JP('end_frame')
+
+    rom.label('ise_redraw')
+    rom.CALL('draw_ise_digits')
     rom.JP('end_frame')
 
     # ── State: SELECT MENU (IP-1090) ──────────────────────
@@ -738,6 +921,13 @@ def build_game_asm(rom: ROM) -> dict:
     # immediately) is unchanged from the pre-fix shipped code (T17.b's own
     # scale=3 regression requires bit-for-bit identical behavior there).
     rom.label('check_zone_transition')
+    # IP-1102: GAME_MODE-gated entry -- the four finite-mode branches below
+    # (right/left/top/bottom) are reached only when GAME_MODE == 0, entirely
+    # unchanged; Infinite Mode has its own parallel czt_infinite handler
+    # (below czt_redraw), since CUR_ZONE/REGION_GRAPH don't apply to it.
+    rom.LD_A_nn(GAME_MODE); rom.OR_A(); rom.JR_Z('czt_finite_start')
+    rom.JP('czt_infinite')
+    rom.label('czt_finite_start')
     # right edge: x >= 152 (matches handle_play_input's own RIGHT clamp
     # ceiling exactly -- IP-9090's corrected clamp (max X=152) fell below
     # this threshold's old value of 156, making the RIGHT transition
@@ -789,6 +979,89 @@ def build_game_asm(rom: ROM) -> dict:
     rom.label('czt_redraw')
     rom.LD_A_n(GS_PLAYING); rom.LD_nn_A(TRANSITION_TO)
     rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW); rom.RET()
+
+    # ── inf_ensure_window (IP-1102) ────────────────────────
+    # Recomputes the entire 3x3 materialized window around INF_ROW/INF_COL
+    # by calling IP-1101's inf_materialize_region for each of the 9 cells --
+    # no incremental shift logic (the routine is cheap and pure, so a full
+    # recompute on every center change is simpler and avoids a sliding-
+    # window management scheme entirely, per the TWBS's own framing).
+    # Window layout: row-major, index = (dr+1)*3+(dc+1) for dr,dc in
+    # {-1,0,1}; index 4 (dr=0,dc=0) is always the current region. Assembled
+    # unrolled at Python-assembly-time (9 fixed cells, no runtime loop) --
+    # matches this codebase's own established style for small fixed counts.
+    _INF_WINDOW_OFFSETS = [(dr, dc) for dr in (-1, 0, 1) for dc in (-1, 0, 1)]
+    rom.label('inf_ensure_window')
+    for _idx, (_dr, _dc) in enumerate(_INF_WINDOW_OFFSETS):
+        rom.LD_A_nn(INF_ROW); rom.LD_E_A()
+        rom.LD_A_nn(INF_ROW + 1); rom.LD_D_A()
+        if _dr == 1: rom.INC_DE()
+        elif _dr == -1: rom.DEC_DE()
+        rom.LD_A_E(); rom.LD_nn_A(INF_MZ_ROW)
+        rom.LD_A_D(); rom.LD_nn_A(INF_MZ_ROW + 1)
+        rom.LD_A_nn(INF_COL); rom.LD_E_A()
+        rom.LD_A_nn(INF_COL + 1); rom.LD_D_A()
+        if _dc == 1: rom.INC_DE()
+        elif _dc == -1: rom.DEC_DE()
+        rom.LD_A_E(); rom.LD_nn_A(INF_MZ_COL)
+        rom.LD_A_D(); rom.LD_nn_A(INF_MZ_COL + 1)
+        rom.CALL('inf_materialize_region')
+        rom.LD_A_nn(INF_MZ_RESULT)
+        rom.LD_nn_A(INF_WINDOW + _idx)
+    rom.RET()
+
+    # ── czt_infinite (IP-1102) ─────────────────────────────
+    # Infinite Mode's own transition handler -- mirrors check_zone_
+    # transition's finite-mode branch cascade (same JOY_CUR-gated intent
+    # check per direction, IP-9130/BL-0078's own convention, reused
+    # verbatim; same player-position reset constants) but tests the current
+    # region's own connectivity nibble (INF_WINDOW's center cell, bits 3-6)
+    # instead of a REGION_GRAPH neighbor byte, and updates INF_ROW/INF_COL
+    # instead of CUR_ZONE -- there is no bounded grid, so no "0xFF = grid
+    # edge" concept applies here (Infinite Mode's world is unbounded).
+    rom.label('czt_infinite')
+    rom.LD_A_nn(JOY_CUR); rom.BIT_b_A(J_RIGHT); rom.JR_Z('czti_left')
+    rom.LD_A_nn(PLAYER_X); rom.CP_n(152); rom.JR_C('czti_left')
+    rom.LD_A_nn(INF_WINDOW + 4); rom.BIT_b_A(6); rom.JR_Z('czti_left')   # east
+    rom.LD_A_nn(INF_COL); rom.LD_E_A(); rom.LD_A_nn(INF_COL + 1); rom.LD_D_A()
+    rom.INC_DE()
+    rom.LD_A_E(); rom.LD_nn_A(INF_COL); rom.LD_A_D(); rom.LD_nn_A(INF_COL + 1)
+    rom.CALL('inf_ensure_window')
+    rom.LD_A_n(8); rom.LD_nn_A(PLAYER_X)
+    rom.JP('czt_redraw')
+
+    rom.label('czti_left')
+    rom.LD_A_nn(JOY_CUR); rom.BIT_b_A(J_LEFT); rom.JR_Z('czti_top')
+    rom.LD_A_nn(PLAYER_X); rom.OR_A(); rom.JR_NZ('czti_top')
+    rom.LD_A_nn(INF_WINDOW + 4); rom.BIT_b_A(5); rom.JR_Z('czti_top')    # west
+    rom.LD_A_nn(INF_COL); rom.LD_E_A(); rom.LD_A_nn(INF_COL + 1); rom.LD_D_A()
+    rom.DEC_DE()
+    rom.LD_A_E(); rom.LD_nn_A(INF_COL); rom.LD_A_D(); rom.LD_nn_A(INF_COL + 1)
+    rom.CALL('inf_ensure_window')
+    rom.LD_A_n(150); rom.LD_nn_A(PLAYER_X)
+    rom.JP('czt_redraw')
+
+    rom.label('czti_top')
+    rom.LD_A_nn(JOY_CUR); rom.BIT_b_A(J_UP); rom.JR_Z('czti_bot')
+    rom.LD_A_nn(PLAYER_Y); rom.CP_n(18); rom.JR_NC('czti_bot')
+    rom.LD_A_nn(INF_WINDOW + 4); rom.BIT_b_A(3); rom.JR_Z('czti_bot')    # north
+    rom.LD_A_nn(INF_ROW); rom.LD_E_A(); rom.LD_A_nn(INF_ROW + 1); rom.LD_D_A()
+    rom.DEC_DE()
+    rom.LD_A_E(); rom.LD_nn_A(INF_ROW); rom.LD_A_D(); rom.LD_nn_A(INF_ROW + 1)
+    rom.CALL('inf_ensure_window')
+    rom.LD_A_n(120); rom.LD_nn_A(PLAYER_Y)
+    rom.JP('czt_redraw')
+
+    rom.label('czti_bot')
+    rom.LD_A_nn(JOY_CUR); rom.BIT_b_A(J_DOWN); rom.RET_Z()
+    rom.LD_A_nn(PLAYER_Y); rom.CP_n(128); rom.RET_C()
+    rom.LD_A_nn(INF_WINDOW + 4); rom.BIT_b_A(4); rom.RET_Z()             # south
+    rom.LD_A_nn(INF_ROW); rom.LD_E_A(); rom.LD_A_nn(INF_ROW + 1); rom.LD_D_A()
+    rom.INC_DE()
+    rom.LD_A_E(); rom.LD_nn_A(INF_ROW); rom.LD_A_D(); rom.LD_nn_A(INF_ROW + 1)
+    rom.CALL('inf_ensure_window')
+    rom.LD_A_n(24); rom.LD_nn_A(PLAYER_Y)
+    rom.JP('czt_redraw')
 
     # ── check_complete ───────────────────────────────────
     rom.label('check_complete')
@@ -913,7 +1186,8 @@ def build_game_asm(rom: ROM) -> dict:
     for gs, lbl in [(GS_TITLE,'dsr_t'),(GS_INTRO,'dsr_i'),(GS_PLAYING,'dsr_p'),
                     (GS_SAVE,'dsr_sv'),(GS_MAP,'dsr_m'),(GS_VICTORY,'dsr_v'),
                     (GS_MAIN_MENU,'dsr_mm'),(GS_SEED_SCALE_ENTRY,'dsr_sse'),
-                    (GS_SELECT_MENU,'dsr_sm'),(GS_LEGEND,'dsr_lg')]:
+                    (GS_SELECT_MENU,'dsr_sm'),(GS_LEGEND,'dsr_lg'),
+                    (GS_MODE_SELECT,'dsr_ms'),(GS_INFINITE_SEED_ENTRY,'dsr_ise')]:
         rom.LD_A_nn(GAMESTATE); rom.CP_n(gs); rom.JP_Z(lbl)
     rom.JP('dsr_done')
 
@@ -942,6 +1216,12 @@ def build_game_asm(rom: ROM) -> dict:
     # per-entry logic needed, plain copy_screen suffices.
     _dsr_screen('dsr_sm', 'sm_t', 'sm_a', extra='sm_on_entry')
     _dsr_screen('dsr_lg', 'lg_t', 'lg_a')
+    # IP-1100: mode select draws/resets its own cursor on every entry
+    # (ms_on_entry, mirroring sm_on_entry); infinite seed entry redraws its
+    # digits + cursor on every entry (draw_ise_digits, also called directly
+    # on every digit-cursor edit — see st_infinite_seed_entry).
+    _dsr_screen('dsr_ms',  'ms_t',  'ms_a',  extra='ms_on_entry')
+    _dsr_screen('dsr_ise', 'ise_t', 'ise_a', extra='draw_ise_digits')
 
     # PLAYING: biome-family screen dispatch (IP-1030, generalizes the
     # former fixed 9-entry zs_table). CUR_ZONE is read as the current
@@ -949,6 +1229,13 @@ def build_game_asm(rom: ROM) -> dict:
     # neighbor-index bytes in up/down/left/right order — GDS-07 §6,
     # matching generate_world's own write order exactly).
     rom.label('dsr_p')
+    # IP-1102: GAME_MODE-gated entry -- Infinite Mode has no REGION_GRAPH,
+    # so it skips this read entirely and sources its biome-id from
+    # INF_WINDOW's own center cell instead. The finite path below (from
+    # LD_A_nn(CUR_ZONE) through the REGION_GRAPH read) is otherwise
+    # byte-for-byte identical to the shipped code -- only this 3-instruction
+    # gate precedes it.
+    rom.LD_A_nn(GAME_MODE); rom.OR_A(); rom.JR_NZ('dsr_p_inf')
     rom.LD_A_nn(CUR_ZONE)
     rom.LD_E_A(); rom.LD_D_n(0)        # DE = region index
     rom.LD_HL_nn(REGION_GRAPH)
@@ -957,7 +1244,17 @@ def build_game_asm(rom: ROM) -> dict:
                                         # correct up to scale=9's 81 regions)
     rom.LD_A_HLI()                     # A = biome-id (0..4); HL -> 'up' byte
     rom.PUSH_HL()                      # save neighbor-byte pointer across CALLs
+    rom.JR('dsr_p_dispatch')
 
+    rom.label('dsr_p_inf')
+    rom.LD_A_nn(INF_WINDOW + 4)        # center cell of the 3x3 window
+    rom.AND_n(0x07)                    # A = biome-id (bits 0-2)
+    rom.PUSH_HL()                      # stack-balance only -- dsr_p_copy's own
+                                        # POP_HL() must see something pushed on
+                                        # both paths; draw_region_arrows_inf
+                                        # ignores HL entirely (reads WRAM directly)
+
+    rom.label('dsr_p_dispatch')
     rom.CP_n(0); rom.JR_Z('dsr_p_water')
     rom.CP_n(1); rom.JR_Z('dsr_p_sand')
     rom.CP_n(2); rom.JR_Z('dsr_p_grass')
@@ -979,8 +1276,14 @@ def build_game_asm(rom: ROM) -> dict:
 
     rom.label('dsr_p_copy')
     rom.CALL('copy_screen')
-    rom.POP_HL()                       # HL -> 'up' neighbor byte, restored
+    rom.POP_HL()                       # HL -> 'up' neighbor byte, restored (finite mode) or
+                                        # a discarded stack-balance value (infinite mode)
+    rom.LD_A_nn(GAME_MODE); rom.OR_A(); rom.JR_NZ('dsr_p_copy_inf')
     rom.CALL('draw_region_arrows')
+    rom.JP('dsr_done')
+
+    rom.label('dsr_p_copy_inf')
+    rom.CALL('draw_region_arrows_inf')
     rom.JP('dsr_done')
 
     rom.label('dsr_done')
@@ -1121,6 +1424,31 @@ def build_game_asm(rom: ROM) -> dict:
     rom.label('dra_right_done')
     rom.RET()
 
+    # ── draw_region_arrows_inf (IP-1102) ──────────────────
+    # Infinite Mode's own arrow-draw routine -- reads the current region's
+    # connectivity nibble directly from INF_WINDOW's center cell (bits 3-6:
+    # up/down/left/right, 1=open) rather than REGION_GRAPH neighbor-index
+    # bytes. No grid-boundary distinction is needed here (ADR-0012 point 2's
+    # own "blocked vs. absent" question is a finite-mode-only concept --
+    # Infinite Mode's world is unbounded, every direction always has a real,
+    # materializable neighbor) -- draws the plain open-arrow tile wherever
+    # the bit is set, nothing wherever it is clear. Never writes
+    # TL_BLOCKED_U/D/L/R (T24.d's own static-audit claim).
+    rom.label('draw_region_arrows_inf')
+    rom.LD_A_nn(INF_WINDOW + 4); rom.BIT_b_A(3); rom.JR_Z('drai_no_up')
+    _arrow_write(ARROW_ADDR_U, TL_ARROW_U)
+    rom.label('drai_no_up')
+    rom.LD_A_nn(INF_WINDOW + 4); rom.BIT_b_A(4); rom.JR_Z('drai_no_down')
+    _arrow_write(ARROW_ADDR_D, TL_ARROW_D)
+    rom.label('drai_no_down')
+    rom.LD_A_nn(INF_WINDOW + 4); rom.BIT_b_A(5); rom.JR_Z('drai_no_left')
+    _arrow_write(ARROW_ADDR_L, TL_ARROW_L)
+    rom.label('drai_no_left')
+    rom.LD_A_nn(INF_WINDOW + 4); rom.BIT_b_A(6); rom.JR_Z('drai_no_right')
+    _arrow_write(ARROW_ADDR_R, TL_ARROW_R)
+    rom.label('drai_no_right')
+    rom.RET()
+
     # ── mm_on_entry / draw_menu_cursor (IP-1040 / IP-9060) ────
     # Runs once each time MAIN MENU is (re)entered/redrawn (state entry, or
     # after a cursor toggle — a full LCD-off redraw either way, matching
@@ -1192,6 +1520,40 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_n(TL_ARROW_R); rom.LD_HL_A()
     rom.RET()
 
+    # ── ms_on_entry / draw_mode_select_cursor (IP-1100) ───────
+    # Mirrors sm_on_entry/draw_select_menu_cursor exactly (no save-validity
+    # gate -- "finite" and "infinite" are always both offered). MM_CURSOR
+    # is reused (GS_MODE_SELECT is never simultaneously active with
+    # GS_MAIN_MENU/GS_SELECT_MENU), reset to 0 ("finite") only on a genuine
+    # state entry (MM_JUST_ENTERED, set by mm_newgame's own transition into
+    # this state) -- a same-state redraw from the player's own toggle
+    # (ms_toggle) leaves MM_CURSOR at its just-toggled value, and the B-
+    # cancel-from-INFINITE-SEED-ENTRY return path deliberately does not set
+    # MM_JUST_ENTERED, so the cursor stays wherever it was. mode_select_
+    # screen() reuses select_menu_screen()'s own row/column layout (rows
+    # 7/9, cursor col 6, label start col 8).
+    MS_CURSOR_FINITE_ADDR   = 0x9800 + 7*32 + 6
+    MS_CURSOR_INFINITE_ADDR = 0x9800 + 9*32 + 6
+
+    rom.label('ms_on_entry')
+    rom.LD_A_nn(MM_JUST_ENTERED); rom.OR_A(); rom.JR_Z('ms_oe_no_reset')
+    rom.XOR_A(); rom.LD_nn_A(MM_JUST_ENTERED)
+    rom.LD_nn_A(MM_CURSOR)
+    rom.label('ms_oe_no_reset')
+    rom.CALL('draw_mode_select_cursor')
+    rom.RET()
+
+    rom.label('draw_mode_select_cursor')
+    rom.LD_HL_nn(MS_CURSOR_FINITE_ADDR);   rom.LD_A_n(TL_BG_BLANK); rom.LD_HL_A()
+    rom.LD_HL_nn(MS_CURSOR_INFINITE_ADDR); rom.LD_A_n(TL_BG_BLANK); rom.LD_HL_A()
+    rom.LD_A_nn(MM_CURSOR); rom.OR_A(); rom.JR_NZ('dmsc_infinite')
+    rom.LD_HL_nn(MS_CURSOR_FINITE_ADDR); rom.JR('dmsc_write')
+    rom.label('dmsc_infinite')
+    rom.LD_HL_nn(MS_CURSOR_INFINITE_ADDR)
+    rom.label('dmsc_write')
+    rom.LD_A_n(TL_ARROW_R); rom.LD_HL_A()
+    rom.RET()
+
     # ── draw_sse_digits (IP-1040) ──────────────────────────
     # Writes the 5 seed digit tiles + 1 scale digit tile, then the cursor
     # (a down-arrow above the currently-selected digit/scale slot). Called
@@ -1224,6 +1586,33 @@ def build_game_asm(rom: ROM) -> dict:
     rom.RET()
     rom.label('dsd_scale_cursor')
     rom.LD_HL_nn(0x9800 + SSE_CURSOR_SCALE_ROW*32 + SSE_SCALE_COL)
+    rom.LD_A_n(TL_ARROW_D); rom.LD_HL_A()
+    rom.RET()
+
+    # ── draw_ise_digits (IP-1100) ───────────────────────────
+    # Mirrors draw_sse_digits, minus the scale-digit/scale-cursor writes
+    # entirely -- INFINITE SEED ENTRY has no scale slot, and SSE_CURSOR
+    # never reaches 5 from this state (st_infinite_seed_entry's own
+    # LEFT/RIGHT bound it to 0-4), so the cursor-arrow placement is always
+    # over a seed digit, never needing dsd_scale_cursor's own branch.
+    # Reuses infinite_seed_entry_screen()'s own SEED row/col (same as
+    # seed_scale_entry_screen()'s, SSE_SEED_ROW/SSE_SEED_COL0/
+    # SSE_CURSOR_SEED_ROW -- both screens share the identical seed-row
+    # layout by design).
+    rom.label('draw_ise_digits')
+    for i in range(5):
+        addr = 0x9800 + SSE_SEED_ROW*32 + (SSE_SEED_COL0 + i)
+        rom.LD_A_nn(SSE_DIGITS + i); rom.ADD_A_n(TL_DIGIT_0)
+        rom.LD_HL_nn(addr); rom.LD_HL_A()
+
+    for i in range(5):
+        addr = 0x9800 + SSE_CURSOR_SEED_ROW*32 + (SSE_SEED_COL0 + i)
+        rom.LD_HL_nn(addr); rom.LD_A_n(TL_BG_BLANK); rom.LD_HL_A()
+
+    rom.LD_A_nn(SSE_CURSOR)
+    rom.LD_E_A(); rom.LD_D_n(0)
+    rom.LD_HL_nn(0x9800 + SSE_CURSOR_SEED_ROW*32 + SSE_SEED_COL0)
+    rom.ADD_HL_DE()
     rom.LD_A_n(TL_ARROW_D); rom.LD_HL_A()
     rom.RET()
 
@@ -1934,6 +2323,142 @@ def build_game_asm(rom: ROM) -> dict:
     rom.ADD_A_n(GW_MAZE_STATE & 0xFF)
     rom.LD_L_A()
     rom.LD_H_n(GW_MAZE_STATE >> 8)
+    rom.RET()
+
+    # ── Infinite Mode: per-region materialization (IP-1101) ───────────────
+    # inf_region_seed0: reseeds gw_prng_step's own state (TMP1:TMP2) to
+    # hash(SEED, INF_MZ_TROW, INF_MZ_TCOL) -- SEED normalized 0->1 (mirrors
+    # generate_world's own rule), XORed with the row then stepped once,
+    # XORed with the col then stepped once (ADR-0016 point 3's "shift/XOR-
+    # only per-region reseed" commitment, operationalized here). Leaves the
+    # mixed state in TMP1:TMP2 for the caller's own subsequent draws.
+    # Clobbers A, B (own scratch), D, E (gw_prng_step's own contract);
+    # preserves C and HL.
+    rom.label('inf_region_seed0')
+    rom.LD_A_nn(SEED); rom.LD_nn_A(TMP2)
+    rom.LD_A_nn(SEED + 1); rom.LD_nn_A(TMP1)
+    rom.LD_A_nn(TMP1); rom.OR_A(); rom.JR_NZ('irs0_seed_ok')
+    rom.LD_A_nn(TMP2); rom.OR_A(); rom.JR_NZ('irs0_seed_ok')
+    rom.LD_A_n(1); rom.LD_nn_A(TMP2)
+    rom.label('irs0_seed_ok')
+    rom.LD_A_nn(INF_MZ_TROW + 1); rom.LD_B_A()
+    rom.LD_A_nn(TMP1); rom.XOR_B(); rom.LD_nn_A(TMP1)
+    rom.LD_A_nn(INF_MZ_TROW); rom.LD_B_A()
+    rom.LD_A_nn(TMP2); rom.XOR_B(); rom.LD_nn_A(TMP2)
+    rom.CALL('gw_prng_step')
+    rom.LD_A_nn(INF_MZ_TCOL + 1); rom.LD_B_A()
+    rom.LD_A_nn(TMP1); rom.XOR_B(); rom.LD_nn_A(TMP1)
+    rom.LD_A_nn(INF_MZ_TCOL); rom.LD_B_A()
+    rom.LD_A_nn(TMP2); rom.XOR_B(); rom.LD_nn_A(TMP2)
+    rom.CALL('gw_prng_step')
+    rom.RET()
+
+    # inf_mod5: A := A mod 5 (repeated-subtraction, no DIV/MUL -- NFR-2300,
+    # generalizes gw_mod3's own established pattern, 3->5).
+    rom.label('inf_mod5')
+    rom.label('im5_loop')
+    rom.CP_n(5); rom.JR_C('im5_done')
+    rom.SUB_n(5); rom.JR('im5_loop')
+    rom.label('im5_done')
+    rom.RET()
+
+    # inf_materialize_region: on entry, INF_MZ_ROW/INF_MZ_COL hold the
+    # region to materialize (signed 16-bit each, caller-set). Produces a
+    # biome-id + 4-direction connectivity nibble (Binary Tree maze, zero-
+    # memory, ADR-0016 point 5) and a treasure-presence predicate, purely as
+    # a function of (SEED, row, col) -- no read of DIV or any other
+    # history-dependent input (NFR-2300).
+    #
+    # Own region: reseed once via inf_region_seed0, then draw three
+    # sequential values from the resulting state -- biome, own carve-bias,
+    # treasure-presence. Sequential, not three independent reseeds: an
+    # earlier draft of this routine (matching this package's own planning
+    # text) reseeded a *second* time for the treasure draw, but a second
+    # reseed of the identical (SEED,row,col) reproduces the exact same
+    # first-drawn byte, making treasure fully correlated with (not
+    # independent of) the biome draw -- caught during implementation
+    # (T22.d's own statistical-independence claim would have been false),
+    # fixed here by drawing sequentially from one reseed instead, per this
+    # skill's own material-drift discipline (a drift from the plan, not
+    # from the shipped code, corrected in place rather than shipped wrong).
+    #
+    # Connectivity: this region's own carve-bias decides whether it opens
+    # north or west; south/east openness is read from the south/east
+    # neighbor's own carve-bias (one discarded "would-be biome" draw, one
+    # kept carve-bias draw each) -- the neighbor on that side is the one
+    # that "decides" the shared edge. No grid-boundary special case is ever
+    # needed (Infinite Mode's world is unbounded -- every direction always
+    # has a real, materializable neighbor), unlike the finite mode's own
+    # bounded carve pass (IP-1070) -- confirms Open Question 4's resolution
+    # (no spawn-region special case) is correct by construction, not just
+    # asserted.
+    rom.label('inf_materialize_region')
+    rom.LD_A_nn(INF_MZ_ROW); rom.LD_nn_A(INF_MZ_TROW)
+    rom.LD_A_nn(INF_MZ_ROW + 1); rom.LD_nn_A(INF_MZ_TROW + 1)
+    rom.LD_A_nn(INF_MZ_COL); rom.LD_nn_A(INF_MZ_TCOL)
+    rom.LD_A_nn(INF_MZ_COL + 1); rom.LD_nn_A(INF_MZ_TCOL + 1)
+    rom.CALL('inf_region_seed0')
+    rom.CALL('gw_prng_step')          # draw 1: biome
+    rom.CALL('inf_mod5')
+    rom.LD_nn_A(INF_MZ_BIOME)
+    rom.CALL('gw_prng_step')          # draw 2: own carve-bias
+    rom.AND_n(1)
+    rom.LD_nn_A(INF_MZ_BIAS)
+    rom.CALL('gw_prng_step')          # draw 3: treasure-presence
+    rom.AND_n(0x0F)
+    rom.LD_B_n(0)
+    rom.CP_n(0); rom.JR_NZ('imr_no_treasure')
+    rom.LD_B_n(1)
+    rom.label('imr_no_treasure')
+    rom.LD_A_B(); rom.LD_nn_A(INF_MZ_TREASURE)
+
+    # South neighbor (row+1, col): reseed, draw 1 discarded, draw 2 (own
+    # carve-bias) kept in C -- gw_prng_step/inf_region_seed0 both preserve
+    # C, so it survives the east-neighbor section below.
+    rom.LD_A_nn(INF_MZ_ROW); rom.LD_E_A()
+    rom.LD_A_nn(INF_MZ_ROW + 1); rom.LD_D_A()
+    rom.INC_DE()
+    rom.LD_A_E(); rom.LD_nn_A(INF_MZ_TROW)
+    rom.LD_A_D(); rom.LD_nn_A(INF_MZ_TROW + 1)
+    rom.LD_A_nn(INF_MZ_COL); rom.LD_nn_A(INF_MZ_TCOL)
+    rom.LD_A_nn(INF_MZ_COL + 1); rom.LD_nn_A(INF_MZ_TCOL + 1)
+    rom.CALL('inf_region_seed0')
+    rom.CALL('gw_prng_step')          # discard (that region's own biome)
+    rom.CALL('gw_prng_step')          # keep: that region's own carve-bias
+    rom.AND_n(1)
+    rom.LD_C_A()                      # C = south_bias (open_south iff ==0)
+
+    # East neighbor (row, col+1): reseed, draw 1 discarded, draw 2 kept in D.
+    rom.LD_A_nn(INF_MZ_ROW); rom.LD_nn_A(INF_MZ_TROW)
+    rom.LD_A_nn(INF_MZ_ROW + 1); rom.LD_nn_A(INF_MZ_TROW + 1)
+    rom.LD_A_nn(INF_MZ_COL); rom.LD_E_A()
+    rom.LD_A_nn(INF_MZ_COL + 1); rom.LD_D_A()
+    rom.INC_DE()
+    rom.LD_A_E(); rom.LD_nn_A(INF_MZ_TCOL)
+    rom.LD_A_D(); rom.LD_nn_A(INF_MZ_TCOL + 1)
+    rom.CALL('inf_region_seed0')
+    rom.CALL('gw_prng_step')          # discard
+    rom.CALL('gw_prng_step')          # keep: east neighbor's own carve-bias
+    rom.AND_n(1)
+    rom.LD_D_A()                      # D = east_bias (open_east iff ==1)
+
+    # Compose the connectivity nibble (bit3=up/north, bit4=down/south,
+    # bit5=left/west, bit6=right/east, 1=open) and pack with the biome-id.
+    rom.LD_E_n(0)
+    rom.LD_A_nn(INF_MZ_BIAS); rom.CP_n(0); rom.JR_NZ('imr_no_north')
+    rom.LD_A_E(); rom.OR_n(0x08); rom.LD_E_A()
+    rom.label('imr_no_north')
+    rom.LD_A_nn(INF_MZ_BIAS); rom.CP_n(1); rom.JR_NZ('imr_no_west')
+    rom.LD_A_E(); rom.OR_n(0x20); rom.LD_E_A()
+    rom.label('imr_no_west')
+    rom.LD_A_C(); rom.CP_n(0); rom.JR_NZ('imr_no_south')
+    rom.LD_A_E(); rom.OR_n(0x10); rom.LD_E_A()
+    rom.label('imr_no_south')
+    rom.LD_A_D(); rom.CP_n(1); rom.JR_NZ('imr_no_east')
+    rom.LD_A_E(); rom.OR_n(0x40); rom.LD_E_A()
+    rom.label('imr_no_east')
+    rom.LD_A_nn(INF_MZ_BIOME); rom.OR_E()
+    rom.LD_nn_A(INF_MZ_RESULT)
     rom.RET()
 
     # ── save_to_sram ─────────────────────────────────────

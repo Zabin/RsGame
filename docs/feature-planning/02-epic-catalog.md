@@ -1,15 +1,19 @@
 # FP-02 — Epic Catalog
 
 > **Status: ✅ Authored (bootstrap as-built, 2026-07-07); delta 2026-07-10 (procgen-world
-> increment); delta 2026-07-11 (`ADR-0012` maze-adjacency remediation).** Owned by
-> `05-feature-decomposition`. Groups [FP-03](03-feature-catalog.md)'s fifteen Features into five
+> increment); delta 2026-07-11 (`ADR-0012` maze-adjacency remediation); delta 2026-07-14 (Infinite
+> Mode, new Epic EP-6000).** Owned by
+> `05-feature-decomposition`. Groups [FP-03](03-feature-catalog.md)'s Features into six
 > Epics. Every Feature belongs to exactly one Epic. **New Epic EP-5000** holds the procgen-world
 > increment's world-generation-and-narrative Features; **FEAT-1100** joins EP-1000
 > (state-machine extension); **FEAT-5300** joins EP-3000 (save-system extension). **2026-07-11:
 > `FEAT-9100`** (maze-shaped region adjacency) **joins EP-5000** (extends `FEAT-9000`'s
 > generation routine); **`FEAT-2100`** (maze-aware transition-edge signaling) **joins EP-1000**
 > (extends `FEAT-2000`'s arrow signaling, following `FEAT-1100`'s own precedent of a
-> generation-triggered Feature still living in EP-1000 rather than EP-5000).
+> generation-triggered Feature still living in EP-1000 rather than EP-5000). **2026-07-14: new
+> Epic `EP-6000`** holds **`FEAT-10000`** (Infinite Mode) — kept distinct from `EP-5000` rather
+> than folded in, since it is a second, independent generation architecture (`ADR-0016` point 7),
+> not an extension of `EP-5000`'s own finite-mode routine the way `FEAT-9100` was.
 
 ## EP-1000 — Core Gameplay Loop
 
@@ -133,6 +137,36 @@
   FEAT-9100's output); EP-2000 (FEAT-4100/FEAT-6100 extend EP-2000's existing rendering/
   presentation patterns); EP-3000 (FEAT-5300 persists this Epic's output).
 
+## EP-6000 — Infinite Mode
+
+- **ID:** EP-6000
+- **Title:** Infinite Mode
+- **Purpose:** Offer a second, additive, non-terminating world-generation mode — streaming,
+  positionally-deterministic, no fixed extent — as a genuinely separate player-facing thread from
+  `EP-5000`'s own finite `(seed, scale)` world.
+- **Features Included:** FEAT-10000 (Infinite Mode). One Feature, new — not yet implemented.
+- **Modules:** `asm_game.py` (new Infinite Mode routines, prospective), `worldgen.py` (prospective
+  oracle mirror) — the same physical files `EP-5000` already touches, but an independent code path
+  within them, per `ADR-0016`'s own explicit "additive, not amended" framing.
+- **Estimated Scope:** A single, deliberately unsplit Feature for now (see `FEAT-10000`'s own
+  Scope field) — no `FS-xxx` authored yet, no requirements-level gap remaining before one can be.
+  Given its own separate identity from `EP-5000` (a parallel generation architecture, a different
+  win condition, a different save format — not an extension of anything `EP-5000` owns), this
+  Epic is kept distinct rather than folded into `EP-5000`, unlike how `FEAT-9100` joined `EP-5000`
+  in 2026-07-11 (that addition *did* extend `FEAT-9000`'s own generation routine directly; this
+  one deliberately does not, per `ADR-0016` point 7's own explicit "second, independent
+  architecture" framing).
+- **Risks:** High complexity/Medium-High risk, comparable to `EP-5000`'s own `FEAT-9000` at first
+  cataloging — a wholly new generation algorithm with no shipped precedent, plus two explicitly
+  `UNCONFIRMED`/`NOT YET SIZED` NFRs (materialization timing, WRAM/SRAM budget) this Epic's own
+  Feature surfaces honestly rather than assumes away.
+- **Dependencies:** EP-1000 (FEAT-1000's game-state machine, FEAT-1100's new-game entry flow,
+  FEAT-3000's collection/scoring concepts); EP-3000 (FEAT-5000's save/continue convention);
+  EP-5000 (shares `FEAT-9000`'s underlying `gw_prng_step` PRNG construction — a code-reuse
+  dependency, not a structural one; also the technical origin of the per-super-cell hash
+  technique `ADR-0018` separately reuses for `EP-5000`'s own finite-mode blob clustering — a
+  contribution flowing *from* this Epic *to* `EP-5000`, not a dependency *on* it).
+
 ## Epic summary table
 
 | Epic | Title | Features | Primary Modules | Risk level |
@@ -142,6 +176,7 @@
 | EP-3000 | Persistence | FEAT-5000, FEAT-5100, FEAT-5300 | `asm_game.py` | Low (shipped Features); Medium (FEAT-5300, new) |
 | EP-4000 | Engineering Quality & Verification | FEAT-7000 | all six + `test_rom.py` | Low (both tracked non-compliances resolved) |
 | EP-5000 | World Generation & Visual Narrative | FEAT-9000, FEAT-4100, FEAT-6100, FEAT-9100 | new `worldgen.py`, `tilemaps.py`, `tiles.py` | **Medium-High** (FEAT-9000: new algorithm, no shipped precedent); Low-Medium (FEAT-9100, new but algorithm choice already resolved) |
+| EP-6000 | Infinite Mode | FEAT-10000 | `asm_game.py`, `worldgen.py` (prospective) | **Medium-High** (new algorithm, no shipped precedent, two `UNCONFIRMED`/`NOT YET SIZED` NFRs) |
 
 Every Feature in [FP-03](03-feature-catalog.md) belongs to exactly one Epic above; no Feature
 required splitting across Epics.

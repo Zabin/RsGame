@@ -2,9 +2,11 @@
 
 > **Status: ✅ Authored (bootstrap as-built, 2026-07-07); delta 2026-07-10 (procgen-world
 > increment); delta 2026-07-11 (`ADR-0012` maze-adjacency remediation, `FEAT-9100`/`FEAT-2100`);
-> delta 2026-07-13 (edge-indicator legend screen, `FEAT-1200`, `CR-06`/`BL-0100`).**
+> delta 2026-07-13 (edge-indicator legend screen, `FEAT-1200`, `CR-06`/`BL-0100`); delta
+> 2026-07-14 (Infinite Mode, `FEAT-10000`, `ADS-001`/`ADR-0016`/`ADR-0017`/`BL-0082`); delta
+> 2026-07-14 (cont'd) (`FEAT-10000`'s missing `FEAT-4100` edge added, `BL-0111`).**
 > Owned by `05-feature-decomposition`. Analyzes dependencies among [FP-03](03-feature-catalog.md)'s
-> sixteen Features. **No circular dependency found.**
+> seventeen Features. **No circular dependency found.**
 
 ## Graph
 
@@ -26,6 +28,7 @@ graph TD
     FEAT9100["FEAT-9100: Maze-Shaped<br/>Region Adjacency (NEW)"]
     FEAT2100["FEAT-2100: Maze-Aware<br/>Transition-Edge Signaling (NEW)"]
     FEAT1200["FEAT-1200: SELECT Menu &<br/>Edge-Indicator Legend (NEW)"]
+    FEAT10000["FEAT-10000: Infinite Mode<br/>(NEW)"]
 
     FEAT1000 --> FEAT2000
     FEAT1000 --> FEAT3000
@@ -61,6 +64,12 @@ graph TD
     FEAT1000 --> FEAT1200
     FEAT1100 --> FEAT1200
     FEAT2100 --> FEAT1200
+    FEAT1000 --> FEAT10000
+    FEAT1100 --> FEAT10000
+    FEAT3000 --> FEAT10000
+    FEAT5000 --> FEAT10000
+    FEAT9000 --> FEAT10000
+    FEAT4100 --> FEAT10000
 
     FEAT7000 -.underpins.-> FEAT1000
     FEAT7000 -.underpins.-> FEAT2000
@@ -76,6 +85,7 @@ graph TD
     FEAT7000 -.underpins.-> FEAT9100
     FEAT7000 -.underpins.-> FEAT2100
     FEAT7000 -.underpins.-> FEAT1200
+    FEAT7000 -.underpins.-> FEAT10000
 
     style FEAT5100 fill:#9d9,stroke:#333,stroke-width:2px
     style FEAT9000 fill:#f9d,stroke:#333,stroke-width:2px
@@ -86,6 +96,7 @@ graph TD
     style FEAT9100 fill:#f96,stroke:#333,stroke-width:2px
     style FEAT2100 fill:#f96,stroke:#333,stroke-width:2px
     style FEAT1200 fill:#9cf,stroke:#333,stroke-width:2px
+    style FEAT10000 fill:#c9f,stroke:#333,stroke-width:2px
 ```
 
 *(FEAT-5100 highlighted green — shipped and VERIFIED since this graph's last version. The five
@@ -97,7 +108,15 @@ already `COMPLETE`/`VERIFIED` or awaiting only fresh-session verification). FEAT
 blue — the 2026-07-13 edge-indicator legend screen delta (`CR-06`/`BL-0100`), a third, independent
 thread: its own dependencies (FEAT-1100's cursor-menu convention, FEAT-2100's already-shipped
 tiles) are both already satisfied, so it is immediately buildable, not serialized behind
-FEAT-2100's own in-flight render branch (`IP-1082`).
+FEAT-2100's own in-flight render branch (`IP-1082`). FEAT-10000 highlighted purple — the
+2026-07-14 Infinite Mode delta (`ADS-001`/`ADR-0016`/`ADR-0017`, `BL-0082`), a fourth, independent
+thread: its five dependencies (FEAT-1000/1100/3000/5000/9000) are all already shipped/`VERIFIED`,
+so it too is immediately buildable once specified — not serialized behind any other pink/orange/
+blue Feature's own in-flight work. **`FEAT-4100 → FEAT-10000` added same-day (`BL-0111`)** — a
+materialized Infinite Mode region's rendering path reuses `FEAT-4100`'s own biome-family
+screen-composition dispatch, omitted from the original cataloging pass and correctly surfaced by
+`06-feature-specification`'s own `FS-110` Open Question 1; `FEAT-4100` is already shipped/
+`VERIFIED`, so this addition does not change `FEAT-10000`'s immediate-buildability.
 Solid arrows are hard dependencies (A → B means B depends on A); dotted arrows from FEAT-7000
 represent the non-blocking "underpins" relationship its cross-cutting NFRs have with every
 player-visible Feature.)*
@@ -106,22 +125,23 @@ player-visible Feature.)*
 
 | Feature | Depends on | Depended on by |
 |---|---|---|
-| FEAT-1000 | — (foundational) | FEAT-2000, FEAT-3000, FEAT-5000, FEAT-6000, FEAT-9000, FEAT-1100, FEAT-1200 |
+| FEAT-1000 | — (foundational) | FEAT-2000, FEAT-3000, FEAT-5000, FEAT-6000, FEAT-9000, FEAT-1100, FEAT-1200, FEAT-10000 |
 | FEAT-4000 | — (foundational) | FEAT-2000, FEAT-3000, FEAT-6000, FEAT-9000, FEAT-4100 |
 | FEAT-2000 | FEAT-1000, FEAT-4000 | FEAT-3000, FEAT-5000, FEAT-2100 |
-| FEAT-3000 | FEAT-1000, FEAT-2000, FEAT-4000 | FEAT-5000, FEAT-6000, FEAT-5100, FEAT-9000 |
+| FEAT-3000 | FEAT-1000, FEAT-2000, FEAT-4000 | FEAT-5000, FEAT-6000, FEAT-5100, FEAT-9000, FEAT-10000 |
 | FEAT-6000 | FEAT-1000, FEAT-3000, FEAT-4000 | FEAT-4100, FEAT-6100 |
-| FEAT-5000 | FEAT-1000, FEAT-2000, FEAT-3000 | FEAT-5100, FEAT-1100, FEAT-5300 |
+| FEAT-5000 | FEAT-1000, FEAT-2000, FEAT-3000 | FEAT-5100, FEAT-1100, FEAT-5300, FEAT-10000 |
 | FEAT-5100 | FEAT-3000, FEAT-5000 | FEAT-5300 |
 | FEAT-7000 | — (infrastructure floor) | all others, non-blocking |
-| **FEAT-9000** | FEAT-1000, FEAT-3000, FEAT-4000 | FEAT-4100, FEAT-1100, FEAT-5300, FEAT-9100 |
-| **FEAT-4100** | FEAT-9000, FEAT-4000, FEAT-6000 | FEAT-6100 |
-| **FEAT-1100** | FEAT-1000, FEAT-9000, FEAT-5000 | FEAT-1200 |
+| **FEAT-9000** | FEAT-1000, FEAT-3000, FEAT-4000 | FEAT-4100, FEAT-1100, FEAT-5300, FEAT-9100, FEAT-10000 |
+| **FEAT-4100** | FEAT-9000, FEAT-4000, FEAT-6000 | FEAT-6100, FEAT-10000 |
+| **FEAT-1100** | FEAT-1000, FEAT-9000, FEAT-5000 | FEAT-1200, FEAT-10000 |
 | **FEAT-5300** | FEAT-9000, FEAT-5000, FEAT-5100 | — (nothing yet) |
 | **FEAT-6100** | FEAT-4100, FEAT-6000 | — (nothing yet) |
 | **FEAT-9100** | FEAT-9000 | FEAT-2100 |
 | **FEAT-2100** | FEAT-9100, FEAT-2000 | FEAT-1200 |
 | **FEAT-1200** | FEAT-1000, FEAT-1100, FEAT-2100 | — (nothing yet) |
+| **FEAT-10000** | FEAT-1000, FEAT-1100, FEAT-3000, FEAT-5000, FEAT-9000, FEAT-4100 | — (nothing yet) |
 
 ## Critical path
 
@@ -150,17 +170,30 @@ not its still-in-flight render branch `IP-1082`) — this thread's own *effectiv
 is 1 node (`FEAT-1200` itself), the shortest of the three active threads, and does not extend the
 critical path.
 
+**Infinite Mode (new, 2026-07-14):** all six of `FEAT-10000`'s own dependencies
+(`FEAT-1000`/`FEAT-1100`/`FEAT-3000`/`FEAT-5000`/`FEAT-9000`, plus `FEAT-4100`, added `BL-0111`
+the same day) are already shipped/`VERIFIED` — this thread's own *effective* new-work length is
+still 1 node (`FEAT-10000` itself), tied with `FEAT-1200` for the shortest active thread, and does
+not extend the critical path. The `BL-0111` correction only names an already-satisfied
+dependency explicitly; it does not add build-order risk.
+
 ## Blocking Features (high fan-out)
 
 - **FEAT-1000** (7 direct dependents) — remains the single highest-fan-out Feature; grows by one
   (`FEAT-1200`) with this delta.
-- **FEAT-9000** (4 direct dependents: FEAT-4100, FEAT-1100, FEAT-5300, FEAT-9100) — the
-  procgen-world increment's own highest-fan-out Feature, now also gating this session's
-  remediation thread. Any change to the generation algorithm's output shape ripples into
-  rendering, the new-game flow, save persistence, *and* adjacency shape simultaneously — worth
-  noting since `FEAT-9000` is already `COMPLETE`/shipped, so this fan-out is now a
-  stability/regression concern for `FEAT-9100`'s implementation, not an open design risk.
+- **FEAT-9000** (5 direct dependents: FEAT-4100, FEAT-1100, FEAT-5300, FEAT-9100, FEAT-10000) —
+  the procgen-world increment's own highest-fan-out Feature, now also gating this session's
+  remediation thread and the new Infinite Mode Epic. Any change to the generation algorithm's
+  output shape ripples into rendering, the new-game flow, save persistence, adjacency shape, *and*
+  Infinite Mode's own shared PRNG construction simultaneously — worth noting since `FEAT-9000` is
+  already `COMPLETE`/shipped, so this fan-out is now a stability/regression concern, not an open
+  design risk. `FEAT-10000`'s own dependency on `FEAT-9000` is code-reuse only (`gw_prng_step`),
+  not a structural build-order dependency on anything `FEAT-9000`-specific — see `FEAT-10000`'s
+  own catalog entry.
 - **FEAT-4000** (5 direct dependents) — unchanged from the prior delta.
+- **FEAT-4100** (2 direct dependents: FEAT-6100, FEAT-10000) — grows by one with this delta
+  (`BL-0111`); still well below the "high fan-out" threshold the three Features above meet, noted
+  here only because the correction changed the count, not because it newly qualifies as blocking.
 
 ## Parallel opportunities
 

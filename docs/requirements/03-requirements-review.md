@@ -7,7 +7,12 @@
 > finding #13; delta 2026-07-12 reviewing `ADR-0015`'s win-condition-redesign FR delta — see
 > finding #14; delta 2026-07-13 reviewing `BL-0100`'s edge-indicator legend screen request —
 > see finding #15; delta 2026-07-13 (cont'd) reviewing FR-1200/FR-1210 once GDS-01 §4c/GDS-08
-> §11 landed — see finding #16).** Owned by
+> §11 landed — see finding #16; delta 2026-07-13 (cont'd) reviewing the Infinite Mode epic's
+> FR-10000–10500/NFR-1400/2300/4300/5400 delta — see finding #17; delta 2026-07-13 (cont'd)
+> reviewing `CR-07`'s resolution once baselined as FR-10600 — finding #17 updated; delta
+> 2026-07-14 reviewing `CR-05`'s mechanism resolution, `ADR-0018` — see finding #18; delta
+> 2026-07-14 (cont'd) reviewing `CR-05`'s baseline as `FR-9170` and `FR-10100`'s refresh against
+> `GDS-01` §4d — see finding #19).** Owned by
 > `04-requirements-engineering`. Reviews the final
 > [RQ-01](01-functional-requirements.md)/[RQ-02](02-non-functional-requirements.md)
 > baseline for duplicates, conflicts, ambiguities, gaps, impossible requirements, architecture
@@ -34,6 +39,9 @@
 | 14 | 04-delta review (`ADR-0015`/`BL-0093`) | FR-9160, FR-9161, FR-9130, FR-3300, FR-9120, FR-3220 | Reviewed the win-condition-redesign delta as a set. **FR-9160/FR-9161** are internally consistent with `ADR-0015` and with each other: FR-9160's placement guarantee (exactly `WORLD_SCALE` `KeyItem`s, always achievable via the leaf-priority-then-random-fill rule) is exactly what FR-9161's Notes cites as making its own victory threshold always reachable — a real dependency correctly stated, not merely asserted. Cross-checked against `FR-9120` (full reachability): unaffected by this delta — every `KeyItem`, wherever `FR-9160` places it, remains reachable under `FR-9120`'s own unchanged guarantee, since placement is a subset of already-reachable regions, not a new region type. Cross-checked against `FR-3220` (item-agnostic collection mechanic): also unaffected — `FR-9160` changes *how many* regions get a `KeyItem` and *where*, not the pickup/flag/count mechanic `FR-3220` already governs, confirmed by `FR-9160`'s own Dependencies field naming `FR-3220` as unaffected rather than silently assuming it. **Supersession pattern applied correctly, extending finding #7 a fourth time:** `FR-9130`/`FR-3300` (both shipped, accurate-for-the-currently-shipped-game) each gained a Notes forward-pointer to their respective successor (`FR-9160`/`FR-9161`) without any edit to their own substantive Title/Description/Postcondition/Acceptance-Criteria text — the same discipline `FR-1120`→`FR-1170`-`1190` and `FR-2320`→`FR-2330` already established, now a fourth instance (`FR-9130`→`FR-9160`, `FR-3300`→`FR-9161`) of a pattern this stage should keep tracking deliberately, not let become an unbounded, undocumented pile of "target" FRs. **One pre-existing, unrelated documentation-staleness finding fixed in passing, not newly introduced by this delta:** `FR-9130`'s own Notes claimed "Not yet implemented" when `IP-1020` had in fact shipped and independently verified it (`VR-1020`, `T12.e`) well before this delta — corrected as a factual note, confirmed not to have affected any prior Review pass's own conclusions (findings #7–13 never relied on FR-9130's implementation-status claim specifically). | — (clean check, no new defect; two new FRs added, two existing FRs correctly cross-referenced, one unrelated staleness corrected) | None — this finding records that the delta was reviewed together and found internally consistent, per this stage's own Step-3 discipline. |
 | 15 | Missing-architecture-concept gap, correctly not invented unilaterally | CR-06, GDS-01 §4/§4a, GDS-08, FR-2320, FR-2330 | Reviewed `BL-0100`'s request (a SELECT-reachable legend screen explaining the open-arrow/blocked-edge/absent indicator tiles) against the current architecture baseline. **No FR was written** — `GDS-01` §4's own six-state game-state machine, extended only via §4a's own delta-list mechanism (the same mechanism that added `MAIN MENU`/`SEED SCALE ENTRY`, per `BL-0031`'s `01→02→03→04` routing precedent), names `MAP` as SELECT's *sole* destination and has no node, and `GDS-08` has no layout/content description, for a legend/help screen. This is not an ambiguity fixable by rewording an existing FR, nor a direct conflict like `CR-05`'s (finding #13) — it is a genuine **missing concept**: no architecture-level decision exists yet for this screen to be derived from. **Correctly handled per this skill's own SHALL-NOT-redesign-architecture rule:** the request was written up as **CR-06** (Candidate Requirements, RQ-01) and left un-baselined rather than inventing a new `GAMESTATE` value or a SELECT-menu restructuring here, with the exact upstream need named (a GDS-01 §4/§4a delta plus a GDS-08 delta) for `03-architecture-design-synthesis` to close before `04` returns to derive the real FR — mirroring `BL-0031`'s own historical path for the last two new states this project added. | Low (a real, cleanly-scoped gap, correctly caught and routed rather than silently invented — not a defect in the baseline itself) | `CR-06` stays un-baselined until `03-architecture-design-synthesis` authors the GDS-01/GDS-08 deltas the new screen needs. Not blocking any current work. |
 | 16 | 04-delta review (`CR-06` baselined) | FR-1200, FR-1210, FR-1150, FR-1100, FR-1170, FR-2320, FR-2330 | Reviewed the delta that closes finding #15's own gap now that `GDS-01` §4c/`GDS-08` §11 have landed. **FR-1200/FR-1210** are internally consistent with the new architecture: `FR-1200`'s state diagram matches `GDS-01` §4c's own diagram exactly (SELECT MENU as the new sole `SELECT` destination, `MAP`/`LEGEND` as its two confirm targets, `B`-cancel returning directly to `PLAYING`); `FR-1210`'s content requirements (the actual tile drawn beside its own label, not a redrawn approximation) match `GDS-08` §11's own decision verbatim. Cross-checked against `FR-1100` (six-state machine): `FR-1200`'s own Dependencies field correctly notes it "extends the state set by one" rather than silently assuming `FR-1100`'s own count stays accurate (following `FR-1170`'s own precedent for the same class of extension). Cross-checked against `FR-2320`/`FR-2330` (the tile-indicator FRs `FR-1210` visually depends on): confirmed unaffected — `FR-1210` only *displays* what those FRs already define, it does not redefine the three-state signal itself. **Supersession pattern applied correctly, extending finding #7 a fifth time:** `FR-1150` (shipped, accurate for the currently-shipped game) gained a Notes forward-pointer to its successor (`FR-1200`) without any edit to its own substantive Title/Description/Postcondition/Acceptance-Criteria text — the same discipline `FR-1120`→`FR-1170`, `FR-2320`→`FR-2330`, and `FR-9130`→`FR-9160`/`FR-3300`→`FR-9161` already established, now a fifth instance. **`CR-06` correctly closed, not silently deleted:** its own entry records the resolution and points forward to `FR-1200`/`FR-1210` rather than being removed, preserving the audit trail per this skill's own Candidate Requirements convention. | — (clean check, no new defect; two new FRs added, one existing FR correctly cross-referenced, one Candidate correctly resolved) | None — this finding records that the delta was reviewed together and found internally consistent, per this stage's own Step-3 discipline. |
+| 17 | Missing-mechanic gap, correctly not invented unilaterally — **RESOLVED 2026-07-13** | CR-07, FR-10400, FR-10600, GDS-01, R216, ADR-0017 | Reviewed `BL-0106`'s run/session-shape question (does an Infinite Mode playthrough resume indefinitely, or is it a bounded "run" needing a new death/retreat/checkpoint mechanic?) against the current architecture baseline. **No FR was written for either answer.** `R216` itself states it "deliberately does not answer" the question, and `ADR-0017` point 4 explicitly declines to decide it, both naming it "a genuine new mechanic decision." This is the same class of gap as **finding #15** (`CR-06`'s missing-GAMESTATE-concept gap) — not an ambiguity fixable by rewording, not a direct architecture conflict like `CR-05` — a genuine missing concept with no current source to derive from, for either candidate answer. **Correctly handled per this skill's own SHALL-NOT-invent-requirements rule:** written up as **CR-07** (Candidate Requirements, RQ-01) rather than picking an answer on the player's behalf. **One meaningful difference from `CR-05`/`CR-06`'s routing, correctly reasoned through, not merely copied:** this Candidate was **not** routed to `03-architecture-design-synthesis` outright — it was framed as a player-experience preference question the user is better positioned to answer directly than a research-driven architecture pass, with a `03` GDS-01 delta needed only *if* the user's answer turned out to require a new mechanic. **Confirmed `FR-10400`'s own win-condition state (running count, top-3 table) does not depend on which answer is chosen** — cross-checked directly against `ADR-0017` point 4's own claim, not merely trusted. **Resolved (2026-07-13): the project owner decided directly — "for now assume indefinitely resumable."** The no-new-mechanic branch of this finding's own analysis applies: no `GDS-01` delta was needed, so the `03-architecture-design-synthesis` routing this finding's own Recommendation named was never triggered. Baselined as **FR-10600**, cross-checked against `FR-1170`/`FR-1190`/`FR-10500` (confirmed no conflict — this FR restates their existing save/continue convention for Infinite Mode, invents no new state). | Low (a real, cleanly-scoped gap, correctly caught and routed rather than silently invented — not a defect in the baseline itself; now closed) | None — `CR-07` is resolved and baselined; no further action. |
+| 18 | 03-delta review (`CR-05`'s mechanism resolved) | CR-05, ADR-0009, ADR-0012, ADR-0016, ADR-0018 | Reviewed the delta that resolves finding #13's own `CR-05` conflict. The project owner directed reusing Infinite Mode's own `hash(SEED, supercell_row, supercell_col)` blob technique for the finite mode too — **`ADR-0018`** adopts it, refining `ADR-0009` point 2 (the existing grammar-constrained anchor+delta draw, retained unchanged as the fallback branch). **Confirmed this genuinely resolves finding #13's conflict rather than reopening it**: the original conflict was that dead-end seeding needed the maze to exist before biome assignment, contradicting `ADR-0012` point 1's fixed biome-first ordering; the hash technique is purely positional (a function of `SEED` and supercell coordinates alone, available before any pass runs), so it needs no maze and no reordering — `ADR-0012` is untouched, cross-checked directly against its own text, not merely asserted. **Confirmed `ADR-0018` does not silently redefine `ADR-0009` point 2's existing mechanics**: the legal-range computation (`[lo, hi]` from neighbor `±1`, clamped `[0,4]`) is stated as unchanged; only the *choice* of drawing vs. snapping-to-target is new. `CR-05` is not yet baselined into a real FR — `ADR-0018` itself defers that to a future `04-requirements-engineering` pass, mirroring `CR-06`'s own `03→04` precedent (finding #15/#16) exactly. | — (clean check, no new defect; one architecture conflict resolved by a genuinely new mechanism rather than either originally-proposed side, one Candidate correctly left un-baselined pending `04`) | `04-requirements-engineering` should derive the real FR from `ADR-0018` when next convenient — not urgent, blocks no in-flight package. |
+| 19 | 04-delta review (`CR-05` baselined as `FR-9170`; `FR-10100` refreshed against `GDS-01` §4d) | FR-9170, CR-05, FR-9100, FR-4310, ADR-0018, FR-10100, GDS-01, FR-1180, FR-9110 | Reviewed the delta that closes finding #18's own recommendation and a second, independent delta riding the same pass. **`FR-9170`** (finite-mode biome-blob clustering) is internally consistent with `ADR-0018`: its Description states the snap-to-target/fallback-draw branch exactly as `ADR-0018` point 4 decides, its Postconditions restate `FR-4310`'s existing grammar-validity invariant rather than redefining it (cross-checked — `FR-4310` is untouched), and its Acceptance Criteria (d) restates `ADR-0018` point 8's own byte-for-byte oracle/SM83 branch-condition-agreement requirement rather than a looser "matches eventually" claim. **Confirmed `FR-9170` does not silently fix a per-generation draw-count assumption `ADR-0018`'s own Consequences section flagged as a risk to check** — this Review found no existing FR/NFR asserting a fixed draw count (the same conclusion `ADR-0018` itself reached), so nothing needed correcting. **`CR-05` correctly closed, not silently deleted:** its own entry records the full resolution trail (finding #13 → `ADR-0018` → finding #18 → `FR-9170`) and points forward, preserving the audit trail per this document's own Candidate Requirements convention — a sixth instance of this project's supersession/closure discipline. **`FR-10100`'s refresh reviewed separately, confirmed correctly scoped as a Notes/Acceptance-Criteria update, not a new FR:** unlike `CR-06`'s own gap (no FR existed at all for the edge-indicator legend screen, finding #15), `FR-10100` already stated the substantive "what" (mode choice offered, seed-only) before `GDS-01` §4d landed — the delta only fills in "how" (state-machine shape), correctly handled as an enrichment of the existing leaf rather than a new ID, avoiding the ID-proliferation risk this stage's own writing rules exist to prevent. Cross-checked the new Acceptance Criteria against `GDS-01` §4d's own diagram directly, not merely trusted: the two named cancel-path targets (`MODE SELECT`→`MAIN MENU`, `INFINITE SEED ENTRY`→`MODE SELECT`) and the Finite-Mode-path-unaffected claim both match verbatim. Confirmed no exact `GameState` value or WRAM address leaked into the requirement text (this stage's own Gotchas rule) — both remain named only as "an implementation-level choice," deferred to `07`/`08` exactly as `IP-1100`'s own package already resolves them. | — (clean check, no new defect; one Candidate closed and baselined, one existing FR correctly refreshed without ID proliferation) | None — this finding records that both deltas were reviewed together and found internally consistent, per this stage's own Step-3 discipline. |
 
 ## Duplicates / contradictions checked and found clean
 
@@ -58,6 +66,16 @@
   conflict — confirmed the touches only clarified the *mechanism* behind an already-accurate
   postcondition, never changed a Description/Postcondition/Acceptance-Criteria field. `FR-2330`
   and `FR-2320` are complementary current/target pairs (finding #7's pattern), not duplicates.
+- **2026-07-13 delta (Infinite Mode epic, `ADR-0016`/`ADR-0017`):** `ADR-0016`/`ADR-0017`
+  cross-checked against every new FR-10xxx/NFR the delta added (finding #17) — clean except the
+  one routed gap (`CR-07`, not a baseline defect). `FR-10000`'s finite-mode sibling, `FR-9000`,
+  and every one of its own leaves (`FR-9100`–`FR-9200`, `FR-9140`/`9150`/`9160`/`9161`) confirmed
+  entirely untouched — the Infinite Mode delta added a new capability group rather than editing
+  or superseding anything in the finite-mode group, matching `ADR-0016`/`ADR-0017`'s own explicit
+  "cross-referenced, not amended" framing for `ADR-0009`/`ADR-0012`. `FR-10300`'s decoupled
+  hash-density treasure placement does not conflict with `FR-9160`'s dead-end-anchored placement
+  — confirmed complementary, not duplicate: the two govern different, mutually-exclusive modes
+  (Infinite vs. finite), each internally consistent with its own mode's ADR.
 
 ## Candidate Requirements disposition
 
@@ -66,10 +84,20 @@ above: its facing/frame half is rejected, its per-zone ScoreItem half is approve
 FR-5220. CR-02 (carrot-invariant enforcement) in RQ-01, and CR-03 (bank-switching-ready
 extensibility) and CR-04 (real-hardware/second-emulator verification) in RQ-02, remain correctly
 excluded from the numbered baseline — none has a source document that states it as a present
-requirement. **CR-05 (biome-blob clustering seeded from maze dead-ends, RQ-01, filed 2026-07-11)**
-joins them — see finding #13: a genuine `ADR-0012` conflict, not a wording gap, correctly routed
-rather than resolved here. All five remain open, each with a named owner for its next step (see
-the table above and each Candidate's own Disposition field).
+requirement. **CR-05 (biome-blob clustering, RQ-01, filed 2026-07-11) is now RESOLVED and
+BASELINED (2026-07-14)** — see finding #19: baselined as `FR-9170`, per `ADR-0018`'s own
+per-super-cell hash technique, resolving finding #13's original `ADR-0012` conflict by
+sidestepping it entirely (no maze dependency, no reordering needed) — the same `03→04` path
+`CR-06` took between its own architecture decision and baseline. **CR-06
+(edge-indicator legend screen, RQ-01, filed 2026-07-13) is now
+RESOLVED and BASELINED** — see finding #16: baselined as `FR-1200`/`FR-1210` once its own upstream
+`GDS-01`/`GDS-08` gap closed. **CR-07 (Infinite Mode run/session shape, RQ-01, filed 2026-07-13)
+is now RESOLVED and BASELINED** — see finding #17: the project owner decided directly ("for now
+assume indefinitely resumable"), baselined as `FR-10600`, no `03-architecture-design-synthesis`
+round-trip needed (the no-new-mechanic branch of the finding's own analysis applied). Three remain
+fully open (CR-02, CR-03, CR-04). CR-01/CR-05/CR-06/CR-07 are resolved/closed but
+retained above as the historical record of their own resolution, not deleted — each with a named
+owner for its next step (see the table above and each Candidate's own Disposition field).
 
 ## Summary
 
@@ -120,3 +148,48 @@ with `ADR-0015` and with `FR-9120`/`FR-3220` (both confirmed unaffected). Extend
 coexistence pattern a fourth time. One unrelated, pre-existing documentation-staleness finding
 (`FR-9130`'s stale "Not yet implemented" claim, contradicted by `IP-1020`/`VR-1020`) corrected in
 passing, confirmed not to have affected any prior Review pass's own conclusions.
+
+**2026-07-13 Infinite Mode epic delta review:** see finding #17 — seven new FRs
+(`FR-10100`–`FR-10500`) and four new NFRs (`NFR-1400`/`2300`/`4300`/`5400`) are internally
+consistent with `ADR-0016`/`ADR-0017` and with each other, and confirmed to leave every one of
+`FR-9000`'s finite-mode leaves entirely untouched — a genuinely additive capability group, not an
+edit to the existing baseline, matching the ADRs' own explicit framing. Two NFRs carry an
+honestly `UNCONFIRMED`/`NOT YET SIZED` status rather than a bare "not yet implemented" (`NFR-1400`
+region-materialization timing, `NFR-4300` materialized-window WRAM headroom), directly reflecting
+the underlying research's own explicit flags (`R114`) rather than smoothing them into silence —
+extends this document's own honesty discipline (finding #3's precedent) to a new case: a target
+requirement whose research grounding itself declines to confirm feasibility, not merely a
+requirement awaiting implementation. **One genuine gap, correctly not invented:** the run/session-
+shape question (`BL-0106`) was written up as **CR-07**, not resolved unilaterally — see finding
+#17 for the full write-up, including why it routes to a direct user decision rather than
+`03-architecture-design-synthesis` outright, a deliberate departure from `CR-05`/`CR-06`'s own
+routing pattern, reasoned through rather than copied.
+
+**2026-07-13 CR-07 resolution review:** see finding #17 (updated) — the project owner answered
+directly ("for now assume indefinitely resumable") within the same session `CR-07` was filed,
+before the `NEEDS-USER` surfacing this finding recommended for `05`/`06` was ever needed.
+Baselined as `FR-10600`, cross-checked against `FR-1170`/`FR-1190` (existing save/continue
+convention) and `FR-10500` (visited-region ledger) — confirmed complementary, not duplicate:
+`FR-10600` states the *absence* of a forced end-condition; `FR-10500` states *what* persists
+across a voluntary exit. No `GDS-01` delta needed, confirming the finding's own no-new-mechanic
+branch was the correct prediction.
+
+**2026-07-14 CR-05 mechanism-resolution review:** see finding #18 — the project owner directed
+reusing Infinite Mode's own per-super-cell hash technique for the finite mode too, resolving
+finding #13's original `ADR-0012` conflict by sidestepping it entirely rather than picking either
+originally-proposed side (dead-end seeding, flood-fill). `ADR-0018` confirmed to refine `ADR-0009`
+point 2 without altering its existing draw mechanics, and to leave `ADR-0012` untouched. Unlike
+`CR-06`/`CR-07`, this resolution stops at the architecture-decision stage — `CR-05` is not yet
+baselined into a real FR, correctly deferred to a future `04-requirements-engineering` pass per
+`ADR-0018`'s own routing, mirroring the gap between `CR-06`'s own architecture landing and its
+later baselining.
+
+**2026-07-14 CR-05 baseline + FR-10100 refresh review:** see finding #19 — `CR-05` is now fully
+closed, baselined as `FR-9170`, cross-checked against `ADR-0018`/`FR-9100`/`FR-4310` and found
+internally consistent; the resolution trail from finding #13 through this baseline is complete
+and self-consistent end to end. Separately, `FR-10100`'s Notes/Acceptance Criteria were refreshed
+against `GDS-01` §4d (landed 2026-07-14, `BL-0113`) — correctly scoped as an in-place enrichment,
+not a new FR-ID, since the existing leaf already covered the substantive requirement before the
+architecture delta landed (a materially different situation from `CR-06`'s own missing-FR gap).
+Both deltas leave every other FR/NFR in the baseline unaffected, confirmed by direct cross-check
+rather than assumed.

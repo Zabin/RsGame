@@ -20,7 +20,11 @@
 > aesthetics/visual-story-narrative/procgen-world-map increment's 17 target requirements** — none
 > yet implemented, per that increment's RQ-01…04 delta (2026-07-09). **Two more new Features
 > (FEAT-9100, FEAT-2100) formalize `ADR-0012`'s maze-shaped-region-adjacency post-ship
-> remediation** — neither yet implemented, per the 2026-07-11 delta.
+> remediation** — neither yet implemented, per the 2026-07-11 delta. **Delta 2026-07-14: one new
+> Feature (FEAT-10000, Infinite Mode) formalizes the `FR-10000` group (`ADS-001`/`ADR-0016`/
+> `ADR-0017`, `BL-0082`/`BL-0094`/`BL-0106`) — 11 new requirement IDs, not yet implemented; the
+> running requirement tally also folds in a pre-existing `BL-0102` bookkeeping gap (`FR-9160`/
+> `FR-9161`, never previously counted) — see the tally section below for the full reconciliation.**
 
 ## FEAT-1000 — Game State Machine & Menu Flow
 
@@ -527,7 +531,8 @@
   rendered); FEAT-4000 (extends its zone/screen composition existence layer); FEAT-6000 (reuses
   the existing terrain-fill-plus-landmarks rendering pattern, per GDS-08 §8's extension).
 - **Dependent Features:** FEAT-6100 (judges this Feature's biome-family screen output for
-  palette-stepping quality).
+  palette-stepping quality); FEAT-10000 (Infinite Mode — a materialized region's rendering path
+  reuses this Feature's own biome-family screen-composition dispatch; added `BL-0111`, 2026-07-14).
 - **Affected Modules:** `tilemaps.py` (screen generator, generalized from one-function-per-zone to
   one-function-per-biome-family per GDS-09's delta), `tiles.py` (biome-family terrain tile sets,
   content-authoring scope for whichever content package implements this).
@@ -747,11 +752,120 @@
   mechanically-checkable subset (undefined tile indices, illegal adjacency pairs).
 - **Open Questions:** None surfaced yet.
 
+## FEAT-10000 — Infinite Mode (new — not yet implemented)
+
+> **Forward reference (metadata only):** specified by
+> [FS-110](../features/FS-110-infinite-mode.md) (2026-07-14). 8 Open Questions, all routed
+> upstream (`03`/`04`/`05`) or to `07-implementation-planning`, per that document's own §19.
+> **OQ1 (`FEAT-4100` missing from Dependencies) resolved 2026-07-14 (`BL-0111`)** — this catalog
+> entry's own Dependencies field now names `FEAT-4100`; `04-feature-dependency-graph.md`'s edge
+> and dependency-summary row updated in the same pass. `CR-07`'s run/session-shape question is
+> already resolved (`FR-10600`); `CR-05`'s finite-mode blob mechanism (`ADR-0018`) remains a
+> separate, unrelated Candidate, not part of this Feature's own scope (see Excluded Requirements).
+> `BL-0107`/`BL-0108`/`BL-0109` (Binary Tree aesthetic, ledger SRAM sizing, materialization
+> timing) remain real open implementation-time questions, correctly deferred past this stage.
+
+- **Feature ID:** FEAT-10000
+- **Title:** Infinite Mode
+- **Purpose:** Offer a second, additive world-generation mode — seeded, streaming,
+  positionally-deterministic, with no fixed extent — alongside the existing finite `(seed, scale)`
+  mode, replacing a completion threshold with a persisted high score for non-terminating play.
+- **Description:** Formalizes `ADS-001`/`ADR-0016`/`ADR-0017`'s architecture decisions end to end:
+  a mode choice at new-game creation (seed only, no scale); each region's biome and maze
+  connectivity computed on demand as a pure function of `(SEED, row, col)`, materialized only as
+  the player approaches, revisit-consistent; treasure placement decoupled from maze structure via
+  a tuned hash-density predicate; a running treasure count compared against a persisted top-3
+  high-score table on run end, with no name-entry UI; a bounded visited-region ledger (player
+  position + per-region collected state) as the save format, never the region graph itself; and an
+  indefinitely-resumable run, with no forced end-condition mechanic (`FR-10600`, resolving `CR-07`
+  by direct project-owner decision, 2026-07-13).
+- **Scope:** The complete Infinite Mode capability as one cohesive player-visible mode — mode
+  selection, streaming generation, treasure placement, win condition, save/load, and session
+  shape are kept together here (not pre-split into per-concern Features the way `FEAT-9000`'s
+  finite-mode sibling eventually was) because nothing has been implemented yet to reveal where a
+  clean seam would fall; `06-feature-specification` may split this if implementation detail later
+  shows a natural boundary (mirroring how `FEAT-9000` itself started as one Feature before
+  `FEAT-4100`/`FEAT-5300`/`FEAT-9100` were carved out once more was known). Explicitly **excludes**
+  the finite mode's own biome-blob clustering work (`CR-05`/`ADR-0018`/`BL-0066`) — a related but
+  independent thread that reuses this Feature's own super-cell-hash *technique* without depending
+  on this Feature's own code or save format; excludes the finite mode's own generation, win
+  condition, and save format entirely (`FEAT-9000`/`FEAT-3000`/`FEAT-5300`), which `ADR-0016`/
+  `ADR-0017` leave completely unamended.
+- **Included Requirements:** FR-10100, FR-10200, FR-10210, FR-10300, FR-10400, FR-10500, FR-10600;
+  NFR-1400, NFR-2300, NFR-4300, NFR-5400.
+- **Excluded Requirements:** FR-9100–FR-9200 (the finite mode's own generation group — unaffected,
+  `FEAT-9000`); FR-9160/FR-9161 (finite-mode treasure placement/win condition — `FEAT-9000`);
+  FR-1180 (finite mode's own seed/scale entry — `FEAT-1100`, though `FR-10100` extends the same
+  new-game flow with a mode choice).
+- **Dependencies:** FEAT-1000 (Infinite Mode is a new path through the existing game-state
+  machine); FEAT-1100 (Main Menu & New-Game Flow — `FR-10100`'s mode choice extends this Feature's
+  own new-game entry point, not a standalone entry surface); FEAT-3000 (Collectibles, Scoring &
+  Victory — the running-count/high-score mechanic generalizes this Feature's own collection/score
+  concepts to a non-terminating shape); FEAT-5000 (Save/Load System — `FR-10600`'s indefinitely-
+  resumable run explicitly restates this Feature's own save/continue convention for a new save
+  shape); FEAT-9000 (Procedural World Generation — shares the underlying `gw_prng_step` xorshift
+  construction this Feature's own per-region reseeding reuses, per `ADR-0016` point 3; a
+  code-reuse dependency, not a structural one — Infinite Mode's own generation routine is
+  independent and additive, per `ADR-0016`'s own explicit framing); **FEAT-4100 (Generated-Region
+  Screen Composition — rendering a materialized region requires this Feature's own biome-family
+  screen-composition dispatch; the same dispatch the finite mode's `REGION_GRAPH`-sourced
+  biome-id already selects through, per `FS-103`. Added `BL-0111`, 2026-07-14 — omitted from the
+  original 2026-07-14 cataloging pass, correctly surfaced by `06-feature-specification`'s own
+  `FS-110` Open Question 1, this skill's own SHALL-NOT-modify-the-catalog-entry rule routing the
+  correction back here rather than being applied inline by `06`).**
+- **Dependent Features:** None yet — no Feature in this catalog builds on Infinite Mode's own
+  output.
+- **Affected Modules:** `asm_game.py` (new Infinite Mode routines — mode dispatch, per-region
+  materialization, ledger save/load — prospective, no code exists yet); `worldgen.py` (prospective
+  Python oracle mirror, per `ADR-0016` point 8/`ADR-0009`'s existing lockstep-PRNG discipline
+  extended here).
+- **Related ADRs:** ADR-0016 (streaming generation architecture), ADR-0017 (treasure placement +
+  win condition).
+- **User Value:** Medium — a genuinely new mode with real replay value (score-chasing, per `R216`'s
+  own arcade-convention grounding), but exploratory and owner-initiated rather than tied to any
+  MSTR-001 commitment the way `FEAT-9000`'s C10 grounding was; not yet requested by playtesting or
+  named as a release-blocking gap.
+- **Technical Value:** Medium-High — the positional-determinism/streaming-generation technique
+  this Feature establishes is directly reused by the finite mode's own biome-blob clustering
+  (`ADR-0018`), a real technical payoff beyond this Feature's own player-facing scope.
+- **Complexity:** High — a second, parallel generation architecture with its own algorithm family
+  (positionally-deterministic per-region reseeding, Binary Tree maze), its own save format
+  (visited-region ledger, not regenerate-from-scale), and two NFRs whose feasibility is honestly
+  `UNCONFIRMED`/`NOT YET SIZED` (`NFR-1400`, `NFR-4300`) rather than merely unimplemented —
+  comparable in scope to `FEAT-9000` at the point it was first cataloged.
+- **Risk:** Medium-High — shares `FEAT-9000`'s original risk profile (a wholly new generation
+  algorithm with no shipped precedent) plus two additional, explicitly-named open technical
+  questions this Feature's own NFRs surface honestly: whether a single region's materialization
+  fits inside `check_zone_transition`'s existing safe timing window (`NFR-1400`/`BL-0109`,
+  unmeasured), and how large the materialized-window/visited-region-ledger can be sized against
+  real WRAM/SRAM budget (`NFR-4300`/`NFR-5400`/`BL-0108`, unsized). Both are implementation-time
+  risks, not requirements-level defects — flagged honestly rather than assumed away, per this
+  catalog's own established discipline (`FEAT-9000`'s own Risk field set the precedent).
+- **Suggested Verification Strategy:** Test — positional-determinism and revisit-consistency
+  property tests across a `(seed, row, col)` corpus (mirroring `FEAT-9000`'s own reference-
+  generator-oracle pattern, extended to per-region rather than whole-graph scope); Analysis for
+  `NFR-1400`'s materialization-timing bar (cycle-counting, not a `test_rom.py` assertion, per that
+  NFR's own Verification Method).
+- **Open Questions:** None blocking this stage's own cataloging — see the forward-reference note
+  above for the real, already-tracked implementation-time questions this Feature carries forward
+  (`BL-0107`/`BL-0108`/`BL-0109`).
+
 ## Requirement-to-Feature tally (completeness check)
 
 **Bootstrap baseline:** 25 `FR-xxxx` + 11 `NFR-xxxx` = 36 requirement IDs, all owned by exactly
 one of the original eight Features (unchanged by this delta). **Procgen-world increment delta**
 (2026-07-09 RQ-01…04): 11 new `FR-xxxx` + 6 new `NFR-xxxx` = 17 requirement IDs, all owned by
-exactly one of the five new Features above. **Total: 53 requirement IDs**, every one assigned to
-exactly one Feature project-wide (verified by direct tally, restated in
-[FP-05](05-feature-review.md)'s review rather than only asserted here).
+exactly one of the five new Features above. **`ADR-0012` maze-adjacency delta** (2026-07-11): 3
+new `FR-xxxx`, owned by `FEAT-9100`/`FEAT-2100`. **Win-condition redesign** (2026-07-12,
+`ADR-0015`): `FR-9160`/`FR-9161` supersede `FR-9130`/`FR-3300` in place within the
+already-catalogued `FEAT-9000` — 2 more requirement IDs, previously omitted from this running
+total (a bookkeeping gap `BL-0102` tracked, closed by this delta, not a mis-assignment — both IDs
+were always unambiguously `FEAT-9000`'s own). **Edge-indicator legend screen delta** (2026-07-13):
+2 new `FR-xxxx`, owned by `FEAT-1200`. **Running total before this delta: 53 + 3 + 2 + 2 = 60.**
+**Infinite Mode delta** (2026-07-14, this pass): 7 new `FR-xxxx` (`FR-10100`–`FR-10600`) + 4 new
+`NFR-xxxx` (`NFR-1400`/`2300`/`4300`/`5400`) = 11 new requirement IDs, all owned by `FEAT-10000`
+above. **Total: 60 + 11 = 71 requirement IDs**, every one assigned to exactly one Feature
+project-wide (verified by direct tally, restated in [FP-05](05-feature-review.md)'s review rather
+than only asserted here). (`CR-05`/`CR-07` are explicitly outside this tally where still
+un-baselined — `CR-05` remains a Candidate per `ADR-0018`'s own routing to a future `04` pass;
+`CR-07` is no longer a Candidate at all, already counted above as `FR-10600`.)

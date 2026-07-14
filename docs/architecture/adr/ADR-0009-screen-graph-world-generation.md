@@ -8,6 +8,19 @@
 > makes the edge-selectivity question concrete (a generated maze — spanning tree + braid — not a
 > full lattice), without contradicting anything below. Points 2–7 are unaffected. Left in place,
 > not edited, per this project's append-only ADR convention.
+>
+> **Cross-referenced, not amended, by [ADR-0016](ADR-0016-streaming-infinite-mode-generation-architecture.md)
+> (2026-07-13):** ADR-0016 adopts a second, independent generation architecture (streaming,
+> positionally-deterministic) for a new, additive Infinite Mode, selectable alongside this ADR's
+> `(seed, scale)` model at new-game creation. Every point below continues to govern the finite
+> mode exactly as written; nothing here is superseded.
+>
+> **Decision point 2 refined by [ADR-0018](ADR-0018-finite-mode-biome-blob-clustering.md)
+> (2026-07-14):** adds a deterministic per-super-cell blob bias on top of this point's own
+> grammar-constrained anchor+delta draw, resolving `BL-0066`/`CR-05` for the finite mode. The
+> draw mechanics below (anchor + delta, clamped to `[0,4]` and to neighbor ±1) remain exactly as
+> written and are not replaced — `ADR-0018` only decides when a region snaps directly to its
+> super-cell's target instead of drawing. Points 1, 3–7 are unaffected.
 
 ## Context
 

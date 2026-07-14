@@ -32,6 +32,12 @@ Suites:
       (supersedes/retires T9's fixed-3x3-grid checks)
   T18 Main menu cursor fix (IP-9060) — toggle with/without a save present,
       genuine re-entry still resets correctly, new-game end-to-end reachable
+  T22 Infinite Mode per-region materialization (IP-1101) — determinism,
+      oracle parity, revisit-consistency, treasure-density, static audit,
+      seed=0 normalization, no spawn-region special case. (Named T22, not
+      T23 — the package planned T23, but IP-1101 was implemented before
+      IP-1100, so it claims the next free suite number instead; mirrors
+      IP-1050's own precedent for the identical situation.)
 
 WRAM model under test (see docs/architecture/07-data-model.md):
   C000 GAMESTATE (0=TITLE 1=INTRO 2=PLAYING 3=SAVE 4=MAP 5=VICTORY)
@@ -119,6 +125,17 @@ TMP1 = 0xC013; TMP2 = 0xC014
 GW_TRAP_ADDR = 0xC27D   # scratch, inside the boot-clear range, never read elsewhere
 DRA_ROW = 0xC2D8; DRA_COL = 0xC2D9   # draw_region_arrows' own re-derived row/col (IP-1080)
 
+# T22 (IP-1101): Infinite Mode per-region materialization
+IMR_ADDR = _gw_rom.labels['inf_materialize_region']
+INF_MZ_ROW = 0xC40D; INF_MZ_COL = 0xC40F
+INF_MZ_RESULT = 0xC411; INF_MZ_TREASURE = 0xC412
+
+# T24 (IP-1102): Infinite Mode streaming window / navigation / render
+GAME_MODE = 0xC3F6; INF_ROW = 0xC3F7; INF_COL = 0xC3F9
+INF_WINDOW = 0xC3FB; INF_TREASURE_HERE = 0xC404
+INF_ENSURE_WINDOW_ADDR = _gw_rom.labels['inf_ensure_window']
+CZT_REDRAW_ADDR = _gw_rom.labels['czt_redraw']
+
 def fresh_boot(frames=180):
     """Clean boot to title screen with no saved game."""
     wipe_save()
@@ -129,9 +146,11 @@ def fresh_boot(frames=180):
 
 def advance_to_playing(pb):
     """From MAIN MENU (IP-1040 — boot always lands here; a fresh boot has no
-    save, so 'new game' is the only/forced option): A -> SEED/SCALE ENTRY,
-    A (confirm defaults: seed=0 -> normalized to 1 internally, scale=3) ->
-    INTRO (runs generate_world), A -> PLAYING."""
+    save, so 'new game' is the only/forced option): A -> MODE SELECT (IP-1100,
+    GDS-01 §4d), A (confirm default: MM_CURSOR=0="finite") -> SEED/SCALE
+    ENTRY, A (confirm defaults: seed=0 -> normalized to 1 internally,
+    scale=3) -> INTRO (runs generate_world), A -> PLAYING."""
+    pb.button('a'); [pb.tick() for _ in range(40)]
     pb.button('a'); [pb.tick() for _ in range(40)]
     pb.button('a'); [pb.tick() for _ in range(80)]
     pb.button('a'); [pb.tick() for _ in range(80)]
@@ -166,6 +185,33 @@ def invoke_generate_world(pb, seed, scale):
         if pb.register_file.PC == GW_TRAP_ADDR:
             return True
     return False
+
+def invoke_inf_materialize_region(pb, seed, row, col):
+    """
+    T22 (IP-1101): directly invoke inf_materialize_region (asm_game.py) —
+    no call site exists yet, IP-1100/1102 wire that up from the new-game
+    entry / streaming-window flows. Sets SEED/INF_MZ_ROW/INF_MZ_COL (row/col
+    as signed 16-bit, two's complement), hijacks PC/SP with the same
+    self-loop trap `invoke_generate_world` established, and returns
+    (region_byte, treasure_present) read from INF_MZ_RESULT/INF_MZ_TREASURE,
+    or None if the trap was never reached within budget.
+    """
+    pb.memory[SEED] = seed & 0xFF
+    pb.memory[SEED + 1] = (seed >> 8) & 0xFF
+    r = row & 0xFFFF; c = col & 0xFFFF
+    pb.memory[INF_MZ_ROW] = r & 0xFF; pb.memory[INF_MZ_ROW + 1] = (r >> 8) & 0xFF
+    pb.memory[INF_MZ_COL] = c & 0xFF; pb.memory[INF_MZ_COL + 1] = (c >> 8) & 0xFF
+    pb.memory[GW_TRAP_ADDR] = 0x18; pb.memory[GW_TRAP_ADDR + 1] = 0xFE  # JR -2
+    sp = (pb.register_file.SP - 2) & 0xFFFF
+    pb.memory[sp] = GW_TRAP_ADDR & 0xFF
+    pb.memory[sp + 1] = (GW_TRAP_ADDR >> 8) & 0xFF
+    pb.register_file.SP = sp
+    pb.register_file.PC = IMR_ADDR
+    for _ in range(60):
+        pb.tick()
+        if pb.register_file.PC == GW_TRAP_ADDR:
+            return pb.memory[INF_MZ_RESULT], pb.memory[INF_MZ_TREASURE]
+    return None
 
 def read_region_graph(pb, scale):
     """Read the actual SM83-generated REGION_GRAPH out of WRAM as a list of
@@ -264,7 +310,8 @@ pb.stop()
 
 # ══════════════════════════════════════════════════════
 # T4 — State Machine (GS: 0=TITLE[superseded] 1=INTRO 2=PLAYING 3=SAVE
-#      4=MAP 5=VICTORY 6=MAIN_MENU 7=SEED_SCALE_ENTRY — IP-1040)
+#      4=MAP 5=VICTORY 6=MAIN_MENU 7=SEED_SCALE_ENTRY — IP-1040;
+#      8=SELECT_MENU 9=LEGEND — IP-1090; 10=MODE_SELECT 11=INFINITE_SEED_ENTRY — IP-1100)
 # ══════════════════════════════════════════════════════
 print("\n=== T4: State Machine ===")
 pb = fresh_boot()
@@ -277,7 +324,12 @@ check("T4.1 Clean boot -> MAIN MENU (GS=6)", pb.memory[GAMESTATE] == 6, f"GS={pb
 shoot(pb, "T4_main_menu")
 
 pb.button('a'); [pb.tick() for _ in range(40)]
-check("T4.2 A (new game, no save) -> SEED/SCALE ENTRY (GS=7)",
+check("T4.2 A (new game, no save) -> MODE SELECT (GS=10, IP-1100/GDS-01 §4d)",
+      pb.memory[GAMESTATE] == 10, f"GS={pb.memory[GAMESTATE]}")
+shoot(pb, "T4_mode_select")
+
+pb.button('a'); [pb.tick() for _ in range(40)]
+check("T4.2a A (confirm default: finite) -> SEED/SCALE ENTRY (GS=7)",
       pb.memory[GAMESTATE] == 7, f"GS={pb.memory[GAMESTATE]}")
 shoot(pb, "T4_seed_scale_entry")
 
@@ -1199,6 +1251,12 @@ check("T13.d Screen-visibility audit: every arrow address falls inside the true 
 # ══════════════════════════════════════════════════════
 print("\n=== T14: Main Menu & New-Game Flow ===")
 
+def enter_new_game_finite(pb):
+    """From MAIN MENU: A (new game) -> MODE SELECT (IP-1100, GDS-01 §4d),
+    A (confirm default: MM_CURSOR=0="finite") -> SEED/SCALE ENTRY."""
+    pb.button('a'); [pb.tick() for _ in range(40)]
+    pb.button('a'); [pb.tick() for _ in range(40)]
+
 def enter_seed_scale(pb, digits, scale):
     """From SEED/SCALE ENTRY at its just-entered defaults (cursor=0, all
     digits 0, scale=3): drive the digit-cursor picker to the given 5 seed
@@ -1261,7 +1319,7 @@ wipe_save()
 # T14.b1/b2 — digit-cursor entry for a known (seed, scale): confirm -> INTRO,
 # region count == scale^2 (AC-3).
 pb = fresh_boot(200)
-pb.button('a'); [pb.tick() for _ in range(40)]           # MAIN MENU -> new game -> SEED/SCALE ENTRY
+enter_new_game_finite(pb)                                # MAIN MENU -> new game -> MODE SELECT -> finite -> SEED/SCALE ENTRY
 enter_seed_scale(pb, [1, 2, 3, 4, 5], 5)                 # seed=12345, scale=5
 check("T14.b1 Confirm -> INTRO (GS=1)", pb.memory[GAMESTATE] == 1, f"GS={pb.memory[GAMESTATE]}")
 check("T14.b1b SEED written correctly (12345)",
@@ -1279,7 +1337,7 @@ pb.stop()
 # own oracle/SM83 lockstep, T12.b — this confirms this Feature's own
 # trigger path reaches generate_world with the same inputs both times).
 pb = fresh_boot(200)
-pb.button('a'); [pb.tick() for _ in range(40)]
+enter_new_game_finite(pb)
 enter_seed_scale(pb, [1, 2, 3, 4, 5], 5)
 region_graph_b2 = read_region_graph(pb, 5)
 pb.stop()
@@ -1289,7 +1347,7 @@ check("T14.b3 Same (seed,scale) -> identical region graph across two new-game cr
 # T14.c1 — SEED/SCALE ENTRY, B -> MAIN MENU, without writing SEED/WORLD_SCALE
 # (FS-104 Open Question 1's resolution, tested directly).
 pb = fresh_boot(200)
-pb.button('a'); [pb.tick() for _ in range(40)]
+enter_new_game_finite(pb)
 seed_before = pb.memory[SEED] | (pb.memory[SEED+1] << 8)
 scale_before = pb.memory[WORLD_SCALE]
 pb.button('up'); [pb.tick() for _ in range(10)]   # touch a digit, then abandon via B
@@ -1392,7 +1450,7 @@ print("\n=== T15: Generated-World Save Persistence ===")
 # assert the regenerated region graph matches the pre-save graph (AC-1).
 wipe_save()
 pb = fresh_boot(200)
-pb.button('a'); [pb.tick() for _ in range(40)]
+enter_new_game_finite(pb)
 enter_seed_scale(pb, [5, 4, 3, 2, 1], 3)   # seed=54321, scale=3
 seed_pre15 = pb.memory[SEED] | (pb.memory[SEED + 1] << 8)
 scale_pre15 = pb.memory[WORLD_SCALE]
@@ -1609,7 +1667,7 @@ wipe_save()
 # (49 regions) so the region range genuinely exceeds the old 9-zone model.
 wipe_save()
 pb = fresh_boot(200)
-pb.button('a'); [pb.tick() for _ in range(40)]
+enter_new_game_finite(pb)
 enter_seed_scale(pb, [0, 0, 7, 7, 7], 7)   # seed=777, scale=7
 seed_pre16e = pb.memory[SEED] | (pb.memory[SEED + 1] << 8)
 scale_pre16e = pb.memory[WORLD_SCALE]
@@ -1742,7 +1800,7 @@ def _t17_do_move(pb, direction):
 # (not replacing) T12.c's/T19.b's existing oracle-only checks.
 T17_SEED, T17_SCALE = 4242, 5
 pb = fresh_boot(200)
-pb.button('a'); [pb.tick() for _ in range(40)]        # MAIN MENU -> new game -> SEED/SCALE ENTRY
+enter_new_game_finite(pb)
 enter_seed_scale(pb, [int(c) for c in f"{T17_SEED:05d}"], T17_SCALE)   # -> INTRO
 pb.button('a'); [pb.tick() for _ in range(80)]        # INTRO -> PLAYING
 check("T17.a0 New game at scale=5 reaches PLAYING", pb.memory[GAMESTATE] == 2,
@@ -1783,7 +1841,7 @@ wipe_save()
 # region-24 bytes unpopulated, which previously produced a spurious
 # transition off stale WRAM rather than a genuine boundary-halt result.
 pb = fresh_boot(200)
-pb.button('a'); [pb.tick() for _ in range(40)]
+enter_new_game_finite(pb)
 enter_seed_scale(pb, [int(c) for c in f"{T17_SEED:05d}"], T17_SCALE)
 pb.button('a'); [pb.tick() for _ in range(80)]
 check("T17.c0 Region 24 (scale=5 oracle) genuinely has no right/down neighbor",
@@ -1881,8 +1939,9 @@ check("T18.a4 UP toggles MM_CURSOR to 1",
 # T18.d — "new game" is actually reachable end-to-end from this toggled
 # state (the full regression test proving the reported symptom is
 # resolved, not just that the byte value changes).
-pb.button('a'); [pb.tick() for _ in range(40)]
-check("T18.d New game reachable: A from MM_CURSOR=1 -> SEED/SCALE ENTRY (GS=7)",
+pb.button('a'); [pb.tick() for _ in range(40)]   # A from MM_CURSOR=1 -> MODE SELECT (IP-1100)
+pb.button('a'); [pb.tick() for _ in range(40)]   # A (confirm default: finite) -> SEED/SCALE ENTRY
+check("T18.d New game reachable: A from MM_CURSOR=1 -> MODE SELECT -> SEED/SCALE ENTRY (GS=7)",
       pb.memory[GAMESTATE] == 7, f"GS={pb.memory[GAMESTATE]}")
 pb.stop()
 wipe_save()
@@ -1919,7 +1978,8 @@ for _ in range(180): pb.tick()
 pb.button('down'); [pb.tick() for _ in range(40)]
 check("T18.c1 MM_CURSOR toggled to 1 before navigating away",
       pb.memory[MM_CURSOR] == 1, f"cursor={pb.memory[MM_CURSOR]}")
-pb.button('a'); [pb.tick() for _ in range(40)]   # A from cursor=1 -> SEED/SCALE ENTRY
+pb.button('a'); [pb.tick() for _ in range(40)]   # A from cursor=1 -> MODE SELECT (IP-1100)
+pb.button('a'); [pb.tick() for _ in range(40)]   # A (confirm default: finite) -> SEED/SCALE ENTRY
 check("T18.c2 Reached SEED/SCALE ENTRY (GS=7)", pb.memory[GAMESTATE] == 7,
       f"GS={pb.memory[GAMESTATE]}")
 pb.button('b'); [pb.tick() for _ in range(40)]   # B-cancel -> MAIN MENU (genuine re-entry)
@@ -2087,7 +2147,7 @@ t20_absent_n = 0
 
 for seed, scale in T20_CORPUS:
     pb = fresh_boot(200)
-    pb.button('a'); [pb.tick() for _ in range(40)]   # MAIN MENU -> new game -> SEED/SCALE ENTRY
+    enter_new_game_finite(pb)
     enter_seed_scale(pb, [int(c) for c in f"{seed:05d}"], scale)   # -> INTRO
     pb.button('a'); [pb.tick() for _ in range(80)]   # INTRO -> PLAYING
     regions = worldgen.generate(seed, scale)   # oracle -- T19.c already
@@ -2261,6 +2321,533 @@ pb.stop()
 # own new-state checks in one full-suite run, not merely in isolation --
 # already satisfied structurally by this script's own single-process,
 # top-to-bottom execution (see RESULTS below).
+
+# ══════════════════════════════════════════════════════
+# T22 — Infinite Mode: Per-Region Materialization (IP-1101)
+# ══════════════════════════════════════════════════════
+print("\n=== T22: Infinite Mode — Per-Region Materialization ===")
+
+# Corpus spans negative and positive row/col (Infinite Mode's world is
+# unbounded, unlike the finite mode's own 0..WORLD_SCALE-1 grid) and
+# includes the origin (0,0) -- confirming Open Question 4's "no
+# spawn-region special case" via the same corpus, not a separate check.
+T22_CORPUS = [(seed, row, col)
+              for seed in (0, 1, 42, 12345, 65535)
+              for row, col in [(0, 0), (1, 0), (0, 1), (5, 5), (-5, 5),
+                                (5, -5), (-5, -5), (100, -100), (3, 7)]]
+
+pb = fresh_boot(180)
+oracle_mismatches = []
+for seed, row, col in T22_CORPUS:
+    got = invoke_inf_materialize_region(pb, seed, row, col)
+    exp_byte, exp_treasure = worldgen.materialize_region(seed, row, col)
+    exp = (exp_byte, 1 if exp_treasure else 0)
+    if got is None or got != exp:
+        oracle_mismatches.append((seed, row, col, got, exp))
+pb.stop()
+check("T22.b Oracle parity: worldgen.py matches SM83 output, every corpus entry incl. (0,0) (AC-2)",
+      len(oracle_mismatches) == 0, f"mismatches={oracle_mismatches[:3]}")
+
+# T22.a -- determinism: two separate PyBoy instances, same (seed,row,col)
+det_mismatches = []
+for seed, row, col in [(777, -12, 34), (0, 0, 0), (65535, 200, -200)]:
+    pb1 = fresh_boot(180)
+    r1 = invoke_inf_materialize_region(pb1, seed, row, col)
+    pb1.stop()
+    pb2 = fresh_boot(180)
+    r2 = invoke_inf_materialize_region(pb2, seed, row, col)
+    pb2.stop()
+    if r1 != r2:
+        det_mismatches.append((seed, row, col, r1, r2))
+check("T22.a Determinism: same (seed,row,col) across two fresh boots -> byte-identical output (FR-10200)",
+      len(det_mismatches) == 0, f"mismatches={det_mismatches}")
+
+# T22.c -- revisit-consistency: materializing the same region a second time,
+# as an independent call with no prior state consulted (simulating "left the
+# materialized window and re-entered it"), reproduces the first result
+# exactly (FR-10210) -- the actual persisted-store integration (IP-1102's
+# own INF_WINDOW) doesn't exist yet, so this checks the routine's own
+# revisit-safety at the data layer, per this package's own scope boundary.
+pb = fresh_boot(180)
+revisit_mismatches = []
+for seed, row, col in [(99, 7, -3), (1, 0, 0), (777, -50, 50)]:
+    first = invoke_inf_materialize_region(pb, seed, row, col)
+    # unrelated intervening call, mirroring a materialized-window eviction
+    invoke_inf_materialize_region(pb, seed + 1, row + 10, col - 10)
+    second = invoke_inf_materialize_region(pb, seed, row, col)
+    if first != second:
+        revisit_mismatches.append((seed, row, col, first, second))
+pb.stop()
+check("T22.c Revisit-consistency: re-materializing after an intervening call reproduces the first result (FR-10210)",
+      len(revisit_mismatches) == 0, f"mismatches={revisit_mismatches}")
+
+# T22.d -- treasure-density statistical check: over a large (row,col) corpus
+# at one fixed seed, measured presence rate falls within a reasonable band
+# around K=16's own 6.25% target (mirrors T12.j's own non-degeneracy shape).
+pb = fresh_boot(180)
+present = 0
+total = 0
+for row in range(0, 40):
+    for col in range(0, 20):
+        _, treasure = invoke_inf_materialize_region(pb, 2026, row, col)
+        total += 1
+        if treasure:
+            present += 1
+pb.stop()
+rate = present / total
+check("T22.d Treasure-density: measured rate near K=16's 6.25% target (2%-11% band, FR-10300)",
+      0.02 <= rate <= 0.11, f"rate={rate:.4f} ({present}/{total})")
+
+# T22.e -- determinism static audit (AC-7, Inspection): inf_materialize_region/
+# inf_region_seed0/inf_mod5 must read no hardware register (DIV et al., via
+# LDH) -- a real source-text scan, mirroring T12.h's own established pattern.
+_t22_src = (BASE / 'asm_game.py').read_text()
+_t22_start = _t22_src.index("rom.label('inf_region_seed0')")
+_t22_end = _t22_src.index("rom.RET()", _t22_src.index("rom.label('inf_materialize_region')"))
+_t22_slice = _t22_src[_t22_start:_t22_end]
+check("T22.e Static audit: no LDH (hardware register, incl. DIV) read in inf_materialize_region/inf_region_seed0/inf_mod5 (NFR-2300)",
+      'LDH_A_n' not in _t22_slice and 'LDH_A_C' not in _t22_slice, "source-scanned")
+
+# T22.f -- seed=0 normalization: direct WRAM inspection of the PRNG state
+# immediately after inf_region_seed0's own normalization step (hooked),
+# never observing (TMP1,TMP2) == (0,0) (mirrors T12.f's own established
+# pattern).
+IRS0_SEED_OK_ADDR = _gw_rom.labels['irs0_seed_ok']
+pb = fresh_boot(180)
+t22f_state = {}
+def _t22f_hook(ctx):
+    t22f_state['tmp1'] = pb.memory[TMP1]
+    t22f_state['tmp2'] = pb.memory[TMP2]
+pb.hook_register(0, IRS0_SEED_OK_ADDR, _t22f_hook, None)
+invoke_inf_materialize_region(pb, 0, 0, 0)
+pb.stop()
+check("T22.f seed=0 normalizes to a nonzero PRNG state, direct WRAM inspection (AC-7 precondition)",
+      t22f_state.get('tmp1', 0) != 0 or t22f_state.get('tmp2', 0) != 0,
+      f"state=({t22f_state.get('tmp1')},{t22f_state.get('tmp2')})")
+
+# T22.g -- cross-consistency (a stronger check than the oracle-parity
+# corpus above can give in isolation): this region's own south/east
+# connectivity bits must match what directly materializing the south/east
+# neighbor computes as ITS OWN north/west bits -- confirms the Binary Tree
+# construction's neighbor-consulting symmetry holds through the real SM83
+# routine, not just the Python oracle (which T22.b already trusts, so this
+# check runs entirely oracle-side, extending the algorithm-correctness
+# claim independent of the SM83 comparison above).
+_t22g_bad = []
+for seed in (0, 42, 65535):
+    for row in range(-3, 4):
+        for col in range(-3, 4):
+            rb, _ = worldgen.materialize_region(seed, row, col)
+            south_open_here = bool(rb & 0x10)
+            nrb, _ = worldgen.materialize_region(seed, row + 1, col)
+            north_open_neighbor = bool(nrb & 0x08)
+            if south_open_here != north_open_neighbor:
+                _t22g_bad.append((seed, row, col, "south/north"))
+            east_open_here = bool(rb & 0x40)
+            erb, _ = worldgen.materialize_region(seed, row, col + 1)
+            west_open_neighbor = bool(erb & 0x20)
+            if east_open_here != west_open_neighbor:
+                _t22g_bad.append((seed, row, col, "east/west"))
+check("T22.g Neighbor-consulting symmetry: south/east openness matches the neighbor's own north/west bit, every corpus entry (ADR-0016 pt.5)",
+      len(_t22g_bad) == 0, f"bad={_t22g_bad[:3]}")
+
+# ══════════════════════════════════════════════════════
+# T24 — Infinite Mode: Streaming Window & Rendering (IP-1102)
+# ══════════════════════════════════════════════════════
+print("\n=== T24: Infinite Mode — Streaming Window & Rendering ===")
+
+_T24_WINDOW_OFFSETS = [(dr, dc) for dr in (-1, 0, 1) for dc in (-1, 0, 1)]
+
+def inf_window_bytes(seed, row, col):
+    """The 9 region bytes inf_ensure_window would compute for a window
+    centered on (row, col) -- same row-major order as asm_game.py's own
+    _INF_WINDOW_OFFSETS."""
+    return [worldgen.materialize_region(seed, row + dr, col + dc)
+            for dr, dc in _T24_WINDOW_OFFSETS]
+
+def set_infinite_state(pb, seed, row, col):
+    """Directly pokes WRAM into the state a real inf_ensure_window call
+    would have produced for (seed, row, col) -- not the PC/SP hijack trap
+    T22's own invoke_inf_materialize_region uses, which strands the CPU in
+    a self-loop (T20's own documented caution) incompatible with the real
+    button-driven gameplay T24 needs afterward. Leaves the CPU's normal
+    running loop undisturbed so real button presses can drive
+    check_zone_transition -> czt_infinite -> inf_ensure_window naturally,
+    as an ordinary in-loop CALL/RET."""
+    pb.memory[SEED] = seed & 0xFF; pb.memory[SEED + 1] = (seed >> 8) & 0xFF
+    pb.memory[GAME_MODE] = 1
+    r = row & 0xFFFF; c = col & 0xFFFF
+    pb.memory[INF_ROW] = r & 0xFF; pb.memory[INF_ROW + 1] = (r >> 8) & 0xFF
+    pb.memory[INF_COL] = c & 0xFF; pb.memory[INF_COL + 1] = (c >> 8) & 0xFF
+    for idx, (byte, _treasure) in enumerate(inf_window_bytes(seed, row, col)):
+        pb.memory[INF_WINDOW + idx] = byte
+    pb.memory[NEED_REDRAW] = 1
+    [pb.tick() for _ in range(10)]
+
+def force_infinite_redraw_with_center(pb, center_byte):
+    """Isolated dispatch/render check (T13.a's own isolation style, applied
+    to the infinite-mode path): pokes only INF_WINDOW's center cell,
+    ignoring neighbors -- dsr_p_inf/draw_region_arrows_inf never read them."""
+    pb.memory[GAME_MODE] = 1
+    pb.memory[INF_WINDOW + 4] = center_byte
+    pb.memory[NEED_REDRAW] = 1
+    [pb.tick() for _ in range(10)]
+
+def read_inf_pos(pb):
+    row = pb.memory[INF_ROW] | (pb.memory[INF_ROW + 1] << 8)
+    col = pb.memory[INF_COL] | (pb.memory[INF_COL + 1] << 8)
+    if row >= 0x8000: row -= 0x10000
+    if col >= 0x8000: col -= 0x10000
+    return row, col
+
+_T24_DIR_BTN  = {'north': 'up', 'south': 'down', 'west': 'left', 'east': 'right'}
+_T24_DIR_BIT  = {'north': 3, 'south': 4, 'west': 5, 'east': 6}
+_T24_DIR_DELTA = {'north': (-1, 0), 'south': (1, 0), 'west': (0, -1), 'east': (0, 1)}
+
+def t24_do_move(pb, direction):
+    """Real button-driven transition attempt (T17's own _t17_do_move
+    pattern, generalized to Infinite Mode's unbounded INF_ROW/INF_COL in
+    place of CUR_ZONE): forces position to the relevant edge, holds the
+    matching direction, ticks until INF_ROW/INF_COL changes (or the budget
+    is exhausted -- correctly the case when the connectivity bit is
+    clear), releases, settles a few more frames for the redraw to
+    complete. Returns (moved, end_row, end_col)."""
+    btn = _T24_DIR_BTN[direction]
+    start = read_inf_pos(pb)
+    pb.button_press(btn)
+    if direction == 'east':
+        pb.memory[PLAYER_X] = 156
+    elif direction == 'west':
+        pb.memory[PLAYER_X] = 0
+    elif direction == 'south':
+        pb.memory[PLAYER_Y] = 128
+    else:
+        pb.memory[PLAYER_Y] = 17
+    moved = False
+    for _ in range(80):
+        pb.tick()
+        if read_inf_pos(pb) != start:
+            moved = True
+            break
+    pb.button_release(btn)
+    [pb.tick() for _ in range(20)]   # settle the redraw for the biome check
+    end_row, end_col = read_inf_pos(pb)
+    return moved, end_row, end_col
+
+# T24.a — real button-driven navigation (mirrors T17.a's own shape,
+# extended to the unbounded case): from a materialized starting region, for
+# each of the 4 directions, confirm a transition occurs iff the current
+# region's own connectivity bit is set, INF_ROW/INF_COL update by exactly
+# ±1 on the correct axis, and the newly-entered region's own screen renders
+# the correct biome tileset (AC-1/FR-10200).
+T24_NAV_SEEDS = [7, 99, 4242, 65535, 0xBEEF]
+nav_bad = []
+for seed in T24_NAV_SEEDS:
+    pb = fresh_boot(200)
+    advance_to_playing(pb)
+    center_byte, _ = worldgen.materialize_region(seed, 0, 0)
+    for direction in ('north', 'south', 'west', 'east'):
+        set_infinite_state(pb, seed, 0, 0)
+        expected_open = bool(center_byte & (1 << _T24_DIR_BIT[direction]))
+        dr, dc = _T24_DIR_DELTA[direction]
+        moved, end_row, end_col = t24_do_move(pb, direction)
+        if moved != expected_open:
+            nav_bad.append((seed, direction, 'transition-mismatch', moved, expected_open))
+            continue
+        if not expected_open:
+            continue
+        if (end_row, end_col) != (dr, dc):
+            nav_bad.append((seed, direction, 'position-mismatch', (end_row, end_col), (dr, dc)))
+            continue
+        new_center_byte, _ = worldgen.materialize_region(seed, dr, dc)
+        biome_id = new_center_byte & 0x07
+        lo, hi = FAMILY_RANGES[biome_id]
+        field = field_tiles(pb)
+        in_family = sum(1 for b in field if lo <= b <= hi)
+        if in_family <= 40:
+            nav_bad.append((seed, direction, 'biome-render-mismatch', in_family))
+    pb.stop()
+check("T24.a Real button-driven navigation: transitions occur iff the connectivity bit is set, INF_ROW/INF_COL update correctly, and the newly-entered region renders its own biome tileset (AC-1/FR-10200)",
+      len(nav_bad) == 0, f"bad={nav_bad[:5]}")
+
+# T24.b — revisit consistency through the render path (FR-10210): leaving a
+# region (window re-centers away) and returning to it redraws a
+# pixel-identical screen. Delegates the underlying data-layer check to
+# IP-1101's own T22.c; this is the render-path confirmation T22 alone
+# cannot make. Picks the first (seed, row, col) in a small search whose own
+# south bit is open (T22.g's own proven south/north symmetry guarantees the
+# return move north is always then open too), so the round trip is
+# guaranteed reversible for any seed, not cherry-picked for one.
+T24B_SEED = 2024
+T24B_ROW = T24B_COL = None
+for _r in range(20):
+    for _c in range(20):
+        _byte, _ = worldgen.materialize_region(T24B_SEED, _r, _c)
+        if _byte & 0x10:   # south bit
+            T24B_ROW, T24B_COL = _r, _c
+            break
+    if T24B_ROW is not None:
+        break
+
+pb = fresh_boot(200)
+advance_to_playing(pb)
+set_infinite_state(pb, T24B_SEED, T24B_ROW, T24B_COL)
+tiles_visit1 = field_tiles(pb)
+moved_away, r2, c2 = t24_do_move(pb, 'south')
+moved_back, r3, c3 = t24_do_move(pb, 'north')
+tiles_visit2 = field_tiles(pb)
+pb.stop()
+check("T24.b Revisit-consistency through the render path: leaving and returning to a region redraws a pixel-identical screen (FR-10210)",
+      moved_away and (r2, c2) == (T24B_ROW + 1, T24B_COL)
+      and moved_back and (r3, c3) == (T24B_ROW, T24B_COL)
+      and tiles_visit1 == tiles_visit2,
+      f"moved_away={moved_away} moved_back={moved_back} pos_back=({r3},{c3}) tiles_match={tiles_visit1 == tiles_visit2}")
+
+# T24.c — finite mode (GAME_MODE == 0) is provably unchanged.
+# T24.c1: static diff -- dsr_p's finite-mode body (from its existing
+# CUR_ZONE read through its existing REGION_GRAPH-pointer JR) is, call for
+# call, exactly the pre-IP-1102 instruction sequence, with only the
+# 3-instruction GAME_MODE gate prefixed ahead of it (no instruction
+# inserted, removed, or reordered within the pre-existing body itself).
+import re
+_dsr_p_finite_body = _src[_src.index("rom.label('dsr_p')"):_src.index("rom.label('dsr_p_inf')")]
+_t24c_calls = [c for c in re.findall(r"rom\.([A-Za-z_]+)\(", _dsr_p_finite_body) if c != 'label']
+_t24c_expected = ['LD_A_nn', 'OR_A', 'JR_NZ',                          # the new gate
+                   'LD_A_nn', 'LD_E_A', 'LD_D_n', 'LD_HL_nn',           # pre-existing body,
+                   'ADD_HL_DE', 'ADD_HL_DE', 'ADD_HL_DE',               # unmodified
+                   'ADD_HL_DE', 'ADD_HL_DE', 'LD_A_HLI', 'PUSH_HL', 'JR']
+check("T24.c1 Static diff: dsr_p's finite-mode body is byte-for-byte the pre-IP-1102 instruction sequence, only a 3-instruction gate prefixed",
+      _t24c_calls == _t24c_expected, f"got={_t24c_calls}")
+
+# T24.c2: regression -- every T13/T20 check (dsr_p/draw_region_arrows,
+# exercised earlier in this same run under GAME_MODE's default-0 boot
+# state) still passes unmodified under the new gate.
+_t24c_regression = [r for r in results if r.split(']')[1].strip().startswith(('T13.', 'T20.'))]
+_t24c_bad = [r for r in _t24c_regression if r.startswith('[FAIL]')]
+check("T24.c2 Regression: every existing T13/T20 dsr_p/draw_region_arrows/check_zone_transition check still passes unmodified under the new GAME_MODE gate",
+      len(_t24c_bad) == 0 and len(_t24c_regression) > 0,
+      f"failed={_t24c_bad} total_checked={len(_t24c_regression)}")
+
+# T24.d — the plain-open-arrow-only claim: draw_region_arrows_inf never
+# writes a blocked-edge tile (Infinite Mode has no "grid-adjacent but
+# maze-pruned" concept, ADR-0012 point 2's distinction is finite-mode-only).
+# T24.d1: static audit.
+_t24d_src = _src[_src.index("rom.label('draw_region_arrows_inf')"):_src.index("rom.label('mm_on_entry')")]
+check("T24.d1 Static audit: draw_region_arrows_inf's source never references TL_BLOCKED_U/D/L/R",
+      'BLOCKED' not in _t24d_src, "source-scanned")
+
+# T24.d2: corpus -- drive every one of the 16 connectivity-nibble values
+# (bits 3-6) through the real render path, confirm none ever produces a
+# blocked-edge tile at any of the four arrow addresses.
+pb = fresh_boot(200)
+advance_to_playing(pb)
+blocked_found = []
+for nibble in range(16):
+    force_infinite_redraw_with_center(pb, nibble << 3)
+    for direction, addr in ARROW_POS.items():
+        if pb.memory[addr] == BLOCKED_TILE[direction]:
+            blocked_found.append((nibble, direction))
+pb.stop()
+check("T24.d2 Corpus: draw_region_arrows_inf never writes a blocked-edge tile, all 16 connectivity nibble values",
+      len(blocked_found) == 0, f"bad={blocked_found[:5]}")
+
+# T24.e — NFR-1400 Analysis check: direct cycle-count of inf_ensure_window's
+# real per-transition cost (all 9 window cells -- this package's own §6
+# text commits to "the whole window is simply recomputed fresh on every
+# center change, no incremental shift logic", so 9 fresh
+# inf_materialize_region calls is the actual cost of every transition, not
+# merely a rare worst case; this package's own §8 T24.e wording additionally
+# floats a hypothetical "realistic worst case of 3 cells" premised on an
+# incremental-shift optimization that was never implemented — that
+# assumption does not hold for the code as built, recorded here rather than
+# silently adopted). Measured via a direct PC/SP hijack into
+# inf_ensure_window (T12/T22's own established technique) with the return
+# address pointed at the real ROM label czt_redraw (a hook there is safe --
+# ROM only; hooking the WRAM self-loop trap T12/T22 use for coarse
+# completion-detection was tried first and hangs PyBoy's emulation core, so
+# this measurement avoids it entirely) and two hook_register callpoints
+# (entry, return) reading PyBoy's own cycle counter -- exact, not
+# frame-quantized.
+def measure_inf_ensure_window_cycles(seed, row, col):
+    pb = fresh_boot(180)
+    pb.memory[SEED] = seed & 0xFF; pb.memory[SEED + 1] = (seed >> 8) & 0xFF
+    r = row & 0xFFFF; c = col & 0xFFFF
+    pb.memory[INF_ROW] = r & 0xFF; pb.memory[INF_ROW + 1] = (r >> 8) & 0xFF
+    pb.memory[INF_COL] = c & 0xFF; pb.memory[INF_COL + 1] = (c >> 8) & 0xFF
+    sp = (pb.register_file.SP - 2) & 0xFFFF
+    pb.memory[sp] = CZT_REDRAW_ADDR & 0xFF
+    pb.memory[sp + 1] = (CZT_REDRAW_ADDR >> 8) & 0xFF
+    pb.register_file.SP = sp
+    state = {}
+    def _start(ctx): state.setdefault('start', pb._cycles())
+    def _end(ctx): state.setdefault('end', pb._cycles())
+    pb.hook_register(0, INF_ENSURE_WINDOW_ADDR, _start, None)
+    pb.hook_register(0, CZT_REDRAW_ADDR, _end, None)
+    pb.register_file.PC = INF_ENSURE_WINDOW_ADDR
+    for _ in range(10):
+        pb.tick()
+        if 'end' in state:
+            break
+    pb.stop()
+    if 'start' not in state or 'end' not in state:
+        return None
+    return state['end'] - state['start']
+
+T24E_CORPUS = [(2026, 0, 0), (7, 5, -5), (65535, -100, 100)]
+t24e_measurements = [measure_inf_ensure_window_cycles(s, r, c) for s, r, c in T24E_CORPUS]
+t24e_valid = [m for m in t24e_measurements if m is not None]
+FRAME_BUDGET_CYCLES = 70224   # one CGB single-speed frame -- NFR-1400's own
+                               # "same per-frame budget every other VRAM-
+                               # adjacent write already respects" bar
+t24e_met = bool(t24e_valid) and max(t24e_valid) <= FRAME_BUDGET_CYCLES
+check("T24.e NFR-1400 Analysis: inf_ensure_window's real per-transition cost, direct cycle-count, measured and recorded (Met or not, not asserted un-measured)",
+      len(t24e_valid) == len(T24E_CORPUS),
+      f"cycles={t24e_measurements} budget={FRAME_BUDGET_CYCLES} status={'MET' if t24e_met else 'NOT MET'}")
+
+# ══════════════════════════════════════════════════════
+# T25 — Infinite Mode: Mode Selection & New-Game Entry (IP-1100)
+# (FS-110's own template names "T22"; renumbered — IP-1101 already claimed
+# T22 earlier this same tranche, mirroring IP-1101's own identical renaming
+# of its planned "T23" -> "T22" when it shipped before IP-1100.)
+# ══════════════════════════════════════════════════════
+print("\n=== T25: Infinite Mode — Mode Selection & New-Game Entry ===")
+
+def enter_infinite_seed(pb, digits):
+    """From INFINITE SEED ENTRY at its just-entered defaults (cursor=0, all
+    digits 0): drive the digit-cursor picker to the given 5 seed digits,
+    then confirm with A. No scale slot exists in this state (bounded 0-4)."""
+    for i, d in enumerate(digits):
+        for _ in range(d):
+            pb.button('up'); [pb.tick() for _ in range(10)]
+        if i < 4:
+            pb.button('right'); [pb.tick() for _ in range(10)]
+    pb.button('a'); [pb.tick() for _ in range(80)]
+
+# T25.a1/a2 — from MAIN MENU, "new game" -> MODE SELECT (not SEED/SCALE
+# ENTRY directly); D-pad toggle moves the highlight between finite/infinite.
+pb = fresh_boot(200)
+pb.button('a'); [pb.tick() for _ in range(40)]
+check("T25.a1 MAIN MENU, new game -> MODE SELECT (GS=10)", pb.memory[GAMESTATE] == 10,
+      f"GS={pb.memory[GAMESTATE]}")
+check("T25.a1b MODE SELECT defaults to MM_CURSOR=0 (finite)", pb.memory[MM_CURSOR] == 0,
+      f"cursor={pb.memory[MM_CURSOR]}")
+pb.button('down'); [pb.tick() for _ in range(40)]
+check("T25.a2 D-pad toggles MM_CURSOR to 1 (infinite highlighted)", pb.memory[MM_CURSOR] == 1,
+      f"cursor={pb.memory[MM_CURSOR]}")
+pb.stop()
+
+# T25.b1 — MODE SELECT, confirm "finite" -> SEED/SCALE ENTRY, GAME_MODE==0
+# -- and SEED/SCALE ENTRY's own B-cancel still returns directly to MAIN
+# MENU (regression check: GDS-01 §4d's named asymmetric-tradeoff is
+# actually shipped as specified, not accidentally routed through MODE
+# SELECT).
+pb = fresh_boot(200)
+pb.button('a'); [pb.tick() for _ in range(40)]        # MAIN MENU -> MODE SELECT
+pb.button('a'); [pb.tick() for _ in range(40)]        # confirm finite -> SEED/SCALE ENTRY
+check("T25.b1a MODE SELECT, confirm finite -> SEED/SCALE ENTRY (GS=7)",
+      pb.memory[GAMESTATE] == 7, f"GS={pb.memory[GAMESTATE]}")
+check("T25.b1b GAME_MODE == 0 (finite)", pb.memory[GAME_MODE] == 0,
+      f"GAME_MODE={pb.memory[GAME_MODE]}")
+pb.button('b'); [pb.tick() for _ in range(40)]
+check("T25.b1c SEED/SCALE ENTRY's own B-cancel target is still MAIN MENU (GS=6) directly, not redirected through MODE SELECT",
+      pb.memory[GAMESTATE] == 6, f"GS={pb.memory[GAMESTATE]}")
+pb.stop()
+
+# T25.b2 — MODE SELECT, confirm "infinite" -> INFINITE SEED ENTRY, GAME_MODE==1.
+pb = fresh_boot(200)
+pb.button('a'); [pb.tick() for _ in range(40)]        # MAIN MENU -> MODE SELECT
+pb.button('down'); [pb.tick() for _ in range(40)]     # toggle to infinite
+pb.button('a'); [pb.tick() for _ in range(40)]        # confirm infinite
+check("T25.b2a MODE SELECT, confirm infinite -> INFINITE SEED ENTRY (GS=11)",
+      pb.memory[GAMESTATE] == 11, f"GS={pb.memory[GAMESTATE]}")
+check("T25.b2b GAME_MODE == 1 (infinite)", pb.memory[GAME_MODE] == 1,
+      f"GAME_MODE={pb.memory[GAME_MODE]}")
+pb.stop()
+
+# T25.c1 — MODE SELECT, press B -> MAIN MENU, GAME_MODE unchanged from its
+# prior value (nothing written on cancel) -- toggling the highlight to
+# "infinite" without confirming must not itself write GAME_MODE; only
+# ms_infinite's own A-confirm branch ever does.
+pb = fresh_boot(200)
+pb.button('a'); [pb.tick() for _ in range(40)]        # MAIN MENU -> MODE SELECT
+pb.button('down'); [pb.tick() for _ in range(40)]     # highlight infinite, do NOT confirm
+pb.button('b'); [pb.tick() for _ in range(40)]
+check("T25.c1a MODE SELECT, B -> MAIN MENU (GS=6)", pb.memory[GAMESTATE] == 6,
+      f"GS={pb.memory[GAMESTATE]}")
+check("T25.c1b B-cancel writes no GAME_MODE (still 0, mere highlight never wrote it)",
+      pb.memory[GAME_MODE] == 0, f"GAME_MODE={pb.memory[GAME_MODE]}")
+pb.stop()
+
+# T25.d1/d2 — INFINITE SEED ENTRY: drive digit-cursor entry for a known
+# seed, confirm via A -> GS_INTRO, SEED equals the entered value,
+# INF_ROW==INF_COL==0, and the starting region's materialized data
+# (IP-1101's own output shape, oracle-cross-checked) is present in
+# INF_WINDOW's center cell.
+pb = fresh_boot(200)
+pb.button('a'); [pb.tick() for _ in range(40)]        # MAIN MENU -> MODE SELECT
+pb.button('down'); [pb.tick() for _ in range(40)]
+pb.button('a'); [pb.tick() for _ in range(40)]        # confirm infinite -> INFINITE SEED ENTRY
+enter_infinite_seed(pb, [1, 2, 3, 4, 5])              # seed=12345
+check("T25.d1 Confirm -> INTRO (GS=1)", pb.memory[GAMESTATE] == 1, f"GS={pb.memory[GAMESTATE]}")
+check("T25.d1b SEED written correctly (12345)",
+      pb.memory[SEED] | (pb.memory[SEED+1] << 8) == 12345,
+      f"seed={pb.memory[SEED] | (pb.memory[SEED+1] << 8)}")
+inf_row_d1 = pb.memory[INF_ROW] | (pb.memory[INF_ROW+1] << 8)
+inf_col_d1 = pb.memory[INF_COL] | (pb.memory[INF_COL+1] << 8)
+check("T25.d2a INF_ROW == 0, INF_COL == 0 at new-game entry",
+      inf_row_d1 == 0 and inf_col_d1 == 0, f"row={inf_row_d1} col={inf_col_d1}")
+expected_center, _ = worldgen.materialize_region(12345, 0, 0)
+check("T25.d2b Starting region's materialized data present in INF_WINDOW's center cell, oracle-matched (IP-1101's own output shape)",
+      pb.memory[INF_WINDOW + 4] == expected_center,
+      f"got=0x{pb.memory[INF_WINDOW + 4]:02X} expected=0x{expected_center:02X}")
+pb.button('a'); [pb.tick() for _ in range(80)]        # INTRO -> PLAYING
+check("T25.d2c Reaches PLAYING cleanly (GS=2)", pb.memory[GAMESTATE] == 2,
+      f"GS={pb.memory[GAMESTATE]}")
+pb.stop()
+
+# T25.e1 — INFINITE SEED ENTRY, press B -> MODE SELECT (not MAIN MENU --
+# this state has no shipped precedent to protect, GDS-01 §4d's own "one
+# step back" framing), SEED/GAME_MODE unchanged.
+pb = fresh_boot(200)
+pb.button('a'); [pb.tick() for _ in range(40)]
+pb.button('down'); [pb.tick() for _ in range(40)]
+pb.button('a'); [pb.tick() for _ in range(40)]        # -> INFINITE SEED ENTRY
+seed_before_e1 = pb.memory[SEED] | (pb.memory[SEED+1] << 8)
+mode_before_e1 = pb.memory[GAME_MODE]
+pb.button('up'); [pb.tick() for _ in range(10)]       # touch a digit, then abandon via B
+pb.button('b'); [pb.tick() for _ in range(40)]
+check("T25.e1a INFINITE SEED ENTRY, B -> MODE SELECT (GS=10)", pb.memory[GAMESTATE] == 10,
+      f"GS={pb.memory[GAMESTATE]}")
+check("T25.e1b B-cancel writes no SEED/GAME_MODE",
+      pb.memory[SEED] | (pb.memory[SEED+1] << 8) == seed_before_e1
+      and pb.memory[GAME_MODE] == mode_before_e1,
+      f"seed={pb.memory[SEED] | (pb.memory[SEED+1] << 8)} mode={pb.memory[GAME_MODE]}")
+pb.stop()
+
+# T25.f — seed=0 entered: SEED WRAM itself is left at exactly 0 (not
+# force-normalized to 1) -- matching the finite mode's own established,
+# already-verified precedent (sse_compose_seed, reused verbatim here, has
+# never written a normalized value back to SEED WRAM; only the internal
+# PRNG working state normalizes 0->1, T22.f's own already-existing check).
+# This package's own §8 text describes this as "SEED normalized to 1",
+# imprecise relative to the actual shipped behavior -- tested here as it
+# actually, correctly works, not as literally worded (same class of small
+# drift as VR-1101's own citation findings this tranche). What IS asserted:
+# the internal materialization for (0,0) still produces a valid,
+# non-degenerate result despite the raw SEED==0 (AC-7's own real intent).
+pb = fresh_boot(200)
+pb.button('a'); [pb.tick() for _ in range(40)]
+pb.button('down'); [pb.tick() for _ in range(40)]
+pb.button('a'); [pb.tick() for _ in range(40)]
+enter_infinite_seed(pb, [0, 0, 0, 0, 0])              # seed=0
+check("T25.f1 SEED left at exactly 0 as entered (not force-written to 1, matches finite mode's own precedent)",
+      pb.memory[SEED] | (pb.memory[SEED+1] << 8) == 0,
+      f"seed={pb.memory[SEED] | (pb.memory[SEED+1] << 8)}")
+expected_center_0, _ = worldgen.materialize_region(0, 0, 0)
+check("T25.f2 seed=0 still produces a valid materialized starting region (internal PRNG normalization, AC-7)",
+      pb.memory[INF_WINDOW + 4] == expected_center_0 and expected_center_0 is not None,
+      f"got=0x{pb.memory[INF_WINDOW + 4]:02X} expected=0x{expected_center_0:02X}")
+pb.stop()
 
 # ══════════════════════════════════════════════════════
 # SUMMARY
