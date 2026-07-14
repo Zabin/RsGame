@@ -2,7 +2,9 @@
 
 > **Status: ✅ Authored (bootstrap as-built, 2026-07-06; delta 2026-07-09 for the aesthetics/
 > visual-story-narrative/procgen-world-map increment — see §2a/§3a/§4a below; delta 2026-07-13 —
-> §4c, `SELECT` becomes a small menu, target state, not yet shipped, `CR-06`/`BL-0100`).** Owned by
+> §4c, `SELECT` becomes a small menu, target state, not yet shipped, `CR-06`/`BL-0100`; delta
+> 2026-07-14 — §4d, new-game mode choice (Finite/Infinite), target state, not yet shipped,
+> `BL-0113`).** Owned by
 > `03-architecture-design-synthesis`. Builds on [GDS-00](00-vision.md); the next level,
 > [GDS-02 System Context](02-system-context.md), builds on this one.
 >
@@ -219,6 +221,67 @@ choices to `07`/`08` when either representation is equally valid); the new `GAME
 values for `SELECT MENU`/`LEGEND` (the next two free values following the existing `GS_SEED_SCALE_ENTRY = 7`,
 per this project's own append-only `GAMESTATE` numbering convention, `asm_game.py:170,174`).
 
+### 4d. New-game mode choice (Finite / Infinite) — delta for `BL-0113` (decided 2026-07-14)
+
+`BL-0113` (`06-feature-specification`, `FS-110` Open Question 6): [ADR-0016](adr/ADR-0016-streaming-infinite-mode-generation-architecture.md)/[ADR-0017](adr/ADR-0017-infinite-mode-treasure-placement-and-win-condition.md)/`FR-10100`–`FR-10600` commit Infinite Mode to a real, additive new-game path, but no target-state concept named where in the state machine a player chooses it. §4a's `SEED/SCALE ENTRY` is the finite mode's own shipped (`IP-1040`) new-game entry and has no scale concept for Infinite Mode to reuse — Infinite Mode's world has no fixed extent (`FR-10600`/`ADR-0016`), so it needs a seed only.
+
+**Decision: `MAIN MENU`'s "new game" option now opens a `MODE SELECT` small cursor menu (`finite` / `infinite`) instead of jumping directly to `SEED/SCALE ENTRY`.** Reuses the exact cursor-menu pattern `MAIN MENU` (§4a) and `SELECT MENU` (§4c) already established, rather than inventing a third UI convention for the same shape of choice. `SEED/SCALE ENTRY` itself is **completely unchanged** — same digit-cursor input, same confirm behavior — and becomes `MODE SELECT`'s `finite` destination. A new **`INFINITE SEED ENTRY`** state is added as `MODE SELECT`'s `infinite` destination: the same digit-cursor convention `ADR-0010` established for `SEED/SCALE ENTRY`, but seed-only — there is no scale digit to enter.
+
+```
+(boot) ──────────▶ MAIN MENU ──"continue" (valid save)──▶ PLAYING
+                       │
+                       └──"new game"──▶ MODE SELECT ──B (cancel)──▶ MAIN MENU
+                                            │
+                                            ├──"finite" (A)────▶ SEED/SCALE ENTRY ──confirm──▶ INTRO ──A──▶ PLAYING
+                                            │                         │
+                                            │                         └──B (cancel)──▶ MAIN MENU  (unchanged, IP-1040)
+                                            │
+                                            └──"infinite" (A)──▶ INFINITE SEED ENTRY ──confirm──▶ INTRO ──A──▶ PLAYING (Infinite Mode)
+                                                                      │
+                                                                      └──B (cancel)──▶ MODE SELECT
+```
+
+- **`MODE SELECT`** (new) — reachable only from `MAIN MENU`'s "new game"; presents **finite** and
+  **infinite**, cursor-selected exactly as `MAIN MENU`'s own continue/new-game choice and
+  `SELECT MENU`'s own map/legend choice are (§4a/§4c); `B` cancels directly back to `MAIN MENU`
+  (no destination visited).
+- **`SEED/SCALE ENTRY`** — unchanged from §4a in every respect *except its entry point*, which
+  now arrives via `MODE SELECT`'s "finite" confirm rather than directly from `MAIN MENU`'s "new
+  game." Its own internal behavior and its `B`-cancel target (`MAIN MENU`, resolved as-shipped in
+  `IP-1040`) are **not redirected through `MODE SELECT`** — named tradeoff below.
+- **`INFINITE SEED ENTRY`** (new) — reachable only from `MODE SELECT`'s "infinite"; digit-cursor
+  seed entry (`ADR-0010`'s input convention, seed digits only, no scale digits); on confirm,
+  seeds the PRNG (`R111`) and proceeds to `INTRO` exactly as the finite path does. `B` cancels
+  back to `MODE SELECT` (the "one step back" convention — this state has no shipped precedent to
+  preserve, unlike `SEED/SCALE ENTRY`).
+- **`PLAYING`'s existing `SAVE`/exit-to-main-menu path (§2a) is unchanged and mode-agnostic** —
+  auto-save on exit persists whichever mode's data is active (per-region `CARROT_FLAGS` for the
+  finite mode, or the visited-region ledger for Infinite Mode, `FS-110` Workflow D). No new state
+  is needed for this.
+- **`VICTORY`'s existing entry trigger (`CARROTS_COUNT`/key-item-count reaching the finite mode's
+  total, §4/§4a) does not apply to Infinite Mode runs** — `FR-10600`/`ADR-0017` deliberately have
+  no bounded end-condition mechanic, so no new state-machine edge into `VICTORY` is drawn for the
+  infinite path here. *Not decided here:* exactly when/how the running-count-vs-top-3 comparison
+  (`FS-110`'s own win condition, Open Question 3, `BL-0112`) surfaces to the player is a
+  `04-requirements-engineering`/`06-feature-specification` question, not resolved by this delta.
+
+**Named tradeoff, not silently absorbed:** cancelling out of `SEED/SCALE ENTRY` returns the player
+directly to `MAIN MENU`, skipping back past `MODE SELECT` entirely — inconsistent with the
+"one step back" convention `INFINITE SEED ENTRY`'s own cancel path uses, and arguably a rougher
+edge than a fully symmetric design would have. This is accepted deliberately rather than routed
+around: redirecting `SEED/SCALE ENTRY`'s `B`-cancel target to `MODE SELECT` would change `IP-1040`'s
+already-shipped, already-verified (`VR-1040`) code path, which this delta's own scope explicitly
+excludes. The asymmetry is a direct, named consequence of protecting shipped behavior over
+interface symmetry, not an oversight.
+
+**Not decided here (implementation-level, `07`/`08-code-implementation`):** the exact new
+`GAMESTATE` numeric values for `MODE SELECT`/`INFINITE SEED ENTRY` (the next two free values
+following `GS_SELECT_MENU = 8`/`GS_LEGEND = 9`, per this project's own append-only `GAMESTATE`
+numbering convention, `asm_game.py:174-175`); the WRAM byte `MODE SELECT`'s own cursor state
+reuses or claims new (following `ADR-0015`'s precedent of leaving byte-encoding choices to
+`07`/`08` when either representation is equally valid — mirrors §4c's identical treatment of
+`SELECT MENU`'s cursor byte).
+
 ### 5. Former Open Question — world-scale direction (resolved 2026-07-09, see §3a/ADR-0010)
 
 This section originally posed "wider vs. deeper" as an open tension (bootstrap pass, 2026-07-06;
@@ -270,3 +333,12 @@ invent a new game state at the requirements level). Delta, not re-authoring — 
 accurate (as-shipped or already-established target state); §4c is new **target state, not yet
 shipped** — no `IP-xxxx` package exists for it yet. `04-requirements-engineering` returns to
 derive `CR-06`'s real FR from this delta next. No merge-gate box above is reopened.
+
+**Delta record (2026-07-14):** §4d added, per `BL-0113` (`06-feature-specification`, `FS-110`
+Open Question 6, routed here since a new-game mode-choice UI shape is an architecture-target-state
+question, not a requirement or a Feature-catalog scoping question). Delta, not re-authoring —
+§§1–4c remain accurate (as-shipped or already-established target state); §4d is new **target
+state, not yet shipped** — no `IP-xxxx` package exists for it yet, and it deliberately does not
+alter `SEED/SCALE ENTRY`'s own already-shipped (`IP-1040`) behavior. `04-requirements-engineering`
+derives the real FR from this delta next (a future pass on `FEAT-10000`, alongside `BL-0112`'s
+own open run-end-trigger question). No merge-gate box above is reopened.

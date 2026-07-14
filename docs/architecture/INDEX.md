@@ -14,7 +14,7 @@ is closed with its decision recorded in prose. Status here and in `ROADMAP.md` m
 | Level | Title | File | Status |
 |---|---|---|---|
 | GDS-00 | Vision (owned by `01-vision`) | [00-vision.md](00-vision.md) | ✅ Authored (gate closed 2026-07-06; revised 2026-07-06 and again 2026-07-09 for MSTR-001 v3.0, see MSTR-001 §8) |
-| GDS-01 | Concept of Play | [01-concept-of-play.md](01-concept-of-play.md) | ✅ Authored (gate closed 2026-07-06; delta 2026-07-09 for procgen-world increment, §§2a/3a/4a/4b; delta 2026-07-13 §4c — `SELECT` becomes a small menu (`MAP`/`LEGEND`), target state, `CR-06`/`BL-0100`) |
+| GDS-01 | Concept of Play | [01-concept-of-play.md](01-concept-of-play.md) | ✅ Authored (gate closed 2026-07-06; delta 2026-07-09 for procgen-world increment, §§2a/3a/4a/4b; delta 2026-07-13 §4c — `SELECT` becomes a small menu (`MAP`/`LEGEND`), target state, `CR-06`/`BL-0100`; delta 2026-07-14 §4d — new-game mode choice (Finite/Infinite) via `MODE SELECT`, target state, `BL-0113`) |
 | GDS-02 | System Context | [02-system-context.md](02-system-context.md) | ✅ Authored (gate closed 2026-07-06) |
 | GDS-03 | Architecture | [03-architecture.md](03-architecture.md) | ✅ Authored (gate closed 2026-07-06) |
 | GDS-04 | Domain Model | [04-domain-model.md](04-domain-model.md) | ✅ Authored (gate closed 2026-07-06; delta 2026-07-09 for procgen-world increment — Seed/WorldScale/Region/KeyItem; delta 2026-07-10 — SaveGame bullet corrected, BL-0033; delta 2026-07-12 — `KeyItem` cardinality/win-condition corrected, `ADR-0015`) |
