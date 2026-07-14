@@ -12,7 +12,8 @@
 > FR-1200/FR-1210 added once GDS-01 §4c/GDS-08 §11 landed, `CR-06` resolved/baselined; delta
 > 2026-07-13 (cont'd) — FR-10100–10500, NFR-1400/2300/4300/5400, and CR-07 added for the
 > Infinite Mode epic, `ADS-001`/`ADR-0016`/`ADR-0017`/`BL-0094`/`BL-0106`; delta 2026-07-13
-> (cont'd) — FR-10600 added, `CR-07` resolved/baselined by direct user decision).**
+> (cont'd) — FR-10600 added, `CR-07` resolved/baselined by direct user decision; delta 2026-07-14
+> — `CR-05` row updated, mechanism resolved via `ADR-0018`, not yet baselined).**
 > Owned by `04-requirements-engineering`.
 > One row per [RQ-01](01-functional-requirements.md)/[RQ-02](02-non-functional-requirements.md)
 > requirement (Candidates marked). Populates the row-level matrix
@@ -57,7 +58,7 @@
 | FR-6400 | Player and collectible sprite rendering (added 2026-07-10, BL-0020) | — | GDS-08 §2 | ADR-0005, ADR-0007 | `asm_game.py` | UNASSIGNED | UNASSIGNED | T6.1–T6.10 — trustworthy, pre-existing evidence, formal requirement only |
 | CR-01 | Full save-field persistence — **RESOLVED/SPLIT 2026-07-07**: facing/frame half REJECTED (no row — see FR-5210); ScoreItem half APPROVED → see **FR-5220** row above | — | GDS-05 C5; BL-0018 (resolved) | — | `asm_game.py` | `RESOLVED — SEE FR-5220` | `RESOLVED — SEE FR-5220` | `RESOLVED — SEE FR-5220` |
 | CR-02 | Carrot-invariant enforcement | — | GDS-04; BL-0017 | — | `tilemaps.py` | `CANDIDATE — NOT BASELINED` | `CANDIDATE — NOT BASELINED` | `CANDIDATE — NOT BASELINED` |
-| CR-05 | Biome-blob clustering seeded from maze dead-ends (`BL-0066`) — conflicts with `ADR-0012` point 1's fixed biome-first pass ordering, per RQ-03 finding #13 | — | GDS-04; BL-0066 | ADR-0012 | `worldgen.py` | `CANDIDATE — NOT BASELINED` | `CANDIDATE — NOT BASELINED` | `CANDIDATE — NOT BASELINED` |
+| CR-05 | Biome-blob clustering (`BL-0066`) — **mechanism RESOLVED 2026-07-14** via `ADR-0018` (per-super-cell positional hash, reusing Infinite Mode's own technique); not yet baselined into a real FR, per RQ-03 finding #18 | R114 | GDS-04; BL-0066 | ADR-0009, ADR-0018 | `worldgen.py` | `CANDIDATE — NOT BASELINED` | `CANDIDATE — NOT BASELINED` | `CANDIDATE — NOT BASELINED` |
 | CR-06 | Edge-indicator legend/help screen (`BL-0100`) — **RESOLVED 2026-07-13, baselined as FR-1200/FR-1210** once GDS-01 §4c/GDS-08 §11 landed | — | GDS-01 §4c; GDS-08 §11; BL-0100 | — | `asm_game.py`/`tilemaps.py` (prospective) | `CANDIDATE — NOT BASELINED` (see FR-1200/FR-1210) | `CANDIDATE — NOT BASELINED` | `CANDIDATE — NOT BASELINED` |
 | FR-1170 | MAIN MENU state (Met, 2026-07-10; cursor-reset regression fixed 2026-07-11) | — | GDS-01 §2a/§4a | ADR-0010 | `asm_game.py` | FS-104 | IP-1040, IP-9060 | T14.a1–a4, T18.a–d — 231/231 pass |
 | FR-1180 | New-game seed/scale entry + generation trigger (Met) | R111 | GDS-01 §4a | ADR-0009, ADR-0010 | `asm_game.py` | FS-104 | IP-1040 | T14.b1–b3, T14.c1 — 180/180 pass (T14 sub-total 20/20) |

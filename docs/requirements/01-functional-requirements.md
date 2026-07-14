@@ -6,7 +6,9 @@
 > delta 2026-07-13 for the edge-indicator legend screen, FR-1200/1210, `CR-06`/`BL-0100`; delta
 > 2026-07-13 (cont'd) for the Infinite Mode epic, FR-10000–10500, `CR-07`, `ADS-001`/`ADR-0016`/
 > `ADR-0017`/`BL-0094`/`BL-0106`; delta 2026-07-13 (cont'd) — `CR-07` resolved by direct user
-> decision, baselined as FR-10600 — see Changelog).** Owned by `04-requirements-engineering`.
+> decision, baselined as FR-10600; delta 2026-07-14 — `CR-05` mechanism resolved by direct user
+> decision, `ADR-0018` adopted, not yet baselined pending a future `04` pass — see Changelog).**
+> Owned by `04-requirements-engineering`.
 > Derives from [GDS-05](../architecture/05-functional-requirements.md)'s six capability groupings
 > (C1–C6) — this document formalizes each into numbered, testable `FR-xxxx` requirements per
 > [GDS-10](../architecture/10-requirements-traceability-matrix.md) §3's stated contract: *cite
@@ -18,6 +20,13 @@
 
 ## Changelog
 
+- **2026-07-14 — CR-05 mechanism resolved by explicit user decision** (`ADR-0018`,
+  `BL-0066`/`CR-05`). The project owner directed reusing Infinite Mode's own per-super-cell
+  `hash(SEED, supercell_row, supercell_col)` blob technique for the finite mode too, superseding
+  CR-05's original dead-end-seeding proposal — [ADR-0018](../architecture/adr/ADR-0018-finite-mode-biome-blob-clustering.md)
+  adopts it, refining `ADR-0009` point 2, needing no `ADR-0012` pass-ordering change. CR-05 is now
+  ready for a future `04-requirements-engineering` pass to derive the real FR from — not yet
+  baselined, mirroring `CR-06`'s own `03→04` precedent.
 - **2026-07-13 — CR-07 resolved by explicit user decision.** The project owner decided directly:
   "for now assume indefinitely resumable." **CR-07** (run/session shape) is RESOLVED and
   BASELINED — promoted to new **FR-10600** (Indefinitely resumable Infinite Mode run, no
@@ -1742,7 +1751,7 @@ excluded from the numbered baseline above; marked `CANDIDATE — NOT BASELINED` 
 - **Disposition:** SCHEDULED per BL-0017 — recommended as a Verification Checklist item on any
   future package touching `ZONE_COLLECTS`, not a standalone requirement today.
 
-### CR-05 — Biome-blob clustering seeded from the maze's own dead-ends (`BL-0066`)
+### CR-05 — Biome-blob clustering seeded from the maze's own dead-ends (`BL-0066`) — superseded 2026-07-14, see resolution below
 
 - **Description:** Cluster biome assignment into cohesive multi-region blobs (so a "Forest area"
   spans several regions before drifting, per `BL-0066`'s own ask), with blob centers seeded from
@@ -1771,6 +1780,17 @@ excluded from the numbered baseline above; marked `CANDIDATE — NOT BASELINED` 
   `03-architecture-design-synthesis` (or directly to the user, if the owner has a preference
   between "revisit `ADR-0012`'s pass ordering to allow dead-end-seeding" vs. "keep the ordering,
   use flood-fill instead") — see `RQ-03`'s finding for the full conflict write-up.
+  **Resolved (2026-07-14): the project owner picked neither original option** — direct
+  instruction: "If there is a blob mechanism that works for infinite mode, use that concept for
+  the finite mode as well," pointing at the per-super-cell `hash(SEED, supercell_row,
+  supercell_col)` technique `R114`/`ADR-0016` already established for Infinite Mode.
+  [ADR-0018](../architecture/adr/ADR-0018-finite-mode-biome-blob-clustering.md) adopts it for the
+  finite mode too — a deterministic snap-to-blob layered on top of `ADR-0009` point 2's existing
+  grammar-constrained draw (unchanged as the fallback), requiring no `ADR-0012` pass-ordering
+  change at all, since the hash needs no maze to exist first. This Candidate's own original
+  dead-end-seeding proposal is superseded, not adopted — see `ADR-0018` for the full mechanism.
+  This Candidate is now ready for `04-requirements-engineering` to derive its real FR from, still
+  un-baselined until that pass runs (mirroring `CR-06`'s own `03→04` precedent below).
 
 ### CR-06 — Edge-indicator legend/help screen, reachable via SELECT (`BL-0100`) — RESOLVED, BASELINED 2026-07-13
 
