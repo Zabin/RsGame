@@ -5,9 +5,14 @@
 > elaborates FEAT-10000, it does not modify its catalog entry, the requirements it implements, or
 > any architecture document.
 >
-> **Not yet planned.** No `IP-xxxx` package exists yet. This Feature sits in the `Future` release
-> bucket (no release commitment made) — specification does not require or imply scheduling, per
-> `05-feature-decomposition`'s own established precedent.
+> **Planned 2026-07-14** (`07-implementation-planning`) — five packages,
+> [IP-1100](../implementation/packages/IP-1100-infinite-mode-mode-selection.md)–[IP-1104](../implementation/packages/IP-1104-infinite-mode-ledger-save-persistence.md),
+> all `NOT STARTED`, **NOT YET AUTHORIZED (G3)**. See the
+> [Technical Work Breakdown](../implementation/01-technical-work-breakdown.md#infinite-mode-fs-110feat-10000ep-6000-planned-2026-07-14)
+> for the split rationale. This Feature sits in the `Future` release bucket (no release commitment
+> made) — planning does not require or imply scheduling, per `05-feature-decomposition`'s own
+> established precedent. Open Question 3 (`BL-0112`, run-end trigger timing) is deliberately left
+> unresolved by this planning pass, exactly as this document's own §19 routes it.
 
 [↑ Features index](INDEX.md) · [Feature Catalog](../feature-planning/03-feature-catalog.md) ·
 [Epic Catalog](../feature-planning/02-epic-catalog.md)

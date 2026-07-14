@@ -1,6 +1,7 @@
 # Technical Work Breakdown
 
-> **Status: ✅ Authored (first planning pass, 2026-07-07).** Owned by
+> **Status: ✅ Authored (first planning pass, 2026-07-07); latest delta 2026-07-14 (Infinite
+> Mode, `FS-110`/`FEAT-10000`, 5 packages `IP-1100`–`IP-1104`, NOT YET AUTHORIZED).** Owned by
 > `07-implementation-planning`. Records how approved work is cut into Implementation Packages —
 > the rationale for every split/no-split decision is the artifact. Package status lives in the
 > [Master Build Plan](00-master-build-plan.md), not here.
@@ -949,3 +950,198 @@ streaming-generation thread.
 
 - **`BL-0100`** (project owner request, edge-indicator legend screen): packaged as `IP-1090` —
   not `DONE` until `IP-1090` ships and is `VERIFIED`.
+
+## Infinite Mode (`FS-110`/`FEAT-10000`/`EP-6000`, planned 2026-07-14)
+
+`FS-110`'s two named upstream blockers (`BL-0111`, missing `FEAT-4100` catalog dependency;
+`BL-0113`, mode-selection UI shape) are both resolved (`05-feature-decomposition`,
+`GDS-01` §4d). Of the 8 Open Questions `FS-110` itself raises, this pass resolves five as
+implementation-level choices per the FS's own explicit routing (`OQ2` density constant `K`,
+`OQ4` no spawn-region special case, `OQ5` ledger capacity/eviction, `OQ7` save-format version
+value, `OQ8` materialized-window sizing) and leaves **`OQ3` (the run-end trigger for the top-3
+comparison) genuinely unresolved**, exactly as `FS-110` itself routes it — `04-requirements-
+engineering` or a direct user decision, not `07`. `OQ1` (rendering-integration mechanism) is
+resolved by direct investigation of the shipped code (below), not assumed.
+
+**Rendering-integration finding (`OQ1`, resolved by direct code read, not assumed):**
+`dsr_p` (`asm_game.py:951-988`) reads a **biome-id value into register A** from
+`REGION_GRAPH + region*5`, then branches purely on that value (`0-4`) into the shared
+`dsr_p_water`/`sand`/`grass`/`stone`/`brick` → `dsr_p_copy` → `copy_screen` path — **this half is
+already decoupled from `REGION_GRAPH`'s own storage**: any routine that places a biome-id `0-4`
+into A before jumping to `dsr_p` gets the correct tileset drawn, with zero `FEAT-4100` code
+changes needed. **`draw_region_arrows` (`asm_game.py:1040` on) is not similarly reusable** — it
+re-derives `row`/`col` via `CUR_ZONE`/`WORLD_SCALE` division (`asm_game.py:1061-1069`, a
+finite-mode-only concept Infinite Mode has no equivalent of) and reads 4 **neighbor-region-index**
+bytes (`0xFF`=none) at the HL address `dsr_p` pushes, distinguishing a maze-pruned edge from a
+true grid boundary via that same `row`/`col` (`ADR-0012` point 2). Infinite Mode's connectivity is
+a 4-bit open/closed nibble per region (no neighbor-index concept, no grid boundary — every
+direction always has a grid-adjacent region in an unbounded world), so this routine cannot be
+reused as-is. **Resolution:** `dsr_p`'s biome-dispatch half is reused verbatim (Infinite Mode
+jumps into it directly with a freshly-computed biome-id in A); a new, parallel
+`draw_region_arrows_inf` routine is written, reading the current region's own connectivity nibble
+(§ per-region materialization, below) instead of `REGION_GRAPH` neighbor bytes — no shared code
+is modified, no regression risk to the finite mode's own rendering path. This is the concrete
+mechanism `FS-110` OQ1 named as unresolved; `05-feature-decomposition`'s own `BL-0111` fix (adding
+`FEAT-4100` as a *content*-reuse dependency — the tileset draw, not the arrow draw) is confirmed
+accurate by this finding, not contradicted by it.
+
+**Binary Tree maze construction (`ADR-0016` point 5, operationalized here, not re-decided):** a
+region's own north/west carve bias is drawn from its own per-region reseed; whether its *south* or
+*east* edge is open is determined by the **south neighbor's own north-carve decision** and the
+**east neighbor's own west-carve decision** respectively (the standard Binary Tree maze property —
+a cell's south/east openness is authored by the neighbor on that side, not by the cell itself).
+Materializing one region's full 4-direction connectivity therefore needs up to two additional
+per-region reseeds (south neighbor, east neighbor), each discarded immediately after the one bit
+it supplies is read — no persistent state beyond the single region being materialized, preserving
+`ADR-0016`'s own "zero-memory" framing.
+
+### Verb inventory
+
+Five verbs apply (`review` deferred, see below):
+
+- **generate** — the per-region materialization routine: `hash(SEED, row, col)` reseed →
+  biome-id (`0-4`) + 4-direction connectivity nibble (via the neighbor-consulting construction
+  above) + treasure-presence predicate (`hash(SEED, row, col) mod K`). Owner: `IP-1101`.
+- **navigate** — detecting the player's approach to a not-yet-materialized region and triggering
+  `IP-1101`'s routine; managing the small resident working set (§ sizing, below) as the player
+  moves. Owner: `IP-1102`.
+- **render** — drawing a materialized region's screen: reuses `dsr_p`'s biome-dispatch half
+  verbatim; a new `draw_region_arrows_inf` routine for the connectivity-driven arrows (§ finding
+  above). Owner: `IP-1102` (fused with navigate — see Work unit rationale).
+- **persist** — the visited-region ledger and player-position save/load (Workflow D, `FR-10500`/
+  `FR-10600`). Owner: `IP-1104`.
+- **review** — deliberately deferred, not silently skipped: this tranche ships zero new tile art
+  (reuses `FEAT-4100`'s existing biome-family tilesets and `FEAT-2100`'s existing arrow/blocked
+  tiles verbatim — no new bitmap, no new palette entry), so no `09-content-review` pass is owed by
+  *this* tranche the way `IP-1081`'s new tile bitmaps needed one, mirroring `IP-1090`'s own
+  identical precedent. If a future package adds Infinite-Mode-specific tile art, that package
+  owns its own review, not this one.
+
+A sixth concern — **mode selection** (Workflow A, the new-game entry point) — is not a
+generate/render/navigate/persist/review verb in the FS-110 sense; it is state-machine
+plumbing, owned by `IP-1100`, sequenced first since every other package's own entry point
+(materialization, the render/navigate loop, the save format) is only reachable once a save
+records which mode is active.
+
+### Supersession sweep
+
+This tranche is **purely additive** — no existing model is retired or generalized past its old
+shape (unlike, e.g., `IP-1030`'s `ALL_SCREENS` generalization). Swept anyway, per this skill's own
+mandatory-whenever-in-doubt discipline:
+
+- **`asm_game.py`**: `GAMESTATE`'s dispatch table, `CUR_ZONE`'s own finite-mode addressing
+  (`dsr_p`, `check_zone_transition`, `draw_region_arrows`, `setup_zone_collects`), `REGION_GRAPH`,
+  `save_to_sram`/`try_load_save` — **all confirmed untouched by this tranche's own packages**
+  (each package's own Files to Modify names new labels/branches only, gated behind a new
+  `GAME_MODE` read that defaults to the finite mode's existing value `0`, per `IP-1100`). No call
+  site anywhere in the shipped tree assumes `GAME_MODE` exists yet, so the new gate is additive by
+  construction, not a retrofit onto existing branches.
+- **`tilemaps.py`/`build_rom.py`**: `ALL_SCREENS`/`patches` gain new entries (`IP-1100`'s two new
+  screens) following the exact pattern `IP-1040`'s `mm_t`/`sse_t` pair established — no existing
+  entry renamed or removed.
+- **`test_rom.py`**: no existing check's own assumption (fixed `WORLD_SCALE`, fixed `REGION_GRAPH`
+  shape, single save format) is invalidated — Infinite Mode's own save format is a new,
+  additional shape gated behind `GAME_MODE == 1`, never taken by any existing finite-mode test
+  fixture. **Confirmed clean — nothing to route.**
+
+### Per-region encoding, materialized-window, and ledger sizing decisions (`OQ8`/`OQ5`, resolved this pass)
+
+No `GDS-04`/`07`/`09` delta exists for Infinite Mode (`FS-110` §10, by `ADR-0016`'s own explicit
+deferral) — the following are this package-authoring pass's own sizing choices, cited to `R114`'s
+recommendation and the confirmed bank-0/SRAM headroom (`GDS-07` §6/§7), not a retroactive
+architecture decision:
+
+- **Per-region encoding: 1 byte** — bits 0-2 biome-id (`0-4`, same axis as `REGION_GRAPH`'s own
+  byte), bits 3-6 connectivity nibble (up/down/left/right, 1=open), bit 7 reserved/unused. No
+  treasure-presence bit is stored — it is always re-derived from `hash(SEED, row, col) mod K` on
+  demand (Workflow C step 1), and "collected" state lives only in the ledger (below), never in
+  the working set, so no region-resident byte needs to represent it.
+- **Materialized window: 3×3 regions (9 bytes) centered on the player's current region** — sized
+  to the *actual* dependency the Binary Tree construction has (a region's own connectivity needs
+  only itself plus its south/east neighbor's carve decision, resolved above), plus one ring of
+  margin so the region just left remains resident long enough to redraw consistently mid-transition,
+  without adopting `R114`'s own speculative 5×5/7×7 ceiling (framed there as "if a broader
+  prefetch buffer is wanted," not as a minimum). 9 bytes total working-set cost — trivial against
+  the confirmed ~3.1 KiB bank-0 headroom (`R111`/`GDS-07` §6), leaving that headroom almost
+  entirely free for later widening without `SVBK` banking, should measurement ever call for it.
+  Center-anchor position (`INF_ROW`/`INF_COL`, below) adds 4 bytes.
+- **Visited-region ledger: 128 entries × 5 bytes (row: signed 16-bit, col: signed 16-bit,
+  collected-flag: 1 byte) = 640 bytes SRAM**, against the confirmed ~8 KiB SRAM budget (`R106`) —
+  comparable in proportion to `IP-1050`'s own ~84-byte addition, scaled up because this Feature's
+  own save shape is ledger-based rather than a single fixed-size struct. **Eviction policy
+  (`FS-110` §7's open edge case): FIFO** — once the ledger is full, the oldest-visited entry is
+  overwritten to make room for the newly-visited region; a bounded ring buffer, the simplest
+  policy consistent with "bounded ledger, unbounded exploration," named here as this pass's own
+  choice, not asserted as the only correct one (a future revision could switch to a
+  distance-from-current-position eviction rule if FIFO proves player-hostile in practice — an
+  observation for a future `09`/`10` pass, not pre-empted here).
+- **New save-format version value: `SAVE_VERSION_VAL` bumps `0x04`→`0x05`** (extends the existing
+  strictly-monotonic sequence — `IP-9110`'s most recent bump — rather than inventing a second,
+  parallel version scheme; `GAME_MODE`'s own persisted value, not a second version byte, is what
+  selects which of the two save shapes' fields are meaningful on load, mirroring how a single
+  version guard has always covered every field added since `IP-1010`).
+- **No spawn-region special case (`OQ4`):** confirmed as this pass's own implementation choice —
+  the player's starting region materializes identically to any other region, via the same
+  `hash(SEED, 0, 0)` reseed every other region uses. No code path treats `(row,col)==(0,0)`
+  specially.
+- **Treasure density constant `K` (`OQ2`):** `K = 16` (≈6.25% presence rate), anchored near
+  `R215`'s own measured `scale=9` finite-world dead-end density (~6.4%) per `ADR-0017`'s own
+  citation, rounded to a power-of-two divisor so the modulo reduces to a 4-bit mask (`AND 0x0F`,
+  compared to a fixed remainder) rather than a division — no `DIV`/`MUL` instruction needed,
+  consistent with `NFR-2200`'s "no `DIV`/`MUL` anywhere in generation" constraint (`R112`), which
+  `FS-110`'s own `NFR-2300` restates for the per-region case.
+
+### Work units and package cut
+
+| Work unit | Package | Owner | Depends on |
+|---|---|---|---|
+| Mode selection & new-game entry: `GS_MODE_SELECT`/`GS_INFINITE_SEED_ENTRY` (values 10/11, the next free `GAMESTATE` values after `GS_LEGEND=9`), `st_mode_select`/`st_infinite_seed_entry` handlers, `GAME_MODE` WRAM flag, two new screens (`mode_select_screen()`, `infinite_seed_entry_screen()`, reusing existing font/cursor/digit-entry primitives, no new tile art) | [IP-1100](packages/IP-1100-infinite-mode-mode-selection.md) | `08-code-implementation` | `IP-1040`/`FEAT-1100` (cursor-menu convention, `VERIFIED`), `IP-1101` (calls its materialization routine on first entry to `PLAYING`) |
+| Per-region materialization (`generate`): per-region `gw_prng_step` reseed, biome-id + connectivity-nibble + treasure-presence derivation, `worldgen.py` oracle mirror | [IP-1101](packages/IP-1101-infinite-mode-region-materialization.md) | `08-code-implementation` | `IP-1020`/`FEAT-9000` (`gw_prng_step` reuse, `VERIFIED`) |
+| Streaming window management, navigation, and render integration (`navigate` + `render`, fused — see rationale): 3×3 materialized window, transition-triggered re-materialization, `dsr_p` biome-dispatch reuse, new `draw_region_arrows_inf` | [IP-1102](packages/IP-1102-infinite-mode-streaming-window-and-render.md) | `08-code-implementation` | `IP-1101` (region data), `IP-1030`/`FEAT-4100` (`dsr_p`'s biome-dispatch half, `VERIFIED`) |
+| Treasure placement, collection & win-condition state (running count, top-3 table subroutine — call site deferred, `OQ3` unresolved) | [IP-1103](packages/IP-1103-infinite-mode-treasure-and-win-condition.md) | `08-code-implementation` | `IP-1101` (treasure-presence predicate), `IP-1102` (collection reuses the materialized window's per-frame loop) |
+| Visited-region-ledger save/load (`persist`): SRAM write/restore, `SAVE_VERSION_VAL` bump, FIFO eviction | [IP-1104](packages/IP-1104-infinite-mode-ledger-save-persistence.md) | `08-code-implementation` | `IP-1100` (`GAME_MODE`), `IP-1101` (position/region format), `IP-1103` (collected-state to persist) |
+
+**Split rationale:** five packages, not one, despite `FEAT-10000`'s own catalog entry being kept
+deliberately unsplit (that entry's own Scope field explicitly anticipates this — "`06-feature-
+specification` may split this if implementation detail later shows a natural boundary… mirroring
+how `FEAT-9000` itself started as one Feature before `FEAT-4100`/`FEAT-5300`/`FEAT-9100` were
+later carved out"). Implementation detail now shows exactly that seam: each of the five verbs
+above is independently completable and independently testable against its own Files to
+Modify — `generate` needs no rendering code to unit-test (a `worldgen.py` oracle corpus, mirroring
+`IP-1020`'s own `T12` precedent); `persist` needs no win-condition logic to test a save/reload
+round trip. **`navigate` and `render` are fused into one package (`IP-1102`)**, not split further,
+because they are *not* independently completable the same way: the window-management logic has
+nothing to draw with until the render half exists, and the render half has no trigger to run from
+until the window-management half decides a region needs (re)materializing — the same
+not-independently-completable test `IP-1090`'s own single-package precedent applies (state-machine
+half and render half, there fused for the identical reason).
+
+### Sequencing summary
+
+**Critical path: `IP-1101` → `IP-1102` → `IP-1103` → `IP-1104`** (4 packages) — `IP-1101` is the
+tranche's foundational package (mirrors `IP-1020`'s own root-of-tranche role for the finite mode);
+everything downstream needs its per-region output shape decided first. `IP-1100` depends only on
+`IP-1101` (it must call the materialization routine once, on first entry to `PLAYING`) and is
+otherwise parallel-eligible with `IP-1102` — its own state-machine/screen work touches no file
+region `IP-1102` touches. All five packages' own upstream dependencies
+(`IP-1020`/`IP-1030`/`IP-1040`, `FEAT-9000`/`FEAT-4100`/`FEAT-1100`) are already `VERIFIED` — this
+tranche is immediately buildable in full once authorized, not blocked on any in-flight work
+elsewhere in the tree. **Not extending the existing critical path** — this is a new, independent
+4-package chain off already-`VERIFIED` roots, the same "parallel, independent thread" framing
+`FP-04`'s own Infinite Mode delta already established at the Feature-planning level.
+
+**`OQ3` (run-end trigger) blocks only `IP-1103`'s own top-3-comparison *call site*, not the rest
+of the tranche** — see `IP-1103`'s own package text for the precise boundary of what is and isn't
+buildable without it.
+
+### Backlog riders honored in this pass
+
+- **`BL-0110`** (finite-mode super-cell size tuning, `ADR-0018`) — **not** riding this pass; it
+  belongs to the finite-mode blob-clustering FR's own future `07` pass (`BL-0066`), a distinct
+  Feature from `FEAT-10000`, named here only to confirm it was checked and correctly excluded.
+- **`BL-0112`** (run-end trigger timing) — **not resolved by this pass**, per `FS-110`'s own
+  explicit routing (`04-requirements-engineering` or a direct user decision, not `07`) — see the
+  Sequencing summary above for exactly what this leaves unbuilt.
+- **`BL-0114`** (materialized-window radius/byte cost) — resolved this pass, see "Per-region
+  encoding, materialized-window, and ledger sizing decisions" above. `BL-0114` flips to `DONE`
+  once `00-pipeline-manager` harvests this run.

@@ -1,7 +1,11 @@
 # Master Build Plan
 
-> **Status (corrected 2026-07-13, `09-package-verification` on `IP-1082`): 26 of 26 packages
-> VERIFIED.** `IP-1090` (SELECT Menu & Edge-Indicator Legend Screen, `BL-0100`) `VERIFIED`
+> **Status (updated 2026-07-14, `07-implementation-planning` on `FS-110`): 26 of 31 packages
+> VERIFIED; 5 new packages planned (`IP-1100`–`IP-1104`, Infinite Mode, `NOT STARTED`, NOT YET
+> AUTHORIZED).** Every prior package remains `VERIFIED` — nothing below this line is re-opened by
+> the new tranche. **Prior status (corrected 2026-07-13, `09-package-verification` on `IP-1082`):
+> 26 of 26 packages VERIFIED.** `IP-1090` (SELECT Menu & Edge-Indicator Legend Screen, `BL-0100`)
+> `VERIFIED`
 > 2026-07-13 ([VR-1090](verification/VR-1090-select-menu-edge-indicator-legend-screen.md));
 > `IP-1082` (`FS-108` rendering half, `BL-0075`) `VERIFIED` 2026-07-13
 > ([VR-1082](verification/VR-1082-maze-blocked-edge-indicator-render.md)), both independently
@@ -242,6 +246,27 @@ start.** No critical path — a single package, fully `READY` (every dependency 
 
 | [IP-1090](packages/IP-1090-select-menu-edge-indicator-legend-screen.md) | SELECT Menu & Edge-Indicator Legend Screen (FS-109 / FEAT-1200 / BL-0100) | `08-code-implementation` | **VERIFIED** ([VR-1090](verification/VR-1090-select-menu-edge-indicator-legend-screen.md), 2026-07-13) | IP-1040 (VERIFIED), IP-1030 (VERIFIED), IP-1081 (VERIFIED) | **YES — explicit user G3, 2026-07-13 ("Yes")** | **Implemented 2026-07-13.** `GS_SELECT_MENU`/`GS_LEGEND` = 8/9 added; `handle_play_input`'s SELECT branch retargeted from `GS_MAP` to `GS_SELECT_MENU` (`st_map` itself confirmed byte-for-byte unchanged); new `st_select_menu` (D-pad toggle, A-confirm to MAP/LEGEND, B-cancel to PLAYING) and `st_legend` (B-only) state handlers; `sm_on_entry`/`draw_select_menu_cursor` mirror `mm_on_entry`/`draw_menu_cursor`, reusing `MM_CURSOR`/`MM_JUST_ENTERED` (no new WRAM bytes); two new static screens (`select_menu_screen()`, `legend_screen()`) reusing existing tile primitives — zero new tile art, zero new palette entries, ROM at 25544/32768 bytes (+2560 from the two screens). New `test_rom.py` suite **T21** (12 checks — SELECT MENU entry/toggle, both confirm branches, B-cancel with a scoped meaningful-fields diff, LEGEND entry/exit, and direct tilemap-content assertions confirming the real `TL_ARROW_U`/`TL_BLOCKED_U` tiles and a genuinely blank world-edge cell). Corrected the three existing tests (`T4.6`, `T8.11`, `T14.e2`) the Technical Work Breakdown's supersession sweep flagged, each with an inserted `A` press for the new two-hop path. Full suite 246/246 (was 234 — net +12, all new T21 checks; zero regressions). Backfilled GDS-07's missing `MM_SAVE_VALID`/`MM_CURSOR` WRAM-table rows (referenced since `IP-1040` but never entered) and extended `MM_JUST_ENTERED`'s row for its new `GS_SELECT_MENU` reuse. `FR-1200`/`FR-1210` marked Implemented (Notes-only), RTM Test column filled. Closes `BL-0100` in full. **Independently verified 2026-07-13 (fresh session)**: 246/246 re-confirmed (fresh PyBoy+Pillow install), every DoD/checklist item confirmed by direct code read, `st_map` reconfirmed byte-for-byte unchanged. Independently re-driven via PyBoy screenshot: SELECT MENU's cursor correctly highlights MAP by default and moves to LEGEND on D-pad down; LEGEND renders the real open-arrow/blocked-bar tiles beside their labels with a genuinely blank WORLD EDGE cell. No findings. |
 
+## Infinite Mode tranche (`FS-110`/`FEAT-10000`/`EP-6000`, planned 2026-07-14)
+
+Five packages implementing `FS-110` end to end (except Open Question 3's own top-3-comparison
+trigger, deliberately deferred — see `IP-1103`) — see the
+[TWBS](01-technical-work-breakdown.md#infinite-mode-fs-110feat-10000ep-6000-planned-2026-07-14)
+for the full verb inventory, the rendering-integration investigation, and the sizing decisions.
+Both named upstream blockers (`BL-0111`, `BL-0113`) are resolved; every package's own upstream
+dependency (`IP-1020`/`1030`/`1040`) is already `VERIFIED`, so the tranche is immediately
+buildable once authorized. **Does not fall under the `BL-0001`…`BL-0005` G3 bootstrap carve-out;
+explicit user authorization is required before `08-code-implementation` can start on any of the
+five packages.** Critical path: `IP-1101` → `IP-1102` → `IP-1103` → `IP-1104` (4 packages);
+`IP-1100` is parallel-eligible with `IP-1102` once `IP-1101` is `COMPLETE`.
+
+| Package | Title | Owner | Status | Depends on | Authorized? |
+|---|---|---|---|---|---|
+| [IP-1100](packages/IP-1100-infinite-mode-mode-selection.md) | Mode selection & new-game entry | `08-code-implementation` | **NOT STARTED** | IP-1101 | **NO — not yet authorized** |
+| [IP-1101](packages/IP-1101-infinite-mode-region-materialization.md) | Per-region materialization | `08-code-implementation` | **NOT STARTED** | — (tranche root) | **NO — not yet authorized** |
+| [IP-1102](packages/IP-1102-infinite-mode-streaming-window-and-render.md) | Streaming window, navigation & render integration | `08-code-implementation` | **NOT STARTED** | IP-1101 | **NO — not yet authorized** |
+| [IP-1103](packages/IP-1103-infinite-mode-treasure-and-win-condition.md) | Treasure placement & win-condition state | `08-code-implementation` | **NOT STARTED** | IP-1101, IP-1102 | **NO — not yet authorized** |
+| [IP-1104](packages/IP-1104-infinite-mode-ledger-save-persistence.md) | Visited-region-ledger save persistence | `08-code-implementation` | **NOT STARTED** | IP-1100, IP-1101, IP-1102, IP-1103 | **NO — not yet authorized** |
+
 ## Dependency graph
 
 ```mermaid
@@ -335,6 +360,29 @@ graph TD
     IP1081 --> IP1090
 
     style IP1090 fill:#cfc,stroke:#333,stroke-width:2px
+
+    IP1100["IP-1100 mode selection<br/>& new-game entry<br/>(NOT STARTED)"]
+    IP1101["IP-1101 per-region<br/>materialization<br/>(NOT STARTED)"]
+    IP1102["IP-1102 streaming window<br/>& render integration<br/>(NOT STARTED)"]
+    IP1103["IP-1103 treasure &<br/>win-condition state<br/>(NOT STARTED)"]
+    IP1104["IP-1104 ledger save<br/>persistence<br/>(NOT STARTED)"]
+    IP1040 --> IP1100
+    IP1101 --> IP1100
+    IP1020 --> IP1101
+    IP1101 --> IP1102
+    IP1030 --> IP1102
+    IP1101 --> IP1103
+    IP1102 --> IP1103
+    IP1100 --> IP1104
+    IP1101 --> IP1104
+    IP1102 --> IP1104
+    IP1103 --> IP1104
+
+    style IP1101 fill:#f9d,stroke:#333,stroke-width:2px
+    style IP1100 fill:#c9f,stroke:#333,stroke-width:2px
+    style IP1102 fill:#c9f,stroke:#333,stroke-width:2px
+    style IP1103 fill:#c9f,stroke:#333,stroke-width:2px
+    style IP1104 fill:#c9f,stroke:#333,stroke-width:2px
 ```
 
 *(The dotted edge into `IP1020` represents the Master Build Plan's own package-status
@@ -567,3 +615,40 @@ first-in-critical-path package.)*
 - **Implemented 2026-07-13 — `COMPLETE`, 246/246 checks pass** (new suite `T21`, 12 checks; three
   existing tests corrected for the new two-hop SELECT path, per the TWBS's own supersession
   sweep). Awaiting independent (fresh-session) verification.
+
+### Infinite Mode tranche (`FS-110`/`FEAT-10000`/`EP-6000`, planned 2026-07-14)
+
+- **Critical path: `IP-1101` → `IP-1102` → `IP-1103` → `IP-1104`** (4 packages) — `IP-1101` is
+  the tranche's foundational package (mirrors `IP-1020`'s own root-of-tranche role); everything
+  downstream needs its per-region output shape. `IP-1100` depends only on `IP-1101` and is
+  parallel-eligible with `IP-1102` (no shared file region) once `IP-1101` reaches `COMPLETE`.
+- **`IP-1101`** (`generate`): per-region `hash(SEED,row,col)` reseed → biome-id + connectivity
+  nibble (Binary Tree, resolved via a south/east-neighbor-consulting construction — see TWBS) +
+  treasure-presence (`hash mod 16`), plus a `worldgen.py` oracle mirror. Depends on `IP-1020`
+  (`gw_prng_step` reuse, `VERIFIED`) — no blocking dependency.
+- **`IP-1100`** (mode selection): `GDS-01` §4d's `MODE SELECT`/`INFINITE SEED ENTRY` states,
+  `GAME_MODE` WRAM flag. Depends on `IP-1040` (cursor-menu convention, `VERIFIED`) and `IP-1101`
+  (calls its materialization routine on new-game confirm).
+- **`IP-1102`** (`navigate`+`render`, fused): 3×3 materialized window (13 bytes WRAM), reuses
+  `dsr_p`'s biome-dispatch verbatim (zero `FEAT-4100` code changes — a direct code-read finding,
+  not assumed), new `draw_region_arrows_inf` (connectivity-nibble-driven, no blocked-edge
+  concept — Infinite Mode's world is unbounded). Depends on `IP-1101`, `IP-1030` (`dsr_p`'s
+  biome-dispatch, `VERIFIED`).
+- **`IP-1103`** (treasure & win-condition): collection via `check_collisions`'s existing
+  interface, `inf_check_top_score` comparison subroutine — **deliberately no automatic call site**
+  (`FS-110` Open Question 3/`BL-0112` explicitly routed to `04-requirements-engineering` or a
+  direct user decision, not `07`; this package's own Definition of Done states the boundary
+  precisely rather than silently completing or silently dropping it). Depends on `IP-1101`,
+  `IP-1102`.
+- **`IP-1104`** (`persist`): extends `save_to_sram`/`try_load_save`, `SAVE_VERSION_VAL`
+  `0x04`→`0x05`, 128-entry FIFO-bounded visited-region ledger (640 bytes SRAM against an ~8 KiB
+  budget). Depends on all four other Infinite Mode packages — last in the critical path.
+- **Authorization state: NOT AUTHORIZED.** None of the five packages falls under the
+  `BL-0001`…`BL-0005` G3 bootstrap carve-out (all new, additive forward-design work) — explicit
+  user go-ahead is required before `08-code-implementation` may start on any of them. All five
+  packages' own upstream dependencies (`IP-1020`/`1030`/`1040`) are already `VERIFIED`, so the
+  tranche is immediately buildable in full once authorized, per the TWBS's own "not blocked on
+  any in-flight work elsewhere in the tree" framing.
+- **Standing, deliberately unresolved by this tranche:** `FS-110` Open Question 3 (`BL-0112`,
+  the top-3-comparison trigger timing) — `IP-1103` builds everything buildable without it and
+  states the remaining gap precisely; a future package wires the trigger once `BL-0112` resolves.
