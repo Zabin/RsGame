@@ -2,7 +2,8 @@
 
 > **Status: ✅ Authored (bootstrap as-built, 2026-07-06; delta 2026-07-09 for the procgen-world
 > increment — see "Data Model delta" below; delta 2026-07-12 — §7c, per-region treasure-presence
-> concept, `ADR-0015`).** Owned by `03-architecture-design-synthesis`.
+> concept, `ADR-0015`; delta 2026-07-14 — §7d, Infinite Mode per-region materialization WRAM
+> confirmed by `IP-1101`, `C40D`–`C418`).** Owned by `03-architecture-design-synthesis`.
 > Builds on [GDS-06](06-non-functional-requirements.md); the next level,
 > [GDS-08 Presentation Architecture](08-presentation-architecture.md), builds on this one.
 > **This is the first level authorized to state exact byte addresses** — GDS-04's Domain
@@ -318,6 +319,31 @@ choice below is a real, open implementation decision for `07-implementation-plan
 - **Victory-check impact:** `check_complete`'s comparison target changes from the literal `9` to
   a read of `WORLD_SCALE` (§2's existing WRAM address, no new field needed) — a one-operand change
   at the implementation level, named here only because it is this delta's own direct consequence.
+
+### 7d. Infinite Mode: per-region materialization WRAM — `IP-1101` (confirmed 2026-07-14)
+
+`FS-110` §10 noted "no `GDS-04`/`07`/`09` delta has been authored for Infinite Mode" — `IP-1101`
+is the first package to actually claim WRAM, so this is that delta's first real content, not a
+target statement. Eight new bytes, `0xC40D`–`0xC418`, immediately past `GW_KI_PLACED` (`0xC3F5`)
+and the range `0xC3F6`–`0xC40C` `IP-1100`/`1102`/`1103`'s own already-published planning documents
+reserve (`GAME_MODE`/`INF_ROW`/`INF_COL`/`INF_WINDOW`/`INF_TREASURE_HERE`/
+`RUNNING_TREASURE_COUNT`/`TOP_SCORE_TABLE`) but do not yet claim in code:
+
+| Address | Name | Size | Purpose |
+|---|---|---|---|
+| `C40D`–`C40E` | `INF_MZ_ROW` | 2 bytes | `inf_materialize_region`'s own row input (signed 16-bit, low byte first, mirrors `SEED`'s own byte order) |
+| `C40F`–`C410` | `INF_MZ_COL` | 2 bytes | column input, same convention |
+| `C411` | `INF_MZ_RESULT` | 1 byte | output: packed biome (bits 0-2) + connectivity nibble (bits 3-6: up/down/left/right, 1=open) |
+| `C412` | `INF_MZ_TREASURE` | 1 byte | output: 0 or 1, `hash(SEED,row,col) mod 16 == 0` (`K=16`) |
+| `C413` | `INF_MZ_BIOME` | 1 byte | transient scratch: own biome value, held while the south/east neighbor consultations run |
+| `C414` | `INF_MZ_BIAS` | 1 byte | transient scratch: own carve-bias (0=carve north, 1=carve west) |
+| `C415`–`C416` | `INF_MZ_TROW` | 2 bytes | transient scratch: the row currently being hashed by `inf_region_seed0` |
+| `C417`–`C418` | `INF_MZ_TCOL` | 2 bytes | transient scratch: the column currently being hashed by `inf_region_seed0` |
+
+Trivial against the confirmed ~3.1 KiB bank-0 headroom (§6, `R111`). All eight bytes are
+transient/call-scoped, meaningless outside an `inf_materialize_region` call, the same convention
+the `GW_*` family already establishes for `generate_world`'s own scratch (§6). No SRAM impact —
+this package persists nothing (per-region output is always re-derived, `NFR-2300`).
 
 ### 8. Tile index map implication (cross-reference only — GDS-08 decides the actual strategy)
 

@@ -140,6 +140,28 @@ GW_KI_PLACED   = 0xC3F5  # 1 byte -- IP-1021 (FR-9160/ADR-0015): the KeyItem-pla
                           # no PRNG draws, so GW_MAZE_DRAW_CTR's own running state is untouched
                           # by it.
 
+# Infinite Mode (IP-1101). 0xC3F6-0xC40C is reserved by IP-1100/1102/1103's
+# own already-documented WRAM plan (GAME_MODE/INF_ROW/INF_COL/INF_WINDOW/
+# INF_TREASURE_HERE/RUNNING_TREASURE_COUNT/TOP_SCORE_TABLE, docs/implementation/
+# packages/IP-1100.../IP-1102.../IP-1103...md) -- not claimed here (none of
+# that code exists yet), but this package's own new addresses start
+# immediately past it to avoid a future collision.
+INF_MZ_ROW      = 0xC40D  # 2 bytes, C40D-C40E -- inf_materialize_region's own row input
+                          # (signed 16-bit, low byte first, mirrors SEED's own byte order)
+INF_MZ_COL      = 0xC40F  # 2 bytes, C40F-C410 -- column input, same convention
+INF_MZ_RESULT   = 0xC411  # 1 byte -- output: packed biome (bits 0-2) + connectivity nibble
+                          # (bits 3-6: up/down/left/right, 1=open), the TWBS's own per-region
+                          # encoding decision
+INF_MZ_TREASURE = 0xC412  # 1 byte -- output: 0 or 1, hash(SEED,row,col) mod 16 == 0 (K=16)
+INF_MZ_BIOME    = 0xC413  # 1 byte -- transient scratch: own biome value, held while the
+                          # south/east neighbor consultations run
+INF_MZ_BIAS     = 0xC414  # 1 byte -- transient scratch: own carve-bias (0=carve north,
+                          # 1=carve west) -- Binary Tree construction (ADR-0016 point 5)
+INF_MZ_TROW     = 0xC415  # 2 bytes, C415-C416 -- transient scratch: the row currently being
+                          # hashed by inf_region_seed0 (own region or a neighbor)
+INF_MZ_TCOL     = 0xC417  # 2 bytes, C417-C418 -- transient scratch: the column currently
+                          # being hashed by inf_region_seed0
+
 SAVE_VERSION_ADDR = 0xA012   # save-format version guard (FR-5220 / Design Decision 2)
 SAVE_VERSION_VAL  = 0x04     # bumped 0x03->0x04 (IP-9110, fourth bump since ship — the
                               # value sequence is strictly monotonic, never reused. Excludes
@@ -1934,6 +1956,142 @@ def build_game_asm(rom: ROM) -> dict:
     rom.ADD_A_n(GW_MAZE_STATE & 0xFF)
     rom.LD_L_A()
     rom.LD_H_n(GW_MAZE_STATE >> 8)
+    rom.RET()
+
+    # ── Infinite Mode: per-region materialization (IP-1101) ───────────────
+    # inf_region_seed0: reseeds gw_prng_step's own state (TMP1:TMP2) to
+    # hash(SEED, INF_MZ_TROW, INF_MZ_TCOL) -- SEED normalized 0->1 (mirrors
+    # generate_world's own rule), XORed with the row then stepped once,
+    # XORed with the col then stepped once (ADR-0016 point 3's "shift/XOR-
+    # only per-region reseed" commitment, operationalized here). Leaves the
+    # mixed state in TMP1:TMP2 for the caller's own subsequent draws.
+    # Clobbers A, B (own scratch), D, E (gw_prng_step's own contract);
+    # preserves C and HL.
+    rom.label('inf_region_seed0')
+    rom.LD_A_nn(SEED); rom.LD_nn_A(TMP2)
+    rom.LD_A_nn(SEED + 1); rom.LD_nn_A(TMP1)
+    rom.LD_A_nn(TMP1); rom.OR_A(); rom.JR_NZ('irs0_seed_ok')
+    rom.LD_A_nn(TMP2); rom.OR_A(); rom.JR_NZ('irs0_seed_ok')
+    rom.LD_A_n(1); rom.LD_nn_A(TMP2)
+    rom.label('irs0_seed_ok')
+    rom.LD_A_nn(INF_MZ_TROW + 1); rom.LD_B_A()
+    rom.LD_A_nn(TMP1); rom.XOR_B(); rom.LD_nn_A(TMP1)
+    rom.LD_A_nn(INF_MZ_TROW); rom.LD_B_A()
+    rom.LD_A_nn(TMP2); rom.XOR_B(); rom.LD_nn_A(TMP2)
+    rom.CALL('gw_prng_step')
+    rom.LD_A_nn(INF_MZ_TCOL + 1); rom.LD_B_A()
+    rom.LD_A_nn(TMP1); rom.XOR_B(); rom.LD_nn_A(TMP1)
+    rom.LD_A_nn(INF_MZ_TCOL); rom.LD_B_A()
+    rom.LD_A_nn(TMP2); rom.XOR_B(); rom.LD_nn_A(TMP2)
+    rom.CALL('gw_prng_step')
+    rom.RET()
+
+    # inf_mod5: A := A mod 5 (repeated-subtraction, no DIV/MUL -- NFR-2300,
+    # generalizes gw_mod3's own established pattern, 3->5).
+    rom.label('inf_mod5')
+    rom.label('im5_loop')
+    rom.CP_n(5); rom.JR_C('im5_done')
+    rom.SUB_n(5); rom.JR('im5_loop')
+    rom.label('im5_done')
+    rom.RET()
+
+    # inf_materialize_region: on entry, INF_MZ_ROW/INF_MZ_COL hold the
+    # region to materialize (signed 16-bit each, caller-set). Produces a
+    # biome-id + 4-direction connectivity nibble (Binary Tree maze, zero-
+    # memory, ADR-0016 point 5) and a treasure-presence predicate, purely as
+    # a function of (SEED, row, col) -- no read of DIV or any other
+    # history-dependent input (NFR-2300).
+    #
+    # Own region: reseed once via inf_region_seed0, then draw three
+    # sequential values from the resulting state -- biome, own carve-bias,
+    # treasure-presence. Sequential, not three independent reseeds: an
+    # earlier draft of this routine (matching this package's own planning
+    # text) reseeded a *second* time for the treasure draw, but a second
+    # reseed of the identical (SEED,row,col) reproduces the exact same
+    # first-drawn byte, making treasure fully correlated with (not
+    # independent of) the biome draw -- caught during implementation
+    # (T22.d's own statistical-independence claim would have been false),
+    # fixed here by drawing sequentially from one reseed instead, per this
+    # skill's own material-drift discipline (a drift from the plan, not
+    # from the shipped code, corrected in place rather than shipped wrong).
+    #
+    # Connectivity: this region's own carve-bias decides whether it opens
+    # north or west; south/east openness is read from the south/east
+    # neighbor's own carve-bias (one discarded "would-be biome" draw, one
+    # kept carve-bias draw each) -- the neighbor on that side is the one
+    # that "decides" the shared edge. No grid-boundary special case is ever
+    # needed (Infinite Mode's world is unbounded -- every direction always
+    # has a real, materializable neighbor), unlike the finite mode's own
+    # bounded carve pass (IP-1070) -- confirms Open Question 4's resolution
+    # (no spawn-region special case) is correct by construction, not just
+    # asserted.
+    rom.label('inf_materialize_region')
+    rom.LD_A_nn(INF_MZ_ROW); rom.LD_nn_A(INF_MZ_TROW)
+    rom.LD_A_nn(INF_MZ_ROW + 1); rom.LD_nn_A(INF_MZ_TROW + 1)
+    rom.LD_A_nn(INF_MZ_COL); rom.LD_nn_A(INF_MZ_TCOL)
+    rom.LD_A_nn(INF_MZ_COL + 1); rom.LD_nn_A(INF_MZ_TCOL + 1)
+    rom.CALL('inf_region_seed0')
+    rom.CALL('gw_prng_step')          # draw 1: biome
+    rom.CALL('inf_mod5')
+    rom.LD_nn_A(INF_MZ_BIOME)
+    rom.CALL('gw_prng_step')          # draw 2: own carve-bias
+    rom.AND_n(1)
+    rom.LD_nn_A(INF_MZ_BIAS)
+    rom.CALL('gw_prng_step')          # draw 3: treasure-presence
+    rom.AND_n(0x0F)
+    rom.LD_B_n(0)
+    rom.CP_n(0); rom.JR_NZ('imr_no_treasure')
+    rom.LD_B_n(1)
+    rom.label('imr_no_treasure')
+    rom.LD_A_B(); rom.LD_nn_A(INF_MZ_TREASURE)
+
+    # South neighbor (row+1, col): reseed, draw 1 discarded, draw 2 (own
+    # carve-bias) kept in C -- gw_prng_step/inf_region_seed0 both preserve
+    # C, so it survives the east-neighbor section below.
+    rom.LD_A_nn(INF_MZ_ROW); rom.LD_E_A()
+    rom.LD_A_nn(INF_MZ_ROW + 1); rom.LD_D_A()
+    rom.INC_DE()
+    rom.LD_A_E(); rom.LD_nn_A(INF_MZ_TROW)
+    rom.LD_A_D(); rom.LD_nn_A(INF_MZ_TROW + 1)
+    rom.LD_A_nn(INF_MZ_COL); rom.LD_nn_A(INF_MZ_TCOL)
+    rom.LD_A_nn(INF_MZ_COL + 1); rom.LD_nn_A(INF_MZ_TCOL + 1)
+    rom.CALL('inf_region_seed0')
+    rom.CALL('gw_prng_step')          # discard (that region's own biome)
+    rom.CALL('gw_prng_step')          # keep: that region's own carve-bias
+    rom.AND_n(1)
+    rom.LD_C_A()                      # C = south_bias (open_south iff ==0)
+
+    # East neighbor (row, col+1): reseed, draw 1 discarded, draw 2 kept in D.
+    rom.LD_A_nn(INF_MZ_ROW); rom.LD_nn_A(INF_MZ_TROW)
+    rom.LD_A_nn(INF_MZ_ROW + 1); rom.LD_nn_A(INF_MZ_TROW + 1)
+    rom.LD_A_nn(INF_MZ_COL); rom.LD_E_A()
+    rom.LD_A_nn(INF_MZ_COL + 1); rom.LD_D_A()
+    rom.INC_DE()
+    rom.LD_A_E(); rom.LD_nn_A(INF_MZ_TCOL)
+    rom.LD_A_D(); rom.LD_nn_A(INF_MZ_TCOL + 1)
+    rom.CALL('inf_region_seed0')
+    rom.CALL('gw_prng_step')          # discard
+    rom.CALL('gw_prng_step')          # keep: east neighbor's own carve-bias
+    rom.AND_n(1)
+    rom.LD_D_A()                      # D = east_bias (open_east iff ==1)
+
+    # Compose the connectivity nibble (bit3=up/north, bit4=down/south,
+    # bit5=left/west, bit6=right/east, 1=open) and pack with the biome-id.
+    rom.LD_E_n(0)
+    rom.LD_A_nn(INF_MZ_BIAS); rom.CP_n(0); rom.JR_NZ('imr_no_north')
+    rom.LD_A_E(); rom.OR_n(0x08); rom.LD_E_A()
+    rom.label('imr_no_north')
+    rom.LD_A_nn(INF_MZ_BIAS); rom.CP_n(1); rom.JR_NZ('imr_no_west')
+    rom.LD_A_E(); rom.OR_n(0x20); rom.LD_E_A()
+    rom.label('imr_no_west')
+    rom.LD_A_C(); rom.CP_n(0); rom.JR_NZ('imr_no_south')
+    rom.LD_A_E(); rom.OR_n(0x10); rom.LD_E_A()
+    rom.label('imr_no_south')
+    rom.LD_A_D(); rom.CP_n(1); rom.JR_NZ('imr_no_east')
+    rom.LD_A_E(); rom.OR_n(0x40); rom.LD_E_A()
+    rom.label('imr_no_east')
+    rom.LD_A_nn(INF_MZ_BIOME); rom.OR_E()
+    rom.LD_nn_A(INF_MZ_RESULT)
     rom.RET()
 
     # ── save_to_sram ─────────────────────────────────────

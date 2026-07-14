@@ -7,7 +7,11 @@
 >
 > **Planned 2026-07-14** (`07-implementation-planning`) — five packages,
 > [IP-1100](../implementation/packages/IP-1100-infinite-mode-mode-selection.md)–[IP-1104](../implementation/packages/IP-1104-infinite-mode-ledger-save-persistence.md),
-> all `NOT STARTED`, **AUTHORIZED (G3, "Yes, build all five," 2026-07-14)**. See the
+> **AUTHORIZED (G3, "Yes, build all five," 2026-07-14)**.
+> [IP-1101](../implementation/packages/IP-1101-infinite-mode-region-materialization.md)
+> **`COMPLETE` 2026-07-14** — Workflow B step 2/Workflow C step 1 (per-region materialization,
+> treasure-presence) implemented, `T22` (7 checks, 253/253 full suite). `IP-1100`/`1102`/`1103`/`1104`
+> remain `NOT STARTED`. See the
 > [Technical Work Breakdown](../implementation/01-technical-work-breakdown.md#infinite-mode-fs-110feat-10000ep-6000-planned-2026-07-14)
 > for the split rationale. This Feature sits in the `Future` release bucket (no release commitment
 > made) — planning does not require or imply scheduling, per `05-feature-decomposition`'s own

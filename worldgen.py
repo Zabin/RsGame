@@ -225,3 +225,87 @@ def _carve_maze(regions, scale, x):
             regions[v]['neighbors'][_OPPOSITE[d]] = None
 
     return treasure
+
+
+# ── Infinite Mode: per-region materialization (IP-1101) ──────────────────
+# Independent of generate()/_carve_maze() above -- a second, additive
+# generation routine (ADR-0016), not an extension of the finite mode's own
+# whole-graph pass. Mirrors inf_materialize_region (asm_game.py) step-for-
+# step.
+
+
+def _region_seed0(seed, row, col):
+    """Reseeds to hash(seed, row, col): SEED normalized 0->1, XORed with row
+    then stepped once, XORed with col then stepped once (ADR-0016 point 3).
+    Row/col are masked to 16 bits -- two's complement wraps naturally for
+    negative values, matching the SM83 side's own 16-bit register
+    arithmetic."""
+    x = seed & 0xFFFF
+    if x == 0:
+        x = 1
+    x ^= (row & 0xFFFF)
+    x = _step(x)
+    x ^= (col & 0xFFFF)
+    x = _step(x)
+    return x
+
+
+def materialize_region(seed, row, col):
+    """
+    Deterministically materializes one region's biome-id, 4-direction
+    connectivity, and treasure-presence as a pure function of
+    (seed, row, col) -- no dependency on generation order or any other
+    region's own history (NFR-2300).
+
+    Returns (region_byte, treasure_present):
+      region_byte -- bits 0-2 biome-id (0-4), bits 3-6 connectivity nibble
+        (bit3=north/up, bit4=south/down, bit5=west/left, bit6=east/right,
+        1=open); the TWBS's own per-region encoding decision.
+      treasure_present -- bool, hash(seed,row,col) mod 16 == 0 (K=16,
+        ADR-0017/TWBS's own resolution of FS-110 Open Question 2).
+
+    Binary Tree maze (ADR-0016 point 5, zero-memory): this region's own
+    carve-bias decides whether it opens north or west; south/east openness
+    is read from the south/east neighbor's own carve-bias (the neighbor on
+    that side is the one that "decides" the shared edge). No grid-boundary
+    special case is ever needed -- Infinite Mode's world is unbounded, every
+    direction always has a real, materializable neighbor -- unlike the
+    finite mode's own bounded carve pass (`_carve_maze` above, IP-1070).
+
+    Own-region draws are sequential from one reseed (biome, own carve-bias,
+    treasure-presence), not three independent reseeds -- a second reseed of
+    the identical (seed,row,col) would reproduce the exact same first-drawn
+    byte, correlating treasure with biome/connectivity instead of keeping it
+    independent (a real defect an earlier draft of this routine, and the
+    planning package's own text, both had -- caught and fixed during
+    implementation, not shipped).
+    """
+    x0 = _region_seed0(seed, row, col)
+    x1 = _step(x0)
+    biome = (x1 & 0xFF) % 5
+    x2 = _step(x1)
+    own_bias = x2 & 1          # 0 = carve north (open north), 1 = carve west
+    x3 = _step(x2)
+    treasure_present = ((x3 & 0xFF) & 0x0F) == 0
+
+    s0 = _region_seed0(seed, row + 1, col)
+    s1 = _step(s0)             # discarded (that region's own biome draw)
+    s2 = _step(s1)
+    south_bias = s2 & 1
+    open_south = (south_bias == 0)
+
+    e0 = _region_seed0(seed, row, col + 1)
+    e1 = _step(e0)             # discarded
+    e2 = _step(e1)
+    east_bias = e2 & 1
+    open_east = (east_bias == 1)
+
+    open_north = (own_bias == 0)
+    open_west = (own_bias == 1)
+
+    conn = ((0x08 if open_north else 0) | (0x10 if open_south else 0) |
+            (0x20 if open_west else 0) | (0x40 if open_east else 0))
+    region_byte = (biome & 0x07) | conn
+    return region_byte, treasure_present
+
+    return treasure

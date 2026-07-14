@@ -69,12 +69,17 @@ neighbor-consulting construction (this package's own §6 task list operationaliz
     5. **Compose:** pack biome-id (bits 0-2) + connectivity nibble (bits 3-6, up/down/left/right,
        1=open) into the single output byte `IP-1102`'s `INF_WINDOW` format expects (Technical
        Work Breakdown's own "Per-region encoding" decision).
-    6. **Treasure-presence:** a fifth reseed-and-draw for `(row, col)` itself (a distinct draw
-       from step 2/3's own state, not reusing their post-draw value, so a boundary change to `K`
-       cannot silently correlate with the biome/connectivity draws) — `hash(SEED, row, col)
-       AND 0x0F == 0` (`K=16`, Technical Work Breakdown's own resolution of `OQ2`, a 4-bit mask,
-       no `DIV`). Returned as a separate boolean, not packed into the region byte (Technical Work
-       Breakdown: "no treasure-presence bit is stored").
+    6. **Treasure-presence:** a third *sequential* draw from step 2's own reseed state (not a
+       second independent reseed — **corrected during implementation**: a second reseed of the
+       identical `(SEED, row, col)` reproduces the exact same first-drawn byte, since the reseed
+       is a pure function of its inputs, which would have made treasure fully correlated with,
+       not independent of, the biome/own-bias draws; this package's own text originally described
+       a "fifth reseed-and-draw... a distinct draw... not reusing their post-draw value," which is
+       the *intent* this correction actually delivers, just via sequential draws from one reseed
+       rather than a doomed second reseed of the same inputs) — `hash(SEED, row, col)`'s third
+       drawn byte `AND 0x0F == 0` (`K=16`, Technical Work Breakdown's own resolution of `OQ2`, a
+       4-bit mask, no `DIV`). Returned as a separate boolean, not packed into the region byte
+       (Technical Work Breakdown: "no treasure-presence bit is stored").
   - **`worldgen.py`**: new `materialize_region(seed, row, col)` Python function, mirroring the six
     steps above step-for-step (same reseed construction, same draw order, same mod-5/mask-0x0F
     reductions) — the lockstep oracle `ADR-0016` point 8 requires.

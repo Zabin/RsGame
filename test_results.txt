@@ -1,4 +1,4 @@
-BunnyQuest ROM Tests  PASS=246/246  FAIL=0
+BunnyQuest ROM Tests  PASS=253/253  FAIL=0
 ==================================================
 [PASS] T1.1 ROM size = 32768  (32768)
 [PASS] T1.2 Entry = NOP; JP
@@ -246,3 +246,10 @@ BunnyQuest ROM Tests  PASS=246/246  FAIL=0
 [PASS] T21.f1 LEGEND row 1 shows the real open-arrow tile (TL_ARROW_U) beside OPEN PATH  (0x18)
 [PASS] T21.f2 LEGEND row 2 shows the real blocked-edge tile (TL_BLOCKED_U) beside MAZE BLOCKED  (0x1A)
 [PASS] T21.f3 LEGEND row 3 is genuinely blank beside WORLD EDGE (no tile drawn)  (0x10)
+[PASS] T22.b Oracle parity: worldgen.py matches SM83 output, every corpus entry incl. (0,0) (AC-2)  (mismatches=[])
+[PASS] T22.a Determinism: same (seed,row,col) across two fresh boots -> byte-identical output (FR-10200)  (mismatches=[])
+[PASS] T22.c Revisit-consistency: re-materializing after an intervening call reproduces the first result (FR-10210)  (mismatches=[])
+[PASS] T22.d Treasure-density: measured rate near K=16's 6.25% target (2%-11% band, FR-10300)  (rate=0.0625 (50/800))
+[PASS] T22.e Static audit: no LDH (hardware register, incl. DIV) read in inf_materialize_region/inf_region_seed0/inf_mod5 (NFR-2300)  (source-scanned)
+[PASS] T22.f seed=0 normalizes to a nonzero PRNG state, direct WRAM inspection (AC-7 precondition)  (state=(0,1))
+[PASS] T22.g Neighbor-consulting symmetry: south/east openness matches the neighbor's own north/west bit, every corpus entry (ADR-0016 pt.5)  (bad=[])

@@ -3,7 +3,8 @@
 > **Status: ✅ Authored (bootstrap as-built, 2026-07-06; delta 2026-07-09 for the procgen-world
 > increment, NFR-1300/2200/4200/5300/6500/6510; delta 2026-07-11 — NFR-6500/6510 flipped to Met;
 > delta 2026-07-11 — NFR-4200 extended for ADR-0012's maze-generation WRAM cost; delta 2026-07-13
-> for the Infinite Mode epic, NFR-1400/2300/4300/5400 — see Changelog).** Owned by
+> for the Infinite Mode epic, NFR-1400/2300/4300/5400; delta 2026-07-14 — NFR-2300 flipped to Met
+> (`IP-1101`) — see Changelog).** Owned by
 > `04-requirements-engineering`. Derives from
 > [GDS-06](../architecture/06-non-functional-requirements.md)'s five NFRs (N1–N5) — formalized
 > into numbered `NFR-xxxx` requirements per
@@ -14,6 +15,10 @@
 
 ## Changelog
 
+- **2026-07-14 — NFR-2300 flipped to Met** (`IP-1101`, per-region materialization). `T22.e`
+  (static audit) and `T22.a`/`T22.b` (determinism/oracle parity) confirm the per-region reseed
+  routine is a pure function of `(SEED, row, col)` with no `DIV`/uninitialized-WRAM read.
+  `NFR-1400`/`4300`/`5400` remain target-only — `IP-1102`/`1104`'s own scope.
 - **2026-07-13 — Delta for the Infinite Mode epic** (`ADS-001`/`ADR-0016`/`ADR-0017`; re-run
   Step 0 on the delta only, per this skill's own Gotchas). **Four new NFRs added, all target —
   none met yet, two explicitly `UNCONFIRMED`/`NOT YET SIZED` rather than a bare "not yet
@@ -233,7 +238,7 @@
   this NFR governs determinism and opcode discipline, not output *quality*, so the repair is
   orthogonal to it, not a violation being fixed.
 
-### NFR-2300 — Positional determinism for Infinite Mode generation (target — 2026-07-13)
+### NFR-2300 — Positional determinism for Infinite Mode generation (Met, `IP-1101`, 2026-07-14)
 
 - **ID:** NFR-2300
 - **Title:** Infinite Mode region materialization shall be deterministic in `(SEED, row, col)`
@@ -250,20 +255,23 @@
 - **Rationale:** ADR-0016 points 2–3; R114 (the positional-determinism finding — a per-region
   xorshift instance reseeded from `SEED` XOR/shift-mixed with `(row, col)`, reusing
   `gw_prng_step`'s existing shift/XOR-only construction, never a multiplication-based hash).
-- **Priority:** Must (target — not yet implemented)
+- **Priority:** Must (**Met, 2026-07-14, `IP-1101`**)
 - **Acceptance Criteria:** Static inspection of the per-region reseed routine finds no read of
   `DIV` or any WRAM address not explicitly derived from `SEED`/`(row, col)`; a positional-
   determinism property test (FR-10200) confirms identical output for the same `(SEED, row, col)`
   regardless of materialization order or history.
 - **Verification Method:** Inspection (static code audit, mirroring NFR-2200's own T12.h
-  precedent) / Test (FR-10200's own determinism property test) — neither yet possible; no
-  implementation exists.
+  precedent) / Test (FR-10200's own determinism property test) — both now exercised: `T22.e`
+  (static audit, `inf_materialize_region`/`inf_region_seed0`/`inf_mod5`) and `T22.a`/`T22.b`
+  (determinism/oracle parity).
 - **Source Documents:** ADR-0016 points 2–3; R114 §Concepts.
 - **Related ADRs:** ADR-0016.
-- **Notes:** Not yet implemented. This NFR does not repair or alter `gw_prng_step` itself
-  (`ADR-0013`'s own known-degeneracy deferral, `NFR-2200`'s Notes, is entirely unaffected) — it
-  reuses the existing construction for a new, per-region reseeding purpose, per R114's explicit
-  guidance not to introduce a multiply-based hash on hardware with no `MUL`/`DIV`.
+- **Notes:** **Met (`IP-1101`, 2026-07-14)** — this NFR does not repair or alter `gw_prng_step`
+  itself (`ADR-0013`'s own known-degeneracy deferral, `NFR-2200`'s Notes, is entirely unaffected)
+  — it reuses the existing construction for a new, per-region reseeding purpose, per R114's
+  explicit guidance not to introduce a multiply-based hash on hardware with no `MUL`/`DIV`.
+  `T22.e`'s source-text scan confirms no `LDH` (hardware register, incl. `DIV`) read anywhere in
+  the three new subroutines.
 
 ## Maintainability
 

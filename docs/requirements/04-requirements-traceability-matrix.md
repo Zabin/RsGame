@@ -13,7 +13,8 @@
 > 2026-07-13 (cont'd) — FR-10100–10500, NFR-1400/2300/4300/5400, and CR-07 added for the
 > Infinite Mode epic, `ADS-001`/`ADR-0016`/`ADR-0017`/`BL-0094`/`BL-0106`; delta 2026-07-13
 > (cont'd) — FR-10600 added, `CR-07` resolved/baselined by direct user decision; delta 2026-07-14
-> — `CR-05` row updated, mechanism resolved via `ADR-0018`, not yet baselined).**
+> — `CR-05` row updated, mechanism resolved via `ADR-0018`, not yet baselined; delta 2026-07-14
+> (cont'd) — FR-10200/10210/10300/NFR-2300 rows filled (`FS-110`, `IP-1101`, `T22`)).**
 > Owned by `04-requirements-engineering`.
 > One row per [RQ-01](01-functional-requirements.md)/[RQ-02](02-non-functional-requirements.md)
 > requirement (Candidates marked). Populates the row-level matrix
@@ -78,9 +79,9 @@
 | FR-9161 | Scale-relative victory condition (implemented 2026-07-13, supersedes FR-3300) | R215 | — | ADR-0015 | `asm_game.py` | FS-102 | IP-1021 | T4.8 (corrected), T12.n |
 | FR-9200 | Save-format extension: seed/scale/region-flags (Met, 2026-07-10) | R106 (ext.) | GDS-07 delta §7 | ADR-0010, ADR-0006 | `asm_game.py` | FS-105 | IP-1050 | T15.a1–a6, T15.c1–c6, T15.d — 180/180 pass |
 | FR-10100 | Infinite Mode new-game entry (seed-only, no world-scale) | — | ADS-001 §System Architecture | ADR-0016 | `asm_game.py` (prospective) | UNASSIGNED | UNASSIGNED | UNASSIGNED |
-| FR-10200 | Streaming, positionally-deterministic region generation | R114 | ADS-001 §System Architecture | ADR-0016 | `asm_game.py`/`worldgen.py` (prospective) | UNASSIGNED | UNASSIGNED | UNASSIGNED |
-| FR-10210 | Revisit-consistent region materialization | R114 | ADS-001 §User Stories | ADR-0016 | `asm_game.py` (prospective) | UNASSIGNED | UNASSIGNED | UNASSIGNED |
-| FR-10300 | Treasure placement decoupled from maze structure | R216 | ADS-001 §System Architecture | ADR-0017 | `asm_game.py` (prospective) | UNASSIGNED | UNASSIGNED | UNASSIGNED |
+| FR-10200 | Streaming, positionally-deterministic region generation | R114 | ADS-001 §System Architecture | ADR-0016 | `asm_game.py`/`worldgen.py` | FS-110 | IP-1101 (partial — generate half; IP-1102 owns navigate/render) | T22.a, T22.b |
+| FR-10210 | Revisit-consistent region materialization | R114 | ADS-001 §User Stories | ADR-0016 | `asm_game.py` | FS-110 | IP-1101 (partial — data layer; IP-1102/1104 own the window/ledger halves) | T22.c |
+| FR-10300 | Treasure placement decoupled from maze structure | R216 | ADS-001 §System Architecture | ADR-0017 | `asm_game.py`/`worldgen.py` | FS-110 | IP-1101 (partial — presence half; IP-1103 owns collection) | T22.d |
 | FR-10400 | Score-chasing win condition (running count + top-3, no name entry) | R216 | ADS-001 §Executive Design Overview | ADR-0017 | `asm_game.py` (prospective) | UNASSIGNED | UNASSIGNED | UNASSIGNED |
 | FR-10500 | Visited-region-ledger save/load (position + collected-state only) | R114 | ADS-001 §System Architecture | ADR-0016 | `asm_game.py` (prospective) | UNASSIGNED | UNASSIGNED | UNASSIGNED |
 | CR-07 | Infinite Mode run/session shape (`BL-0106`) — **RESOLVED 2026-07-13, baselined as FR-10600** once the project owner decided directly ("for now assume indefinitely resumable") | R216 | — | ADR-0017 | `asm_game.py` (prospective) | `CANDIDATE — NOT BASELINED` (see FR-10600) | `CANDIDATE — NOT BASELINED` | `CANDIDATE — NOT BASELINED` |
@@ -110,7 +111,7 @@
 | NFR-6500 | Aesthetic craft and clean-screen standard compliance (Met, 2026-07-11) | R209 | GDS-08 delta §7 | — | `tiles.py`/`tilemaps.py` | FS-106 | *(no package — see FS-106 §8/§10)* | `content-review-IP-1031.md` — clean, no findings |
 | NFR-6510 | Biome-transition palette-stepping compliance (Met, 2026-07-11) | R212 | GDS-08 delta §8 | ADR-0009 | `build_rom.py`/`tiles.py` | FS-106 | *(no package — see FS-106 §8/§10)* | `content-review-IP-1031.md` — Met, 1 Low/informational note (Stone↔Brick pairing) |
 | NFR-1400 | Infinite Mode region-materialization timing (status UNCONFIRMED) | R114 | ADS-001 §Non-functional Requirements | ADR-0016 | `asm_game.py` (prospective) | UNASSIGNED | UNASSIGNED | UNASSIGNED |
-| NFR-2300 | Positional determinism for Infinite Mode generation | R114 | ADS-001 §System Architecture | ADR-0016 | `asm_game.py` (prospective) | UNASSIGNED | UNASSIGNED | UNASSIGNED |
+| NFR-2300 | Positional determinism for Infinite Mode generation | R114 | ADS-001 §System Architecture | ADR-0016 | `asm_game.py` | FS-110 | IP-1101 | T22.e, T22.a, T22.b |
 | NFR-4300 | Infinite Mode materialized-window WRAM headroom (status NOT YET SIZED) | R114 | ADS-001 §System Architecture | ADR-0016 | `asm_game.py` (prospective) | UNASSIGNED | UNASSIGNED | UNASSIGNED |
 | NFR-5400 | Infinite Mode visited-region-ledger integrity and bounded capacity (status NOT YET SIZED) | R114 | ADS-001 §System Architecture | ADR-0016 | `asm_game.py` (prospective) | UNASSIGNED | UNASSIGNED | UNASSIGNED |
 

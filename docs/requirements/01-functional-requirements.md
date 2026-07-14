@@ -7,7 +7,10 @@
 > 2026-07-13 (cont'd) for the Infinite Mode epic, FR-10000–10500, `CR-07`, `ADS-001`/`ADR-0016`/
 > `ADR-0017`/`BL-0094`/`BL-0106`; delta 2026-07-13 (cont'd) — `CR-07` resolved by direct user
 > decision, baselined as FR-10600; delta 2026-07-14 — `CR-05` mechanism resolved by direct user
-> decision, `ADR-0018` adopted, not yet baselined pending a future `04` pass — see Changelog).**
+> decision, `ADR-0018` adopted, not yet baselined pending a future `04` pass; delta 2026-07-14
+> (cont'd) — `IP-1101` partially implements FR-10200/10210/10300 (per-region materialization/
+> treasure-presence half; streaming window, render, and collection remain `IP-1102`/`1103`'s own
+> scope) — see Changelog).**
 > Owned by `04-requirements-engineering`.
 > Derives from [GDS-05](../architecture/05-functional-requirements.md)'s six capability groupings
 > (C1–C6) — this document formalizes each into numbered, testable `FR-xxxx` requirements per
@@ -20,6 +23,12 @@
 
 ## Changelog
 
+- **2026-07-14 — FR-10200/10210/10300 partially implemented** (`IP-1101`, per-region
+  materialization/treasure-presence). `T22` (7 checks) confirms determinism, oracle parity,
+  revisit-consistency at the data layer, treasure-density near `K=16`'s target, and a static
+  no-`DIV`/`MUL` audit. Streaming window management, transition-triggered materialization,
+  render integration (`FR-10200`'s own navigate/render half), and treasure collection
+  (`FR-10300`'s own collection half) are `IP-1102`/`1103`'s own scope, not yet implemented.
 - **2026-07-14 — CR-05 mechanism resolved by explicit user decision** (`ADR-0018`,
   `BL-0066`/`CR-05`). The project owner directed reusing Infinite Mode's own per-super-cell
   `hash(SEED, supercell_row, supercell_col)` blob technique for the finite mode too, superseding
@@ -1500,7 +1509,11 @@ FR-9000's own leaves are amended or superseded by this group)*
 - **Rationale:** ADR-0016 points 2–3; R114 (the positional-determinism finding this decision is
   grounded in — the shipped finite-mode algorithm's two global-sequential dependencies are not
   directly streamable, requiring this different, positionally-deterministic construction).
-- **Priority:** Must (target — not yet implemented)
+- **Priority:** Must (**partially implemented, 2026-07-14, `IP-1101`** — the per-region
+  generation half: `inf_materialize_region`/`worldgen.materialize_region` produce a region's
+  biome/connectivity as a pure function of `(SEED, row, col)`, `T22` (7 checks). The streaming
+  materialized-window management, transition-triggered materialization, and render integration
+  are `IP-1102`'s own scope, not yet implemented.)
 - **Inputs:** SEED (Infinite Mode's own, per FR-10100); the region coordinate `(row, col)` the
   player is approaching.
 - **Outputs:** That region's biome assignment and maze connectivity (which of its up to four
@@ -1519,11 +1532,15 @@ FR-9000's own leaves are amended or superseded by this group)*
   determinism test shape, extended to per-region rather than whole-graph scope).
 - **Source Documents:** ADR-0016 points 2–3; R114 §Concepts/§Implementation Guidance.
 - **Related ADRs:** ADR-0016.
-- **Notes:** Not yet implemented. The maze algorithm is the Binary Tree family (ADR-0016 point
-  4) — its own aesthetic acceptability (directional corridor bias) is not decided by this FR,
-  tracked separately (`BL-0107`, routed to `02-research-game-design`/`09-content-review` once a
-  package exists to review). Materialization-window sizing against bank-0's WRAM headroom is an
-  NFR concern (NFR-4300 below), not restated here.
+- **Notes:** **Partially implemented (`IP-1101`, 2026-07-14)** — see Priority above. The maze
+  algorithm is the Binary Tree family (ADR-0016 point 4), operationalized as a "carve north or
+  west" bias per region with south/east openness read from the corresponding neighbor's own
+  bias (no grid-boundary special case — Infinite Mode's world is unbounded, confirmed by direct
+  implementation, not merely asserted); its own aesthetic acceptability (directional corridor
+  bias) is not decided by this FR, tracked separately (`BL-0107`, routed to
+  `02-research-game-design`/`09-content-review` once a package exists to review).
+  Materialization-window sizing against bank-0's WRAM headroom is an NFR concern (NFR-4300
+  below), owned by `IP-1102`, not restated here.
 
 ### FR-10210 — Revisit-consistent region materialization
 
@@ -1538,7 +1555,11 @@ FR-9000's own leaves are amended or superseded by this group)*
   identical region... because both are pure functions of (seed, row, col), not of my own path
   history"); a direct consequence of FR-10200's positional-determinism guarantee, stated
   separately because it is the player-observable property that guarantee exists to deliver.
-- **Priority:** Must (target — not yet implemented)
+- **Priority:** Must (**partially implemented, 2026-07-14, `IP-1101`** — `T22.c` confirms the
+  data-layer revisit-consistency property (re-materializing after an intervening call
+  reproduces the first result byte-for-byte). The player-observable, materialized-window-based
+  revisit path — and the treasure-state-preserved-through-collection half, which depends on
+  `IP-1104`'s own ledger — are not yet implemented, `IP-1102`/`IP-1104`'s own scope.)
 - **Inputs:** A region coordinate the player is re-approaching after it left the materialized
   window.
 - **Outputs:** The re-materialized region's biome, connectivity, and treasure-presence/collected
@@ -1558,7 +1579,7 @@ FR-9000's own leaves are amended or superseded by this group)*
   materialized-window eviction would discard).
 - **Source Documents:** ADR-0016 points 2, 5; ADS-001 §User Stories.
 - **Related ADRs:** ADR-0016.
-- **Notes:** Not yet implemented.
+- **Notes:** **Partially implemented (`IP-1101`, 2026-07-14)** — see Priority above.
 
 ### FR-10300 — Treasure placement decoupled from maze structure
 
@@ -1576,7 +1597,9 @@ FR-9000's own leaves are amended or superseded by this group)*
   directions — a direct conflict with a literal dead-end-only rule). This is a deliberate,
   named departure from `BL-0094`'s original "at dead ends" wording, not a silent substitution —
   see Notes.
-- **Priority:** Must (target — not yet implemented)
+- **Priority:** Must (**partially implemented, 2026-07-14, `IP-1101`** — the presence-predicate
+  half: `hash(SEED, row, col) mod K == 0`, `K=16` (`T22.d` measures 6.25%, matching target).
+  Collection (reusing `check_collisions`) is `IP-1103`'s own scope, not yet implemented.)
 - **Inputs:** SEED; the region coordinate `(row, col)`; the tuned density constant `K`.
 - **Outputs:** A boolean treasure-presence value for that region.
 - **Preconditions:** The region has been materialized (FR-10200).
@@ -1590,10 +1613,12 @@ FR-9000's own leaves are amended or superseded by this group)*
   own placement-verification shape).
 - **Source Documents:** ADR-0017 point 1; R216 §Concepts/§Implementation Guidance.
 - **Related ADRs:** ADR-0017.
-- **Notes:** Not yet implemented. **`K`'s exact value is an implementation-time tuning question,
-  not fixed by this FR** — ADR-0017 recommends anchoring near R215's measured `scale=9`
-  finite-world dead-end density (~6.4%) as a starting point; `07-implementation-planning`/
-  `08-code-implementation` settle the actual constant. This FR deliberately diverges from
+- **Notes:** **Partially implemented (`IP-1101`, 2026-07-14)** — see Priority above. **`K`'s
+  exact value is an implementation-time tuning question, not fixed by this FR** — ADR-0017
+  recommends anchoring near R215's measured `scale=9` finite-world dead-end density (~6.4%) as a
+  starting point; `07-implementation-planning` settled `K=16` (a power-of-two divisor, `AND
+  0x0F`, no `DIV`/`MUL`, ≈6.25%), confirmed by `IP-1101`'s own `T22.d`. This FR deliberately
+  diverges from
   `BL-0094`'s literal "treasure only at dead ends" request — flagged explicitly per this
   document's own traceability discipline (a genuine design substitution, not an oversight);
   `FR-9160` (the finite mode's own dead-end-anchored placement) is entirely unaffected and
