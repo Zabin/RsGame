@@ -5,7 +5,8 @@
 > FR-9140/9150/2330; delta 2026-07-12 for `ADR-0015`'s win-condition redesign, FR-9160/9161;
 > delta 2026-07-13 for the edge-indicator legend screen, FR-1200/1210, `CR-06`/`BL-0100`; delta
 > 2026-07-13 (cont'd) for the Infinite Mode epic, FR-10000–10500, `CR-07`, `ADS-001`/`ADR-0016`/
-> `ADR-0017`/`BL-0094`/`BL-0106` — see Changelog).** Owned by `04-requirements-engineering`.
+> `ADR-0017`/`BL-0094`/`BL-0106`; delta 2026-07-13 (cont'd) — `CR-07` resolved by direct user
+> decision, baselined as FR-10600 — see Changelog).** Owned by `04-requirements-engineering`.
 > Derives from [GDS-05](../architecture/05-functional-requirements.md)'s six capability groupings
 > (C1–C6) — this document formalizes each into numbered, testable `FR-xxxx` requirements per
 > [GDS-10](../architecture/10-requirements-traceability-matrix.md) §3's stated contract: *cite
@@ -17,6 +18,13 @@
 
 ## Changelog
 
+- **2026-07-13 — CR-07 resolved by explicit user decision.** The project owner decided directly:
+  "for now assume indefinitely resumable." **CR-07** (run/session shape) is RESOLVED and
+  BASELINED — promoted to new **FR-10600** (Indefinitely resumable Infinite Mode run, no
+  death/retreat/checkpoint mechanic). No `GDS-01` delta was needed (the no-new-mechanic branch of
+  CR-07's own analysis applies), so this resolves entirely within `04`, without a
+  `03-architecture-design-synthesis` round-trip. Explicitly a "for now" decision — revisitable,
+  not permanently closed, per the owner's own wording (carried into `FR-10600`'s Notes verbatim).
 - **2026-07-13 — Delta for the Infinite Mode epic** (`ADS-001`/`ADR-0016`/`ADR-0017`, `BL-0082`'s
   architecture-adoption decision; carries `BL-0094`'s score-chasing win condition and `BL-0106`'s
   run/session-shape question forward; re-run Step 0 on the delta only, per this skill's own
@@ -1666,6 +1674,46 @@ FR-9000's own leaves are amended or superseded by this group)*
   implied (mirroring FR-9200's own precedent) but not itself specified here — an `07`-level
   detail once packaged.
 
+### FR-10600 — Indefinitely resumable Infinite Mode run (no bounded end-condition mechanic)
+
+- **ID:** FR-10600
+- **Title:** An Infinite Mode run shall be indefinitely resumable — the same save/continue
+  convention the finite mode already uses — with no death/retreat/checkpoint mechanic ending it.
+- **Description:** Resolves `CR-07`'s open question (project owner, 2026-07-13: "for now assume
+  indefinitely resumable"). An Infinite Mode save persists exactly as FR-1190/FR-5100 already
+  describe for the finite mode: the player exits to the main menu (or the console powers off) at
+  any point, and "continue" resumes from the exact persisted state (FR-10500's position +
+  visited-region ledger) — there is no in-game action, timer, or hazard that forcibly ends a run.
+  "Run end" for the purposes of FR-10400's top-3 comparison (see Notes) is therefore a player
+  choice, not a game-imposed event.
+- **Rationale:** Project owner, direct decision, 2026-07-13 ("for now assume indefinitely
+  resumable") — resolves `CR-07`, itself grounded in R216's own framing of this exact choice
+  ("indefinitely resumable... matching this project's existing save/continue convention").
+- **Priority:** Must (target — not yet implemented)
+- **Inputs:** A save-confirm or exit-to-main-menu action (mirroring FR-1190); a "continue" action
+  from the MAIN MENU (mirroring FR-1170).
+- **Outputs:** None beyond FR-10500's own save/restore behavior — this FR adds no new state of
+  its own; it states that no mechanic exists to *forcibly* end a run.
+- **Preconditions:** An Infinite Mode save exists.
+- **Postconditions:** No reachable input sequence ends an Infinite Mode run other than the
+  player's own choice to exit; "continue" always resumes exactly where the player left off.
+- **Acceptance Criteria:** No in-game state, timer, or hazard exists that transitions an Infinite
+  Mode save out of active play without the player's own exit action; repeated
+  save/exit/continue cycles never lose or forcibly reset run state.
+- **Dependencies:** FR-10500, FR-1170, FR-1190.
+- **Verification Method:** Test (negative test — attempt every reachable input sequence, confirm
+  none forcibly ends a run; mirroring FR-9110's own negative-test shape).
+- **Source Documents:** Project owner decision, 2026-07-13; R216 §Concepts.
+- **Related ADRs:** ADR-0017 (point 4 — this FR is the decision that ADR point deferred).
+- **Notes:** Not yet implemented. **This is explicitly a "for now" decision, not a permanently
+  closed one** — the project owner's own wording leaves room to revisit if a bounded-run mechanic
+  later proves desirable; any such change would be a new, dated RQ-01 delta at that time, not an
+  amendment to this FR's own text. `FR-10400`'s own win-condition Preconditions field ("the run
+  has ended") should be read, per this FR, as "the player has chosen to stop, at any point they
+  like" — not a game-imposed event — since no bounded-run mechanic exists. No `GDS-01` delta is
+  needed: an indefinitely-resumable run introduces no new `GAMESTATE`, matching `CR-07`'s own
+  analysis that this answer carries no architecture gap.
+
 ## Candidate Requirements
 
 *(untraceable to a current source, or contingent on an unresolved design decision — explicitly
@@ -1759,7 +1807,7 @@ excluded from the numbered baseline above; marked `CANDIDATE — NOT BASELINED` 
   itself, citing GDS-08 §11 directly) — both target, not yet implemented. This Candidate is now
   closed; further tracking lives on FR-1200/FR-1210 themselves.
 
-### CR-07 — Infinite Mode run/session shape: indefinitely resumable vs. a bounded run with a new end-condition mechanic (`BL-0106`)
+### CR-07 — Infinite Mode run/session shape: indefinitely resumable vs. a bounded run with a new end-condition mechanic (`BL-0106`) — RESOLVED, BASELINED 2026-07-13
 
 - **Description:** Whether an Infinite Mode playthrough is expected to be resumed indefinitely
   (matching FR-5100/FR-1190's existing finite-mode save/continue convention — a run simply
@@ -1791,4 +1839,10 @@ excluded from the numbered baseline above; marked `CANDIDATE — NOT BASELINED` 
   either answer and needs no rework once decided (`ADR-0017` point 4). If the answer requires a
   new mechanic, that decision then routes to `03-architecture-design-synthesis` for the resulting
   `GDS-01` delta before this Candidate can be baselined into a real FR. See `RQ-03` finding #17
-  for the full write-up.
+  for the full write-up. **Resolved (2026-07-13): project owner decided directly — "for now
+  assume indefinitely resumable."** The no-new-mechanic branch of this Candidate's own analysis
+  applies: no `GDS-01` delta is needed, so no `03-architecture-design-synthesis` routing was
+  required after all. Baselined as **FR-10600** (Indefinitely resumable Infinite Mode run). This
+  Candidate is now closed; further tracking lives on `FR-10600` itself. The owner's own wording
+  ("for now") is carried into `FR-10600`'s Notes verbatim — this is a revisitable decision, not a
+  permanently closed one.

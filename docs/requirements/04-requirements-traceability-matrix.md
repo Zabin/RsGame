@@ -11,7 +11,8 @@
 > baselined pending a `03-architecture-design-synthesis` pass; delta 2026-07-13 (cont'd) —
 > FR-1200/FR-1210 added once GDS-01 §4c/GDS-08 §11 landed, `CR-06` resolved/baselined; delta
 > 2026-07-13 (cont'd) — FR-10100–10500, NFR-1400/2300/4300/5400, and CR-07 added for the
-> Infinite Mode epic, `ADS-001`/`ADR-0016`/`ADR-0017`/`BL-0094`/`BL-0106`).**
+> Infinite Mode epic, `ADS-001`/`ADR-0016`/`ADR-0017`/`BL-0094`/`BL-0106`; delta 2026-07-13
+> (cont'd) — FR-10600 added, `CR-07` resolved/baselined by direct user decision).**
 > Owned by `04-requirements-engineering`.
 > One row per [RQ-01](01-functional-requirements.md)/[RQ-02](02-non-functional-requirements.md)
 > requirement (Candidates marked). Populates the row-level matrix
@@ -81,7 +82,8 @@
 | FR-10300 | Treasure placement decoupled from maze structure | R216 | ADS-001 §System Architecture | ADR-0017 | `asm_game.py` (prospective) | UNASSIGNED | UNASSIGNED | UNASSIGNED |
 | FR-10400 | Score-chasing win condition (running count + top-3, no name entry) | R216 | ADS-001 §Executive Design Overview | ADR-0017 | `asm_game.py` (prospective) | UNASSIGNED | UNASSIGNED | UNASSIGNED |
 | FR-10500 | Visited-region-ledger save/load (position + collected-state only) | R114 | ADS-001 §System Architecture | ADR-0016 | `asm_game.py` (prospective) | UNASSIGNED | UNASSIGNED | UNASSIGNED |
-| CR-07 | Infinite Mode run/session shape — indefinitely resumable vs. bounded run with a new end-condition mechanic (`BL-0106`) — genuine missing concept, not yet decided, per RQ-03 finding #17 | R216 | GDS-01 (prospective delta) | ADR-0017 | `asm_game.py` (prospective) | `CANDIDATE — NOT BASELINED` | `CANDIDATE — NOT BASELINED` | `CANDIDATE — NOT BASELINED` |
+| CR-07 | Infinite Mode run/session shape (`BL-0106`) — **RESOLVED 2026-07-13, baselined as FR-10600** once the project owner decided directly ("for now assume indefinitely resumable") | R216 | — | ADR-0017 | `asm_game.py` (prospective) | `CANDIDATE — NOT BASELINED` (see FR-10600) | `CANDIDATE — NOT BASELINED` | `CANDIDATE — NOT BASELINED` |
+| FR-10600 | Indefinitely resumable Infinite Mode run (no bounded end-condition mechanic) | R216 | ADS-001 §Open Questions (Q1) | ADR-0017 | `asm_game.py` (prospective) | UNASSIGNED | UNASSIGNED | UNASSIGNED |
 
 ## Non-Functional Requirements
 
