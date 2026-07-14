@@ -753,13 +753,17 @@
 
 ## FEAT-10000 — Infinite Mode (new — not yet implemented)
 
-> **Forward reference (metadata only):** no `FS-xxx` authored yet. No Open Questions block this
-> stage's own work — `CR-07`'s run/session-shape question is already resolved (`FR-10600`);
-> `CR-05`'s finite-mode blob mechanism (`ADR-0018`) is a separate, unrelated Candidate, not part
-> of this Feature's own scope (see Excluded Requirements). `BL-0107`/`BL-0108`/`BL-0109` (Binary
-> Tree aesthetic, ledger SRAM sizing, materialization timing) are real open implementation-time
-> questions, correctly deferred past this stage — none blocks cataloging or specifying this
-> Feature, only its eventual `07`/`08` packaging.
+> **Forward reference (metadata only):** specified by
+> [FS-110](../features/FS-110-infinite-mode.md) (2026-07-14). 8 Open Questions, all routed
+> upstream (`03`/`04`/`05`) or to `07-implementation-planning`, per that document's own §19 —
+> most notably **OQ1: this catalog entry's own Dependencies field may be missing `FEAT-4100`**
+> (rendering integration), a finding for a future `05-feature-decomposition` pass to reconcile,
+> not applied here (this note is metadata only, per this skill's own SHALL-NOT-edit-content
+> rule). `CR-07`'s run/session-shape question is already resolved (`FR-10600`); `CR-05`'s
+> finite-mode blob mechanism (`ADR-0018`) remains a separate, unrelated Candidate, not part of
+> this Feature's own scope (see Excluded Requirements). `BL-0107`/`BL-0108`/`BL-0109` (Binary
+> Tree aesthetic, ledger SRAM sizing, materialization timing) remain real open implementation-time
+> questions, correctly deferred past this stage.
 
 - **Feature ID:** FEAT-10000
 - **Title:** Infinite Mode
