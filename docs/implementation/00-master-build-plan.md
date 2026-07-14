@@ -1,14 +1,17 @@
 # Master Build Plan
 
-> **Status (updated 2026-07-14, `08-code-implementation` on `IP-1102`): 27 of 31 packages
-> VERIFIED; `IP-1102` (Infinite Mode, streaming window/navigation/render) implemented —
-> `COMPLETE`, 260/260 full suite (`T24`, 7 checks; `NFR-4300` Met, `NFR-1400` honestly measured
-> `NOT MET` — see [VR pending] and `02-non-functional-requirements.md`). `IP-1101` (per-region
+> **Status (updated 2026-07-14, `09-package-verification` on `IP-1102`): 28 of 31 packages
+> VERIFIED; `IP-1102` (Infinite Mode, streaming window/navigation/render) independently verified —
+> `VERIFIED`, 260/260 full suite (`T24`, 7 checks; `NFR-4300` Met, `NFR-1400` honestly measured
+> `NOT MET`, independently re-confirmed by a standalone re-measurement — see
+> [VR-1102](verification/VR-1102-infinite-mode-streaming-window-and-render.md) and
+> `02-non-functional-requirements.md`). `IP-1101` (per-region
 > materialization) independently verified `VERIFIED` — 253/253 checks pass, fresh session, 0 open
 > findings ([VR-1101](verification/VR-1101-infinite-mode-region-materialization.md); three
 > Low-severity documentation findings noted, none blocking). `IP-1100` remains `READY` (its sole
-> hard dependency, `IP-1101`, is `VERIFIED`); `IP-1103` is now eligible pending `IP-1102`'s own
-> verification; `IP-1104` remains `NOT STARTED` — still depends on `IP-1100`/`1102`/`1103`.**
+> hard dependency, `IP-1101`, is `VERIFIED`); `IP-1103` is now eligible — `READY` — since both of
+> its dependencies (`IP-1101`, `IP-1102`) are now `VERIFIED`; `IP-1104` remains `NOT STARTED` —
+> still depends on `IP-1100`/`1102`/`1103` (only `IP-1102` of the three cleared).**
 > Every prior package remains `VERIFIED` —
 > nothing below this line is re-opened by the new tranche. **Prior status (corrected 2026-07-13, `09-package-verification` on `IP-1082`):
 > 26 of 26 packages VERIFIED.** `IP-1090` (SELECT Menu & Edge-Indicator Legend Screen, `BL-0100`)
@@ -281,18 +284,24 @@ static diff (`T24.c1`) plus full T13/T20 regression (`T24.c2`). `NFR-4300` sized
 vs. ~3.1 KiB bank-0 headroom); `NFR-1400` honestly measured `NOT MET` (78,860–81,792 cycles vs. a
 70,224-cycle frame budget, `T24.e`) — not a blocker for this package's own Definition of Done
 (measured-and-recorded, not compliance, is what DoD requires) nor for Infinite Mode's MVP
-playability, but a real, filed follow-up finding for a future optimization package. `IP-1100`
-lists `IP-1101` as its sole hard dependency and remains **`READY`**. `IP-1103` now depends only on
-`IP-1102` reaching `VERIFIED` (not yet run — must be an independent session, per
-`09-package-verification`'s own rule). `IP-1104` still depends on `IP-1100`/`1102`/`1103` — both
-remain `NOT STARTED`/blocked-in-substance until their own dependencies clear.
+playability, but a real, filed follow-up finding for a future optimization package. **`IP-1102`
+independently verified 2026-07-14 — `VERIFIED`**
+([VR-1102](verification/VR-1102-infinite-mode-streaming-window-and-render.md)), 260/260 pass
+re-confirmed in a fresh session, all Definition-of-Done/Verification-Checklist items confirmed by
+direct code read, `NFR-1400`'s `NOT MET` result independently re-measured via a standalone script
+against a disjoint corpus (77,812–81,816 cycles, same order of magnitude and conclusion); one
+Low-severity documentation finding noted (an `ADR-0016` point-7 citation mismatch), not blocking.
+`IP-1100` lists `IP-1101` as its sole hard dependency and remains **`READY`**. `IP-1103` now
+depends on `IP-1101`/`IP-1102`, both `VERIFIED` — **now `READY`**, unblocked by this verification
+pass. `IP-1104` still depends on `IP-1100`/`1102`/`1103` — only `IP-1102` of the three has cleared;
+`IP-1100`/`IP-1103` remain unimplemented, so `IP-1104` stays `NOT STARTED`/blocked-in-substance.
 
 | Package | Title | Owner | Status | Depends on | Authorized? |
 |---|---|---|---|---|---|
 | [IP-1100](packages/IP-1100-infinite-mode-mode-selection.md) | Mode selection & new-game entry | `08-code-implementation` | **READY** | IP-1101 (VERIFIED) | **YES — explicit user G3, 2026-07-14 ("Yes, build all five")** |
 | [IP-1101](packages/IP-1101-infinite-mode-region-materialization.md) | Per-region materialization | `08-code-implementation` | **VERIFIED** ([VR-1101](verification/VR-1101-infinite-mode-region-materialization.md), 2026-07-14) | — (tranche root) | **YES — explicit user G3, 2026-07-14 ("Yes, build all five")** |
-| [IP-1102](packages/IP-1102-infinite-mode-streaming-window-and-render.md) | Streaming window, navigation & render integration | `08-code-implementation` | **COMPLETE** (260/260, 2026-07-14) | IP-1101 (VERIFIED) | **YES — explicit user G3, 2026-07-14 ("Yes, build all five")** |
-| [IP-1103](packages/IP-1103-infinite-mode-treasure-and-win-condition.md) | Treasure placement & win-condition state | `08-code-implementation` | **NOT STARTED** | IP-1101 (VERIFIED), IP-1102 | **YES — explicit user G3, 2026-07-14 ("Yes, build all five")** |
+| [IP-1102](packages/IP-1102-infinite-mode-streaming-window-and-render.md) | Streaming window, navigation & render integration | `08-code-implementation` | **VERIFIED** ([VR-1102](verification/VR-1102-infinite-mode-streaming-window-and-render.md), 2026-07-14) | IP-1101 (VERIFIED) | **YES — explicit user G3, 2026-07-14 ("Yes, build all five")** |
+| [IP-1103](packages/IP-1103-infinite-mode-treasure-and-win-condition.md) | Treasure placement & win-condition state | `08-code-implementation` | **READY** | IP-1101 (VERIFIED), IP-1102 (VERIFIED) | **YES — explicit user G3, 2026-07-14 ("Yes, build all five")** |
 | [IP-1104](packages/IP-1104-infinite-mode-ledger-save-persistence.md) | Visited-region-ledger save persistence | `08-code-implementation` | **NOT STARTED** | IP-1100, IP-1101 (VERIFIED), IP-1102, IP-1103 | **YES — explicit user G3, 2026-07-14 ("Yes, build all five")** |
 
 ## Dependency graph
@@ -391,8 +400,8 @@ graph TD
 
     IP1100["IP-1100 mode selection<br/>& new-game entry<br/>(READY)"]
     IP1101["IP-1101 per-region<br/>materialization<br/>(VERIFIED)"]
-    IP1102["IP-1102 streaming window<br/>& render integration<br/>(COMPLETE)"]
-    IP1103["IP-1103 treasure &<br/>win-condition state<br/>(NOT STARTED)"]
+    IP1102["IP-1102 streaming window<br/>& render integration<br/>(VERIFIED)"]
+    IP1103["IP-1103 treasure &<br/>win-condition state<br/>(READY)"]
     IP1104["IP-1104 ledger save<br/>persistence<br/>(NOT STARTED)"]
     IP1040 --> IP1100
     IP1101 --> IP1100
@@ -408,7 +417,7 @@ graph TD
 
     style IP1101 fill:#cfc,stroke:#333,stroke-width:2px
     style IP1100 fill:#c9f,stroke:#333,stroke-width:2px
-    style IP1102 fill:#c9f,stroke:#333,stroke-width:2px
+    style IP1102 fill:#cfc,stroke:#333,stroke-width:2px
     style IP1103 fill:#c9f,stroke:#333,stroke-width:2px
     style IP1104 fill:#c9f,stroke:#333,stroke-width:2px
 ```
