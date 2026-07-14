@@ -1,13 +1,15 @@
 # Master Build Plan
 
-> **Status (updated 2026-07-14, `09-package-verification` on `IP-1101`): 27 of 31 packages
-> VERIFIED; `IP-1101` (Infinite Mode, per-region materialization) independently verified
-> `VERIFIED` — 253/253 checks pass, fresh session, 0 open findings
-> ([VR-1101](verification/VR-1101-infinite-mode-region-materialization.md); three Low-severity
-> documentation findings noted, none blocking). `IP-1100`/`IP-1102` are now `READY` (their sole
-> hard dependency, `IP-1101`, reached `VERIFIED`); `IP-1103`/`IP-1104` remain `NOT STARTED` —
-> `IP-1103` still depends on `IP-1102` (not yet `VERIFIED`), `IP-1104` still depends on
-> `IP-1100`/`1102`/`1103`.** Every prior package remains `VERIFIED` —
+> **Status (updated 2026-07-14, `08-code-implementation` on `IP-1102`): 27 of 31 packages
+> VERIFIED; `IP-1102` (Infinite Mode, streaming window/navigation/render) implemented —
+> `COMPLETE`, 260/260 full suite (`T24`, 7 checks; `NFR-4300` Met, `NFR-1400` honestly measured
+> `NOT MET` — see [VR pending] and `02-non-functional-requirements.md`). `IP-1101` (per-region
+> materialization) independently verified `VERIFIED` — 253/253 checks pass, fresh session, 0 open
+> findings ([VR-1101](verification/VR-1101-infinite-mode-region-materialization.md); three
+> Low-severity documentation findings noted, none blocking). `IP-1100` remains `READY` (its sole
+> hard dependency, `IP-1101`, is `VERIFIED`); `IP-1103` is now eligible pending `IP-1102`'s own
+> verification; `IP-1104` remains `NOT STARTED` — still depends on `IP-1100`/`1102`/`1103`.**
+> Every prior package remains `VERIFIED` —
 > nothing below this line is re-opened by the new tranche. **Prior status (corrected 2026-07-13, `09-package-verification` on `IP-1082`):
 > 26 of 26 packages VERIFIED.** `IP-1090` (SELECT Menu & Edge-Indicator Legend Screen, `BL-0100`)
 > `VERIFIED`
@@ -270,16 +272,26 @@ five packages.** Critical path: `IP-1101` → `IP-1102` → `IP-1103` → `IP-11
 situation). **`IP-1101` independently verified 2026-07-14 — `VERIFIED`**
 ([VR-1101](verification/VR-1101-infinite-mode-region-materialization.md)), 253/253 pass
 re-confirmed in a fresh session, all Definition-of-Done/Verification-Checklist items confirmed by
-direct code read; three Low-severity documentation findings noted, none blocking. `IP-1100`/`1102`
-both list `IP-1101` as their sole hard dependency and are now **`READY`**. `IP-1103` still depends
-on `IP-1102` (not yet `VERIFIED`) and `IP-1104` still depends on `IP-1100`/`1102`/`1103` — both
+direct code read; three Low-severity documentation findings noted, none blocking. **`IP-1102`
+implemented 2026-07-14 — `COMPLETE`, 260/260 full suite** (new suite `T24`, 7 checks): streaming
+materialized-window management (`inf_ensure_window`), transition-triggered materialization
+(`czt_infinite`), and render integration (`dsr_p`'s `GAME_MODE`-gated biome-dispatch entry,
+`draw_region_arrows_inf`) — `dsr_p`'s finite-mode path confirmed byte-for-byte unchanged by direct
+static diff (`T24.c1`) plus full T13/T20 regression (`T24.c2`). `NFR-4300` sized and Met (15 bytes
+vs. ~3.1 KiB bank-0 headroom); `NFR-1400` honestly measured `NOT MET` (78,860–81,792 cycles vs. a
+70,224-cycle frame budget, `T24.e`) — not a blocker for this package's own Definition of Done
+(measured-and-recorded, not compliance, is what DoD requires) nor for Infinite Mode's MVP
+playability, but a real, filed follow-up finding for a future optimization package. `IP-1100`
+lists `IP-1101` as its sole hard dependency and remains **`READY`**. `IP-1103` now depends only on
+`IP-1102` reaching `VERIFIED` (not yet run — must be an independent session, per
+`09-package-verification`'s own rule). `IP-1104` still depends on `IP-1100`/`1102`/`1103` — both
 remain `NOT STARTED`/blocked-in-substance until their own dependencies clear.
 
 | Package | Title | Owner | Status | Depends on | Authorized? |
 |---|---|---|---|---|---|
 | [IP-1100](packages/IP-1100-infinite-mode-mode-selection.md) | Mode selection & new-game entry | `08-code-implementation` | **READY** | IP-1101 (VERIFIED) | **YES — explicit user G3, 2026-07-14 ("Yes, build all five")** |
 | [IP-1101](packages/IP-1101-infinite-mode-region-materialization.md) | Per-region materialization | `08-code-implementation` | **VERIFIED** ([VR-1101](verification/VR-1101-infinite-mode-region-materialization.md), 2026-07-14) | — (tranche root) | **YES — explicit user G3, 2026-07-14 ("Yes, build all five")** |
-| [IP-1102](packages/IP-1102-infinite-mode-streaming-window-and-render.md) | Streaming window, navigation & render integration | `08-code-implementation` | **READY** | IP-1101 (VERIFIED) | **YES — explicit user G3, 2026-07-14 ("Yes, build all five")** |
+| [IP-1102](packages/IP-1102-infinite-mode-streaming-window-and-render.md) | Streaming window, navigation & render integration | `08-code-implementation` | **COMPLETE** (260/260, 2026-07-14) | IP-1101 (VERIFIED) | **YES — explicit user G3, 2026-07-14 ("Yes, build all five")** |
 | [IP-1103](packages/IP-1103-infinite-mode-treasure-and-win-condition.md) | Treasure placement & win-condition state | `08-code-implementation` | **NOT STARTED** | IP-1101 (VERIFIED), IP-1102 | **YES — explicit user G3, 2026-07-14 ("Yes, build all five")** |
 | [IP-1104](packages/IP-1104-infinite-mode-ledger-save-persistence.md) | Visited-region-ledger save persistence | `08-code-implementation` | **NOT STARTED** | IP-1100, IP-1101 (VERIFIED), IP-1102, IP-1103 | **YES — explicit user G3, 2026-07-14 ("Yes, build all five")** |
 
@@ -379,7 +391,7 @@ graph TD
 
     IP1100["IP-1100 mode selection<br/>& new-game entry<br/>(READY)"]
     IP1101["IP-1101 per-region<br/>materialization<br/>(VERIFIED)"]
-    IP1102["IP-1102 streaming window<br/>& render integration<br/>(READY)"]
+    IP1102["IP-1102 streaming window<br/>& render integration<br/>(COMPLETE)"]
     IP1103["IP-1103 treasure &<br/>win-condition state<br/>(NOT STARTED)"]
     IP1104["IP-1104 ledger save<br/>persistence<br/>(NOT STARTED)"]
     IP1040 --> IP1100

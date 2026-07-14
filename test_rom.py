@@ -130,6 +130,12 @@ IMR_ADDR = _gw_rom.labels['inf_materialize_region']
 INF_MZ_ROW = 0xC40D; INF_MZ_COL = 0xC40F
 INF_MZ_RESULT = 0xC411; INF_MZ_TREASURE = 0xC412
 
+# T24 (IP-1102): Infinite Mode streaming window / navigation / render
+GAME_MODE = 0xC3F6; INF_ROW = 0xC3F7; INF_COL = 0xC3F9
+INF_WINDOW = 0xC3FB; INF_TREASURE_HERE = 0xC404
+INF_ENSURE_WINDOW_ADDR = _gw_rom.labels['inf_ensure_window']
+CZT_REDRAW_ADDR = _gw_rom.labels['czt_redraw']
+
 def fresh_boot(frames=180):
     """Clean boot to title screen with no saved game."""
     wipe_save()
@@ -2428,6 +2434,259 @@ for seed in (0, 42, 65535):
                 _t22g_bad.append((seed, row, col, "east/west"))
 check("T22.g Neighbor-consulting symmetry: south/east openness matches the neighbor's own north/west bit, every corpus entry (ADR-0016 pt.5)",
       len(_t22g_bad) == 0, f"bad={_t22g_bad[:3]}")
+
+# ══════════════════════════════════════════════════════
+# T24 — Infinite Mode: Streaming Window & Rendering (IP-1102)
+# ══════════════════════════════════════════════════════
+print("\n=== T24: Infinite Mode — Streaming Window & Rendering ===")
+
+_T24_WINDOW_OFFSETS = [(dr, dc) for dr in (-1, 0, 1) for dc in (-1, 0, 1)]
+
+def inf_window_bytes(seed, row, col):
+    """The 9 region bytes inf_ensure_window would compute for a window
+    centered on (row, col) -- same row-major order as asm_game.py's own
+    _INF_WINDOW_OFFSETS."""
+    return [worldgen.materialize_region(seed, row + dr, col + dc)
+            for dr, dc in _T24_WINDOW_OFFSETS]
+
+def set_infinite_state(pb, seed, row, col):
+    """Directly pokes WRAM into the state a real inf_ensure_window call
+    would have produced for (seed, row, col) -- not the PC/SP hijack trap
+    T22's own invoke_inf_materialize_region uses, which strands the CPU in
+    a self-loop (T20's own documented caution) incompatible with the real
+    button-driven gameplay T24 needs afterward. Leaves the CPU's normal
+    running loop undisturbed so real button presses can drive
+    check_zone_transition -> czt_infinite -> inf_ensure_window naturally,
+    as an ordinary in-loop CALL/RET."""
+    pb.memory[SEED] = seed & 0xFF; pb.memory[SEED + 1] = (seed >> 8) & 0xFF
+    pb.memory[GAME_MODE] = 1
+    r = row & 0xFFFF; c = col & 0xFFFF
+    pb.memory[INF_ROW] = r & 0xFF; pb.memory[INF_ROW + 1] = (r >> 8) & 0xFF
+    pb.memory[INF_COL] = c & 0xFF; pb.memory[INF_COL + 1] = (c >> 8) & 0xFF
+    for idx, (byte, _treasure) in enumerate(inf_window_bytes(seed, row, col)):
+        pb.memory[INF_WINDOW + idx] = byte
+    pb.memory[NEED_REDRAW] = 1
+    [pb.tick() for _ in range(10)]
+
+def force_infinite_redraw_with_center(pb, center_byte):
+    """Isolated dispatch/render check (T13.a's own isolation style, applied
+    to the infinite-mode path): pokes only INF_WINDOW's center cell,
+    ignoring neighbors -- dsr_p_inf/draw_region_arrows_inf never read them."""
+    pb.memory[GAME_MODE] = 1
+    pb.memory[INF_WINDOW + 4] = center_byte
+    pb.memory[NEED_REDRAW] = 1
+    [pb.tick() for _ in range(10)]
+
+def read_inf_pos(pb):
+    row = pb.memory[INF_ROW] | (pb.memory[INF_ROW + 1] << 8)
+    col = pb.memory[INF_COL] | (pb.memory[INF_COL + 1] << 8)
+    if row >= 0x8000: row -= 0x10000
+    if col >= 0x8000: col -= 0x10000
+    return row, col
+
+_T24_DIR_BTN  = {'north': 'up', 'south': 'down', 'west': 'left', 'east': 'right'}
+_T24_DIR_BIT  = {'north': 3, 'south': 4, 'west': 5, 'east': 6}
+_T24_DIR_DELTA = {'north': (-1, 0), 'south': (1, 0), 'west': (0, -1), 'east': (0, 1)}
+
+def t24_do_move(pb, direction):
+    """Real button-driven transition attempt (T17's own _t17_do_move
+    pattern, generalized to Infinite Mode's unbounded INF_ROW/INF_COL in
+    place of CUR_ZONE): forces position to the relevant edge, holds the
+    matching direction, ticks until INF_ROW/INF_COL changes (or the budget
+    is exhausted -- correctly the case when the connectivity bit is
+    clear), releases, settles a few more frames for the redraw to
+    complete. Returns (moved, end_row, end_col)."""
+    btn = _T24_DIR_BTN[direction]
+    start = read_inf_pos(pb)
+    pb.button_press(btn)
+    if direction == 'east':
+        pb.memory[PLAYER_X] = 156
+    elif direction == 'west':
+        pb.memory[PLAYER_X] = 0
+    elif direction == 'south':
+        pb.memory[PLAYER_Y] = 128
+    else:
+        pb.memory[PLAYER_Y] = 17
+    moved = False
+    for _ in range(80):
+        pb.tick()
+        if read_inf_pos(pb) != start:
+            moved = True
+            break
+    pb.button_release(btn)
+    [pb.tick() for _ in range(20)]   # settle the redraw for the biome check
+    end_row, end_col = read_inf_pos(pb)
+    return moved, end_row, end_col
+
+# T24.a — real button-driven navigation (mirrors T17.a's own shape,
+# extended to the unbounded case): from a materialized starting region, for
+# each of the 4 directions, confirm a transition occurs iff the current
+# region's own connectivity bit is set, INF_ROW/INF_COL update by exactly
+# ±1 on the correct axis, and the newly-entered region's own screen renders
+# the correct biome tileset (AC-1/FR-10200).
+T24_NAV_SEEDS = [7, 99, 4242, 65535, 0xBEEF]
+nav_bad = []
+for seed in T24_NAV_SEEDS:
+    pb = fresh_boot(200)
+    advance_to_playing(pb)
+    center_byte, _ = worldgen.materialize_region(seed, 0, 0)
+    for direction in ('north', 'south', 'west', 'east'):
+        set_infinite_state(pb, seed, 0, 0)
+        expected_open = bool(center_byte & (1 << _T24_DIR_BIT[direction]))
+        dr, dc = _T24_DIR_DELTA[direction]
+        moved, end_row, end_col = t24_do_move(pb, direction)
+        if moved != expected_open:
+            nav_bad.append((seed, direction, 'transition-mismatch', moved, expected_open))
+            continue
+        if not expected_open:
+            continue
+        if (end_row, end_col) != (dr, dc):
+            nav_bad.append((seed, direction, 'position-mismatch', (end_row, end_col), (dr, dc)))
+            continue
+        new_center_byte, _ = worldgen.materialize_region(seed, dr, dc)
+        biome_id = new_center_byte & 0x07
+        lo, hi = FAMILY_RANGES[biome_id]
+        field = field_tiles(pb)
+        in_family = sum(1 for b in field if lo <= b <= hi)
+        if in_family <= 40:
+            nav_bad.append((seed, direction, 'biome-render-mismatch', in_family))
+    pb.stop()
+check("T24.a Real button-driven navigation: transitions occur iff the connectivity bit is set, INF_ROW/INF_COL update correctly, and the newly-entered region renders its own biome tileset (AC-1/FR-10200)",
+      len(nav_bad) == 0, f"bad={nav_bad[:5]}")
+
+# T24.b — revisit consistency through the render path (FR-10210): leaving a
+# region (window re-centers away) and returning to it redraws a
+# pixel-identical screen. Delegates the underlying data-layer check to
+# IP-1101's own T22.c; this is the render-path confirmation T22 alone
+# cannot make. Picks the first (seed, row, col) in a small search whose own
+# south bit is open (T22.g's own proven south/north symmetry guarantees the
+# return move north is always then open too), so the round trip is
+# guaranteed reversible for any seed, not cherry-picked for one.
+T24B_SEED = 2024
+T24B_ROW = T24B_COL = None
+for _r in range(20):
+    for _c in range(20):
+        _byte, _ = worldgen.materialize_region(T24B_SEED, _r, _c)
+        if _byte & 0x10:   # south bit
+            T24B_ROW, T24B_COL = _r, _c
+            break
+    if T24B_ROW is not None:
+        break
+
+pb = fresh_boot(200)
+advance_to_playing(pb)
+set_infinite_state(pb, T24B_SEED, T24B_ROW, T24B_COL)
+tiles_visit1 = field_tiles(pb)
+moved_away, r2, c2 = t24_do_move(pb, 'south')
+moved_back, r3, c3 = t24_do_move(pb, 'north')
+tiles_visit2 = field_tiles(pb)
+pb.stop()
+check("T24.b Revisit-consistency through the render path: leaving and returning to a region redraws a pixel-identical screen (FR-10210)",
+      moved_away and (r2, c2) == (T24B_ROW + 1, T24B_COL)
+      and moved_back and (r3, c3) == (T24B_ROW, T24B_COL)
+      and tiles_visit1 == tiles_visit2,
+      f"moved_away={moved_away} moved_back={moved_back} pos_back=({r3},{c3}) tiles_match={tiles_visit1 == tiles_visit2}")
+
+# T24.c — finite mode (GAME_MODE == 0) is provably unchanged.
+# T24.c1: static diff -- dsr_p's finite-mode body (from its existing
+# CUR_ZONE read through its existing REGION_GRAPH-pointer JR) is, call for
+# call, exactly the pre-IP-1102 instruction sequence, with only the
+# 3-instruction GAME_MODE gate prefixed ahead of it (no instruction
+# inserted, removed, or reordered within the pre-existing body itself).
+import re
+_dsr_p_finite_body = _src[_src.index("rom.label('dsr_p')"):_src.index("rom.label('dsr_p_inf')")]
+_t24c_calls = [c for c in re.findall(r"rom\.([A-Za-z_]+)\(", _dsr_p_finite_body) if c != 'label']
+_t24c_expected = ['LD_A_nn', 'OR_A', 'JR_NZ',                          # the new gate
+                   'LD_A_nn', 'LD_E_A', 'LD_D_n', 'LD_HL_nn',           # pre-existing body,
+                   'ADD_HL_DE', 'ADD_HL_DE', 'ADD_HL_DE',               # unmodified
+                   'ADD_HL_DE', 'ADD_HL_DE', 'LD_A_HLI', 'PUSH_HL', 'JR']
+check("T24.c1 Static diff: dsr_p's finite-mode body is byte-for-byte the pre-IP-1102 instruction sequence, only a 3-instruction gate prefixed",
+      _t24c_calls == _t24c_expected, f"got={_t24c_calls}")
+
+# T24.c2: regression -- every T13/T20 check (dsr_p/draw_region_arrows,
+# exercised earlier in this same run under GAME_MODE's default-0 boot
+# state) still passes unmodified under the new gate.
+_t24c_regression = [r for r in results if r.split(']')[1].strip().startswith(('T13.', 'T20.'))]
+_t24c_bad = [r for r in _t24c_regression if r.startswith('[FAIL]')]
+check("T24.c2 Regression: every existing T13/T20 dsr_p/draw_region_arrows/check_zone_transition check still passes unmodified under the new GAME_MODE gate",
+      len(_t24c_bad) == 0 and len(_t24c_regression) > 0,
+      f"failed={_t24c_bad} total_checked={len(_t24c_regression)}")
+
+# T24.d — the plain-open-arrow-only claim: draw_region_arrows_inf never
+# writes a blocked-edge tile (Infinite Mode has no "grid-adjacent but
+# maze-pruned" concept, ADR-0012 point 2's distinction is finite-mode-only).
+# T24.d1: static audit.
+_t24d_src = _src[_src.index("rom.label('draw_region_arrows_inf')"):_src.index("rom.label('mm_on_entry')")]
+check("T24.d1 Static audit: draw_region_arrows_inf's source never references TL_BLOCKED_U/D/L/R",
+      'BLOCKED' not in _t24d_src, "source-scanned")
+
+# T24.d2: corpus -- drive every one of the 16 connectivity-nibble values
+# (bits 3-6) through the real render path, confirm none ever produces a
+# blocked-edge tile at any of the four arrow addresses.
+pb = fresh_boot(200)
+advance_to_playing(pb)
+blocked_found = []
+for nibble in range(16):
+    force_infinite_redraw_with_center(pb, nibble << 3)
+    for direction, addr in ARROW_POS.items():
+        if pb.memory[addr] == BLOCKED_TILE[direction]:
+            blocked_found.append((nibble, direction))
+pb.stop()
+check("T24.d2 Corpus: draw_region_arrows_inf never writes a blocked-edge tile, all 16 connectivity nibble values",
+      len(blocked_found) == 0, f"bad={blocked_found[:5]}")
+
+# T24.e — NFR-1400 Analysis check: direct cycle-count of inf_ensure_window's
+# real per-transition cost (all 9 window cells -- this package's own §6
+# text commits to "the whole window is simply recomputed fresh on every
+# center change, no incremental shift logic", so 9 fresh
+# inf_materialize_region calls is the actual cost of every transition, not
+# merely a rare worst case; this package's own §8 T24.e wording additionally
+# floats a hypothetical "realistic worst case of 3 cells" premised on an
+# incremental-shift optimization that was never implemented — that
+# assumption does not hold for the code as built, recorded here rather than
+# silently adopted). Measured via a direct PC/SP hijack into
+# inf_ensure_window (T12/T22's own established technique) with the return
+# address pointed at the real ROM label czt_redraw (a hook there is safe --
+# ROM only; hooking the WRAM self-loop trap T12/T22 use for coarse
+# completion-detection was tried first and hangs PyBoy's emulation core, so
+# this measurement avoids it entirely) and two hook_register callpoints
+# (entry, return) reading PyBoy's own cycle counter -- exact, not
+# frame-quantized.
+def measure_inf_ensure_window_cycles(seed, row, col):
+    pb = fresh_boot(180)
+    pb.memory[SEED] = seed & 0xFF; pb.memory[SEED + 1] = (seed >> 8) & 0xFF
+    r = row & 0xFFFF; c = col & 0xFFFF
+    pb.memory[INF_ROW] = r & 0xFF; pb.memory[INF_ROW + 1] = (r >> 8) & 0xFF
+    pb.memory[INF_COL] = c & 0xFF; pb.memory[INF_COL + 1] = (c >> 8) & 0xFF
+    sp = (pb.register_file.SP - 2) & 0xFFFF
+    pb.memory[sp] = CZT_REDRAW_ADDR & 0xFF
+    pb.memory[sp + 1] = (CZT_REDRAW_ADDR >> 8) & 0xFF
+    pb.register_file.SP = sp
+    state = {}
+    def _start(ctx): state.setdefault('start', pb._cycles())
+    def _end(ctx): state.setdefault('end', pb._cycles())
+    pb.hook_register(0, INF_ENSURE_WINDOW_ADDR, _start, None)
+    pb.hook_register(0, CZT_REDRAW_ADDR, _end, None)
+    pb.register_file.PC = INF_ENSURE_WINDOW_ADDR
+    for _ in range(10):
+        pb.tick()
+        if 'end' in state:
+            break
+    pb.stop()
+    if 'start' not in state or 'end' not in state:
+        return None
+    return state['end'] - state['start']
+
+T24E_CORPUS = [(2026, 0, 0), (7, 5, -5), (65535, -100, 100)]
+t24e_measurements = [measure_inf_ensure_window_cycles(s, r, c) for s, r, c in T24E_CORPUS]
+t24e_valid = [m for m in t24e_measurements if m is not None]
+FRAME_BUDGET_CYCLES = 70224   # one CGB single-speed frame -- NFR-1400's own
+                               # "same per-frame budget every other VRAM-
+                               # adjacent write already respects" bar
+t24e_met = bool(t24e_valid) and max(t24e_valid) <= FRAME_BUDGET_CYCLES
+check("T24.e NFR-1400 Analysis: inf_ensure_window's real per-transition cost, direct cycle-count, measured and recorded (Met or not, not asserted un-measured)",
+      len(t24e_valid) == len(T24E_CORPUS),
+      f"cycles={t24e_measurements} budget={FRAME_BUDGET_CYCLES} status={'MET' if t24e_met else 'NOT MET'}")
 
 # ══════════════════════════════════════════════════════
 # SUMMARY

@@ -1604,11 +1604,12 @@ FR-9000's own leaves are amended or superseded by this group)*
 - **Rationale:** ADR-0016 points 2–3; R114 (the positional-determinism finding this decision is
   grounded in — the shipped finite-mode algorithm's two global-sequential dependencies are not
   directly streamable, requiring this different, positionally-deterministic construction).
-- **Priority:** Must (**partially implemented, 2026-07-14, `IP-1101`** — the per-region
+- **Priority:** Must (**Implemented, 2026-07-14, `IP-1101`+`IP-1102`** — the per-region
   generation half: `inf_materialize_region`/`worldgen.materialize_region` produce a region's
-  biome/connectivity as a pure function of `(SEED, row, col)`, `T22` (7 checks). The streaming
-  materialized-window management, transition-triggered materialization, and render integration
-  are `IP-1102`'s own scope, not yet implemented.)
+  biome/connectivity as a pure function of `(SEED, row, col)`, `T22` (7 checks); the streaming
+  materialized-window management (`inf_ensure_window`), transition-triggered materialization
+  (`czt_infinite`), and render integration (`dsr_p`'s `GAME_MODE`-gated dispatch,
+  `draw_region_arrows_inf`) are `IP-1102`'s own scope, `T24` (7 checks).)
 - **Inputs:** SEED (Infinite Mode's own, per FR-10100); the region coordinate `(row, col)` the
   player is approaching.
 - **Outputs:** That region's biome assignment and maze connectivity (which of its up to four
@@ -1627,13 +1628,15 @@ FR-9000's own leaves are amended or superseded by this group)*
   determinism test shape, extended to per-region rather than whole-graph scope).
 - **Source Documents:** ADR-0016 points 2–3; R114 §Concepts/§Implementation Guidance.
 - **Related ADRs:** ADR-0016.
-- **Notes:** **Partially implemented (`IP-1101`, 2026-07-14)** — see Priority above. The maze
+- **Notes:** **Implemented (`IP-1101`+`IP-1102`, 2026-07-14)** — see Priority above. The maze
   algorithm is the Binary Tree family (ADR-0016 point 4), operationalized as a "carve north or
   west" bias per region with south/east openness read from the corresponding neighbor's own
   bias (no grid-boundary special case — Infinite Mode's world is unbounded, confirmed by direct
   implementation, not merely asserted); its own aesthetic acceptability (directional corridor
   bias) is not decided by this FR, tracked separately (`BL-0107`, routed to
-  `02-research-game-design`/`09-content-review` once a package exists to review).
+  `02-research-game-design`/`09-content-review` once a package exists to review). `IP-1102`'s own
+  `inf_ensure_window` recomputes the full 3×3 window fresh on every center change (no incremental
+  shift logic) — see NFR-1400's own updated status for this design choice's measured cost.
   Materialization-window sizing against bank-0's WRAM headroom is an NFR concern (NFR-4300
   below), owned by `IP-1102`, not restated here.
 

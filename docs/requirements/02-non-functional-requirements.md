@@ -168,25 +168,33 @@
   here... flagged for 07/08-time direct cycle-counting"); R114 §Implementation Guidance
   ("Materialization timing needs direct cycle-counting against `check_zone_transition`'s actual
   call context before being treated as settled").
-- **Priority:** Must (target — not yet implemented)
-- **Status: UNCONFIRMED.** R114's own hardware-feasibility research judges a single region's
-  hash-reseed-and-clamp computation "a small constant amount of work — almost certainly well
-  under `generate_world`'s existing per-region cost" but explicitly declines to treat this as
-  settled without direct cycle-counting against the real call context. No implementation exists
-  yet to measure. This status is honest, not merely optimistic — see `BL-0109`.
+- **Priority:** Must (**measured, `NOT MET`, 2026-07-14, `IP-1102`**)
+- **Status: NOT MET (honestly measured, `IP-1102`/T24.e).** Direct cycle-counting (PC/SP hijack
+  into `inf_ensure_window`, two ROM-address `hook_register` callpoints reading PyBoy's own cycle
+  counter — exact, not frame-quantized) measured `inf_ensure_window`'s real per-transition cost
+  (a fresh, unconditional recompute of all 9 window cells — `IP-1102`'s own §6 design explicitly
+  has no incremental-shift logic, so this is the actual cost of *every* transition, not a rare
+  worst case) at **78,860–81,792 T-cycles** across a 3-entry `(seed,row,col)` corpus, against a
+  single CGB-single-speed frame's 70,224-cycle budget — **exceeds it by ~12–16%**. R114's own
+  "small constant amount of work" judgment did not anticipate `gw_prng_step`'s own shift-heavy
+  cost (13 calls per `inf_materialize_region`, ~9,000 cycles each) compounding across 9 cells per
+  transition. This is a real, measured stall risk (an observable ~1-frame hitch on region entry),
+  not merely unconfirmed — see `BL-0109`'s successor finding for the follow-up optimization
+  package this now schedules (candidates: incremental window-shift instead of full recompute, a
+  cheaper per-region PRNG, or accepting the stall as within tolerance — not decided by this NFR).
 - **Acceptance Criteria:** Direct cycle-counting of a single region's materialization routine,
   run inside `check_zone_transition`'s actual call context, stays within the same per-frame
   budget every other VRAM-adjacent write in that context already respects (no new LCD-off
-  bracket introduced, no measured player-visible stall).
-- **Verification Method:** Analysis (cycle-counting against the real call context) — Test is not
-  yet possible; no implementation exists to measure. Flagged per this document's own writing
-  rule ("justify anything but Test").
+  bracket introduced, no measured player-visible stall). **Not met** — see Status above.
+- **Verification Method:** Analysis (cycle-counting against the real call context) — performed,
+  `IP-1102`/T24.e (3-entry corpus, `test_rom.py`).
 - **Source Documents:** ADR-0016 point 7; R114 §Implementation Guidance, §Operational Context.
 - **Related ADRs:** ADR-0016.
-- **Notes:** Not yet implemented. Tracked separately as `BL-0109`, routed to
-  `07-implementation-planning`/`08-code-implementation` for the actual measurement once an
-  Infinite Mode region-materialization package exists to measure. This NFR states the bar so a
-  future implementation package has a concrete Acceptance Criterion to satisfy, rather than
+- **Notes:** Measured `NOT MET`, `IP-1102`, 2026-07-14. Not a blocker for `IP-1102`'s own
+  completion (this package's own Definition of Done requires only an honest measurement, not
+  compliance) nor for Infinite Mode's MVP playability (the measured cost is a single-frame-class
+  hitch on region entry, not a crash, data-loss, or unplayable stall). Routed to a new backlog
+  entry for a follow-up optimization package to actually close the gap, rather than
   discovering the requirement only after a stutter is reported.
 
 ## Reliability
@@ -399,26 +407,25 @@
 - **Rationale:** ADR-0016 point 6; R114 ("Bound any 'materialized window' to bank-0's ~3 KiB
   headroom first; only reach for `SVBK` banking if a specific chosen window radius concretely
   exceeds it").
-- **Priority:** Must (target — not yet implemented)
-- **Status: NOT YET SIZED.** R114 directly re-measured 3082 bytes of bank-0 headroom this
-  session (`0xC3F6`–`0xCFFF`, down from the pre-`IP-1021` figure by exactly `IP-1021`'s own
-  86 net-new bytes), and estimates a 5×5 or 7×7 region-neighborhood window (a handful of bytes
-  per region: biome-id, connectivity nibble, treasure-collected state) "stays comfortably inside
-  bank-0... without banking at all" — but the exact window radius and per-region byte cost are
-  not fixed by this NFR, and `gbc_lib.py` has no `SVBK` emitter today (a real toolchain gap if
-  banking is ever needed, not a free capability).
+- **Priority:** Must (**Met, 2026-07-14, `IP-1102`**)
+- **Status: Met.** Sized by `IP-1102`: a 3×3 materialized window (`INF_WINDOW`, 9 bytes,
+  `0xC3FB`–`0xC403`, 1 byte/region — biome-id + connectivity nibble, per `IP-1101`'s own output
+  format) plus the 4-byte center-anchor (`INF_ROW`/`INF_COL`, 2 bytes each) = 13 bytes, plus
+  `GAME_MODE` (1 byte) and `INF_TREASURE_HERE` (1 byte, `IP-1103`'s own scope to populate) = 15
+  bytes total (`0xC3F6`–`0xC404`) — comfortably inside R114's own re-measured ~3082-byte bank-0
+  headroom, no `SVBK` banking needed. Confirms R114's own 5×5/7×7 estimate was conservative; the
+  shipped design uses the smaller 3×3 radius the Technical Work Breakdown settled on.
 - **Acceptance Criteria:** At the chosen materialized-window radius, the working set (biome-id +
   connectivity + treasure-collected state per resident region) fits within bank-0's confirmed
   headroom without `SVBK` banking; if it does not, banking is adopted deliberately (new
-  `gbc_lib.py` toolchain work) rather than silently overflowing bank-0.
+  `gbc_lib.py` toolchain work) rather than silently overflowing bank-0. **Met** — see Status above.
 - **Verification Method:** Inspection (WRAM layout audit at implementation, mirroring NFR-4200's
-  own precedent) — not yet possible; no implementation exists.
+  own precedent) — performed, `IP-1102`.
 - **Source Documents:** ADR-0016 point 6; R114 §Concepts ("WRAM budget...").
 - **Related ADRs:** ADR-0016.
-- **Notes:** Not yet implemented. `SVBK` banked WRAM (R111) remains entirely untouched and
-  available as a fallback (7 more 4 KiB banks) if a specific chosen window radius concretely
-  exceeds bank-0 headroom — this NFR does not rule banking out, only requires it be a deliberate
-  choice, not an accidental overflow.
+- **Notes:** Implemented, `IP-1102`, 2026-07-14. `SVBK` banked WRAM (R111) remains entirely
+  untouched and available as a fallback (7 more 4 KiB banks) if a future window-radius increase
+  ever needs it — not needed at the shipped 3×3 radius.
 
 ## Data Integrity
 

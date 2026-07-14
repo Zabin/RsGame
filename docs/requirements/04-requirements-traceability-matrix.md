@@ -16,7 +16,8 @@
 > — `CR-05` row updated, mechanism resolved via `ADR-0018`, not yet baselined; delta 2026-07-14
 > (cont'd) — FR-10200/10210/10300/NFR-2300 rows filled (`FS-110`, `IP-1101`, `T22`); delta
 > 2026-07-14 (cont'd) — FR-9170 added, `CR-05` closed and resolved to it; FR-10100 row refreshed
-> for `GDS-01` §4d/`IP-1100`).**
+> for `GDS-01` §4d/`IP-1100`; delta 2026-07-14 (cont'd) — FR-10200/NFR-4300 rows filled
+> (`IP-1102`, `T24`), NFR-1400 row filled with T24.e's own measured `NOT MET` result).**
 > Owned by `04-requirements-engineering`.
 > One row per [RQ-01](01-functional-requirements.md)/[RQ-02](02-non-functional-requirements.md)
 > requirement (Candidates marked). Populates the row-level matrix
@@ -82,7 +83,7 @@
 | FR-9170 | Finite-mode biome-blob clustering via per-super-cell positional hash (resolves CR-05/BL-0066) | R114 | GDS-04 (delta pending, per ADR-0018 Consequences) | ADR-0018, ADR-0009, ADR-0012 (unaffected) | `asm_game.py`, `worldgen.py` (prospective) | UNASSIGNED | UNASSIGNED | UNASSIGNED |
 | FR-9200 | Save-format extension: seed/scale/region-flags (Met, 2026-07-10) | R106 (ext.) | GDS-07 delta §7 | ADR-0010, ADR-0006 | `asm_game.py` | FS-105 | IP-1050 | T15.a1–a6, T15.c1–c6, T15.d — 180/180 pass |
 | FR-10100 | Infinite Mode new-game entry (seed-only, no world-scale) | — | ADS-001 §System Architecture; GDS-01 §4d | ADR-0016 | `asm_game.py` (prospective) | FS-110 | IP-1100 (planned, authorized) | UNASSIGNED |
-| FR-10200 | Streaming, positionally-deterministic region generation | R114 | ADS-001 §System Architecture | ADR-0016 | `asm_game.py`/`worldgen.py` | FS-110 | IP-1101 (partial — generate half; IP-1102 owns navigate/render) | T22.a, T22.b |
+| FR-10200 | Streaming, positionally-deterministic region generation (Implemented, 2026-07-14) | R114 | ADS-001 §System Architecture | ADR-0016 | `asm_game.py`/`worldgen.py` | FS-110 | IP-1101 (generate half), IP-1102 (navigate/render half) | T22.a, T22.b, T24.a, T24.b |
 | FR-10210 | Revisit-consistent region materialization | R114 | ADS-001 §User Stories | ADR-0016 | `asm_game.py` | FS-110 | IP-1101 (partial — data layer; IP-1102/1104 own the window/ledger halves) | T22.c |
 | FR-10300 | Treasure placement decoupled from maze structure | R216 | ADS-001 §System Architecture | ADR-0017 | `asm_game.py`/`worldgen.py` | FS-110 | IP-1101 (partial — presence half; IP-1103 owns collection) | T22.d |
 | FR-10400 | Score-chasing win condition (running count + top-3, no name entry) | R216 | ADS-001 §Executive Design Overview | ADR-0017 | `asm_game.py` (prospective) | UNASSIGNED | UNASSIGNED | UNASSIGNED |
@@ -113,9 +114,9 @@
 | NFR-5300 | Save-format version bump for seed/scale/region-flags (Met, 2026-07-10) | R106 (ext.) | GDS-07 delta §7 | ADR-0010, ADR-0006 | `asm_game.py` | FS-105 | IP-1050 | T15.b1/b2/b3 — 180/180 pass |
 | NFR-6500 | Aesthetic craft and clean-screen standard compliance (Met, 2026-07-11) | R209 | GDS-08 delta §7 | — | `tiles.py`/`tilemaps.py` | FS-106 | *(no package — see FS-106 §8/§10)* | `content-review-IP-1031.md` — clean, no findings |
 | NFR-6510 | Biome-transition palette-stepping compliance (Met, 2026-07-11) | R212 | GDS-08 delta §8 | ADR-0009 | `build_rom.py`/`tiles.py` | FS-106 | *(no package — see FS-106 §8/§10)* | `content-review-IP-1031.md` — Met, 1 Low/informational note (Stone↔Brick pairing) |
-| NFR-1400 | Infinite Mode region-materialization timing (status UNCONFIRMED) | R114 | ADS-001 §Non-functional Requirements | ADR-0016 | `asm_game.py` (prospective) | UNASSIGNED | UNASSIGNED | UNASSIGNED |
+| NFR-1400 | Infinite Mode region-materialization timing (status NOT MET, measured 2026-07-14) | R114 | ADS-001 §Non-functional Requirements | ADR-0016 | `asm_game.py` | FS-110 | IP-1102 | T24.e — measured 78,860–81,792 cycles vs. 70,224-cycle frame budget |
 | NFR-2300 | Positional determinism for Infinite Mode generation | R114 | ADS-001 §System Architecture | ADR-0016 | `asm_game.py` | FS-110 | IP-1101 | T22.e, T22.a, T22.b |
-| NFR-4300 | Infinite Mode materialized-window WRAM headroom (status NOT YET SIZED) | R114 | ADS-001 §System Architecture | ADR-0016 | `asm_game.py` (prospective) | UNASSIGNED | UNASSIGNED | UNASSIGNED |
+| NFR-4300 | Infinite Mode materialized-window WRAM headroom (Met, 2026-07-14) | R114 | ADS-001 §System Architecture | ADR-0016 | `asm_game.py` | FS-110 | IP-1102 | GDS-07 §7e inspection — 15 bytes vs. ~3.1 KiB bank-0 headroom |
 | NFR-5400 | Infinite Mode visited-region-ledger integrity and bounded capacity (status NOT YET SIZED) | R114 | ADS-001 §System Architecture | ADR-0016 | `asm_game.py` (prospective) | UNASSIGNED | UNASSIGNED | UNASSIGNED |
 
 ## Notes on this matrix's honesty discipline

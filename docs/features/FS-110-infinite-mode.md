@@ -9,9 +9,13 @@
 > [IP-1100](../implementation/packages/IP-1100-infinite-mode-mode-selection.md)–[IP-1104](../implementation/packages/IP-1104-infinite-mode-ledger-save-persistence.md),
 > **AUTHORIZED (G3, "Yes, build all five," 2026-07-14)**.
 > [IP-1101](../implementation/packages/IP-1101-infinite-mode-region-materialization.md)
-> **`COMPLETE` 2026-07-14** — Workflow B step 2/Workflow C step 1 (per-region materialization,
-> treasure-presence) implemented, `T22` (7 checks, 253/253 full suite). `IP-1100`/`1102`/`1103`/`1104`
-> remain `NOT STARTED`. See the
+> **`VERIFIED` 2026-07-14** — Workflow B step 2/Workflow C step 1 (per-region materialization,
+> treasure-presence) implemented and independently verified, `T22` (7 checks).
+> [IP-1102](../implementation/packages/IP-1102-infinite-mode-streaming-window-and-render.md)
+> **`COMPLETE` 2026-07-14** — Workflow B steps 1/3/4 (streaming materialized-window management,
+> transition-triggered materialization, biome-dispatch/arrow-draw render integration)
+> implemented, `T24` (7 checks, 260/260 full suite). `IP-1100`/`1103`/`1104` remain `NOT STARTED`.
+> See the
 > [Technical Work Breakdown](../implementation/01-technical-work-breakdown.md#infinite-mode-fs-110feat-10000ep-6000-planned-2026-07-14)
 > for the split rationale. This Feature sits in the `Future` release bucket (no release commitment
 > made) — planning does not require or imply scheduling, per `05-feature-decomposition`'s own
@@ -378,13 +382,14 @@ Feature up next — named here, not decided.
 
 ## 19. Open Questions
 
-1. **Rendering integration is not confirmed possible without a `FEAT-4100`-owned change, and
-   `FEAT-4100` is not in `FEAT-10000`'s own Dependencies.** This Feature's materialized regions
-   need to render through the existing biome-family screen-composition dispatch, but that
-   dispatch currently sources its biome-id from `REGION_GRAPH` lookup-by-index, not from an
-   on-the-fly materialization result. Resolves at: `05-feature-decomposition` (the missing
-   dependency, a catalog-reconciliation finding) and `07-implementation-planning`/`08-code-
-   implementation` (the actual integration mechanism).
+1. **Resolved (`IP-1102`, 2026-07-14).** Rendering integration was possible without any
+   `FEAT-4100`-owned change: `dsr_p`'s biome-dispatch half (the `dsr_p_water`/`sand`/`grass`/
+   `stone`/`brick` chain) is reused verbatim, reached via a new `GAME_MODE`-gated prefix that
+   sources the biome-id from `INF_WINDOW`'s center cell instead of a `REGION_GRAPH` lookup —
+   `dsr_p`'s existing `REGION_GRAPH` half is unmodified (`T24.c1`, direct static diff). A new
+   `draw_region_arrows_inf` routine (not a `FEAT-2100` modification) replaces
+   `draw_region_arrows` for the infinite-mode path, reading connectivity from `INF_WINDOW`
+   directly. No missing dependency after all — `FEAT-4100`'s catalog entry needed no change.
 2. **The treasure-density constant `K` is not fixed** — `ADR-0017` recommends anchoring near
    `R215`'s measured `scale=9` finite-world dead-end density (~6.4%) as a starting point, not a
    binding number. Resolves at: `07-implementation-planning`/`08-code-implementation`.
@@ -415,10 +420,13 @@ Feature up next — named here, not decided.
 7. **The new save-format version value this Feature's ledger-based format needs is not named.**
    Resolves at: `07-implementation-planning`, mirroring `FEAT-5300`'s own `SAVE_VERSION_VAL`
    precedent (a monotonic bump, never a reused value).
-8. **The materialized-window radius and its exact per-region WRAM byte cost are not fixed** —
-   `ADR-0018`'s Consequences names this exact question for its own, related but distinct,
-   super-cell-sizing concern (`BL-0110`); this Feature's own materialized-window sizing is a
-   separate, not-yet-filed question. Resolves at: `07-implementation-planning`.
+8. **Resolved (`IP-1102`, 2026-07-14).** The materialized window is a 3×3 radius, 1 byte/region
+   (`INF_WINDOW`, 9 bytes) plus a 4-byte center-anchor (`INF_ROW`/`INF_COL`) — 13 bytes, 15
+   counting `GAME_MODE`/`INF_TREASURE_HERE` — comfortably inside bank-0's confirmed ~3.1 KiB
+   headroom, no `SVBK` banking needed (`NFR-4300`, Met; `GDS-07` §7e). `IP-1101`'s single-region
+   materialization routine is called once per resident cell, all 9 recomputed fresh on every
+   center change (no incremental shift logic) — the actual per-transition cost this design
+   choice produces is now measured, `NFR-1400`/`T24.e`.
 
 ## 20. Related ADRs
 

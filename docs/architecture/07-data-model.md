@@ -3,7 +3,9 @@
 > **Status: ✅ Authored (bootstrap as-built, 2026-07-06; delta 2026-07-09 for the procgen-world
 > increment — see "Data Model delta" below; delta 2026-07-12 — §7c, per-region treasure-presence
 > concept, `ADR-0015`; delta 2026-07-14 — §7d, Infinite Mode per-region materialization WRAM
-> confirmed by `IP-1101`, `C40D`–`C418`).** Owned by `03-architecture-design-synthesis`.
+> confirmed by `IP-1101`, `C40D`–`C418`; delta 2026-07-14 (cont'd) — §7e, Infinite Mode streaming
+> window/navigation/render WRAM confirmed by `IP-1102`, `C3F6`–`C404`).** Owned by
+> `03-architecture-design-synthesis`.
 > Builds on [GDS-06](06-non-functional-requirements.md); the next level,
 > [GDS-08 Presentation Architecture](08-presentation-architecture.md), builds on this one.
 > **This is the first level authorized to state exact byte addresses** — GDS-04's Domain
@@ -327,7 +329,8 @@ is the first package to actually claim WRAM, so this is that delta's first real 
 target statement. Eight new bytes, `0xC40D`–`0xC418`, immediately past `GW_KI_PLACED` (`0xC3F5`)
 and the range `0xC3F6`–`0xC40C` `IP-1100`/`1102`/`1103`'s own already-published planning documents
 reserve (`GAME_MODE`/`INF_ROW`/`INF_COL`/`INF_WINDOW`/`INF_TREASURE_HERE`/
-`RUNNING_TREASURE_COUNT`/`TOP_SCORE_TABLE`) but do not yet claim in code:
+`RUNNING_TREASURE_COUNT`/`TOP_SCORE_TABLE`) — that reserved range is claimed in code by `IP-1102`,
+§7e below.
 
 | Address | Name | Size | Purpose |
 |---|---|---|---|
@@ -344,6 +347,30 @@ Trivial against the confirmed ~3.1 KiB bank-0 headroom (§6, `R111`). All eight 
 transient/call-scoped, meaningless outside an `inf_materialize_region` call, the same convention
 the `GW_*` family already establishes for `generate_world`'s own scratch (§6). No SRAM impact —
 this package persists nothing (per-region output is always re-derived, `NFR-2300`).
+
+### 7e. Infinite Mode: streaming window / navigation / render WRAM — `IP-1102` (confirmed 2026-07-14)
+
+Six bytes, `0xC3F6`–`0xC404`, immediately below `IP-1101`'s own `0xC40D` block (§7d) and inside
+the same range `IP-1100`/`1102`/`1103`'s planning documents jointly reserved. `GAME_MODE` was
+originally planned as `IP-1100`'s own addition, but `IP-1102` was implemented first and needs it
+(`dsr_p`/`check_zone_transition` both gate on it) — claimed here instead; `IP-1100`'s own
+implementation reuses this constant rather than redefining it (a same-address, implementation-
+order-only deviation from the original plan, not a real conflict — both packages' own planning
+documents already agreed on `0xC3F6`).
+
+| Address | Name | Size | Purpose |
+|---|---|---|---|
+| `C3F6` | `GAME_MODE` | 1 byte | `0`=finite (default — boot-cleared explicitly, since it sits outside the `0xC000`–`0xC2FF` boot-clear range, §2), `1`=infinite |
+| `C3F7`–`C3F8` | `INF_ROW` | 2 bytes | player's current region row (signed 16-bit, low byte first, mirrors `SEED`'s own byte order), Infinite Mode only |
+| `C3F9`–`C3FA` | `INF_COL` | 2 bytes | player's current region col, same convention |
+| `C3FB`–`C403` | `INF_WINDOW` | 9 bytes | 3×3 materialized window, row-major (index = `(dr+1)*3+(dc+1)`, `dr,dc` in `{-1,0,1}`); center cell (index 4, `C3FF`) = current region. 1 byte/region, `IP-1101`'s own output format (bits 0-2 biome-id, bits 3-6 connectivity: up/down/left/right, 1=open) |
+| `C404` | `INF_TREASURE_HERE` | 1 byte | transient cache: current region's own treasure-presence-and-uncollected flag for this materialization — reserved here, populated by `IP-1103` |
+
+Fifteen bytes total against `IP-1101`'s block (`0xC3F6`–`0xC418`), trivial against the confirmed
+~3.1 KiB bank-0 headroom (§6, `R111`; `NFR-4300`, Met). `inf_ensure_window` (new subroutine)
+recomputes all 9 `INF_WINDOW` cells fresh on every center change via `IP-1101`'s
+`inf_materialize_region` — no incremental shift logic, no additional WRAM beyond the table above.
+No SRAM impact in this package (`IP-1104`'s own scope).
 
 ### 8. Tile index map implication (cross-reference only — GDS-08 decides the actual strategy)
 

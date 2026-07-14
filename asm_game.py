@@ -140,12 +140,32 @@ GW_KI_PLACED   = 0xC3F5  # 1 byte -- IP-1021 (FR-9160/ADR-0015): the KeyItem-pla
                           # no PRNG draws, so GW_MAZE_DRAW_CTR's own running state is untouched
                           # by it.
 
-# Infinite Mode (IP-1101). 0xC3F6-0xC40C is reserved by IP-1100/1102/1103's
-# own already-documented WRAM plan (GAME_MODE/INF_ROW/INF_COL/INF_WINDOW/
-# INF_TREASURE_HERE/RUNNING_TREASURE_COUNT/TOP_SCORE_TABLE, docs/implementation/
-# packages/IP-1100.../IP-1102.../IP-1103...md) -- not claimed here (none of
-# that code exists yet), but this package's own new addresses start
-# immediately past it to avoid a future collision.
+# Infinite Mode (IP-1102). GAME_MODE was originally planned as IP-1100's own
+# addition, but IP-1102 was implemented first and needs it (dsr_p/check_
+# zone_transition both gate on it) -- claimed here instead; IP-1100's own
+# future implementation reuses this constant rather than redefining it.
+GAME_MODE      = 0xC3F6  # 1 byte -- 0=finite (default, boot-cleared explicitly, see below --
+                          # outside the 0xC000-C2FF boot-clear range), 1=infinite. No code path
+                          # currently writes 1 (IP-1100, not yet implemented, is what will) --
+                          # only test_rom.py's own T24 suite pokes this directly today.
+INF_ROW        = 0xC3F7  # 2 bytes, C3F7-C3F8 -- player's current region row (signed 16-bit,
+                          # low byte first, mirrors SEED's own byte order), Infinite Mode only
+INF_COL        = 0xC3F9  # 2 bytes, C3F9-C3FA -- player's current region col, same convention
+INF_WINDOW     = 0xC3FB  # 9 bytes, C3FB-C403 -- 3x3 materialized window, row-major (index =
+                          # (dr+1)*3+(dc+1), dr/dc in {-1,0,1}), center cell (index 4, C3FF) =
+                          # current region. 1 byte/region, IP-1101's own output format (bits
+                          # 0-2 biome-id, bits 3-6 connectivity: up/down/left/right, 1=open)
+INF_TREASURE_HERE = 0xC404  # 1 byte -- transient cache: current region's own treasure-
+                          # presence-and-uncollected flag for this materialization. Not yet
+                          # populated by this package (IP-1103's own scope to read/write) --
+                          # reserved here since it sits in the same contiguous address run.
+
+# 0xC3F6-0xC40C is the full range IP-1100/1102/1103's own already-documented
+# WRAM plan reserves (docs/implementation/packages/IP-1100.../IP-1102.../
+# IP-1103...md) -- GAME_MODE/INF_ROW/INF_COL/INF_WINDOW/INF_TREASURE_HERE
+# above (this package, IP-1102) claim 0xC3F6-0xC404; 0xC405-0xC40C remains
+# reserved for IP-1103's own RUNNING_TREASURE_COUNT/TOP_SCORE_TABLE, not
+# claimed here.
 INF_MZ_ROW      = 0xC40D  # 2 bytes, C40D-C40E -- inf_materialize_region's own row input
                           # (signed 16-bit, low byte first, mirrors SEED's own byte order)
 INF_MZ_COL      = 0xC40F  # 2 bytes, C40F-C410 -- column input, same convention
@@ -240,6 +260,18 @@ def build_game_asm(rom: ROM) -> dict:
     # Clear shadow OAM
     rom.LD_HL_nn(OAM_BUF); rom.LD_B_n(160); rom.XOR_A()
     rom.label('coam'); rom.LD_HLI_A(); rom.DEC_B(); rom.JR_NZ('coam')
+
+    # Clear GAME_MODE (IP-1102) -- outside the 0xC000-C2FF range above, but
+    # dsr_p/check_zone_transition read it every PLAYING frame with no
+    # guaranteed prior write until IP-1100's own new-game flow exists;
+    # without an explicit boot value this would read uninitialized WRAM and
+    # could spuriously route ordinary finite-mode gameplay into the new,
+    # untested Infinite Mode code paths. Mirrors the shadow-OAM clear
+    # immediately above — a targeted single-purpose clear, not a blind
+    # widening of the existing 0xC000-C2FF loop (which would also needlessly
+    # re-zero OAM_BUF/GW_* in between, both already handled by their own
+    # write-before-read discipline).
+    rom.XOR_A(); rom.LD_nn_A(GAME_MODE)
 
     # Clear VRAM bank 0 (same A-clobber caveat — re-zero each iter)
     rom.XOR_A(); rom.LDH_n_A(VBK)
@@ -760,6 +792,13 @@ def build_game_asm(rom: ROM) -> dict:
     # immediately) is unchanged from the pre-fix shipped code (T17.b's own
     # scale=3 regression requires bit-for-bit identical behavior there).
     rom.label('check_zone_transition')
+    # IP-1102: GAME_MODE-gated entry -- the four finite-mode branches below
+    # (right/left/top/bottom) are reached only when GAME_MODE == 0, entirely
+    # unchanged; Infinite Mode has its own parallel czt_infinite handler
+    # (below czt_redraw), since CUR_ZONE/REGION_GRAPH don't apply to it.
+    rom.LD_A_nn(GAME_MODE); rom.OR_A(); rom.JR_Z('czt_finite_start')
+    rom.JP('czt_infinite')
+    rom.label('czt_finite_start')
     # right edge: x >= 152 (matches handle_play_input's own RIGHT clamp
     # ceiling exactly -- IP-9090's corrected clamp (max X=152) fell below
     # this threshold's old value of 156, making the RIGHT transition
@@ -811,6 +850,89 @@ def build_game_asm(rom: ROM) -> dict:
     rom.label('czt_redraw')
     rom.LD_A_n(GS_PLAYING); rom.LD_nn_A(TRANSITION_TO)
     rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW); rom.RET()
+
+    # ── inf_ensure_window (IP-1102) ────────────────────────
+    # Recomputes the entire 3x3 materialized window around INF_ROW/INF_COL
+    # by calling IP-1101's inf_materialize_region for each of the 9 cells --
+    # no incremental shift logic (the routine is cheap and pure, so a full
+    # recompute on every center change is simpler and avoids a sliding-
+    # window management scheme entirely, per the TWBS's own framing).
+    # Window layout: row-major, index = (dr+1)*3+(dc+1) for dr,dc in
+    # {-1,0,1}; index 4 (dr=0,dc=0) is always the current region. Assembled
+    # unrolled at Python-assembly-time (9 fixed cells, no runtime loop) --
+    # matches this codebase's own established style for small fixed counts.
+    _INF_WINDOW_OFFSETS = [(dr, dc) for dr in (-1, 0, 1) for dc in (-1, 0, 1)]
+    rom.label('inf_ensure_window')
+    for _idx, (_dr, _dc) in enumerate(_INF_WINDOW_OFFSETS):
+        rom.LD_A_nn(INF_ROW); rom.LD_E_A()
+        rom.LD_A_nn(INF_ROW + 1); rom.LD_D_A()
+        if _dr == 1: rom.INC_DE()
+        elif _dr == -1: rom.DEC_DE()
+        rom.LD_A_E(); rom.LD_nn_A(INF_MZ_ROW)
+        rom.LD_A_D(); rom.LD_nn_A(INF_MZ_ROW + 1)
+        rom.LD_A_nn(INF_COL); rom.LD_E_A()
+        rom.LD_A_nn(INF_COL + 1); rom.LD_D_A()
+        if _dc == 1: rom.INC_DE()
+        elif _dc == -1: rom.DEC_DE()
+        rom.LD_A_E(); rom.LD_nn_A(INF_MZ_COL)
+        rom.LD_A_D(); rom.LD_nn_A(INF_MZ_COL + 1)
+        rom.CALL('inf_materialize_region')
+        rom.LD_A_nn(INF_MZ_RESULT)
+        rom.LD_nn_A(INF_WINDOW + _idx)
+    rom.RET()
+
+    # ── czt_infinite (IP-1102) ─────────────────────────────
+    # Infinite Mode's own transition handler -- mirrors check_zone_
+    # transition's finite-mode branch cascade (same JOY_CUR-gated intent
+    # check per direction, IP-9130/BL-0078's own convention, reused
+    # verbatim; same player-position reset constants) but tests the current
+    # region's own connectivity nibble (INF_WINDOW's center cell, bits 3-6)
+    # instead of a REGION_GRAPH neighbor byte, and updates INF_ROW/INF_COL
+    # instead of CUR_ZONE -- there is no bounded grid, so no "0xFF = grid
+    # edge" concept applies here (Infinite Mode's world is unbounded).
+    rom.label('czt_infinite')
+    rom.LD_A_nn(JOY_CUR); rom.BIT_b_A(J_RIGHT); rom.JR_Z('czti_left')
+    rom.LD_A_nn(PLAYER_X); rom.CP_n(152); rom.JR_C('czti_left')
+    rom.LD_A_nn(INF_WINDOW + 4); rom.BIT_b_A(6); rom.JR_Z('czti_left')   # east
+    rom.LD_A_nn(INF_COL); rom.LD_E_A(); rom.LD_A_nn(INF_COL + 1); rom.LD_D_A()
+    rom.INC_DE()
+    rom.LD_A_E(); rom.LD_nn_A(INF_COL); rom.LD_A_D(); rom.LD_nn_A(INF_COL + 1)
+    rom.CALL('inf_ensure_window')
+    rom.LD_A_n(8); rom.LD_nn_A(PLAYER_X)
+    rom.JP('czt_redraw')
+
+    rom.label('czti_left')
+    rom.LD_A_nn(JOY_CUR); rom.BIT_b_A(J_LEFT); rom.JR_Z('czti_top')
+    rom.LD_A_nn(PLAYER_X); rom.OR_A(); rom.JR_NZ('czti_top')
+    rom.LD_A_nn(INF_WINDOW + 4); rom.BIT_b_A(5); rom.JR_Z('czti_top')    # west
+    rom.LD_A_nn(INF_COL); rom.LD_E_A(); rom.LD_A_nn(INF_COL + 1); rom.LD_D_A()
+    rom.DEC_DE()
+    rom.LD_A_E(); rom.LD_nn_A(INF_COL); rom.LD_A_D(); rom.LD_nn_A(INF_COL + 1)
+    rom.CALL('inf_ensure_window')
+    rom.LD_A_n(150); rom.LD_nn_A(PLAYER_X)
+    rom.JP('czt_redraw')
+
+    rom.label('czti_top')
+    rom.LD_A_nn(JOY_CUR); rom.BIT_b_A(J_UP); rom.JR_Z('czti_bot')
+    rom.LD_A_nn(PLAYER_Y); rom.CP_n(18); rom.JR_NC('czti_bot')
+    rom.LD_A_nn(INF_WINDOW + 4); rom.BIT_b_A(3); rom.JR_Z('czti_bot')    # north
+    rom.LD_A_nn(INF_ROW); rom.LD_E_A(); rom.LD_A_nn(INF_ROW + 1); rom.LD_D_A()
+    rom.DEC_DE()
+    rom.LD_A_E(); rom.LD_nn_A(INF_ROW); rom.LD_A_D(); rom.LD_nn_A(INF_ROW + 1)
+    rom.CALL('inf_ensure_window')
+    rom.LD_A_n(120); rom.LD_nn_A(PLAYER_Y)
+    rom.JP('czt_redraw')
+
+    rom.label('czti_bot')
+    rom.LD_A_nn(JOY_CUR); rom.BIT_b_A(J_DOWN); rom.RET_Z()
+    rom.LD_A_nn(PLAYER_Y); rom.CP_n(128); rom.RET_C()
+    rom.LD_A_nn(INF_WINDOW + 4); rom.BIT_b_A(4); rom.RET_Z()             # south
+    rom.LD_A_nn(INF_ROW); rom.LD_E_A(); rom.LD_A_nn(INF_ROW + 1); rom.LD_D_A()
+    rom.INC_DE()
+    rom.LD_A_E(); rom.LD_nn_A(INF_ROW); rom.LD_A_D(); rom.LD_nn_A(INF_ROW + 1)
+    rom.CALL('inf_ensure_window')
+    rom.LD_A_n(24); rom.LD_nn_A(PLAYER_Y)
+    rom.JP('czt_redraw')
 
     # ── check_complete ───────────────────────────────────
     rom.label('check_complete')
@@ -971,6 +1093,13 @@ def build_game_asm(rom: ROM) -> dict:
     # neighbor-index bytes in up/down/left/right order — GDS-07 §6,
     # matching generate_world's own write order exactly).
     rom.label('dsr_p')
+    # IP-1102: GAME_MODE-gated entry -- Infinite Mode has no REGION_GRAPH,
+    # so it skips this read entirely and sources its biome-id from
+    # INF_WINDOW's own center cell instead. The finite path below (from
+    # LD_A_nn(CUR_ZONE) through the REGION_GRAPH read) is otherwise
+    # byte-for-byte identical to the shipped code -- only this 3-instruction
+    # gate precedes it.
+    rom.LD_A_nn(GAME_MODE); rom.OR_A(); rom.JR_NZ('dsr_p_inf')
     rom.LD_A_nn(CUR_ZONE)
     rom.LD_E_A(); rom.LD_D_n(0)        # DE = region index
     rom.LD_HL_nn(REGION_GRAPH)
@@ -979,7 +1108,17 @@ def build_game_asm(rom: ROM) -> dict:
                                         # correct up to scale=9's 81 regions)
     rom.LD_A_HLI()                     # A = biome-id (0..4); HL -> 'up' byte
     rom.PUSH_HL()                      # save neighbor-byte pointer across CALLs
+    rom.JR('dsr_p_dispatch')
 
+    rom.label('dsr_p_inf')
+    rom.LD_A_nn(INF_WINDOW + 4)        # center cell of the 3x3 window
+    rom.AND_n(0x07)                    # A = biome-id (bits 0-2)
+    rom.PUSH_HL()                      # stack-balance only -- dsr_p_copy's own
+                                        # POP_HL() must see something pushed on
+                                        # both paths; draw_region_arrows_inf
+                                        # ignores HL entirely (reads WRAM directly)
+
+    rom.label('dsr_p_dispatch')
     rom.CP_n(0); rom.JR_Z('dsr_p_water')
     rom.CP_n(1); rom.JR_Z('dsr_p_sand')
     rom.CP_n(2); rom.JR_Z('dsr_p_grass')
@@ -1001,8 +1140,14 @@ def build_game_asm(rom: ROM) -> dict:
 
     rom.label('dsr_p_copy')
     rom.CALL('copy_screen')
-    rom.POP_HL()                       # HL -> 'up' neighbor byte, restored
+    rom.POP_HL()                       # HL -> 'up' neighbor byte, restored (finite mode) or
+                                        # a discarded stack-balance value (infinite mode)
+    rom.LD_A_nn(GAME_MODE); rom.OR_A(); rom.JR_NZ('dsr_p_copy_inf')
     rom.CALL('draw_region_arrows')
+    rom.JP('dsr_done')
+
+    rom.label('dsr_p_copy_inf')
+    rom.CALL('draw_region_arrows_inf')
     rom.JP('dsr_done')
 
     rom.label('dsr_done')
@@ -1141,6 +1286,31 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_nn(DRA_COL); rom.INC_A(); rom.CP_C(); rom.JR_NC('dra_right_done')
     _arrow_write(ARROW_ADDR_R, TL_BLOCKED_R)
     rom.label('dra_right_done')
+    rom.RET()
+
+    # ── draw_region_arrows_inf (IP-1102) ──────────────────
+    # Infinite Mode's own arrow-draw routine -- reads the current region's
+    # connectivity nibble directly from INF_WINDOW's center cell (bits 3-6:
+    # up/down/left/right, 1=open) rather than REGION_GRAPH neighbor-index
+    # bytes. No grid-boundary distinction is needed here (ADR-0012 point 2's
+    # own "blocked vs. absent" question is a finite-mode-only concept --
+    # Infinite Mode's world is unbounded, every direction always has a real,
+    # materializable neighbor) -- draws the plain open-arrow tile wherever
+    # the bit is set, nothing wherever it is clear. Never writes
+    # TL_BLOCKED_U/D/L/R (T24.d's own static-audit claim).
+    rom.label('draw_region_arrows_inf')
+    rom.LD_A_nn(INF_WINDOW + 4); rom.BIT_b_A(3); rom.JR_Z('drai_no_up')
+    _arrow_write(ARROW_ADDR_U, TL_ARROW_U)
+    rom.label('drai_no_up')
+    rom.LD_A_nn(INF_WINDOW + 4); rom.BIT_b_A(4); rom.JR_Z('drai_no_down')
+    _arrow_write(ARROW_ADDR_D, TL_ARROW_D)
+    rom.label('drai_no_down')
+    rom.LD_A_nn(INF_WINDOW + 4); rom.BIT_b_A(5); rom.JR_Z('drai_no_left')
+    _arrow_write(ARROW_ADDR_L, TL_ARROW_L)
+    rom.label('drai_no_left')
+    rom.LD_A_nn(INF_WINDOW + 4); rom.BIT_b_A(6); rom.JR_Z('drai_no_right')
+    _arrow_write(ARROW_ADDR_R, TL_ARROW_R)
+    rom.label('drai_no_right')
     rom.RET()
 
     # ── mm_on_entry / draw_menu_cursor (IP-1040 / IP-9060) ────

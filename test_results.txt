@@ -1,4 +1,4 @@
-BunnyQuest ROM Tests  PASS=253/253  FAIL=0
+BunnyQuest ROM Tests  PASS=260/260  FAIL=0
 ==================================================
 [PASS] T1.1 ROM size = 32768  (32768)
 [PASS] T1.2 Entry = NOP; JP
@@ -253,3 +253,10 @@ BunnyQuest ROM Tests  PASS=253/253  FAIL=0
 [PASS] T22.e Static audit: no LDH (hardware register, incl. DIV) read in inf_materialize_region/inf_region_seed0/inf_mod5 (NFR-2300)  (source-scanned)
 [PASS] T22.f seed=0 normalizes to a nonzero PRNG state, direct WRAM inspection (AC-7 precondition)  (state=(0,1))
 [PASS] T22.g Neighbor-consulting symmetry: south/east openness matches the neighbor's own north/west bit, every corpus entry (ADR-0016 pt.5)  (bad=[])
+[PASS] T24.a Real button-driven navigation: transitions occur iff the connectivity bit is set, INF_ROW/INF_COL update correctly, and the newly-entered region renders its own biome tileset (AC-1/FR-10200)  (bad=[])
+[PASS] T24.b Revisit-consistency through the render path: leaving and returning to a region redraws a pixel-identical screen (FR-10210)  (moved_away=True moved_back=True pos_back=(0,0) tiles_match=True)
+[PASS] T24.c1 Static diff: dsr_p's finite-mode body is byte-for-byte the pre-IP-1102 instruction sequence, only a 3-instruction gate prefixed  (got=['LD_A_nn', 'OR_A', 'JR_NZ', 'LD_A_nn', 'LD_E_A', 'LD_D_n', 'LD_HL_nn', 'ADD_HL_DE', 'ADD_HL_DE', 'ADD_HL_DE', 'ADD_HL_DE', 'ADD_HL_DE', 'LD_A_HLI', 'PUSH_HL', 'JR'])
+[PASS] T24.c2 Regression: every existing T13/T20 dsr_p/draw_region_arrows/check_zone_transition check still passes unmodified under the new GAME_MODE gate  (failed=[] total_checked=9)
+[PASS] T24.d1 Static audit: draw_region_arrows_inf's source never references TL_BLOCKED_U/D/L/R  (source-scanned)
+[PASS] T24.d2 Corpus: draw_region_arrows_inf never writes a blocked-edge tile, all 16 connectivity nibble values  (bad=[])
+[PASS] T24.e NFR-1400 Analysis: inf_ensure_window's real per-transition cost, direct cycle-count, measured and recorded (Met or not, not asserted un-measured)  (cycles=[81792, 80336, 78860] budget=70224 status=NOT MET)
