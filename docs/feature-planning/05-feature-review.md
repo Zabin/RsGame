@@ -3,7 +3,8 @@
 > **Status: ✅ Authored (bootstrap as-built, 2026-07-07); re-run 2026-07-10 (procgen-world
 > increment delta + `BL-0036` correction; finding #5 resolved, `BL-0037`); re-run 2026-07-11
 > (`ADR-0012` maze-adjacency remediation delta — see finding #7); re-run 2026-07-13
-> (edge-indicator legend screen delta, `FEAT-1200` — see finding #8).** Owned by
+> (edge-indicator legend screen delta, `FEAT-1200` — see finding #8); re-run 2026-07-14 (Infinite
+> Mode delta, `FEAT-10000`/`EP-6000` — see finding #9; also closes `BL-0102`'s tally gap).** Owned by
 > `05-feature-decomposition`. Reviews
 > [FP-02](02-epic-catalog.md)–[FP-04](04-feature-dependency-graph.md) for oversized/undersized
 > Features, duplicates, missing Features, mis-assigned requirements, and architectural
@@ -56,11 +57,28 @@ IDs:
 - FEAT-1200: FR-1200, FR-1210 (2)
 
 **Total: 56 + 2 = 58.** Checked against every existing list above — no overlap, no ID reused.
-**Clean — no unassigned or double-assigned requirements.** (`FR-9160`/`FR-9161`, baselined
-2026-07-12 for `ADR-0015`'s win-condition redesign, remain outside this tally — they supersede
-`FR-9130`/`FR-3300` in place within the already-catalogued `FEAT-9000`, not a new Feature this
-stage needed to add a row for; a pre-existing gap in this tally's own bookkeeping, not introduced
-by this delta, noted here rather than silently carried forward unremarked.)
+**Clean — no unassigned or double-assigned requirements.**
+
+**Win-condition redesign fold-in** (`BL-0102`, closed by this delta) — `FR-9160`/`FR-9161`
+(baselined 2026-07-12 for `ADR-0015`) were never added to this running tally, a bookkeeping gap
+noted but not fixed by the prior review pass. Added now:
+
+- FEAT-9000: FR-9160, FR-9161 (2) — supersede FR-9130/FR-3300 in place, already the correct owner
+
+**Total: 58 + 2 = 60.** Checked against every existing list above — no overlap, no ID reused
+(both IDs were already unambiguously `FEAT-9000`'s own). `BL-0102` closed.
+
+**Infinite Mode delta** (2026-07-14 RQ-01/RQ-02 delta, `ADS-001`/`ADR-0016`/`ADR-0017`) — 7 new
+`FR-xxxx` + 4 new `NFR-xxxx` = 11 new requirement IDs:
+
+- FEAT-10000: FR-10100, FR-10200, FR-10210, FR-10300, FR-10400, FR-10500, FR-10600, NFR-1400,
+  NFR-2300, NFR-4300, NFR-5400 (11)
+
+**Total: 60 + 11 = 71.** Checked against every existing list above — no overlap, no ID reused.
+**Clean — no unassigned or double-assigned requirements.** (`CR-05` remains outside this tally,
+un-baselined per `ADR-0018`'s own routing to a future `04` pass — the same discipline this tally
+already applied to `CR-05` before that ADR existed. `CR-07` is no longer a Candidate — already
+counted above as `FR-10600`.)
 
 ## Findings
 
@@ -74,6 +92,7 @@ by this delta, noted here rather than silently carried forward unremarked.)
 | 6 | Oversized-Feature judgment call (reviewed and accepted, not a defect) | FEAT-9000 | FEAT-9000 (8 requirements: FR-9100/9110/9120/9130/4310/3220, NFR-2200/4200) is the largest Feature in the catalog, tied with FEAT-1000. It deliberately merges two threads — the generation algorithm itself and the item-agnostic collection generalization — because `FR-9130` ("one KeyItem per region") and `FR-3220` ("item-agnostic collection") name each other as dependencies at the requirement level (see [FP-04](04-feature-dependency-graph.md)'s circular-dependency check). Splitting them into two Features would either force an artificial FEAT-level cycle or an arbitrary one-directional cut through a genuinely mutual coupling. | Informational | No action — reviewed and confirmed the right call: cohesion (avoiding a cycle) was correctly prioritized over uniform Feature size. If `06-feature-specification` finds the two threads separable once implementation detail is known, splitting at that stage remains available; not pre-judged here. |
 | 7 | Missing dependency artifact — **RESOLVED 2026-07-11** | FEAT-2100, GDS-08 | **`FEAT-2100` (maze-aware transition-edge signaling) cannot be fully specified past its logic half** — its own blocked-edge indicator's tile art/palette assignment has no `GDS-08` (presentation architecture) delta authored yet, and this stage correctly does not originate one (out of `05-feature-decomposition`'s own scope, per its SHALL-NOT-redesign-architecture rule — the same rule `04-requirements-engineering` invoked for `CR-05`/`BL-0066` one stage upstream). `FEAT-2100`'s own catalog entry already names this as an Open Question, not silently assumed resolved. **Resolved:** `GDS-08` §10 landed 2026-07-11 (`BL-0068`), `FEAT-2100`'s rendering half fully specified and its content half shipped/`VERIFIED` (`IP-1081`); only the render branch (`IP-1082`) remains unimplemented, a `07`/`08` question, not a `05`-stage gap anymore. | Low-Medium (a real, named blocker on full specification — not a defect in what's cataloged, since the logic half is fully specifiable independent of the art question) | Routed to `03-architecture-design-synthesis` for a `GDS-08` delta (blocked-edge indicator tile art). `06-feature-specification` can still specify `FEAT-2100`'s logic half (the grid-arithmetic re-derivation `FR-2330` describes) independently, per that Feature's own Suggested Verification Strategy, without waiting on the art decision — not a hard block on all downstream work, only on the rendering half's full spec. |
 | 8 | 05-delta review (`FEAT-1200` added) | FEAT-1200, FEAT-1000, FEAT-1100, FEAT-2100 | Reviewed the new Feature against the catalog's own consistency rules. **Cohesion/coupling:** `FEAT-1200` cleanly separates from `FEAT-1000` (extends its state set, doesn't modify its existing states' behavior) and from `FEAT-2100` (displays its tiles, doesn't redefine their meaning or render-time classification) — no straddle, no artificial split needed. **Dependency correctness:** cross-checked against [FP-04](04-feature-dependency-graph.md) — `FEAT-1200`'s three dependencies (`FEAT-1000`, `FEAT-1100`, `FEAT-2100`) are correctly a *content* dependency on `FEAT-2100` (its already-shipped tiles), not a *build-order* dependency on `FEAT-2100`'s own still-in-flight render branch — confirmed by direct re-read of `IP-1081`'s `VERIFIED` status (tiles shipped) versus `IP-1082`'s `COMPLETE`-pending-verification status (render branch, unrelated to what `FEAT-1200` needs). **Requirement assignment:** `FR-1200`/`FR-1210` assigned to `FEAT-1200` only, confirmed not double-assigned anywhere else in the catalog. **Bucket placement:** joins Release 2 as a second, independent addendum (this stage's own established "no Release 3" convention, per the `ADR-0012` addendum's own precedent) — reviewed and confirmed not a forced fit, since `FEAT-1200` genuinely has no dependency on the `ADR-0012` remediation thread it shares a bucket with. | — (clean check, no new defect; one new Feature added, correctly scoped and placed) | None — this finding records that the delta was reviewed and found internally consistent, per this stage's own Step-5 discipline (a zero-finding pass is a signal to re-check, not proof of quality — this re-check found the addition clean). |
+| 9 | 05-delta review (`FEAT-10000`/`EP-6000` added; `BL-0102` tally gap closed) | FEAT-10000, EP-6000, EP-5000, FEAT-9000, FEAT-1100, FEAT-3000, FEAT-5000 | Reviewed the new Feature/Epic against the catalog's own consistency rules. **Epic-boundary judgment call, reviewed and accepted:** `FEAT-10000` was kept in a new `EP-6000` rather than folded into `EP-5000` (the existing world-generation Epic) — confirmed the right call, not a forced split: `ADR-0016` point 7 explicitly frames Infinite Mode as "a second, independent generation architecture," unlike `FEAT-9100`'s 2026-07-11 addition to `EP-5000`, which directly extended `FEAT-9000`'s own generation routine. Splitting on "does this extend an existing routine or start a new one" is a real, defensible line, not an arbitrary one. **Dependency correctness:** cross-checked against [FP-04](04-feature-dependency-graph.md) — `FEAT-10000`'s five dependencies (`FEAT-1000`, `FEAT-1100`, `FEAT-3000`, `FEAT-5000`, `FEAT-9000`) are all already shipped/`VERIFIED`; the `FEAT-9000` dependency confirmed as code-reuse only (`gw_prng_step`), not a build-order dependency on anything `FEAT-9000`-specific — matches `FEAT-10000`'s own catalog entry text exactly, not merely asserted. **Unsplit-Feature judgment call, reviewed and accepted:** `FEAT-10000` bundles mode entry, generation, treasure placement, win condition, save/load, and session shape into one Feature (11 requirements, the largest in the catalog, surpassing `FEAT-9000`'s own 8) — mirrors finding #6's own precedent (`FEAT-9000` itself started unsplit) rather than forcing a premature split before implementation reveals a real seam; explicitly not pre-judged, per `FEAT-10000`'s own Scope field. **Requirement assignment:** all 11 new IDs assigned to `FEAT-10000` only, confirmed not double-assigned. **Bucket placement:** `Future`, not a numbered Release — confirmed correct: `FEAT-10000` has zero graph-blocking dependencies (unlike a genuine technical blocker), so its Future placement is a release-commitment choice, not a technical one, and is stated as such rather than conflated. **`BL-0102`'s tally gap also closed in this same pass** (a natural fold-in, not a separate delta) — `FR-9160`/`FR-9161` added to the running tally, `FEAT-9000`'s own 8-requirement count in finding #6 above is now stale by 2 (10, not 8) as a direct consequence; noted here rather than silently left inconsistent. | — (clean check, no new defect; one new Feature/Epic added, correctly scoped and placed; one pre-existing bookkeeping gap closed) | None — this finding records that the delta was reviewed and found internally consistent, per this stage's own Step-5 discipline. |
 
 ## Oversized / undersized Feature check
 
@@ -116,6 +135,10 @@ new Features — no cycle exists. **`ADR-0012` delta:** re-confirmed clean again
 → `FEAT-2100`, with `FEAT-2100` also depending on the already-terminal `FEAT-2000`), introducing
 no new back-edge. The one near-miss at the requirement level (`FR-9130`/`FR-3220`,
 finding #6 above) was resolved by Feature-level grouping, not left as an unresolved graph cycle.
+**Infinite Mode delta:** re-confirmed clean with `FEAT-10000` added — all five of its own edges
+point *into* it from already-terminal-or-mid-chain Features (`FEAT-1000`, `FEAT-1100`, `FEAT-3000`,
+`FEAT-5000`, `FEAT-9000`), and `FEAT-10000` itself has zero dependents, so it can only ever be a
+sink, never introduce a cycle by construction.
 
 ## Summary
 
@@ -138,3 +161,14 @@ logic half and `FEAT-9100` entirely are unblocked. `CR-05`/`BL-0066` correctly r
 row (no baselined FR exists for it yet) — this stage did not invent one to fill the gap. No
 finding in this delta requires revising FP-01–FP-04 before advancing to `06-feature-specification`
 on `FEAT-9100`/`FEAT-2100`'s unblocked portions.
+
+**2026-07-14 Infinite Mode delta review:** see finding #9 — the Feature Catalog remains complete
+and internally consistent after adding `FEAT-10000`/`EP-6000` — all 71 requirement IDs (60 prior,
+including the `BL-0102` tally fold-in this same pass closed, + 11 new) are owned exactly once, the
+new Feature is not mis-sized in a way that requires splitting (11 requirements, reviewed and
+accepted per finding #9, mirroring `FEAT-9000`'s own precedent), and no circular dependency
+exists. **No new Critical/High/Medium finding** — the Epic-boundary and unsplit-Feature choices
+were both judgment calls, reviewed and accepted, not defects. `CR-05`/`BL-0066` again correctly
+received no Feature row (still un-baselined, per `ADR-0018`'s own routing to a future `04` pass) —
+this stage continues not inventing one to fill that gap. No finding in this delta requires
+revising FP-01–FP-04 before advancing to `06-feature-specification` on `FEAT-10000`.
