@@ -1,9 +1,9 @@
 # Master Build Plan
 
-> **Status (updated 2026-07-14, `07-implementation-planning` on `FS-110`): 26 of 31 packages
-> VERIFIED; 5 new packages planned (`IP-1100`–`IP-1104`, Infinite Mode, `NOT STARTED`, NOT YET
-> AUTHORIZED).** Every prior package remains `VERIFIED` — nothing below this line is re-opened by
-> the new tranche. **Prior status (corrected 2026-07-13, `09-package-verification` on `IP-1082`):
+> **Status (updated 2026-07-14, user G3 authorization): 26 of 31 packages VERIFIED; 5 new
+> packages planned and AUTHORIZED (`IP-1100`–`IP-1104`, Infinite Mode, "Yes, build all five") —
+> `NOT STARTED`, awaiting `08-code-implementation`.** Every prior package remains `VERIFIED` —
+> nothing below this line is re-opened by the new tranche. **Prior status (corrected 2026-07-13, `09-package-verification` on `IP-1082`):
 > 26 of 26 packages VERIFIED.** `IP-1090` (SELECT Menu & Edge-Indicator Legend Screen, `BL-0100`)
 > `VERIFIED`
 > 2026-07-13 ([VR-1090](verification/VR-1090-select-menu-edge-indicator-legend-screen.md));
@@ -261,11 +261,11 @@ five packages.** Critical path: `IP-1101` → `IP-1102` → `IP-1103` → `IP-11
 
 | Package | Title | Owner | Status | Depends on | Authorized? |
 |---|---|---|---|---|---|
-| [IP-1100](packages/IP-1100-infinite-mode-mode-selection.md) | Mode selection & new-game entry | `08-code-implementation` | **NOT STARTED** | IP-1101 | **NO — not yet authorized** |
-| [IP-1101](packages/IP-1101-infinite-mode-region-materialization.md) | Per-region materialization | `08-code-implementation` | **NOT STARTED** | — (tranche root) | **NO — not yet authorized** |
-| [IP-1102](packages/IP-1102-infinite-mode-streaming-window-and-render.md) | Streaming window, navigation & render integration | `08-code-implementation` | **NOT STARTED** | IP-1101 | **NO — not yet authorized** |
-| [IP-1103](packages/IP-1103-infinite-mode-treasure-and-win-condition.md) | Treasure placement & win-condition state | `08-code-implementation` | **NOT STARTED** | IP-1101, IP-1102 | **NO — not yet authorized** |
-| [IP-1104](packages/IP-1104-infinite-mode-ledger-save-persistence.md) | Visited-region-ledger save persistence | `08-code-implementation` | **NOT STARTED** | IP-1100, IP-1101, IP-1102, IP-1103 | **NO — not yet authorized** |
+| [IP-1100](packages/IP-1100-infinite-mode-mode-selection.md) | Mode selection & new-game entry | `08-code-implementation` | **NOT STARTED** | IP-1101 | **YES — explicit user G3, 2026-07-14 ("Yes, build all five")** |
+| [IP-1101](packages/IP-1101-infinite-mode-region-materialization.md) | Per-region materialization | `08-code-implementation` | **NOT STARTED** | — (tranche root) | **YES — explicit user G3, 2026-07-14 ("Yes, build all five")** |
+| [IP-1102](packages/IP-1102-infinite-mode-streaming-window-and-render.md) | Streaming window, navigation & render integration | `08-code-implementation` | **NOT STARTED** | IP-1101 | **YES — explicit user G3, 2026-07-14 ("Yes, build all five")** |
+| [IP-1103](packages/IP-1103-infinite-mode-treasure-and-win-condition.md) | Treasure placement & win-condition state | `08-code-implementation` | **NOT STARTED** | IP-1101, IP-1102 | **YES — explicit user G3, 2026-07-14 ("Yes, build all five")** |
+| [IP-1104](packages/IP-1104-infinite-mode-ledger-save-persistence.md) | Visited-region-ledger save persistence | `08-code-implementation` | **NOT STARTED** | IP-1100, IP-1101, IP-1102, IP-1103 | **YES — explicit user G3, 2026-07-14 ("Yes, build all five")** |
 
 ## Dependency graph
 
@@ -643,12 +643,11 @@ first-in-critical-path package.)*
 - **`IP-1104`** (`persist`): extends `save_to_sram`/`try_load_save`, `SAVE_VERSION_VAL`
   `0x04`→`0x05`, 128-entry FIFO-bounded visited-region ledger (640 bytes SRAM against an ~8 KiB
   budget). Depends on all four other Infinite Mode packages — last in the critical path.
-- **Authorization state: NOT AUTHORIZED.** None of the five packages falls under the
-  `BL-0001`…`BL-0005` G3 bootstrap carve-out (all new, additive forward-design work) — explicit
-  user go-ahead is required before `08-code-implementation` may start on any of them. All five
-  packages' own upstream dependencies (`IP-1020`/`1030`/`1040`) are already `VERIFIED`, so the
-  tranche is immediately buildable in full once authorized, per the TWBS's own "not blocked on
-  any in-flight work elsewhere in the tree" framing.
+- **Authorization state: authorized 2026-07-14** (explicit user G3, "Yes, build all five") — all
+  five packages, none falling under the `BL-0001`…`BL-0005` G3 bootstrap carve-out (all new,
+  additive forward-design work). Execution order remains dependency-driven, critical-path first
+  (`IP-1101` → `IP-1102` → `IP-1103` → `IP-1104`; `IP-1100` parallel-eligible with `IP-1102` once
+  `IP-1101` is `COMPLETE`).
 - **Standing, deliberately unresolved by this tranche:** `FS-110` Open Question 3 (`BL-0112`,
   the top-3-comparison trigger timing) — `IP-1103` builds everything buildable without it and
   states the remaining gap precisely; a future package wires the trigger once `BL-0112` resolves.
