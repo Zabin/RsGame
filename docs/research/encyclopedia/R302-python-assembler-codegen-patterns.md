@@ -3,7 +3,8 @@
 - **Document ID:** R302 · **Version:** 1.0 · **Status:** ✅
 - **Dependencies:** R101 (the opcode emitters this pattern assembles)
 - **Referenced By:** R305 (this topic's module-boundary convention grounds R305's
-  reference-generator oracle placement)
+  reference-generator oracle placement), R307 (these conventions are why the build is
+  deterministic, making byte-identity a valid refactoring oracle)
 - **Produces:** grounds `gbc_lib.py`'s `resolve()`/label mechanism and `build_rom.py`'s
   patch-point dict pattern
 - **Feature Mapping:** *(none yet)*

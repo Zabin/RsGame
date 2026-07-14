@@ -2,7 +2,7 @@
 
 - **Document ID:** R304 · **Version:** 1.0 · **Status:** ✅
 - **Dependencies:** R109 (the hardware-required header/checksum facts this topic's tests verify)
-- **Referenced By:** R305 (these checks are T1's suite within the larger test-design picture)
+- **Referenced By:** R305 (these checks are T1's suite within the larger test-design picture), R307 (these checks are invariant under any true refactor)
 - **Produces:** grounds `test_rom.py`'s T1 suite and what a rewritten suite must keep verifying
 - **Feature Mapping:** *(none yet)*
 - **Related Topics:** R109, R305

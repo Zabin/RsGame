@@ -58,6 +58,7 @@ section, 3–8 page band) is embedded in each `02-research-*` skill.
 | R304 | [ROM validation](encyclopedia/R304-rom-validation.md) | header checksum, size, cart-type fields; why T1 survives the BL-0006 rewrite | ✅ |
 | R305 | [Emulator-based test design](encyclopedia/R305-emulator-based-test-design.md) | memory vs. pixel assertions, frame determinism, save harnesses; **the concrete BL-0006 rewrite target**; extended 2026-07-09 for MSTR-001 C10's determinism-testing strategy (reference-generator oracle, multi-seed property tests); extended 2026-07-11 with four testing-convention gaps a live bug batch exposed (fixture defaults masking untested parameter values, boundary-vs-directional assertions, menu state×action cross-product coverage, oracle-vs-runtime-path reachability) | ✅ |
 | R306 | [Toolchain portability](encyclopedia/R306-toolchain-portability.md) | path conventions; **the concrete BL-0005 rewrite target** | ✅ |
+| R307 | [Refactoring practices — behavior-preserving code & meaning-preserving docs](encyclopedia/R307-refactoring-practices.md) | characterization/golden-master discipline; byte-identical ROM as the equivalence oracle (locally proven deterministic); doc-tree restructuring with link/ID integrity + migration maps; **grounds `08-refactoring` and every `IP-8xx0` package** | ✅ |
 
 The planned-topic lists are suggestions recorded at scaffold time — the owning skill adjusts them
 to real gaps (adding/retitling rows) as grounding needs emerge; keep this index the single source
