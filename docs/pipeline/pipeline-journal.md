@@ -14,46 +14,39 @@
 
 ## Position
 
-- **Updated:** 2026-07-16 (run #169)
-- **Increment:** Three independent arcs now live. **(1) Infinite Mode tranche**
+- **Updated:** 2026-07-16 (run #170)
+- **Increment:** Three independent arcs. **(1) Infinite Mode tranche**
   (`IP-1100`–`IP-1104`, `FS-110`/`FEAT-10000`/`EP-6000`) — fully closed as of run #167. **(2)
   `FS-108`'s maze-blocked edge indicator set** (`IP-1081`/`IP-1082`) — closed its last owed step
-  (`09-content-review`/`BL-0097`) at run #168. **(3) Nine biome-family identities**
-  (`BL-0128`/`FR-4320`, a direct project-owner decision to merge the original 9-zone art with the
-  5-family procgen taxonomy so no shipped screen art stays orphaned) — **newly started this run**:
-  `04-requirements-engineering` baselined `FR-4320`, widened `FR-9170`'s clamp, filed `CR-08` for
-  the one genuine sub-question it correctly didn't resolve unilaterally (the adjacency-grammar
-  ordering position for the four new identities). Bootstrap baseline remains fully closed (01–11
-  ✅, GO recorded); Release 2 remains baselined GO. **This run (#169):** advanced arc (3) — the
-  user directly requested "run pipeline skill" immediately after filing `BL-0128` (a design
-  decision) and `BL-0127` (a related feature request, procgen music with zone sub-themes,
-  `DEFERRED` pending `BL-0128`'s own resolution) via `00-intake`; `00-pipeline-manager` triaged
-  both, chose `04-requirements-engineering` on `BL-0128` as the single highest-leverage unblocked
-  step (a fresh, user-directed `NEW` entry with no competing due item at an upstream stage), and
-  executed it.
+  at run #168. **(3) Nine biome-family identities** (`BL-0128`/`FR-4320`, a direct project-owner
+  decision to merge the original 9-zone art with the 5-family procgen taxonomy) — **advancing**:
+  run #169 baselined `FR-4320` (`04-requirements-engineering`); **this run (#170)** extended
+  `FS-102`/`FS-103` (`06-feature-specification`) to cover it — found the screen-rendering half
+  nearly free (all 4 new identities' art + tile/palette budget already shipped, only a
+  dispatch-table rewire remains), narrowed the real remaining gap to one thing: the 4 new
+  identities' `ZONE_COLLECTS` collectible-spawn tables don't exist (`IP-9070` deleted them).
+  Bootstrap baseline remains fully closed (01–11 ✅, GO recorded); Release 2 remains baselined GO.
 - **Pipeline state:** Bootstrap stages 01–11 ✅; Release 2 GO. **31 of 31 implementation packages
   `VERIFIED`.** Arcs (1)/(2) remain genuine stopping points, unchanged this run. **Arc (3) is now
-  `IN PROGRESS`**: `FR-4320` is baselined and unblocked (no gate, no ADR needed — R212/GDS-08 §8
-  already anticipated this exact expansion); next stop is `06-feature-specification` (extend
-  `FEAT-9000`/`FS-102`/`FS-103`). `CR-08` (adjacency-grammar ordering for the 4 new identities,
-  routed to `02`/`03`) and `BL-0129` (its own backlog harvest) are open but **do not block**
-  `FR-4320`'s own downstream path. `BL-0127` (procgen music, `SCHEDULED` again now that its
-  `DEFERRED` trigger fired) rides a future `02-research-game-design` pass, independent of arc
-  (3)'s own `06`/`07`/`08` chain. Standing, non-blocking work elsewhere, unchanged: `BL-0118`'s
-  `NFR-1400` optimization package; the seven-instance `IP-110x` documentation-accuracy sweep
+  spec-complete**: `FS-102`/`FS-103` both cover `FR-4320`, ready for `07-implementation-planning`.
+  `CR-08` (adjacency-grammar ordering, routed `02`/`03`) and `BL-0130` (catalog Included-
+  Requirements gap, routed `05`) are open but **do not block** packaging. `BL-0127` (procgen
+  music) rides a future `02-research-game-design` pass, independent of arc (3)'s own `07`/`08`
+  chain. Standing, non-blocking work elsewhere, unchanged: `BL-0118`'s `NFR-1400` optimization
+  package; the seven-instance `IP-110x` documentation-accuracy sweep
   (`BL-0115`/`117`/`120`/`121`/`124`/`125`, all Low); `BL-0123` (Low, `DEFERRED`); `BL-0112` (the
   `FR-10400` run-end trigger — a standing user decision); `BL-0097`'s own remediation (Medium,
   optional craft polish, no `07` package authored yet).
-- **Backlog:** 129 entries, 38 open (31 `SCHEDULED`, 6 `DEFERRED`, 1 `NEW`, 0 `NEEDS-USER`).
-  Harvested: **BL-0129** (Low, `CR-08`, `NEW`). Triaged: **BL-0128** → `SCHEDULED` (next
-  `06-feature-specification`); **BL-0127** → `SCHEDULED` (`DEFERRED` trigger fired, next a future
-  `02-research-game-design` pass).
-- **Next step:** `06-feature-specification` on `BL-0128`/`FR-4320` — extend `FEAT-9000`'s existing
-  procgen-world catalog entry and its downstream `FS-102`/`FS-103` specs with the nine-identity
-  axis (screen dispatch growth, the four new collectible-spawn tables, Infinite Mode's
-  representation change), the natural continuation of this run's own delta. `CR-08`/`BL-0129`
-  (routed to `02`/`03`) and `BL-0127` (routed to a future `02` pass) are both independent
-  parallel threads, not blockers to this next step.
+- **Backlog:** 130 entries, 39 open (33 `SCHEDULED`, 6 `DEFERRED`, 0 `NEW`, 0 `NEEDS-USER`).
+  Harvested: **BL-0130** (Low, catalog Included-Requirements gap, `SCHEDULED`). Triaged:
+  **BL-0129** → `SCHEDULED` (rides a future `02-research-game-design` pass, batched alongside
+  `BL-0127`'s own procgen-music research); **BL-0128** → still `SCHEDULED`, next step
+  `07-implementation-planning`.
+- **Next step:** `07-implementation-planning` on `FR-4320`/`BL-0128` — package as two peers
+  mirroring `IP-1030`/`IP-1031`'s own code/content split: a code package (dispatch-table +
+  generation-range widening in `worldgen.py`/`asm_game.py`, Infinite Mode's 3-bit→4-bit biome-id
+  repack) and a content package (author the 4 missing `ZONE_COLLECTS` spawn tables). `CR-08`
+  (routed `02`/`03`) and `BL-0130` (routed `05`) are independent parallel threads, not blockers.
 - **Open gates:** **one, informational, unchanged:** whether/when to run `11-release-readiness` on
   Infinite Mode remains the user's own call (G4), not assumed here — nothing is blocked on the
   answer.
@@ -235,3 +228,4 @@
 | 167 | 2026-07-16 | advance (same session as run #166) | `05-feature-decomposition` | BL-0126 (FEAT-10000 forward-reference status) | ✅ Refreshed `FEAT-10000`'s own forward-reference note in `03-feature-catalog.md` — all five `IP-1100`–`IP-1104` packages now correctly recorded `VERIFIED`, integration-reviewed clean, still `Future` bucket (no release-scheduling implication). Mid-run correction: `BL-0126`'s other named file, `docs/features/INDEX.md`, is `06-feature-specification`'s own write scope, not `05`'s — fixed directly in the same session rather than left half-done or over-formalized into a second full skill invocation for one row. **`BL-0126` → DONE.** No drift. This closes the Infinite Mode tranche's own arc in full — implementation, verification, integration review, and traceability all now consistent. | **None mechanical.** The tranche is done; the pipeline is gated on the user for what to prioritize next (release-readiness for Infinite Mode, `BL-0112`'s run-end-trigger decision, the separately-owed `BL-0097` content review, the `IP-110x` doc sweep, or something else) |
 | 168 | 2026-07-16 | advance (autonomous choice — user's `AskUserQuestion` prioritization call failed with an AbortError; treated "Continue from where you left off" as authorization to pick the highest-leverage ungated step per the manager's own ordering rules rather than block indefinitely) | `09-content-review` | IP-1081, IP-1082 (maze-blocked edge indicator set, FS-108) — BL-0097 | ✅ **1 Medium finding, no Critical/High** ([content-review-ip-1081-ip-1082.md](../reviews/content-review-ip-1081-ip-1082.md)). Rebuilt ROM at `b9b51bb`, drove three live PyBoy passes (all-four-blocked-simultaneously via forced REGION_GRAPH at the grid center, open-arrow contrast, LEGEND screen) and screenshotted every affected state (`test_shots/content-review-ip-1081-ip-1082/`, gitignored per the `IP-1031` precedent). Confirmed `BL-0097` with direct rendered evidence, not just source-level pixel comparison: `blocked_up`/`blocked_down` and `blocked_left`/`blocked_right` are genuinely indistinguishable by shape on screen, disambiguated only by fixed position — confirmed this is a craft-intent gap (deviates from the package's own "directional glyph" design goal), **not** a play-fairness/comprehension defect (position fully disambiguates every real layout, no screenshot showed an ambiguous state). Also noted, informational: the LEGEND screen (IP-1090) is accurate but structurally can't expose the issue since it only ever shows one blocked exemplar at a time. All five review dimensions exercised (play fairness/audio: not applicable, no change in either package). Ledgers updated: `docs/reviews/INDEX.md`, `ROADMAP.md`'s RV-CONTENT row and IM-00/RV-INTEG cross-reference. Harvested: **BL-0097** re-dispositioned (still `SCHEDULED`, now riding a future `08-content-authoring` remediation package instead of the now-closed `09-content-review` step — not `DONE`, since the art itself is unchanged). No drift. This closes `FS-108`'s entire package set's owed pipeline work (`09-package-verification` ×2, `10-integration-review`, `09-content-review`) except the optional Finding-1 remediation. | No mechanical step is owed on `FS-108` itself. Standing open items unchanged: `BL-0112` (FR-10400 run-end trigger, needs user decision), the seven-instance `IP-110x` doc-accuracy sweep (`BL-0115`/`117`/`120`/`121`/`124`/`125`, all Low), `BL-0118` (NFR-1400 optimization), `BL-0123` (Low, DEFERRED), and the still-open `11-release-readiness` question for Infinite Mode (G4, user's own call). Recommend checking with the user on overall priority now that both the Infinite Mode tranche and the `BL-0097` content review have reached natural stopping points. |
 | 169 | 2026-07-16 | advance (same session as run #168) | `04-requirements-engineering` | BL-0128 (nine biome-family identities) | ✅ Baselined **FR-4320** ([01-functional-requirements.md](../requirements/01-functional-requirements.md)) — widens the biome-family axis both finite-mode (`FR-9100`) and Infinite Mode (`FR-10200`) generation consume from five identities to nine, folding in the four original Release-1 zone identities (Village, Cave, Desert, Plains) that `IP-1030`/`IP-1031`/`IP-9070` left orphaned. Grounded entirely in already-approved architecture — R212's own "or a refinement of them" allowance and `08-presentation-architecture.md` §8's explicit deferral of "exact biome-family count" to a future implementation package — **no new architecture/ADR pass was needed**, confirmed by direct citation, not assumed. `FR-9170`'s biome-id clamp widened `[0,4]`→`[0,8]` (mechanism unchanged); `FR-4310` gets a delta note. One genuine sub-question correctly not resolved and routed upstream rather than invented: **CR-08** filed (where the four new identities sit on `FR-4310`'s adjacency-grammar ordering axis — R212 anticipates the expansion but doesn't say where). `NFR-6510` gets a delta note (2026-07-11 "Met" status left as an accurate historical record for the five-identity set, not rewritten/inflated to cover the new pairs). `03-requirements-review.md` finding #20: clean, no architecture conflict, CR-08 correctly filed rather than resolved unilaterally, two implementation-readiness facts (missing collectible-spawn tables for the 4 new identities; Infinite Mode's 3-bit biome-id field needs widening) confirmed correctly scoped to `FR-4320`'s own Notes rather than spawned as new FRs. RTM rows added for `FR-4320`/`CR-08`, `FR-9170`/`NFR-6510` rows annotated. `docs/requirements/INDEX.md` refreshed (noted but did not fix pre-existing, unrelated staleness on several 2026-07-16 FR-10300–10600 deltas — out of this delta's own scope). Harvested: **BL-0129** (Low, `CR-08`, `NEW`). Triaged: **BL-0128** → `SCHEDULED`, next `06-feature-specification`. **BL-0127**'s `DEFERRED` trigger fired same run (the biome-count delta it was waiting on just landed) — re-dispositioned `SCHEDULED`, next a future `02-research-game-design` pass on procedural music-generation techniques. No drift. | `06-feature-specification` to extend `FEAT-9000`/`FS-102`/`FS-103` with `FR-4320`'s nine-identity axis — unblocked, not gated on `CR-08` or `BL-0129`'s own routing |
+| 170 | 2026-07-16 | advance (same session as run #169) | `06-feature-specification` | FR-4320/BL-0128 (extend FEAT-9000/FS-102, FEAT-4100/FS-103) | ✅ Extended both Features covering the widened biome-family axis. **`FS-102`** (world generation): `FR-4320`'s domain-widening noted in Data Model; Open Question 1 partially resolved (biome-family *count* now fixed at 9 via `FR-4320`; the adjacency-grammar *ordering* for the four new identities remains genuinely open, correctly not invented, tracked as `CR-08`); **new Open Question 6** names the real remaining gap — 4 identities have no `ZONE_COLLECTS` collectible-spawn table (`IP-9070` deleted the originals, confirmed by direct citation of that package's own §6 text, not merely orphaned them). **`FS-103`** (screen composition): Open Questions 1–2 **resolved** for the 4 new identities — direct code read confirmed their screen-generator functions (`village_screen`/`cave_screen`/`desert_screen`/`plains_screen`) and tile-index/palette budgets (`0x90`–`0x95`/`0x98`–`0x9D`/`0xA0`–`0xA5`/`0xA8`–`0xAC`, all already 8-tile-aligned, all already emitted by `build_tile_data()`) were never removed, only unwired from `ALL_SCREENS`' dispatch — what remains is a mechanical dispatch-table rewire, not new content authoring, substantially de-risking this delta versus the original 5-family case. Both Features' forward-reference metadata in `03-feature-catalog.md` refreshed — incidentally also corrected pre-existing staleness (`IP-1021`/`IP-1030`/`IP-1031`'s already-`VERIFIED` status wasn't reflected there before this touch). `docs/features/INDEX.md` rows updated. Harvested: **BL-0130** (Low, catalog Included-Requirements gap for `FR-4320`, mirroring `FS-102`'s own pre-existing Open Question 4 pattern for `FR-9160`/`FR-9161`/`FR-9170` — batched into the same future `05` pass rather than filed as four separate items). `BL-0128` re-dispositioned: still `SCHEDULED`, next step `07-implementation-planning`. No drift. | `07-implementation-planning` on `FR-4320` — package as two peers mirroring `IP-1030`/`IP-1031`'s own code/content split: a code package (dispatch-table/generation-range widening, Infinite Mode's bit-repack) and a content package (the 4 missing `ZONE_COLLECTS` spawn tables) |
