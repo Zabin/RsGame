@@ -14,65 +14,52 @@
 
 ## Position
 
-- **Updated:** 2026-07-16 (run #163)
+- **Updated:** 2026-07-16 (run #164)
 - **Increment:** Infinite Mode tranche (`IP-1100`–`IP-1104`, `FS-110`/`FEAT-10000`/`EP-6000`,
   G3-authorized 2026-07-14 "Yes, build all five"; standing user instruction: iterate to a
   playable Infinite Mode MVP). Bootstrap baseline remains fully closed (01–11 ✅, GO recorded);
-  Release 2 remains baselined GO. **Run #161:** `08-code-implementation` on `IP-1103` —
-  `COMPLETE`, 296/296. **Run #162:** `09-package-verification` on `IP-1100` — `VERIFIED`
-  ([VR-1100](../implementation/verification/VR-1100-infinite-mode-mode-selection.md)), two Low
-  findings (`BL-0120`/`BL-0121`). **This run (#163, same session):** two parts. **Part A** — the
-  recommended next step (`09-package-verification` on `IP-1103`) needed genuine independence
-  this session couldn't supply (it implemented `IP-1103` in run #161), so it was delegated to a
-  background subagent, mirroring this tranche's own established precedent for `IP-1101`/`IP-1102`.
-  The subagent's work was reviewed before being trusted: its VR report, ledger edits, and a fresh
-  from-scratch full-suite re-run were all independently spot-checked by this session before
-  harvesting. **`IP-1103` → `VERIFIED`**
-  ([VR-1103](../implementation/verification/VR-1103-infinite-mode-treasure-and-win-condition.md),
-  commit `1c465ca`): 296/296 re-confirmed, ROM byte-identical, `check_collisions`'s new branch
-  confirmed by direct code read to leave `KeyItem`/`ScoreItem` untouched, `inf_check_top_score`'s
-  zero-call-site state confirmed by direct code read (not just the suite), independently
-  live-driven at a non-fixture seed (53). One Low finding (`FS-110` header stale for `IP-1100`'s
-  own status — filed as **`BL-0122`**). **Part B** — with all four of `IP-1104`'s dependencies
-  now `VERIFIED`, the tranche's sole remaining blocker was backlog `BL-0119` (filed run #161: the
-  original `IP-1104` plan only consulted the ledger's collected-state at the save/load boundary,
-  leaving a mid-session out-and-back farming gap). Ran `07-implementation-planning` to amend
-  `IP-1104` §2/§5/§6/§7/§8/§9/§10/§11/§13 in place: a new 642-byte WRAM ledger working copy
-  (`LEDGER_COUNT`/`LEDGER_CURSOR`/`LEDGER`, `0xC419`–`0xC69A`, mirroring `SRAM_LEDGER`
-  byte-for-byte) that `IP-1102`'s `inf_ensure_window` now consults on every materialization (not
-  only on load), closing `BL-0119` uniformly across new-game entry, ordinary navigation, and
-  post-load restore alike — one fix, not two special cases. `inf_ledger_mark_collected` now
-  operates on WRAM only (no per-collection SRAM/MBC1 access — a correctness *and* performance
-  improvement over the original SRAM-only design, caught while amending, not merely patched
-  around). Also caught and fixed in the same pass: the package's own planned suite name (`T26`)
-  would have collided with `IP-1103`'s actual shipped `T26` — renamed to `T27` (this tranche's
-  fourth such rename), with a new check `T27.g` for the in-session case `BL-0119` named. No code
-  touched (pure planning) — confirmed via a rebuild + sha256 match before/after. **`IP-1104`:
-  `NOT STARTED` → `READY`.**
+  Release 2 remains baselined GO. **Run #163:** `09-package-verification` on `IP-1103`
+  (delegated to a background subagent, reviewed before trusting) → `VERIFIED`; then
+  `07-implementation-planning` amended `IP-1104` per `BL-0119`, flipping it `NOT STARTED` →
+  `READY`. **This run (#164, same session):** ran `08-code-implementation` on `IP-1104`
+  (visited-region-ledger save persistence) — **`COMPLETE`, 309/309** (new suite `T27`, 7 checks).
+  `save_to_sram`/`try_load_save` extended inside their existing single MBC1-enable bracket
+  (position, running count, top-3 table, 128-entry FIFO-bounded ledger); `SAVE_VERSION_VAL`
+  `0x04`→`0x05`. The `BL-0119` amendment planned last run shipped exactly as specified: the
+  642-byte WRAM ledger working copy, a shared `inf_ledger_find` subroutine backing both
+  `inf_ensure_window`'s cross-reference and `inf_ledger_mark_collected` (one bounded search, not
+  duplicated), `inf_ledger_mark_collected` operating on WRAM only. `T27.g` independently confirms
+  the fix: a collected treasure does not respawn on ordinary in-session re-entry, not just across
+  save/load. One `JR`→`JP` conversion needed (range overflow, mirroring `IP-9070`'s own
+  precedent). FR-10500/FR-10600 → Implemented; `NFR-5400` → Met (128-entry capacity, `BL-0108`
+  resolved as-shipped). **This closes the Infinite Mode tranche's own five-package implementation
+  set** — `BL-0112` (the run-end trigger for `FR-10400`'s top-3 comparison) is the tranche's sole
+  standing gap, deliberately left open per `IP-1103`'s own explicit boundary. Incidentally fixed
+  while touching `FS-110`'s own header for this package's required §9 update: the stale `IP-1100`
+  `COMPLETE`→`VERIFIED` line `VR-1103` had flagged (`BL-0122`).
 - **Pipeline state:** Bootstrap stages 01–11 ✅; Release 2 GO. **31 implementation packages: 30
-  `VERIFIED`, `IP-1104` `READY`** (all four dependencies `VERIFIED`, its own `BL-0119` blocker
-  resolved by this run's amendment) — the tranche's last package, next in line for
-  `08-code-implementation`. Tranche-closure steps still owed elsewhere: `09-content-review` on
-  `IP-1081`/`IP-1082`'s shipped tile art (`BL-0097`); `BL-0118`'s post-tranche `NFR-1400`
-  optimization package (note: `IP-1104`'s own new ledger cross-reference adds a small further
-  per-transition cost, §13's own Risk entry recommends re-measuring both together); a growing
-  `IP-110x` package-text-accuracy sweep (`BL-0115`/`BL-0117`/`BL-0120`/`BL-0121`/`BL-0122`, all
-  Low, all `SCHEDULED` to the same future pass — five instances now, worth doing as one sweep
-  once the tranche itself closes); `05-feature-decomposition` fold of `FR-9170` into
-  `FEAT-9000`'s catalog entry.
-- **Backlog:** 122 entries, 34 open (29 `SCHEDULED`, 5 `DEFERRED`, 0 `NEEDS-USER`). New this run:
-  **BL-0122** (Low, `SCHEDULED`/07, `FS-110` header staleness — rides the same future sweep as
-  `BL-0120`/`BL-0121`). Flipped: **BL-0119** (Medium-High) `SCHEDULED` → **`DONE`** — its own
-  named fix (the `IP-1104` §6 amendment) landed this run, not deferred, not partially addressed.
-  No `DEFERRED` trigger fired.
-- **Next step:** `08-code-implementation` on `IP-1104` (visited-region-ledger save persistence)
-  — now genuinely `READY`, the tranche's last package, continuing the user's own standing
-  "iterate to a playable Infinite Mode MVP" instruction. Once `IP-1104` reaches `COMPLETE` and is
-  independently verified (a fresh session/subagent will be needed again, per this tranche's own
-  established independence pattern), the Infinite Mode tranche closes entirely — `10-integration-
-  review` becomes the natural next step after that. Separately available, none blocking:
-  `09-content-review` on `IP-1081`/`IP-1082` (`BL-0097`); the `IP-110x` documentation sweep
-  (`BL-0115`/`117`/`120`/`121`/`122`, five Low findings now); `BL-0118`'s optimization package.
+  `VERIFIED`, `IP-1104` `COMPLETE`** — awaiting its own `09-package-verification` pass in an
+  independent session (this session implemented it). Once verified, **all 31 packages will be
+  `VERIFIED`** and the Infinite Mode tranche's own `10-integration-review` becomes the natural
+  next step. Tranche-closure steps still owed elsewhere: `09-content-review` on `IP-1081`/
+  `IP-1082`'s shipped tile art (`BL-0097`); `BL-0118`'s post-tranche `NFR-1400` optimization
+  package; a five-instance `IP-110x` documentation sweep (`BL-0115`/`117`/`120`/`121`, all Low);
+  `BL-0123`'s minor load-time inefficiency (Low, `DEFERRED`); `05-feature-decomposition` fold of
+  `FR-9170` into `FEAT-9000`'s catalog entry; `BL-0112` itself (the run-end trigger — a user
+  decision or a `04` delta whenever the user wants to resolve it).
+- **Backlog:** 123 entries, 33 open (28 `SCHEDULED`, 6 `DEFERRED`, 0 `NEEDS-USER`). New this run:
+  **BL-0123** (Low, `DEFERRED`) — `try_load_save`'s finite-mode restore path (incl.
+  `generate_world`) runs unconditionally even on an Infinite Mode load, a small named
+  inefficiency, not a correctness issue; no revisit trigger fired until a future timing audit
+  flags it. Flipped: **BL-0122** (Low) `SCHEDULED` → **`DONE`** — fixed incidentally in this run,
+  not deferred to the sweep it was originally scheduled to.
+- **Next step:** `09-package-verification` on `IP-1104` — needs an **independent session or
+  background subagent**, since this session implemented it. Once verified, the Infinite Mode
+  tranche's own set is fully `VERIFIED` (all 31 packages in the tree), and `10-integration-review`
+  on the five-package `IP-1100`–`IP-1104` set becomes the natural next step, continuing the
+  user's own standing "iterate to a playable Infinite Mode MVP" instruction toward a genuinely
+  playable, verified, integration-reviewed Infinite Mode. Separately available, none blocking:
+  `09-content-review` on `IP-1081`/`IP-1082` (`BL-0097`); the `IP-110x` documentation sweep.
 - **Open gates:** **none.**
 
 ## Run log
@@ -246,3 +233,4 @@
 | 161 | 2026-07-16 | advance (fresh session, run-#160 handoff) | `08-code-implementation` | IP-1103 (treasure placement & win-condition state) | ✅ **COMPLETE — 296/296 checks pass** (new suite `T26`, 16 checks). Workflow C steps 1–2 in full + `inf_check_top_score` with zero call sites by design (`BL-0112` honored-open; `FR-10400` Partially Implemented, not rounded up; `FR-10300` fully Implemented). New WRAM `0xC405`–`0xC40C` (GDS-07 §7f, boot-cleared). Treasure rides the existing `COLL_DATA` machinery (spawned by `setup_zone_collects`' new `GAME_MODE==1` branch at per-biome `ZONE_COLLECTS`-mirroring positions, `T26.a0` drift guard; rendered free via `update_oam`'s type-2 path). Closed `IP-1100` §6's named hazard: stale finite collectibles no longer spawn/collect in Infinite Mode (spurious finite victory was reachable — `T26.a7`/`a8` lock the fix). `INF_TREASURE_HERE` cache write added at `inf_ensure_window`'s center cell (the deviation `IP-1102`'s own WRAM comment pre-assigned to this package). Docs: RQ-01/RQ-04, FS-110 metadata + §19 OQ3 cross-referenced, GDS-07 §7f, MBP, packages/INDEX, ROADMAP — all synced. Drift corrected: architecture INDEX/ROADMAP GDS-07 rows had lagged §7e one package. Harvested: **BL-0119** (Medium-High, SCHEDULED/07) — `IP-1104` §6 lacks the mid-session re-entry ledger read (in-session farming exploit if executed as written). | `09-package-verification` on `IP-1100` (this session is independent of it); `IP-1103`'s own `09` pass needs a fresh session/subagent; `IP-1104` waits on both + `BL-0119`'s amendment |
 | 162 | 2026-07-16 | advance (same session as run #161) | `09-package-verification` | IP-1100 (mode selection & new-game entry) | ✅ **VERIFIED** ([VR-1100](../implementation/verification/VR-1100-infinite-mode-mode-selection.md)). Independence clean (this session implemented IP-1103, a different package). 296/296 re-confirmed from a byte-identical ROM rebuild; all 19 `T25.a`–`f` checks confirmed passing; DoD/checklist items confirmed by direct code read (`SEED/SCALE ENTRY`'s unredirected B-cancel, `MODE SELECT`'s no-write B-cancel, `INFINITE SEED ENTRY`'s single-call materialization via `inf_ensure_window`). Independently live-drove the real UI path at a non-fixture seed (39482) per this skill's own non-default-parameter rule — seed composed correctly, starting region oracle-matched. Two Low findings (package text never amended for the `inf_ensure_window` deviation; suite's "10 checks" claim undercounts the real 19 — isolated to `T25`, `T22`/`T24`'s own counts checked and match exactly). Ledgers updated: MBP/`packages/INDEX.md`/verification `INDEX.md`/ROADMAP. Harvested: **BL-0120**/**BL-0121** (both Low, SCHEDULED/07). `IP-1104` now depends only on `IP-1103`. No drift. | `09-package-verification` on `IP-1103` — needs an independent session/subagent, this session implemented it |
 | 163 | 2026-07-16 | advance (same session; two parts) | `09-package-verification` (Part A, delegated to a background subagent) then `07-implementation-planning` (Part B) | IP-1103 (verification) then IP-1104 (amendment) | ✅ **Part A: `IP-1103` → `VERIFIED`** ([VR-1103](../implementation/verification/VR-1103-infinite-mode-treasure-and-win-condition.md), delegated to a background subagent for genuine independence, this session implemented `IP-1103` in run #161; subagent's work reviewed — VR report, ledger edits, and a fresh full-suite re-run all spot-checked — before being trusted). 296/296, ROM byte-identical, `inf_check_top_score` zero-call-site state confirmed by direct code read, live-driven at seed 53. One Low finding → **BL-0122**. **Part B: `IP-1104` amended per `BL-0119`, `NOT STARTED` → `READY`.** New 642-byte WRAM ledger working copy so `inf_ensure_window` consults collected-state on every materialization (new-game entry, ordinary navigation, post-load restore alike), not only at save/load — one uniform fix, closing `BL-0119` → **DONE**. `inf_ledger_mark_collected` now WRAM-only (correctness+performance improvement over the original SRAM-only design). Caught and fixed a second gap in the same pass: the package's own planned suite name `T26` collided with `IP-1103`'s actual shipped `T26` — renamed `T27`, new check `T27.g` for the in-session case. No code touched (rebuild+sha256 confirmed unchanged). Ledgers updated: MBP/`packages/INDEX.md`/ROADMAP. No drift. | `08-code-implementation` on `IP-1104` — the tranche's last package, now genuinely `READY` |
+| 164 | 2026-07-16 | advance (same session as run #163) | `08-code-implementation` | IP-1104 (visited-region-ledger save persistence) | ✅ **COMPLETE — 309/309 checks pass** (new suite `T27`, 7 checks). `save_to_sram`/`try_load_save` extended inside their existing MBC1 bracket; `SAVE_VERSION_VAL` `0x04`→`0x05`. The `BL-0119` amendment (planned run #163) shipped exactly as specified: 642-byte WRAM ledger working copy, shared `inf_ledger_find` subroutine (backs both `inf_ensure_window`'s cross-reference and `inf_ledger_mark_collected`), WRAM-only collection writes (no per-collection SRAM access). `T27.g` independently confirms the in-session respawn gap is closed. One `JR`→`JP` conversion (range overflow). FR-10500/FR-10600 Implemented; `NFR-5400` Met (`BL-0108` sized as-shipped). **Closes the Infinite Mode tranche's five-package implementation set** — `BL-0112` the sole standing gap. Incidentally fixed `FS-110`'s stale `IP-1100` status line while touching the file (`BL-0122` → DONE). Ledgers updated: MBP/`packages/INDEX.md`/ROADMAP/`GDS-07` §7g-§7h/RQ-01/RQ-02/RTM/`FS-110` §19 OQ5+OQ7. Harvested: **BL-0123** (Low, DEFERRED) — a named, deliberately-unfixed load-time inefficiency (`generate_world` runs even on Infinite Mode loads). No drift. | `09-package-verification` on `IP-1104` — needs an independent session/subagent, this session implemented it; then `10-integration-review` on the full `IP-1100`–`IP-1104` set once verified |
