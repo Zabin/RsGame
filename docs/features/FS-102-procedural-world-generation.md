@@ -28,6 +28,15 @@
 > to a tri-state, 0=present/uncollected, 1=present/collected, 2=absent, rather than a new bitmap).
 > `test_rom.py` T12.e (revised)/T12.n; `worldgen.py` oracle-mirrored, zero mismatches across the
 > full corpus.
+>
+> **Revision (2026-07-16, `FR-4320`/`BL-0128`):** the biome-family axis this Feature's generation
+> routine draws from widens from 5 identities to 9 (Village/Cave/Desert/Plains folded in alongside
+> the existing Water/Sand/Grass/Stone/Brick), per a direct project-owner decision baselined as
+> `FR-4320`. **Partially resolves Open Question 1** (below): the biome-family *count* is now fixed
+> at 9 — the exact grammar-table *ordering* for the four new identities remains open, filed as
+> `CR-08` rather than decided here. §10 and §19 updated; no other section changes (this Feature's
+> generation *mechanism* — PRNG step order, edge-proposal logic, `FR-9170`'s snap/fallback bias —
+> is unaffected, only the domain size it operates over).
 
 [↑ Features index](INDEX.md) · [Feature Catalog](../feature-planning/03-feature-catalog.md) ·
 [Epic Catalog](../feature-planning/02-epic-catalog.md)
@@ -199,6 +208,13 @@ at implementation, per the FS-101/IP-1010 confidence precedent this document fol
   (replaces `Carrot`). This Feature owns `Region`'s generated biome-identity/adjacency-edge data
   and `KeyItem`'s collection state; `Seed`/`WorldScale` themselves are read here (supplied by
   FEAT-1100) and persisted by FEAT-5300 — this Feature only consumes them as generation inputs.
+  **(2026-07-16 delta, `FR-4320`):** `Region`'s own biome-identity value domain widens from 5
+  values to 9 — this Feature's routine (§6 Workflow A step 4) draws from the wider domain, and
+  `FR-9170`'s snap/fallback clamp (a `FEAT-9000`-adjacent mechanism, not itself in this Feature's
+  own Requirements Implemented list — see Open Question 4) widens in lockstep, `[0,4]`→`[0,8]`.
+  The domain's nine concrete identities and their palette-group mapping are `FR-4320`'s own scope,
+  not restated here; this Feature's own generation *mechanism* is unaffected, only the range one
+  of its outputs may take.
 - **New WRAM (proposed):** `SEED` (`0xC069`–`C06A`, 16-bit), `WORLD_SCALE` (`0xC06B`, 1 byte),
   `REGION_GRAPH` (`0xC070`+, 5 bytes/region × up to 81 regions = ≤405 bytes worst case: 1
   biome-id byte + 4 neighbor-region-index bytes per region, `0xFF` = no neighbor in that
@@ -387,7 +403,16 @@ ordinary implementation risk for `07`/`08`.
    cannot be made concrete without this table.** Resolves at: `07-implementation-planning`,
    per GDS-08 §8's own explicit deferral — the package that sizes biome-family count/assignment
    is the correct place to fix the exact table, not this specification (inventing one here would
-   be resolving an architectural deferral this stage has no authority to make).
+   be resolving an architectural deferral this stage has no authority to make). **(2026-07-16
+   delta, `FR-4320`/`BL-0128`) — partially resolved, narrowed, not closed:** the biome-family
+   *count* is now fixed by `FR-4320` at 9 (the five already-generated identities plus Village,
+   Cave, Desert, Plains), so this Open Question's own "count" half is answered. The *ordering*
+   half — where the four new identities sit on the grammar table's adjacency axis — remains
+   genuinely open, filed as **`CR-08`** (`01-functional-requirements.md`, Candidate
+   Requirements) rather than decided here, since `R212` itself anticipates "a refinement of"
+   the five-family axis without saying where a refinement's new entries sit. Still resolves at
+   `07-implementation-planning`, once `02-research-game-design`/`03-architecture-design-synthesis`
+   closes `CR-08` upstream of it.
 2. **The exact PRNG step sequence and graph-construction algorithm's line-by-line design** is
    named by ADR-0009/R213 at the *approach* level (xorshift-family PRNG, constrained-random graph
    walk over legal edges) but not at the implementation-detail level (e.g. exact edge-proposal
@@ -414,6 +439,16 @@ ordinary implementation risk for `07`/`08`.
    remains true for `FR-9161` too. Resolves at: `05-feature-decomposition`, if a formal ownership
    assignment for the victory-condition requirement family is ever wanted; not blocking this
    Feature's own implementation-readiness, since `FS-102` never claimed to own it either.
+   **(2026-07-16 addition) Two further instances of this exact same gap class:** `FR-9170`
+   (finite-mode biome-blob clustering, `FEAT-9000`-adjacent generation-mechanism work) and
+   `FR-4320` (nine biome-family identities) are both, like `FR-9160`/`FR-9161` before them, not
+   yet named in `FEAT-9000`'s own catalog Included Requirements — confirmed by direct read of
+   `03-feature-catalog.md`'s `FEAT-9000` entry, still listing only `FR-9100, FR-9110, FR-9120,
+   FR-9130, FR-4310, FR-3220`. Not blocking either requirement's own implementation-readiness
+   (`FR-9170` is already `SCHEDULED` per its own backlog entry `BL-0110`; `FR-4320` is fully
+   specified by this document's own §10/§19 delta) — recorded here as the same class of
+   catalog-bookkeeping gap, for `05-feature-decomposition` to reconcile whenever it next touches
+   `FEAT-9000`'s own entry, not urgent enough to warrant its own dedicated pass.
 5. **(New, 2026-07-12; RESOLVED 2026-07-13) The exact per-region tri-state encoding** (`GDS-07`
    §7c's two named candidates: widen `KEYITEM_FLAGS`' value domain, or a new separate presence
    bitmap) was left undecided by `ADR-0015`/`GDS-07` deliberately, to be resolved at
@@ -423,6 +458,22 @@ ordinary implementation risk for `07`/`08`.
    (`setup_zone_collects`, `check_collisions`) already treat any nonzero value as "no active item
    here," exactly correct for "absent" too, so no separate bitmap or downstream changes were
    needed.
+6. **(New, 2026-07-16, `FR-4320`/`BL-0128`) Collectible-spawn-table content for the four newly
+   folded biome identities does not exist yet.** This Feature's own Workflow B / §4 Scope covers
+   the collection *mechanic* (item-agnostic, generalized from `FR-3210`) but the per-region spawn
+   *content* itself (`ZONE_COLLECTS`, a `tilemaps.py` data table `FEAT-4100`/`FS-103` more
+   directly owns, consumed by this Feature's `setup_zone_collects` mechanism) currently has only
+   5 of the 9 identities' spawn lists — `IP-9070` deleted the other four (Village, Cave, Desert,
+   Plains) rather than merely orphaning them when it consolidated `ZONE_COLLECTS` to five
+   biome-family-representative lists, confirmed by direct citation of that package's own §6 text.
+   Until fresh spawn tables are authored, a region assigned one of those four identities would
+   have no collectible to place — a real content-completeness gap this Feature's own generation
+   routine does not itself detect or guard against (mirrors this document's own §12 Error
+   Handling framing: generator-guaranteed properties are enforced by construction, not checked
+   defensively at runtime). Resolves at: `08-content-authoring` (author the four missing
+   `ZONE_COLLECTS` lists, mirroring the five existing ones' own format), scheduled via a future
+   `07-implementation-planning` package — see `FS-103`'s own Open Questions for the paired
+   screen-dispatch half of the same underlying content-completeness question.
 
 ## 20. Related ADRs
 

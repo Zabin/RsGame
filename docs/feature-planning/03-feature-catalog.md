@@ -375,11 +375,16 @@
 > [FS-102](../features/FS-102-procedural-world-generation.md) (2026-07-10; revised 2026-07-12,
 > `FR-9160`/`ADR-0015`). 3 original Open Questions (grammar-table contents, algorithm
 > implementation detail, ROM-pointer need), all routed to `07-implementation-planning`, resolved
-> at `IP-1020`. **2 new Open Questions from the 2026-07-12 revision:** OQ4 (this entry's own
-> Included Requirements cites `FR-9130`, not `FR-9160`, its direct successor — routed to
-> `05-feature-decomposition`, this stage's own owner) and **OQ5 resolved same day** — planned as
-> [IP-1021](../implementation/packages/IP-1021-win-condition-redesign.md) (`NOT STARTED`, not
-> authorized), which decides the per-region tri-state encoding against the real code.
+> at `IP-1020`. OQ4 (this entry's own Included Requirements cites `FR-9130`, not `FR-9160`, its
+> direct successor — routed to `05-feature-decomposition`, this stage's own owner) remains open.
+> OQ5 (per-region tri-state encoding) **resolved**: implemented as
+> [IP-1021](../implementation/packages/IP-1021-win-condition-redesign.md), **VERIFIED 2026-07-13**
+> (`VR-1021`). **Revised again 2026-07-16** (`FR-4320`/`BL-0128`) — biome-family axis widened 5→9
+> identities; FS-102's own OQ1 partially resolved (count fixed, adjacency-ordering for the 4 new
+> identities still open as **`CR-08`**); new OQ6 (4 identities' `ZONE_COLLECTS` spawn tables not
+> yet authored — content-authoring gap, screen art itself already exists); this entry's own
+> Included Requirements does not yet name `FR-4320` either (OQ4-class gap, same routing). Not yet
+> packaged/implemented.
 
 - **Feature ID:** FEAT-9000
 - **Title:** Procedural World Generation & Item-Agnostic Collection
@@ -507,9 +512,17 @@
 ## FEAT-4100 — Generated-Region Screen Composition (new — not yet implemented)
 
 > **Forward reference (metadata only):** specified by
-> [FS-103](../features/FS-103-generated-region-screen-composition.md) (2026-07-10). 2 Open
-> Questions recorded there (biome-family content completeness, tile-index/palette sizing), both
-> routed to `07-implementation-planning` in lockstep with FS-102's grammar-table question.
+> [FS-103](../features/FS-103-generated-region-screen-composition.md) (2026-07-10). Both original
+> Open Questions resolved: implemented as
+> [IP-1030](../implementation/packages/IP-1030-generated-region-screen-composition-code.md)
+> (code) + [IP-1031](../implementation/packages/IP-1031-generated-region-screen-composition-content.md)
+> (content), both **VERIFIED** (`VR-1030` 2026-07-10, `VR-1031` 2026-07-12) for the original
+> 5-identity biome-family set. **Revised 2026-07-16** (`FR-4320`/`BL-0128`) — dispatch set widens
+> to 9 identities; both Open Questions reopened for the 4 new identities only, and found nearly
+> free to close (screen art + tile-index/palette budget already exist, confirmed by direct code
+> read — a dispatch-table rewire, not new content authoring); new OQ3 (this entry's own Included
+> Requirements does not yet name `FR-4320`, an OQ4-class gap mirroring `FEAT-9000`'s own). Not yet
+> packaged/implemented for the widened set.
 
 - **Feature ID:** FEAT-4100
 - **Title:** Generated-Region Screen Composition
