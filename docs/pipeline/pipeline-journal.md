@@ -14,248 +14,61 @@
 
 ## Position
 
-- **Updated:** 2026-07-14 (run #160)
-- **Increment:** Bootstrap baseline remains fully closed (01–11 ✅, GO recorded). Release 2
-  (bundled with all post-ship remediation) is baselined GO. **This session (runs #128–141, a prior
-  session):** verified `IP-1021`/`IP-1081`, implemented `IP-1082`, integration-reviewed `IP-1021`,
-  ran both `02-research-*` halves of the infinite-world priority (`R114`/`R216`), then drove the
-  full `04→03→04→05→06→07→08` chain for the edge-indicator legend screen through to a fully
-  implemented `IP-1090`. **Runs #142–143 (a fresh session):** independently verified both
-  session-blocked packages — `IP-1090` ([VR-1090](../implementation/verification/VR-1090-select-menu-edge-indicator-legend-screen.md))
-  and `IP-1082` ([VR-1082](../implementation/verification/VR-1082-maze-blocked-edge-indicator-render.md)).
-  **Run #144 (a concurrent, independent session — merged via PR #23):** at the user's direction,
-  the pipeline itself gained a refactoring stage — new `08-refactoring` stage-08 peer skill
-  (behavior-preserving code / meaning-preserving doc restructuring via `IP-8xx0` packages), with
-  explicit scheduling conditions added to `00-pipeline-manager`, routing in `00-intake` (`refactor`
-  type), packaging conventions in `07-implementation-planning`, and the pipeline README
-  (infrastructure commit `f7172dc`, outside stage scope) — then an `override` run added its
-  research grounding, [R307](../research/encyclopedia/R307-refactoring-practices.md) (tier R300
-  now runs R301–R307). **Runs #145–146 (this session, run concurrently with #144 above from the
-  same starting point — reconciled at merge, see the run-log rows and the note below):** user
-  asked to iterate `BL-0082` specifically; gate-stopped on the open architecture-adoption
-  decision, got explicit user authorization, then ran `03-architecture-design-synthesis` to make
-  the call — **adopted** streaming/positionally-deterministic generation for a new, additive
-  Infinite Mode (`ADS-001`/`ADR-0016`/`ADR-0017`) (run #145); then ran `10-integration-review` on
-  the `IP-1081`/`IP-1082` set (`BL-0103`) — **clean, no findings** (run #146). **This run (#147,
-  same session):** user asked to keep iterating, focused on the infinite-procgen threads;
-  overrode the recommended next step to run `04-requirements-engineering` on the Infinite Mode
-  epic (`BL-0094`+`BL-0106`) — **baselined** seven target FRs (`FR-10100`–`FR-10500`) and four
-  target NFRs (`NFR-1400`/`2300`/`4300`/`5400`); the run/session-shape question could not be
-  baselined and was correctly filed as `CR-07` instead of invented (RQ-03 finding #17). **This
-  run (#148, same session):** user answered `CR-07` directly — "for now assume indefinitely
-  resumable" — resolved and baselined as `FR-10600`, same session `CR-07` was filed, before the
-  `NEEDS-USER` surfacing finding #17 recommended for `05`/`06` was ever needed. **This run (#149,
-  same session):** user asked for `BL-0066` to be explained, then directed a resolution: "If
-  there is a blob mechanism that works for infinite mode, use that concept for the finite mode as
-  well." Ran `03-architecture-design-synthesis` — authored **ADR-0018**, adopting the same
-  per-super-cell `hash(SEED, supercell_row, supercell_col)` technique `ADR-0016` established for
-  Infinite Mode, refining `ADR-0009` point 2 (existing draw retained as fallback), needing no
-  `ADR-0012` pass-ordering change at all — this is what makes it resolve `CR-05`'s original
-  conflict cleanly rather than picking either of the two originally-offered sides. **This run
-  (#150, same session):** user asked to keep iterating on open infinite-map threads; ran
-  `05-feature-decomposition` on the Infinite Mode epic — decomposed as **`FEAT-10000`**, joining
-  new **`EP-6000`**, placed in the `Future` release bucket. Folded in `BL-0102`'s pre-existing
-  `FP-05` tally gap (`FR-9160`/`FR-9161`) while touching the same document.
-- **Pipeline state:** Bootstrap: stages 01–11 ✅. **All 26 of 26 implementation packages
-  `VERIFIED`** — every package in the tree has now reached `VERIFIED`. `IP-1021` and now
-  `IP-1081`/`IP-1082` (maze-blocked edge indicator set) both integration-reviewed clean
-  ([integration-review-ip-1081-ip-1082.md](../reviews/integration-review-ip-1081-ip-1082.md),
-  confirming interface consistency — including `IP-1090`'s legend screen, a consumer of this
-  set's tile constants that post-dated both packages' own verification — invariant sweep,
-  behavioral coherence (`T20`/`T21` full-corpus checks), and traceability/documentation coherence,
-  all clean at commit `b6e5f78`; `docs/reviews/INDEX.md`/`ROADMAP.md`'s `RV-INTEG` row updated).
-  A `09-content-review` pass on `IP-1081`/`IP-1082`'s shipped tile art is still owed (`BL-0097`,
-  `SCHEDULED`) — the last remaining tranche-closure step for that set. GDS-01/GDS-08 both carry a
-  delta (§4c/§11); `FR-1200`/`FR-1210` now `Implemented` and `FR-2330` now fully closed (AC-4/AC-5).
-  `docs/architecture/` gains its first per-cluster synthesis,
-  [ADS-001](../architecture/ADS-001-streaming-infinite-world-generation.md), and two new ADRs,
-  [ADR-0016](../architecture/adr/ADR-0016-streaming-infinite-mode-generation-architecture.md)
-  (streaming generation architecture for Infinite Mode) and
-  [ADR-0017](../architecture/adr/ADR-0017-infinite-mode-treasure-placement-and-win-condition.md)
-  (decoupled treasure placement + score-chasing win condition). `ADR-0009`/`ADR-0012` each gained
-  an append-only cross-reference note (no Decision text changed) — the finite mode's own shipped
-  generation algorithm, save format, and win condition are entirely unaffected. `docs/architecture/
-  INDEX.md` §2, `adr/INDEX.md`, and `ROADMAP.md`'s ADR-xxxx/ADS-xxx rows all updated in sync. This
-  authorizes an architecture *target* only — no `GDS-04`/`07`/`09` delta yet, no code shipped.
-  Any future `refactor`-type work follows the manager's new explicit conditions (propose → `07`
-  authors an `IP-8xx0` → G3 per-package authorization, no carve-out → `08-refactoring` → `09`).
-  **New this run:** the Infinite Mode epic now has a full target FR/NFR baseline
-  ([01-functional-requirements.md](../requirements/01-functional-requirements.md) FR-10000 group,
-  [02-non-functional-requirements.md](../requirements/02-non-functional-requirements.md)
-  NFR-1400/2300/4300/5400) — mode entry, streaming positionally-deterministic generation,
-  revisit-consistency, decoupled hash-density treasure placement, score-chasing win condition,
-  visited-region-ledger save/load. Two NFRs carry an honest `UNCONFIRMED`/`NOT YET SIZED` status
-  rather than a bare "not yet implemented," directly reflecting `R114`'s own explicit feasibility
-  flags. None of `FR-9000`'s finite-mode leaves are amended. The run/session-shape question
-  (`BL-0106`) could not be baselined at that point — filed as **CR-07** (RQ-03 finding #17).
-  **New this run (#148):** the user answered `CR-07` directly ("for now assume indefinitely
-  resumable") — baselined as **FR-10600** (Indefinitely resumable Infinite Mode run), cross-checked
-  against `FR-1170`/`FR-1190`/`FR-10500` (confirmed complementary, no conflict), no `GDS-01` delta
-  needed. `CR-07` closed; RQ-03 finding #17 updated to record the resolution.
-  `docs/requirements/INDEX.md` and `ROADMAP.md`'s RQ-01…04 rows updated in sync both runs.
-  **New this run (#149):** [ADR-0018](../architecture/adr/ADR-0018-finite-mode-biome-blob-clustering.md)
-  — a deterministic snap-to-blob per region (biome-id set directly to its super-cell's target
-  when grammar-compatible, no PRNG draw consumed; otherwise falls back to today's unbiased
-  `anchor + delta` draw, entirely unchanged) — resolves the finite-mode half of `BL-0066`/`CR-05`
-  that `ADR-0012`'s pass-ordering conflict (RQ-03 finding #13) left stuck. Super-cell size itself
-  is explicitly left as an implementation-time tuning question (filed `BL-0110`), mirroring
-  `ADR-0017`'s own precedent for its density constant `K`. `ADR-0009` gained an append-only
-  cross-reference note; `CR-05` in RQ-01 updated (mechanism resolved, not yet baselined — a
-  future `04-requirements-engineering` pass derives the real FR); RQ-03 gained finding #18; RQ-04
-  gained an updated `CR-05` row. `docs/architecture/adr/INDEX.md` and `ROADMAP.md`'s ADR/RQ rows
-  updated in sync. **New this run (#150):** [FEAT-10000](../feature-planning/03-feature-catalog.md)
-  (Infinite Mode) — 11 requirements (`FR-10100`–`FR-10600`, `NFR-1400`/`2300`/`4300`/`5400`), the
-  largest Feature in the catalog, kept unsplit for now (mirroring `FEAT-9000`'s own precedent —
-  nothing implemented yet reveals a clean seam). Joins new **EP-6000**, kept distinct from
-  `EP-5000` since `ADR-0016` frames Infinite Mode as a second, independent architecture, not an
-  extension of the existing routine. Zero graph-blocking dependencies (all five upstream Features
-  already shipped/`VERIFIED`) — placed in `Future` for release-commitment reasons only, not a
-  technical block; `06-feature-specification` can proceed against it regardless of bucket.
-  `FP-05` reviewed clean (finding #9); folded in `BL-0102`'s tally gap (`FR-9160`/`FR-9161`, 58→60)
-  in the same pass. `docs/feature-planning/INDEX.md` and `ROADMAP.md`'s FP-01…05 rows updated.
-  **New this run (#151):** [FS-110](../features/FS-110-infinite-mode.md) — the full 20-field
-  spec for `FEAT-10000`, four user workflows (mode entry, region materialization, treasure/win-
-  condition, save/load). Honestly surfaces **8 Open Questions** rather than inventing answers —
-  most notably that `FEAT-10000`'s own catalog Dependencies may be missing `FEAT-4100` (rendering
-  integration, filed `BL-0111`), that the mode-selection UI has no `GDS-01` delta yet (filed
-  `BL-0113`, mirroring `CR-06`'s precedent), and that the run-end trigger for the top-3 comparison
-  is genuinely undecided even after `CR-07`'s resolution (filed `BL-0112` — `FR-10600` answered
-  *whether* a forced mechanic exists, not *when* the comparison happens). `docs/features/INDEX.md`
-  and `FEAT-10000`'s own forward-reference metadata updated (not its content, per this skill's own
-  rule). No `IP-xxxx` planned yet — `FEAT-10000` remains in the `Future` bucket. **This run
-  (#152, same session):** picked `BL-0113` over `BL-0111` as the more upstream of the two named
-  blockers on a clean `07` package; ran `03-architecture-design-synthesis` — authored
-  [GDS-01 §4d](../architecture/01-concept-of-play.md), a new `MODE SELECT` cursor menu forking
-  `MAIN MENU`'s "new game" into the finite mode's unchanged, already-shipped `SEED/SCALE ENTRY`
-  or a new seed-only `INFINITE SEED ENTRY` state — resolving `BL-0113` in full as target-state
-  architecture, deliberately preserving `SEED/SCALE ENTRY`'s own `IP-1040` B-cancel behavior at
-  the cost of an asymmetric cancel path (named tradeoff, not silently absorbed). **This run
-  (#153, same session):** ran `05-feature-decomposition` on `BL-0111` — added `FEAT-4100` to
-  `FEAT-10000`'s Dependencies (and the reverse Dependent Features entry), the corresponding
-  `FP-04` edge/summary row, and a Step-5 delta-review finding (#10) noting finding #9's own
-  earlier review missed this same gap. Both named upstream blockers on `FS-110` are now closed.
-  **This run (#154, same session):** ran `07-implementation-planning` on `FS-110` — five packages
-  (`IP-1100`–`IP-1104`), critical path `IP-1101`→`IP-1102`→`IP-1103`→`IP-1104`. Resolved Open
-  Question 1 by direct code read (`dsr_p`'s biome-dispatch reusable verbatim, `draw_region_arrows`
-  is not) and Open Questions 2/4/5/7/8 as implementation-level sizing choices; Open Question 3
-  (run-end trigger, `BL-0112`) deliberately left open, per `FS-110`'s own routing. All five
-  packages `NOT STARTED`, **NOT YET AUTHORIZED (G3)**. **User authorized all five same session
-  ("Yes, build all five").** **This run (#155, same session):** ran `08-code-implementation` on
-  `IP-1101` — implemented per-region materialization (`inf_materialize_region`/
-  `inf_region_seed0`/`inf_mod5`, `worldgen.materialize_region` oracle mirror, new WRAM
-  `0xC40D`–`0xC418`, `GDS-07` §7d). New suite `T22` (7 checks, renamed from the planned `T23`).
-  253/253 full suite pass, ROM 25800/32768 bytes. Caught and fixed a real design flaw in the
-  package's own planning text (a second reseed for the treasure draw would have correlated it
-  with the biome draw) during implementation, not shipped. `IP-1101` → `COMPLETE`, awaiting
-  `09-package-verification`. **This run (#156, same session, user-directed: "iterate pipeline on
-  finite mode blob clustering and mode selection UI"):** ran `04-requirements-engineering` on both
-  named threads together — baselined **FR-9170** (finite-mode biome-blob clustering, `ADR-0018`),
-  closing `CR-05`/`BL-0066` in full; refreshed **FR-10100** against `GDS-01` §4d (mode-selection
-  UI, in-place enrichment, no new FR-ID). `RQ-03` finding #19 reviews both clean. **This run
-  (#157, same session):** ran `09-package-verification` on `IP-1101`, delegated to a background
-  subagent for genuine session independence (this session implemented `IP-1101`, and the skill's
-  own rule forbids same-session self-verification). **`IP-1101` → `VERIFIED`** — full suite
-  re-confirmed from scratch (253/253), oracle/SM83 lockstep re-confirmed, three Low doc-findings
-  filed (no functional defects). **`IP-1100`/`IP-1102` both flip `NOT STARTED`→`READY`.**
-  **This run (#158, same session):** ran `08-code-implementation` on `IP-1102` (streaming window,
-  navigation & render integration, the critical-path package) — new `inf_ensure_window`
-  (9-cell fresh recompute via `IP-1101`'s routine), `czt_infinite`/`czti_*` (transition-triggered
-  materialization, real button-driven), `GAME_MODE`-gated `dsr_p`/`dsr_p_copy` entries (reuses the
-  existing biome-dispatch verbatim), new `draw_region_arrows_inf`. `GAME_MODE` claimed here rather
-  than by `IP-1100` as originally planned (both packages' plans already agreed on `0xC3F6` — an
-  implementation-order deviation, not a conflict); caught and fixed a real uninitialized-WRAM
-  correctness risk during implementation (`GAME_MODE` sits outside the existing `0xC000`–`0xC2FF`
-  boot-clear range — added an explicit boot-time clear). New suite `T24` (7 checks): real
-  button-driven navigation in all 4 directions with biome-render confirmation (`T24.a`), revisit
-  consistency through the render path (`T24.b`), a static+regression proof the finite-mode `dsr_p`
-  path is byte-for-byte unchanged (`T24.c`), a blocked-tile static/corpus audit (`T24.d`), and a
-  direct PC/SP-hijack cycle-count for `NFR-1400` (`T24.e`, using ROM-address `hook_register`
-  callpoints after the WRAM-trap variant hung PyBoy's emulation core). Full suite 260/260 pass,
-  ROM 26568/32768 bytes. `NFR-4300` sized and **Met** (15 bytes vs. ~3.1 KiB bank-0 headroom).
-  `NFR-1400` honestly measured **`NOT MET`** (78,860–81,792 T-cycles vs. a 70,224-cycle frame
-  budget for `inf_ensure_window`'s real, always-occurring per-transition cost — `gw_prng_step`'s
-  13 calls/`inf_materialize_region` compounding across 9 window cells) — not a blocker for this
-  package's own Definition of Done (measured-and-recorded, not compliance) nor for MVP
-  playability (an observable ~1-frame hitch, not a crash/unplayable stall), filed as `BL-0118` for
-  a follow-up optimization package. `FR-10200`/`NFR-4300`/`NFR-1400`/`GDS-07` §7e/RTM/`FS-110`
-  OQ1+OQ8 (and, one cycle late per `BL-0116`, OQ2+OQ4)/Master Build Plan/packages `INDEX` all
-  updated in sync. `IP-1102` → `COMPLETE`, awaiting `09-package-verification` (independent
-  session, per the same rule `IP-1101` required).
-  **This run (#159, same session):** ran `09-package-verification` on `IP-1102`, delegated to a
-  background subagent for genuine session independence. **`IP-1102` → `VERIFIED`** — full suite
-  re-confirmed from scratch (260/260, re-run twice after the subagent found this same working
-  directory being concurrently edited by this session's own `IP-1100` work-in-progress — re-ran a
-  second time from an isolated `git archive` copy of the exact verified commit to rule out
-  contamination, identical results). Every DoD/checklist item confirmed by direct code read;
-  `NFR-1400`'s own `NOT MET` result independently re-measured via a standalone script against a
-  disjoint corpus (77,812–81,816 cycles, same order of magnitude and conclusion — confirms the
-  honestly-recorded result is real, not a measurement artifact). One Low doc-finding (an
-  `ADR-0016` point-7 citation mismatch, same class as `VR-1101`'s own Finding 1 — second instance
-  this tranche, worth a future sweep). `IP-1103` flips `NOT STARTED`→`READY` (both its
-  dependencies now `VERIFIED`). **This run (#160, same session):** ran `08-code-implementation` on
-  `IP-1100` (mode selection & new-game entry, `GDS-01` §4d) — new `GS_MODE_SELECT`/
-  `GS_INFINITE_SEED_ENTRY` states, `MAIN MENU`'s "new game" retargeted to `MODE SELECT` (reuses
-  `MM_CURSOR`), `SEED/SCALE ENTRY` completely unchanged as `MODE SELECT`'s "finite" destination
-  (including its own unredirected `B`-cancel target — the named asymmetric-tradeoff, `T25.b1c`
-  confirms it shipped as specified), new `INFINITE SEED ENTRY` state (seed-only digit-cursor,
-  bounded 0-4). `INFINITE SEED ENTRY`'s A-confirm calls `IP-1102`'s own `inf_ensure_window`
-  (a deliberate deviation from this package's own §6 text, written before `IP-1102` existed —
-  reuses the already-built full-window routine instead of a single direct
-  `inf_materialize_region` call, avoiding both duplicated logic and an uninitialized-`INF_WINDOW`
-  risk). **Caught and fixed a real correctness gap during implementation:** `GAME_MODE` is now
-  explicitly reset to 0 at the "new game" entry point — without it, a canceled "infinite" attempt
-  (which sets `GAME_MODE=1`) followed by a fresh "finite" new-game would leave `GAME_MODE` stuck
-  at 1, silently routing finite-mode gameplay through `IP-1102`'s infinite-mode paths. New suite
-  `T25` (10 checks). Inserting `MODE SELECT` ahead of the shipped `SEED/SCALE ENTRY` flow rippled
-  into ~10 pre-existing test call sites project-wide (`advance_to_playing`/`enter_seed_scale`
-  callers across `T4`/`T14`–`T18`) needing the extra confirm press — an expected consequence of
-  this package's own scope, not a regression, all updated. Full suite 280/280 pass, ROM
-  29128/32768 bytes. `FR-10100` now fully Implemented (mode-choice half, alongside `IP-1101`'s
-  generate half); `GDS-01` §4d confirmed shipped; `FS-110` `OQ6` resolved. `IP-1100` → `COMPLETE`,
-  awaiting its own `09-package-verification` (independent session).
-- **Backlog:** 118 entries, 30 open (25 `SCHEDULED`, 5 `DEFERRED`, 0 `NEEDS-USER`) — unchanged by
-  runs #159/#160 (no new findings beyond what run #158 already filed; `VR-1102`'s one Low finding
-  is the same already-tracked citation-drift class as `VR-1101`'s, not filed as a separate entry
-  since no dedicated BL exists yet for "sweep ADR-0016 citations across the tranche" — worth
-  opening one if a third instance turns up). Standing from run #158: filed **`BL-0118`** (`NFR-1400`
-  confirmed `NOT MET`, Medium-High, `SCHEDULED`/`07`, a follow-up optimization package). Flipped
-  **`BL-0109`** (`NFR-1400` measurement ask) `SCHEDULED`→`DONE` — its own ask (the real
-  measurement) is answered; the confirmed stall risk carries forward as `BL-0118`. Flipped
-  **`BL-0116`** (FS-110 §19 OQ2/4 marking gap) `SCHEDULED`→`DONE` — fixed in this same run.
-  Standing from run #157: **`BL-0115`**/**`BL-0117`** remain `SCHEDULED` (citation/typo fixes,
-  `07`/`03`, not touched by this run — out of `IP-1102`'s own scope). Standing from run #156:
-  **`BL-0066` flipped `SCHEDULED`→`DONE`**.
-  Standing from run #154: **`BL-0114` flipped `SCHEDULED`→`DONE`**. Standing from run #153:
-  **`BL-0111` flipped `SCHEDULED`→`DONE`**. Standing from run #152: **`BL-0113` flipped
-  `SCHEDULED`→`DONE`**. Standing from run #151: **`BL-0112`** (run-end trigger timing, `SCHEDULED`,
-  rides `04` or a direct user decision — deliberately left unresolved by `IP-1103`, per `FS-110`'s
-  own routing); **`BL-0110`** (super-cell size tuning, `SCHEDULED`, rides `07-implementation-
-  planning` once the finite-mode blob FR is packaged — `FR-9170` now exists to package). Standing
-  from run #150: **`BL-0094` flipped `SCHEDULED`→`DONE`**; **`BL-0102` flipped `SCHEDULED`→`DONE`**.
-  Standing from run #148: **`BL-0106` flipped `DEFERRED`→`DONE`**. Standing from run #146:
-  **`BL-0103` flipped `DONE`**. Standing from run #145: **`BL-0082` flipped `DONE`**; **`BL-0050`**
-  re-dispositioned `DEFERRED`→`SCHEDULED`. Standing from run #144 (the concurrent session):
-  **`BL-0104`** filed and resolved same-run, `DONE`; **`BL-0105`** filed `DEFERRED`.
-- **Next step:** `08-code-implementation` on `IP-1103` (treasure placement & win-condition state —
-  now `READY`, both dependencies `IP-1101`/`IP-1102` `VERIFIED`) — the critical-path package,
-  continuing per the user's own standing "iterate to a playable Infinite Mode MVP" instruction.
-  In parallel, `09-package-verification` on `IP-1100` remains owed (independent session, delegated
-  to a background subagent, same as `IP-1101`/`IP-1102`). Once `IP-1103` reaches `VERIFIED` (and
-  `IP-1100` too), `IP-1104` becomes eligible — the tranche's last package. Separately available,
-  none blocking this tranche: `05-feature-decomposition` to fold `FR-9170` into `FEAT-9000`'s
-  existing catalog entry; `09-content-review` on `IP-1081`/`IP-1082` (`BL-0097`); `BL-0112`'s own
-  run-end-trigger question (deliberately left open through `IP-1103`, per `FS-110`'s own routing);
-  the finite-mode MAP/status-screen redesign (`BL-0050`); `BL-0118`'s own follow-up optimization
-  package (not urgent, scheduled post-tranche).
-- **Open gates:** **none.**
-- **Direct user instruction, no skill invocation (2026-07-13, between runs #134 and #135):**
-  user directed two backlog corrections. (1) `BL-0050` re-dispositioned `SCHEDULED`→`DEFERRED` —
-  it was marked ripe for `04` once `IP-1021` shipped, but that's only the finite-world win
-  condition; the *final* win-condition shape is still open pending `BL-0082`'s own resolution
-  (score-chasing is a live, structurally different candidate). Re-blocked on `BL-0082` itself, not
-  `IP-1021` alone. (2) `00-intake` filed **`BL-0100`**: a legend/help screen, reachable via
-  SELECT, explaining the maze-blocked edge indicator symbols. Committed (`4d3f119`) and pushed.
-  **(Both now resolved, run #144 — see above.)**
+- **Updated:** 2026-07-16 (run #161)
+- **Increment:** Infinite Mode tranche (`IP-1100`–`IP-1104`, `FS-110`/`FEAT-10000`/`EP-6000`,
+  user-authorized G3 2026-07-14 "Yes, build all five"; standing user instruction: iterate to a
+  playable Infinite Mode MVP). Bootstrap baseline remains fully closed (01–11 ✅, GO recorded);
+  Release 2 (bundled with all post-ship remediation) remains baselined GO. Prior sessions took
+  the tranche to: `IP-1101` `VERIFIED` (VR-1101), `IP-1102` `VERIFIED` (VR-1102), `IP-1100`
+  `COMPLETE` (280/280, awaiting its own `09` pass). **This run (#161, fresh session picking up
+  from the run-#160 handoff):** ran `08-code-implementation` on `IP-1103` (treasure placement &
+  win-condition state, the critical-path package) — **`COMPLETE`, 296/296** (new suite `T26`,
+  16 checks; renamed from the package's planned "T25" since `IP-1100` claimed it first — the
+  tranche's third such renaming). Workflow C steps 1–2 shipped in full: new WRAM
+  `0xC405`–`0xC40C` ([GDS-07 §7f](../architecture/07-data-model.md), explicitly boot-cleared per
+  `GAME_MODE`'s own §7e lesson); treasure spawns as the sole `COLL_DATA` entry at a per-biome
+  position mirroring `ZONE_COLLECTS`' type-2 entry (`T26.a0` drift-guards the deliberate
+  duplication); `check_collisions`' new `GAME_MODE == 1` branch counts the pickup (16-bit),
+  clears the `INF_TREASURE_HERE` cache (now populated at `inf_ensure_window`'s center cell —
+  the write `IP-1102` §7e reserved for this package), and forward-calls the
+  `inf_ledger_mark_collected` `RET` stub `IP-1104` implements. `inf_check_top_score`
+  (sorted-descending top-3 insertion, strictly-exceeds, no name entry) is corpus-verified
+  (`T26.c`) and has **zero call sites, by design** (`T26.d` asserts exactly that — the run-end
+  trigger is `BL-0112`'s open question, honored, not resolved). `FR-10300` → Implemented;
+  `FR-10400` → **Partially Implemented**, stated precisely, not rounded up. **Also closed the
+  hazard `IP-1100` §6 explicitly handed this package:** before this run, Infinite Mode ran the
+  finite spawn/collection paths against stale `CUR_ZONE`/`REGION_GRAPH` data — colliding with a
+  stale type-2 item incremented `KEYITEM_COUNT` toward a reachable spurious finite victory; the
+  new `GAME_MODE` gates end that (`T26.a7`/`T26.a8`). Known, sequenced gap (not an oversight):
+  collected-state across window re-entry awaits `IP-1104`'s ledger — and the dependency-seam
+  read filed **`BL-0119`** (see Backlog) because `IP-1104`'s own §6 currently specifies the
+  ledger read only on the *load* path, not on mid-session re-entry.
+- **Pipeline state:** Bootstrap stages 01–11 ✅; Release 2 GO. **31 implementation packages:
+  28 `VERIFIED`, 2 `COMPLETE` (`IP-1100`, `IP-1103` — each awaiting an independent
+  `09-package-verification` pass; `IP-1103` may not be verified by this session, which
+  implemented it), `IP-1104` `NOT STARTED`** (depends on `IP-1100`/`1102`/`1103` all reaching
+  `VERIFIED`; also see `BL-0119`, an `IP-1104` §6 amendment owed before/with its execution).
+  Tranche-closure steps still owed elsewhere: `09-content-review` on `IP-1081`/`IP-1082`'s
+  shipped tile art (`BL-0097`); `BL-0118`'s post-tranche `NFR-1400` optimization package;
+  `BL-0115`/`BL-0117` citation/typo fixes (`07`/`03`); `05-feature-decomposition` fold of
+  `FR-9170` into `FEAT-9000`'s catalog entry. Drift corrected this run: the GDS-07 rows in
+  `docs/architecture/INDEX.md` and `ROADMAP.md` had lagged one package behind the document
+  (§7e/`IP-1102` was never mirrored) — both rows synced while adding §7f.
+- **Backlog:** 119 entries, 31 open (26 `SCHEDULED`, 5 `DEFERRED`, 0 `NEEDS-USER`). New this
+  run: **`BL-0119`** (Medium-High, `SCHEDULED`/`07`) — `IP-1104` §6 must extend the ledger
+  collected-flag cross-reference to mid-session cache re-derivation, else one region is
+  out-and-back farmable within a session, violating `FS-110` §7's own edge case. `BL-0112`
+  (run-end trigger) remains `SCHEDULED` and was deliberately honored-open by `IP-1103` itself.
+  No `DEFERRED` trigger fired (BL-0105's network-access trigger re-confirmed blocked in the
+  prior session; BL-0107 still waits on a playable Infinite Mode — closer now, not yet there).
+- **Next step:** `09-package-verification` on `IP-1100` (mode selection & new-game entry) —
+  this session did not implement it, so the independence rule permits verifying it directly
+  next advance; that flip plus an independent-session (or background-subagent) `09` pass on
+  `IP-1103` are what stand between the tranche and `IP-1104` becoming eligible. `IP-1104`
+  should not execute until `BL-0119`'s §6 amendment is dispositioned (a small
+  `07-implementation-planning` touch-up, or an explicit named rider on the `08` run).
+- **Open gates:** **none.** (All five tranche packages carry the 2026-07-14 G3 authorization;
+  no release flip, no unadjudicated Critical/High findings, no ripe `NEEDS-USER` entries.)
 
 ## Run log
 
@@ -425,3 +238,4 @@
 | 158 | 2026-07-14 | advance (user-directed: iterate to a playable Infinite Mode MVP, self-paced) | `08-code-implementation` | `IP-1102` — streaming window, navigation & render integration | ✅ Reconciled position (matched run #157, no drift; confirmed `origin/claude/pipeline-skill-bl-0082-a0kv67` unchanged, HEAD at `4ccbf1d`). Triaged: no `NEW` entries pending. Picked `08-code-implementation` on `IP-1102` — the critical-path package toward `IP-1103`/`IP-1104`, `IP-1101`/`IP-1030` both `VERIFIED`, already authorized this session. No gate applied (authorization already cleared). Invoked `08-code-implementation`: implemented `inf_ensure_window` (9-cell fresh recompute via `IP-1101`'s `inf_materialize_region`, no incremental shift logic per the package's own §6 design), `czt_infinite`/`czti_north/south/west/east` (transition-triggered materialization, real `JOY_CUR`-gated button-driven navigation mirroring `IP-9130`'s own convention), `GAME_MODE`-gated `dsr_p`/`dsr_p_copy` entries (reuses the existing biome-dispatch chain verbatim, confirmed byte-for-byte unchanged for the finite path by direct static diff), new `draw_region_arrows_inf` (plain open-arrow only, no blocked-edge concept — Infinite Mode's world is unbounded). `GAME_MODE` claimed here rather than by `IP-1100` as originally planned (both packages' plans already agreed on `0xC3F6` — an implementation-order deviation, not a real conflict). **Caught and fixed a real correctness bug during implementation, not shipped:** `GAME_MODE` sits outside the existing `0xC000`–`0xC2FF` boot-clear range, and `dsr_p`/`check_zone_transition` now read it every `PLAYING` frame — without an explicit boot clear it would read uninitialized WRAM and could spuriously route finite-mode gameplay into the untested infinite-mode paths; fixed with a targeted single-purpose boot-time clear mirroring the existing shadow-OAM clear's own pattern. New suite **T24** (7 checks): real button-driven navigation in all 4 directions with biome-render confirmation (`T24.a`), revisit consistency through the render path (`T24.b`), a static+regression proof the finite-mode `dsr_p` path is byte-for-byte unchanged (`T24.c1`/`c2`), a blocked-tile static/corpus audit (`T24.d1`/`d2`), and a direct cycle-count for `NFR-1400` (`T24.e`). Full suite 260/260 pass, ROM 26568/32768 bytes. **`T24.e`'s own measurement is a genuine, material finding, not a clean pass:** direct PC/SP-hijack cycle-counting (the WRAM self-loop trap `T12`/`T22` use for coarse completion-detection hung PyBoy's emulation core when combined with a `hook_register` callpoint there — worked around by pointing the hijack's return address at the real ROM label `czt_redraw` instead, safe to hook) measured `inf_ensure_window`'s real, always-occurring per-transition cost (9 fresh `inf_materialize_region` calls, no incremental shift optimization implemented) at 78,860–81,792 T-cycles across a 3-entry corpus — against a single CGB-single-speed frame's 70,224-cycle budget, **`NFR-1400` is honestly measured `NOT MET`** (exceeds by ~12–16%; root cause identified: `gw_prng_step`'s 13 calls/`inf_materialize_region`, ~500–700 cycles each, compounding across 9 window cells). Not a blocker for this package's own Definition of Done (measured-and-recorded, not compliance, is what it requires) nor for Infinite Mode's MVP playability (an observable ~1-frame hitch on region entry, not a crash/data-loss/unplayable stall) — filed as a new backlog finding for a follow-up optimization package rather than silently absorbed or fixed out-of-scope here. `NFR-4300` sized and **Met** (15 bytes vs. ~3.1 KiB bank-0 headroom). `docs/requirements/01`/`02`/`04`, `docs/architecture/07-data-model.md` (new §7e), `FS-110`'s own metadata + §19 OQ1/OQ8 (and, one cycle late per `BL-0116`, OQ2/OQ4), `docs/implementation/00-master-build-plan.md`/`packages/INDEX.md` all updated in sync. Committed (`d6b0da1`) and pushed — verified no drift before committing. **Harvested:** filed **`BL-0118`** (`NFR-1400` confirmed `NOT MET`, Medium-High, `SCHEDULED`/`07`, follow-up optimization package). Flipped **`BL-0109`** (`NFR-1400` measurement ask) `SCHEDULED`→`DONE` — its own ask is answered, the confirmed risk carries forward as `BL-0118`. Flipped **`BL-0116`** (FS-110 §19 OQ2/4 marking gap) `SCHEDULED`→`DONE` — fixed this run. `BL-0115`/`BL-0117` (citation/typo fixes, `07`/`03`) left `SCHEDULED`, out of this package's own scope. No drift found. | `09-package-verification` on `IP-1102` — must be delegated to a fresh/independent background subagent, per the same rule `IP-1101` required (this session implemented `IP-1102`). Once `VERIFIED`, `IP-1103` becomes eligible (its dependencies `IP-1101`/`IP-1102` both cleared); `IP-1100` remains independently `READY`. Continuing per the user's own standing "iterate to a playable Infinite Mode MVP" instruction, one step per advance, no further gate expected. |
 | 159 | 2026-07-14 | advance (user-directed: iterate to a playable Infinite Mode MVP, self-paced) | `09-package-verification` | `IP-1102` — streaming window, navigation & render integration | ✅ Picked `09-package-verification` on `IP-1102` — delegated to a background subagent for genuine session independence (this session implemented `IP-1102`, and the skill's own rule forbids same-session self-verification). Subagent invoked `09-package-verification`: rebuilt the ROM and re-ran the full suite from scratch (260/260), re-run a second time from an isolated `git archive` copy after discovering this session's own concurrent `IP-1100` work-in-progress in the shared working directory (no contamination — identical results both times, and the subagent's own commit touched only its four intended files). Every DoD/checklist item confirmed by direct code read (`dsr_p`'s finite path a pure 3-instruction gate prefix; `check_zone_transition`'s four finite branches reached only when `GAME_MODE==0`; `inf_ensure_window` calls `IP-1101`'s routine via `CALL`, never re-implements it; `draw_region_arrows_inf` never references `TL_BLOCKED_*`; all five new WRAM constants match `GDS-07` §7e). `NFR-1400`'s own `NOT MET` result independently re-measured via a standalone script against a disjoint `(seed,row,col)` corpus (77,812–81,816 cycles, same order of magnitude and conclusion) — confirms the honestly-recorded result is real, not a measurement artifact. **Verdict: VERIFIED.** One Low-severity documentation finding: `IP-1102` §4 cites "ADR-0016 point 7 (no new module)" but point 7's real text is unrelated (G3 authorization scope) — the word "module" doesn't appear anywhere in `ADR-0016`; same class of slip as `VR-1101`'s own Finding 1, second instance this tranche. Produced [VR-1102](../implementation/verification/VR-1102-infinite-mode-streaming-window-and-render.md); flipped `IP-1102` → `VERIFIED` in the Master Build Plan/packages INDEX; **`IP-1103` flips `NOT STARTED`→`READY`** (both dependencies now `VERIFIED`). Committed (`82aee3b`) and pushed — the subagent staged only its own four files (never `git add -A`), leaving this session's concurrent uncommitted `IP-1100` work untouched. **Harvested:** no new backlog entries — the one Low finding is the same already-tracked citation-drift class `BL-0115` covers, not filed separately (worth a dedicated "sweep ADR-0016 citations" entry if a third instance turns up, not yet warranted for two). No drift found. | `08-code-implementation` on `IP-1100` (mode selection & new-game entry, now `READY` — but already in progress this same session, concurrently) or `IP-1103` (treasure & win-condition state, newly `READY`) — continuing per the user's own standing MVP instruction. |
 | 160 | 2026-07-14 | advance (user-directed: iterate to a playable Infinite Mode MVP, self-paced) | `08-code-implementation` | `IP-1100` — mode selection & new-game entry | ✅ Picked `08-code-implementation` on `IP-1100` (mode selection & new-game entry, `GDS-01` §4d) — `READY` since run #157, already authorized this session, parallel-eligible with `IP-1102`/`IP-1103`. No gate applied (authorization already cleared). Invoked `08-code-implementation`: new `GS_MODE_SELECT=10`/`GS_INFINITE_SEED_ENTRY=11` states; `MAIN MENU`'s "new game" retargeted to `GS_MODE_SELECT` (reuses `MM_CURSOR`, mirrors `IP-1090`'s own cursor-reuse precedent); `SEED/SCALE ENTRY` completely unchanged as `MODE SELECT`'s "finite" destination, including its own unredirected `B`-cancel target straight to `MAIN MENU` (the named `GDS-01` §4d asymmetric-tradeoff, `T25.b1c` confirms it shipped as specified, not silently "fixed" into symmetry); new `INFINITE SEED ENTRY` state (seed-only digit-cursor picker, bounded 0-4, no scale slot — reuses `SSE_DIGITS`/`SSE_CURSOR`/`sse_compose_seed`/`sse_adjust_up`/`sse_adjust_down` verbatim, new `draw_ise_digits` minus the scale-digit writes). `INFINITE SEED ENTRY`'s A-confirm calls `IP-1102`'s own `inf_ensure_window` (a deliberate deviation from this package's own §6 text, written before `IP-1102` existed — reuses the already-built full-window routine instead of a single direct `inf_materialize_region` call, avoiding both duplicated logic and an uninitialized-`INF_WINDOW` risk). **Caught and fixed a real correctness gap during implementation:** `GAME_MODE` is now explicitly reset to 0 at the "new game" entry point (`mm_newgame`) — without it, a canceled "infinite" attempt (which sets `GAME_MODE=1`) followed by a fresh "finite" new-game would leave `GAME_MODE` stuck at 1, silently routing finite-mode gameplay through `IP-1102`'s infinite-mode `dsr_p`/`check_zone_transition` paths. New suite **T25** (10 checks — planned as `T22`, renamed since `IP-1101` already claimed `T22`, mirroring `IP-1101`'s own identical renaming precedent). Inserting `MODE SELECT` ahead of the shipped `SEED/SCALE ENTRY` flow rippled into ~10 pre-existing test call sites project-wide (`advance_to_playing`/`enter_seed_scale` callers across `T4`/`T14`–`T18`) needing the extra confirm press — an expected, non-regression consequence of this package's own scope, all updated. Full suite 280/280 pass, ROM 29128/32768 bytes. Implements FR-10100 (mode-choice half, now fully Implemented alongside `IP-1101`'s generate half). `docs/architecture/01-concept-of-play.md` (§4d confirmed shipped), `docs/requirements/01`/`04`, `FS-110`'s own metadata + `OQ6` marked Resolved, `docs/implementation/00-master-build-plan.md`/`packages/INDEX.md`, `ROADMAP.md` all updated in sync (also caught and fixed `FS-110`'s own stale `IP-1102` `COMPLETE` marking, missed by the concurrent run #159 subagent since it wasn't in that subagent's own file list — flipped to `VERIFIED` here). Committed (`b3114da`) and pushed — verified no drift against `origin/claude/pipeline-skill-bl-0082-a0kv67` before committing (HEAD matched `82aee3b`, the run #159 subagent's own push). **Harvested:** no new backlog entries — both findings this run (the `GAME_MODE` reset gap, the `inf_ensure_window`-reuse deviation) were fixed/documented in place, not deferred. No drift found. | `08-code-implementation` on `IP-1103` (treasure placement & win-condition state, now `READY`) — the critical-path package. In parallel, `09-package-verification` on `IP-1100` remains owed (independent session, delegated to a background subagent). |
+| 161 | 2026-07-16 | advance (fresh session, run-#160 handoff) | `08-code-implementation` | IP-1103 (treasure placement & win-condition state) | ✅ **COMPLETE — 296/296 checks pass** (new suite `T26`, 16 checks). Workflow C steps 1–2 in full + `inf_check_top_score` with zero call sites by design (`BL-0112` honored-open; `FR-10400` Partially Implemented, not rounded up; `FR-10300` fully Implemented). New WRAM `0xC405`–`0xC40C` (GDS-07 §7f, boot-cleared). Treasure rides the existing `COLL_DATA` machinery (spawned by `setup_zone_collects`' new `GAME_MODE==1` branch at per-biome `ZONE_COLLECTS`-mirroring positions, `T26.a0` drift guard; rendered free via `update_oam`'s type-2 path). Closed `IP-1100` §6's named hazard: stale finite collectibles no longer spawn/collect in Infinite Mode (spurious finite victory was reachable — `T26.a7`/`a8` lock the fix). `INF_TREASURE_HERE` cache write added at `inf_ensure_window`'s center cell (the deviation `IP-1102`'s own WRAM comment pre-assigned to this package). Docs: RQ-01/RQ-04, FS-110 metadata + §19 OQ3 cross-referenced, GDS-07 §7f, MBP, packages/INDEX, ROADMAP — all synced. Drift corrected: architecture INDEX/ROADMAP GDS-07 rows had lagged §7e one package. Harvested: **BL-0119** (Medium-High, SCHEDULED/07) — `IP-1104` §6 lacks the mid-session re-entry ledger read (in-session farming exploit if executed as written). | `09-package-verification` on `IP-1100` (this session is independent of it); `IP-1103`'s own `09` pass needs a fresh session/subagent; `IP-1104` waits on both + `BL-0119`'s amendment |
