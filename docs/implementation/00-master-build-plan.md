@@ -1,19 +1,23 @@
 # Master Build Plan
 
-> **Status (updated 2026-07-16, `07-implementation-planning` amendment on `IP-1104`): 30 of 31
-> packages VERIFIED; `IP-1104` (visited-region-ledger save persistence) amended per `BL-0119`
-> and flips `NOT STARTED` → **`READY`** — all four dependencies (`IP-1100`/`1101`/`1102`/`1103`)
-> already `VERIFIED`, and the amendment resolves the pre-execution blocker `BL-0119` named. The
-> amendment adds a 642-byte WRAM working copy of the ledger (`LEDGER_COUNT`/`LEDGER_CURSOR`/
-> `LEDGER`, `0xC419`–`0xC69A`, mirroring `SRAM_LEDGER` byte-for-byte) so `IP-1102`'s
-> `inf_ensure_window` can cheaply consult collected-state on *every* materialization — new-game
-> entry, ordinary in-session navigation, and post-load restore alike — not only at the save/load
-> boundary the original plan covered; `inf_ledger_mark_collected` now operates on WRAM (no
-> per-collection SRAM/MBC1 access, a correctness *and* performance improvement over the original
-> SRAM-only design). New suite renamed `T26`→`T27` (the package's own planned suite collided
-> with `IP-1103`'s actual shipped `T26`, this tranche's fourth such renaming), with a new check
-> `T27.g` for the in-session case. `IP-1103` (Infinite Mode, treasure placement & win-condition
-> state) independently verified — `VERIFIED` ([VR-1103](verification/VR-1103-infinite-mode-treasure-and-win-condition.md),
+> **Status (updated 2026-07-16, `08-code-implementation` on `IP-1104`): 30 of 31 packages
+> VERIFIED; `IP-1104` (visited-region-ledger save persistence) implemented — `COMPLETE`,
+> 309/309 full suite (`T27`, 7 checks). Position + bounded-ledger (128 entries × 5 bytes)
+> save/load shipped in full via `save_to_sram`/`try_load_save` extensions (`SAVE_VERSION_VAL`
+> `0x04`→`0x05`, the fifth bump since ship); FIFO eviction at capacity (`T27.c`); a systematic
+> negative-test sweep confirms no mechanic ends a loaded Infinite Mode run (`T27.f`, FR-10600).
+> This closes the Infinite Mode tranche's own five-package implementation set — `BL-0112` (the
+> run-end trigger for `FR-10400`'s top-3 comparison) is the tranche's sole standing gap.
+> Same-package `BL-0119` amendment (planned earlier this run): a 642-byte WRAM working copy of
+> the ledger (`LEDGER_COUNT`/`LEDGER_CURSOR`/`LEDGER`, `0xC419`–`0xC69A`, mirroring `SRAM_LEDGER`
+> byte-for-byte) so `IP-1102`'s `inf_ensure_window` can cheaply consult collected-state on *every*
+> materialization — new-game entry, ordinary in-session navigation, and post-load restore alike —
+> not only at the save/load boundary the original plan covered; `inf_ledger_mark_collected` now
+> operates on WRAM (no per-collection SRAM/MBC1 access, a correctness *and* performance
+> improvement over the original SRAM-only design), verified in-session by `T27.g`. New suite
+> renamed `T26`→`T27` (the package's own planned suite collided with `IP-1103`'s actual shipped
+> `T26`, this tranche's fourth such renaming). `IP-1103` (Infinite Mode, treasure placement &
+> win-condition state) independently verified — `VERIFIED` ([VR-1103](verification/VR-1103-infinite-mode-treasure-and-win-condition.md),
 > 296/296, one Low documentation finding, not blocking). Deliberate scope boundary reconfirmed
 > (`IP-1103` §2/§7, `FS-110` OQ3/`BL-0112`): Workflow C steps 1–2 shipped in full (treasure
 > spawn/collection/running count) plus the top-3 comparison subroutine `inf_check_top_score` —
@@ -380,7 +384,20 @@ correctness *and* performance improvement over the original design). New suite r
 `T26`→`T27` (collided with `IP-1103`'s own shipped `T26`, the tranche's fourth such renaming),
 with a new check `T27.g` for the in-session case `BL-0119` named. All four dependencies
 (`IP-1100`/`1101`/`1102`/`1103`) `VERIFIED` — `IP-1104` is now genuinely `READY` for
-`08-code-implementation`, the tranche's last package.
+`08-code-implementation`, the tranche's last package. **Implemented same run — `COMPLETE`,
+309/309 pass** (new suite `T27`, 7 checks — `a`/`b`/`c`/`d`/`e`/`f`/`g`, several correctly split
+into multiple sub-assertions, e.g. `a`→`a1`/`a2`/`a3`, `c`→`c1`/`c2`/`c3`/`c4`). ROM 29896/32768
+bytes. `save_to_sram`/`try_load_save` both extended inside their existing single MBC1-enable
+bracket (`IP-1050`'s own precedent, no second bracket opened); one `JR`→`JP` conversion needed
+where the added restore logic pushed the version-mismatch skip target out of `JR`'s ±127-byte
+range (the same class of range issue `IP-9070` hit first). `T27.g` independently confirms the
+`BL-0119` fix works exactly as amended: a collected treasure does not respawn on ordinary
+in-session re-entry, not just across save/load. Implements FR-10500/FR-10600 (both fully
+Implemented) and closes `NFR-5400`'s own sizing question (Met). `docs/requirements/01`/`02`/`04`,
+`GDS-07` §7g/§7h, `FS-110` metadata + §19 OQ5/OQ7 marked Resolved, this Master Build Plan,
+`packages/INDEX.md` all updated in sync. Incidentally fixed while touching `FS-110`'s own header
+for this package's update: the stale `IP-1100` `COMPLETE`→`VERIFIED` line `VR-1103`'s Finding 1
+(`BL-0122`) had flagged.
 
 | Package | Title | Owner | Status | Depends on | Authorized? |
 |---|---|---|---|---|---|
@@ -388,7 +405,7 @@ with a new check `T27.g` for the in-session case `BL-0119` named. All four depen
 | [IP-1101](packages/IP-1101-infinite-mode-region-materialization.md) | Per-region materialization | `08-code-implementation` | **VERIFIED** ([VR-1101](verification/VR-1101-infinite-mode-region-materialization.md), 2026-07-14) | — (tranche root) | **YES — explicit user G3, 2026-07-14 ("Yes, build all five")** |
 | [IP-1102](packages/IP-1102-infinite-mode-streaming-window-and-render.md) | Streaming window, navigation & render integration | `08-code-implementation` | **VERIFIED** ([VR-1102](verification/VR-1102-infinite-mode-streaming-window-and-render.md), 2026-07-14) | IP-1101 (VERIFIED) | **YES — explicit user G3, 2026-07-14 ("Yes, build all five")** |
 | [IP-1103](packages/IP-1103-infinite-mode-treasure-and-win-condition.md) | Treasure placement & win-condition state | `08-code-implementation` | **VERIFIED** ([VR-1103](verification/VR-1103-infinite-mode-treasure-and-win-condition.md), 2026-07-16 — Workflow C steps 1–2 + comparison subroutine only; the automatic trigger is deliberately unwired, `BL-0112`) | IP-1101 (VERIFIED), IP-1102 (VERIFIED) | **YES — explicit user G3, 2026-07-14 ("Yes, build all five")** |
-| [IP-1104](packages/IP-1104-infinite-mode-ledger-save-persistence.md) | Visited-region-ledger save persistence | `08-code-implementation` | **IN PROGRESS** (2026-07-16) | IP-1100 (VERIFIED), IP-1101 (VERIFIED), IP-1102 (VERIFIED), IP-1103 (VERIFIED) | **YES — explicit user G3, 2026-07-14 ("Yes, build all five")** |
+| [IP-1104](packages/IP-1104-infinite-mode-ledger-save-persistence.md) | Visited-region-ledger save persistence | `08-code-implementation` | **COMPLETE** (309/309, 2026-07-16 — closes the tranche's implementation set; `BL-0112` remains the sole standing gap) | IP-1100 (VERIFIED), IP-1101 (VERIFIED), IP-1102 (VERIFIED), IP-1103 (VERIFIED) | **YES — explicit user G3, 2026-07-14 ("Yes, build all five")** |
 
 ## Dependency graph
 
@@ -488,7 +505,7 @@ graph TD
     IP1101["IP-1101 per-region<br/>materialization<br/>(VERIFIED)"]
     IP1102["IP-1102 streaming window<br/>& render integration<br/>(VERIFIED)"]
     IP1103["IP-1103 treasure &<br/>win-condition state<br/>(VERIFIED)"]
-    IP1104["IP-1104 ledger save<br/>persistence<br/>(READY)"]
+    IP1104["IP-1104 ledger save<br/>persistence<br/>(COMPLETE)"]
     IP1040 --> IP1100
     IP1101 --> IP1100
     IP1020 --> IP1101

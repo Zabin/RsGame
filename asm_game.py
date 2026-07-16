@@ -203,12 +203,31 @@ INF_MZ_TROW     = 0xC415  # 2 bytes, C415-C416 -- transient scratch: the row cur
 INF_MZ_TCOL     = 0xC417  # 2 bytes, C417-C418 -- transient scratch: the column currently
                           # being hashed by inf_region_seed0
 
+# IP-1104: visited-region ledger, live WRAM working copy. First unclaimed
+# bytes past INF_MZ_TCOL's own end (0xC418). Amended 2026-07-16 per BL-0119
+# (originally planned as SRAM-only, touched on every collection -- that
+# would have needed an MBC1-enable bracket around every single pickup, and
+# would still have left inf_ensure_window, which runs on every navigation
+# step, nothing cheap to consult, exactly why the mid-session respawn gap
+# went unnoticed at planning time). This WRAM copy is what makes a
+# per-navigation-step ledger check affordable: no SRAM access outside the
+# two explicit save/load memcpy calls below, the same "WRAM working copy +
+# SRAM backing store" split KEYITEM_FLAGS/SCOREITEM_FLAGS/CARROT_FLAGS
+# already use project-wide.
+LEDGER_COUNT   = 0xC419  # 1 byte -- number of valid ledger entries, 0-128
+LEDGER_CURSOR  = 0xC41A  # 1 byte -- FIFO write cursor, 0-127
+LEDGER         = 0xC41B  # 640 bytes, C41B-C69A -- 128 entries x 5 bytes: row (signed
+                          # 16-bit, low byte first), col (same), collected-flag (1 byte).
+                          # LEDGER_COUNT/LEDGER_CURSOR/LEDGER form one contiguous 642-byte
+                          # block (C419-C69A), deliberately laid out to mirror
+                          # SRAM_LEDGER_COUNT/SRAM_LEDGER_CURSOR/SRAM_LEDGER byte-for-byte
+                          # (same field order, same sizes) so save/load is a single memcpy.
+
 SAVE_VERSION_ADDR = 0xA012   # save-format version guard (FR-5220 / Design Decision 2)
-SAVE_VERSION_VAL  = 0x04     # bumped 0x03->0x04 (IP-9110, fourth bump since ship — the
-                              # value sequence is strictly monotonic, never reused. Excludes
-                              # a pre-fix save from "continue" now that gw_prng_step's own
-                              # mixing step changed (BL-0074/ADR-0014), rather than silently
-                              # regenerating a different world with no signal to the player.
+SAVE_VERSION_VAL  = 0x05     # bumped 0x04->0x05 (IP-1104, fifth bump since ship — the
+                              # value sequence is strictly monotonic, never reused). A single
+                              # version guard covers both save shapes; GAME_MODE (restored
+                              # first on load) selects which fields are meaningful.
 SRAM_SEED          = 0xA01C  # 2 bytes, A01C-A01D — SEED mirror (IP-1050)
 SRAM_WORLD_SCALE   = 0xA01E  # 1 byte — WORLD_SCALE mirror (IP-1050)
 SRAM_KEYITEM_FLAGS = 0xA01F  # up to 81 bytes, A01F-A06F — KEYITEM_FLAGS mirror,
@@ -221,6 +240,22 @@ SRAM_SCOREITEM    = 0xA070   # up to 81 bytes, A070-A0C0 — SCOREITEM_FLAGS mir
                               # A013-A01B (IP-9070). Relocated to immediately after
                               # SRAM_KEYITEM_FLAGS's own end, leaving SRAM_SEED/
                               # SRAM_WORLD_SCALE/SRAM_KEYITEM_FLAGS's addresses untouched.
+
+# IP-1104: Infinite Mode save shape, GAME_MODE-gated (Workflow D). First
+# unclaimed bytes past SRAM_SCOREITEM's own end (0xA0C0).
+SRAM_GAME_MODE = 0xA0C1  # 1 byte -- mirrors GAME_MODE
+SRAM_INF_ROW   = 0xA0C2  # 2 bytes, A0C2-A0C3 -- mirrors INF_ROW
+SRAM_INF_COL   = 0xA0C4  # 2 bytes, A0C4-A0C5 -- mirrors INF_COL
+SRAM_RUNNING_TREASURE_COUNT = 0xA0C6  # 2 bytes, A0C6-A0C7 -- mirrors RUNNING_TREASURE_COUNT
+SRAM_TOP_SCORE_TABLE = 0xA0C8  # 6 bytes, A0C8-A0CD -- mirrors TOP_SCORE_TABLE. Persists
+                          # across new games (not per-run state) -- ADR-0017 point 4's own
+                          # "persistent high score, distinct from per-run state" split.
+SRAM_LEDGER_COUNT  = 0xA0CE  # 1 byte -- mirrors LEDGER_COUNT
+SRAM_LEDGER_CURSOR = 0xA0CF  # 1 byte -- mirrors LEDGER_CURSOR
+SRAM_LEDGER        = 0xA0D0  # 640 bytes, A0D0-A34F -- mirrors LEDGER, identical 5-byte-
+                          # per-entry format. SRAM_LEDGER_COUNT/SRAM_LEDGER_CURSOR/
+                          # SRAM_LEDGER form one contiguous 642-byte block (A0CE-A34F),
+                          # the exact SRAM mirror of LEDGER_COUNT/LEDGER_CURSOR/LEDGER above.
 
 J_A=0; J_B=1; J_SELECT=2; J_START=3; J_RIGHT=4; J_LEFT=5; J_UP=6; J_DOWN=7
 
@@ -304,6 +339,13 @@ def build_game_asm(rom: ROM) -> dict:
     # boot-time garbage as standing high scores. 8 bytes, 0xC405-0xC40C.
     rom.LD_HL_nn(RUNNING_TREASURE_COUNT); rom.LD_B_n(8); rom.XOR_A()
     rom.label('cts'); rom.LD_HLI_A(); rom.DEC_B(); rom.JR_NZ('cts')
+
+    # Clear LEDGER_COUNT/LEDGER_CURSOR (IP-1104) -- same targeted-clear
+    # rationale: a fresh cartridge must start with an empty ledger, not
+    # garbage read as valid entries. LEDGER's own 640 bytes need no boot
+    # clear -- LEDGER_COUNT == 0 gates validity, the same "count gates
+    # array validity" convention COLL_COUNT/COLL_DATA already use.
+    rom.XOR_A(); rom.LD_nn_A(LEDGER_COUNT); rom.LD_nn_A(LEDGER_CURSOR)
 
     # Clear VRAM bank 0 (same A-clobber caveat — re-zero each iter)
     rom.XOR_A(); rom.LDH_n_A(VBK)
@@ -1082,10 +1124,25 @@ def build_game_asm(rom: ROM) -> dict:
             # center cell's own materialization is exactly the "at the moment a
             # region is materialized" evaluation FS-110 Workflow C step 1 names.
             # Cleared on collection (check_collisions); re-derived on every
-            # re-entry -- collected-state across re-entry is IP-1104's ledger's
-            # own scope (FS-110 Workflow D), not re-checked here.
+            # re-entry.
             rom.LD_A_nn(INF_MZ_TREASURE)
             rom.LD_nn_A(INF_TREASURE_HERE)
+            # IP-1104 (BL-0119): cross-reference the visited-region ledger --
+            # if this region is already marked collected there, override the
+            # fresh presence-predicate write above to 0, regardless of what it
+            # says. INF_ROW/INF_COL already hold this center region's own
+            # coordinates at this point (every call site updates them before
+            # calling inf_ensure_window), matching inf_ledger_find's own
+            # contract exactly. This one cross-reference is what closes the
+            # mid-session respawn gap uniformly -- inf_ensure_window is the
+            # only call site that ever writes INF_TREASURE_HERE, reached from
+            # new-game entry, ordinary navigation, and post-load restore
+            # alike, so fixing it once here fixes every call site.
+            rom.CALL('inf_ledger_find')
+            rom.JR_NZ('iew_no_ledger_hit')
+            rom.LD_A_HL(); rom.OR_A(); rom.JR_Z('iew_no_ledger_hit')
+            rom.XOR_A(); rom.LD_nn_A(INF_TREASURE_HERE)
+            rom.label('iew_no_ledger_hit')
     rom.RET()
 
     # ── czt_infinite (IP-1102) ─────────────────────────────
@@ -2660,17 +2717,102 @@ def build_game_asm(rom: ROM) -> dict:
     rom.label('icts_ret')
     rom.RET()
 
+    # ── inf_ledger_find (IP-1104) ──────────────────────────
+    # Shared bounded search over the visited-region ledger's WRAM working
+    # copy -- both inf_ensure_window's own cross-reference (above) and
+    # inf_ledger_mark_collected (below) need "find the entry for the
+    # current region, if any," so this is written once, not duplicated,
+    # mirroring this codebase's own established "reuse, don't duplicate"
+    # convention.
+    #
+    # Inputs: none (reads INF_ROW/INF_COL directly -- the current region's
+    # own canonical WRAM location, always correctly set by every caller
+    # before this routine runs).
+    #
+    # Outputs: Z set + HL = address of the matching entry's collected-flag
+    # byte, if a matching (row, col) entry exists among LEDGER's first
+    # LEDGER_COUNT entries. NZ + HL = LEDGER + LEDGER_COUNT*5 (the next
+    # free append slot), if no match exists -- true whether LEDGER_COUNT
+    # is 0 or the full search came up empty, since HL is advanced by
+    # exactly 5 bytes per entry checked either way.
+    #
+    # Clobbers: A, B, D, E, H, L.
+    rom.label('inf_ledger_find')
+    rom.LD_DE_nn(5)
+    rom.LD_HL_nn(LEDGER)
+    rom.LD_A_nn(LEDGER_COUNT); rom.OR_A(); rom.JR_Z('ilf_notfound')
+    rom.LD_B_A()
+    rom.label('ilf_loop')
+    rom.PUSH_HL()
+    rom.LD_A_nn(INF_ROW); rom.emit(0xBE); rom.JR_NZ('ilf_miss')       # CP (HL): row lo
+    rom.INC_HL()
+    rom.LD_A_nn(INF_ROW + 1); rom.emit(0xBE); rom.JR_NZ('ilf_miss')   # row hi
+    rom.INC_HL()
+    rom.LD_A_nn(INF_COL); rom.emit(0xBE); rom.JR_NZ('ilf_miss')       # col lo
+    rom.INC_HL()
+    rom.LD_A_nn(INF_COL + 1); rom.emit(0xBE); rom.JR_NZ('ilf_miss')   # col hi
+    # Match: Z still set from the last CP (INC_HL/POP_DE below don't
+    # touch flags on SM83's 16-bit INC/POP).
+    rom.INC_HL()                    # HL -> collected-flag byte
+    rom.POP_DE()                    # discard the pushed entry-base (unused from here)
+    rom.RET()
+    rom.label('ilf_miss')
+    rom.POP_HL()                    # restore HL = this entry's own base
+    rom.ADD_HL_DE()                 # HL += 5 -> next entry base
+    rom.DEC_B(); rom.JR_NZ('ilf_loop')
+    rom.label('ilf_notfound')
+    rom.OR_n(1)                     # force NZ regardless of A's prior value
+    rom.RET()
+
     # ── inf_ledger_mark_collected (IP-1103 -> IP-1104 seam) ──
     # The ledger-write interface IP-1103's collection branch calls forward
     # into (IP-1103 §6/§12): marks the current region's treasure collected
-    # in the visited-region ledger. IP-1104 (ledger save persistence)
-    # implements the receiving end -- until it ships, this is an explicit
-    # RET stub, so collected-state does NOT survive leaving the materialized
-    # window (re-entry re-derives INF_TREASURE_HERE from the presence
-    # predicate alone). A known, sequenced gap, not an oversight: FS-110
-    # Workflow C step 2 names the ledger write, Workflow D gives IP-1104
-    # its read/persist half.
+    # in the visited-region ledger's WRAM working copy (IP-1104, amended
+    # 2026-07-16 per BL-0119 -- operates on WRAM `LEDGER`, never touches
+    # SRAM directly; no MBC1 bracket needed here, safe to call on every
+    # collection). Uses inf_ledger_find (above) rather than re-deriving the
+    # same search.
     rom.label('inf_ledger_mark_collected')
+    rom.CALL('inf_ledger_find')
+    rom.JR_NZ('ilmc_notfound')
+    # Found: HL -> collected-flag byte. Set to 1 (idempotent if already 1
+    # -- a second collision at an already-collected region is unreachable
+    # in practice, since check_collisions clears INF_TREASURE_HERE/
+    # deactivates the item on first collection, but setting unconditionally
+    # is simpler and equally correct either way).
+    rom.LD_A_n(1); rom.LD_HL_A()
+    rom.RET()
+    rom.label('ilmc_notfound')
+    # HL = LEDGER + LEDGER_COUNT*5 (the next free append slot, per
+    # inf_ledger_find's own contract).
+    rom.LD_A_nn(LEDGER_COUNT); rom.CP_n(128); rom.JR_NC('ilmc_evict')
+    # Append: write (row, col, collected=1) at HL; LEDGER_COUNT += 1.
+    rom.LD_A_nn(INF_ROW); rom.LD_HLI_A()
+    rom.LD_A_nn(INF_ROW + 1); rom.LD_HLI_A()
+    rom.LD_A_nn(INF_COL); rom.LD_HLI_A()
+    rom.LD_A_nn(INF_COL + 1); rom.LD_HLI_A()
+    rom.LD_A_n(1); rom.LD_HL_A()
+    rom.LD_A_nn(LEDGER_COUNT); rom.INC_A(); rom.LD_nn_A(LEDGER_COUNT)
+    rom.RET()
+    rom.label('ilmc_evict')
+    # Full (LEDGER_COUNT == 128): FIFO-evict the entry at LEDGER_CURSOR --
+    # HL = LEDGER + LEDGER_CURSOR*5, computed via five fixed ADD_HL_DE
+    # steps (DE = cursor, 0-127, fits one byte) rather than a multiply
+    # instruction (none exists on SM83) or a runtime loop -- a small fixed
+    # unrolled sequence, this codebase's own established style (see
+    # inf_ensure_window's own identical framing for its 9-cell unroll).
+    rom.LD_A_nn(LEDGER_CURSOR); rom.LD_E_A(); rom.LD_D_n(0)
+    rom.LD_HL_nn(LEDGER)
+    rom.ADD_HL_DE(); rom.ADD_HL_DE(); rom.ADD_HL_DE()
+    rom.ADD_HL_DE(); rom.ADD_HL_DE()
+    rom.LD_A_nn(INF_ROW); rom.LD_HLI_A()
+    rom.LD_A_nn(INF_ROW + 1); rom.LD_HLI_A()
+    rom.LD_A_nn(INF_COL); rom.LD_HLI_A()
+    rom.LD_A_nn(INF_COL + 1); rom.LD_HLI_A()
+    rom.LD_A_n(1); rom.LD_HL_A()
+    # Advance cursor modulo 128 (AND 0x7F, no DIV).
+    rom.LD_A_nn(LEDGER_CURSOR); rom.INC_A(); rom.AND_n(0x7F)
+    rom.LD_nn_A(LEDGER_CURSOR)
     rom.RET()
 
     # ── save_to_sram ─────────────────────────────────────
@@ -2701,6 +2843,30 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_nn(WORLD_SCALE);  rom.LD_nn_A(SRAM_WORLD_SCALE)
     rom.LD_DE_nn(KEYITEM_FLAGS); rom.LD_HL_nn(SRAM_KEYITEM_FLAGS); rom.LD_BC_nn(81)
     rom.CALL('memcpy')
+    # IP-1104: Infinite Mode save shape (Workflow D). SRAM_GAME_MODE always
+    # written (mirrors GAME_MODE unconditionally); the Infinite-Mode-only
+    # fields below are gated on GAME_MODE == 1 -- when finite-mode saving,
+    # left as whatever they last held, never read back unless GAME_MODE on
+    # load says 1 (mirroring ADR-0010's own "unread fields are inert"
+    # framing for the finite mode's own version-guard discipline).
+    rom.LD_A_nn(GAME_MODE); rom.LD_nn_A(SRAM_GAME_MODE)
+    rom.OR_A(); rom.JR_Z('sts_inf_skip')
+    rom.LD_A_nn(INF_ROW); rom.LD_nn_A(SRAM_INF_ROW)
+    rom.LD_A_nn(INF_ROW + 1); rom.LD_nn_A(SRAM_INF_ROW + 1)
+    rom.LD_A_nn(INF_COL); rom.LD_nn_A(SRAM_INF_COL)
+    rom.LD_A_nn(INF_COL + 1); rom.LD_nn_A(SRAM_INF_COL + 1)
+    rom.LD_A_nn(RUNNING_TREASURE_COUNT); rom.LD_nn_A(SRAM_RUNNING_TREASURE_COUNT)
+    rom.LD_A_nn(RUNNING_TREASURE_COUNT + 1); rom.LD_nn_A(SRAM_RUNNING_TREASURE_COUNT + 1)
+    # Ledger block: single 642-byte memcpy (LEDGER_COUNT/LEDGER_CURSOR/
+    # LEDGER -> their exact SRAM mirror, one contiguous transfer both sides
+    # per the amendment's own mirror-layout design).
+    rom.LD_DE_nn(LEDGER_COUNT); rom.LD_HL_nn(SRAM_LEDGER_COUNT); rom.LD_BC_nn(642)
+    rom.CALL('memcpy')
+    rom.label('sts_inf_skip')
+    # TOP_SCORE_TABLE: always written, both modes -- the persistent high
+    # score, distinct from per-run state (ADR-0017 point 4).
+    for i in range(6):
+        rom.LD_A_nn(TOP_SCORE_TABLE + i); rom.LD_nn_A(SRAM_TOP_SCORE_TABLE + i)
     rom.XOR_A(); rom.LD_nn_A(0x0000)
     rom.RET()
 
@@ -2748,7 +2914,10 @@ def build_game_asm(rom: ROM) -> dict:
     # version matches — so this branch is never actually taken in normal
     # play (MM_SAVE_VALID gates it upstream) — kept as a defensive-correct
     # fallback matching tls_no's own precedent, not a live path.
-    rom.LD_A_nn(SAVE_VERSION_ADDR); rom.CP_n(SAVE_VERSION_VAL); rom.JR_NZ('tls_si_skip')
+    # JR->JP: this package's own additions push the version-mismatch skip
+    # target out of JR's +-127 byte range (the same class of range issue
+    # IP-1010's own JR->JP conversions hit first).
+    rom.LD_A_nn(SAVE_VERSION_ADDR); rom.CP_n(SAVE_VERSION_VAL); rom.JP_NZ('tls_si_skip')
     # IP-9070: 81-byte memcpy, generalized from the old 9-byte per-byte loop
     # (SCOREITEM_FLAGS widened the same way KEYITEM_FLAGS was by IP-1050).
     rom.LD_DE_nn(SRAM_SCOREITEM); rom.LD_HL_nn(SCOREITEM_FLAGS); rom.LD_BC_nn(81)
@@ -2765,6 +2934,46 @@ def build_game_asm(rom: ROM) -> dict:
     rom.CALL('generate_world')
     rom.LD_DE_nn(SRAM_KEYITEM_FLAGS); rom.LD_HL_nn(KEYITEM_FLAGS); rom.LD_BC_nn(81)
     rom.CALL('memcpy')
+    # IP-1104: GAME_MODE-gated Infinite Mode restore (Workflow D). Only
+    # reachable inside this version-matched branch -- SRAM_GAME_MODE and
+    # every field below it are meaningless bytes in any earlier-version
+    # save and are never read otherwise. The existing finite-mode restore
+    # above (CUR_ZONE/PLAYER_X/PLAYER_Y/CARROTS_COUNT/SCORE/CARROT_FLAGS/
+    # SCOREITEM_FLAGS/SEED/WORLD_SCALE/generate_world/KEYITEM_FLAGS) runs
+    # exactly as before this package, unconditionally, for both modes --
+    # deliberately not gated on GAME_MODE (this package's own scope is
+    # additive, not a restructuring of already-`VERIFIED` finite-mode
+    # code): for an Infinite Mode save these fields are simply never read
+    # by any Infinite Mode code path (mirrors save_to_sram's own identical
+    # "unread fields are inert" framing, applied symmetrically). Known,
+    # named inefficiency: generate_world still runs once even when loading
+    # an Infinite Mode save, though its REGION_GRAPH output is unused
+    # there -- a few hundred wasted T-states, not a correctness issue, not
+    # fixed here (out of this package's own named scope; see Implementation
+    # Summary).
+    rom.LD_A_nn(SRAM_GAME_MODE); rom.LD_nn_A(GAME_MODE)
+    rom.OR_A(); rom.JR_Z('tls_inf_skip')
+    rom.LD_A_nn(SRAM_INF_ROW); rom.LD_nn_A(INF_ROW)
+    rom.LD_A_nn(SRAM_INF_ROW + 1); rom.LD_nn_A(INF_ROW + 1)
+    rom.LD_A_nn(SRAM_INF_COL); rom.LD_nn_A(INF_COL)
+    rom.LD_A_nn(SRAM_INF_COL + 1); rom.LD_nn_A(INF_COL + 1)
+    rom.LD_A_nn(SRAM_RUNNING_TREASURE_COUNT); rom.LD_nn_A(RUNNING_TREASURE_COUNT)
+    rom.LD_A_nn(SRAM_RUNNING_TREASURE_COUNT + 1); rom.LD_nn_A(RUNNING_TREASURE_COUNT + 1)
+    rom.LD_DE_nn(SRAM_LEDGER_COUNT); rom.LD_HL_nn(LEDGER_COUNT); rom.LD_BC_nn(642)
+    rom.CALL('memcpy')
+    # Re-materialize the 3x3 working set around the restored position --
+    # no region's biome/connectivity is ever itself persisted (FR-10500's
+    # own explicit requirement); this call re-derives it, and (per the
+    # BL-0119 amendment) also re-populates INF_TREASURE_HERE correctly
+    # from the just-restored WRAM ledger via inf_ensure_window's own
+    # cross-reference -- no separate restore-path lookup needed here.
+    rom.CALL('inf_ensure_window')
+    rom.label('tls_inf_skip')
+    # TOP_SCORE_TABLE: always restored, both modes (persistent high score,
+    # independent of GAME_MODE -- ADR-0017 point 4; save_to_sram writes it
+    # unconditionally too).
+    for i in range(6):
+        rom.LD_A_nn(SRAM_TOP_SCORE_TABLE + i); rom.LD_nn_A(TOP_SCORE_TABLE + i)
     rom.label('tls_si_skip')
     rom.XOR_A(); rom.LD_nn_A(0x0000)
     rom.LD_A_n(GS_PLAYING)

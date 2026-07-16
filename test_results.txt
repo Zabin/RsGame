@@ -1,4 +1,4 @@
-BunnyQuest ROM Tests  PASS=296/296  FAIL=0
+BunnyQuest ROM Tests  PASS=309/309  FAIL=0
 ==================================================
 [PASS] T1.1 ROM size = 32768  (32768)
 [PASS] T1.2 Entry = NOP; JP
@@ -260,7 +260,7 @@ BunnyQuest ROM Tests  PASS=296/296  FAIL=0
 [PASS] T24.c2 Regression: every existing T13/T20 dsr_p/draw_region_arrows/check_zone_transition check still passes unmodified under the new GAME_MODE gate  (failed=[] total_checked=9)
 [PASS] T24.d1 Static audit: draw_region_arrows_inf's source never references TL_BLOCKED_U/D/L/R  (source-scanned)
 [PASS] T24.d2 Corpus: draw_region_arrows_inf never writes a blocked-edge tile, all 16 connectivity nibble values  (bad=[])
-[PASS] T24.e NFR-1400 Analysis: inf_ensure_window's real per-transition cost, direct cycle-count, measured and recorded (Met or not, not asserted un-measured)  (cycles=[81824, 80368, 78892] budget=70224 status=NOT MET)
+[PASS] T24.e NFR-1400 Analysis: inf_ensure_window's real per-transition cost, direct cycle-count, measured and recorded (Met or not, not asserted un-measured)  (cycles=[81940, 80484, 79008] budget=70224 status=NOT MET)
 [PASS] T25.a1 MAIN MENU, new game -> MODE SELECT (GS=10)  (GS=10)
 [PASS] T25.a1b MODE SELECT defaults to MM_CURSOR=0 (finite)  (cursor=0)
 [PASS] T25.a2 D-pad toggles MM_CURSOR to 1 (infinite highlighted)  (cursor=1)
@@ -296,3 +296,16 @@ BunnyQuest ROM Tests  PASS=296/296  FAIL=0
 [PASS] T26.c2 Spot: (7 into [10,5,2]) -> [10,7,5]; (2 into [10,5,2]) -> unchanged (tie rejected)  (spot-checked)
 [PASS] T26.d Zero call sites for inf_check_top_score: source audit (label defined once, never CALLed/JPed) + ROM scan of the code region — the BL-0112 trigger deferral, checkable  (src_refs=[] labels=1 rom_hits=[])
 [PASS] T26.e No name-entry state reachable from this package's new branches: none writes TRANSITION_TO/GAMESTATE, and no name-entry GAMESTATE exists in the source at all  (segments_writing_state=[])
+[PASS] T27.a1 Pre-save: treasure collected (RUNNING_TREASURE_COUNT==1) and player moved to a second region (INF_COL==1)  (rtc=1 row=0 col=1)
+[PASS] T27.a2 Post-load: INF_ROW/INF_COL and RUNNING_TREASURE_COUNT restore exactly, straight to PLAYING  (GS=2 row=0 col=1 rtc=1)
+[PASS] T27.a3 Back at the first region: INF_COL==0 again, INF_TREASURE_HERE==0 (collected-state survived the save/load boundary, not re-derived as present)  (col=0 treasure_here=0)
+[PASS] T27.b SRAM_LEDGER's 5-byte entry format holds only (row, col, collected) -- direct byte audit of the persisted (0,0) entry, no biome/connectivity field anywhere  (entry_bytes=[0, 0, 0, 0, 1])
+[PASS] T27.c1 inf_ledger_mark_collected invoked cleanly at capacity
+[PASS] T27.c2 LEDGER_COUNT stays 128, LEDGER_CURSOR advances to 1 (mod 128, AND 0x7F, no DIV)  (count=128 cursor=1)
+[PASS] T27.c3 Entry at the pre-eviction cursor position (0) is overwritten with the new region (999,999,collected=1); all others unchanged (spot check: entry 1)  (evicted=[231, 3, 231, 3, 1] entry1=[1, 0, 0, 0, 1])
+[PASS] T27.c4 Eviction state (count/cursor/overwritten entry) survives a save/load round trip  (count=128 cursor=1 entry=[231, 3, 231, 3, 1])
+[PASS] T27.d1 Boot with a version=0x04 (pre-Infinite-Mode) save -> MAIN MENU  (GS=6)
+[PASS] T27.d2 Version-0x04 save -> CONTINUE absent
+[PASS] T27.e Regression: every existing T15 (generated-world save persistence) check still passes unmodified under the new SAVE_VERSION_VAL  (failed=[] total_checked=17)
+[PASS] T27.f Indefinite resumability: a loaded Infinite Mode run survives every reachable input branch (movement, SAVE round trips, SELECT-menu round trips) without ending -- lands back in PLAYING, GAME_MODE still 1  (gs_after_load=2 gs_final=2 game_mode=1)
+[PASS] T27.g In-session re-entry: collected treasure does not respawn on ordinary navigation back (no save/load boundary crossed) -- INF_TREASURE_HERE stays 0, RUNNING_TREASURE_COUNT does not double-increment  (rtc_pre=1 col=0 treasure_here=0 rtc_back=1)

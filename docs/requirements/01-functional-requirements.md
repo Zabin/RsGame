@@ -13,8 +13,9 @@
 > scope); delta 2026-07-14 (cont'd) — `CR-05` baselined as `FR-9170` (finite-mode biome-blob
 > clustering); `FR-10100`'s Notes/Acceptance Criteria refreshed against `GDS-01` §4d, now landed;
 > delta 2026-07-16 — `IP-1103` fully implements FR-10300 (collection half lands) and partially
-> implements FR-10400 (state + comparison subroutine, no automatic trigger — `BL-0112`) — see
-> Changelog).**
+> implements FR-10400 (state + comparison subroutine, no automatic trigger — `BL-0112`); delta
+> 2026-07-16 (cont'd) — `IP-1104` fully implements FR-10500/FR-10600, closing the Infinite Mode
+> tranche's own FR set — see Changelog).**
 > Owned by `04-requirements-engineering`.
 > Derives from [GDS-05](../architecture/05-functional-requirements.md)'s six capability groupings
 > (C1–C6) — this document formalizes each into numbered, testable `FR-xxxx` requirements per
@@ -27,6 +28,16 @@
 
 ## Changelog
 
+- **2026-07-16 — FR-10500/FR-10600 fully Implemented** (`IP-1104`, visited-region-ledger save
+  persistence; status updates only, no requirement text amended). FR-10500: position +
+  bounded-ledger save/load shipped, `SAVE_VERSION_VAL` bumped `0x04`→`0x05`, two-instance
+  round-trip verified (`T27.a`); FIFO eviction at the 128-entry capacity verified (`T27.c`), also
+  closing `NFR-5400`'s own sizing question. FR-10600: a systematic negative-test sweep across
+  every reachable input branch (movement, both SAVE round-trip paths, SELECT-menu round trip)
+  confirms no mechanic forcibly ends a loaded Infinite Mode run (`T27.f`). This closes the
+  Infinite Mode tranche's own FR set in full — `BL-0112` (the run-end trigger for `FR-10400`'s
+  top-3 comparison) remains the tranche's sole standing gap, per `IP-1103`'s own explicit
+  boundary.
 - **2026-07-16 — FR-10300 fully Implemented; FR-10400 Partially Implemented** (`IP-1103`,
   treasure collection & win-condition state; status updates only, no requirement text amended).
   FR-10300's collection half shipped: the current region's treasure spawns as the sole
@@ -1821,7 +1832,9 @@ FR-9000's own leaves are amended or superseded by this group)*
 - **Rationale:** ADR-0016 point 5; R114 (save/load needs "a bounded-by-SRAM-capacity
   visited-region ledger, not a flat whole-grid array, since an unbounded world cannot reserve
   SRAM for every region that could ever exist").
-- **Priority:** Must (target — not yet implemented)
+- **Priority:** Must (**Implemented, 2026-07-16, `IP-1104`** — position + bounded ledger save/load
+  shipped exactly as described; `SAVE_VERSION_VAL` bumped `0x04`→`0x05`; verified end-to-end via
+  a two-instance save/reload harness, `T27.a`.)
 - **Inputs:** Player position; visited-region treasure-collected state at save time; SRAM
   contents at load time.
 - **Outputs:** SRAM updated with position and ledger entries (save); in-memory position and
@@ -1840,11 +1853,13 @@ FR-9000's own leaves are amended or superseded by this group)*
   pattern, extended to the ledger's own bounded-capacity shape).
 - **Source Documents:** ADR-0016 point 5; R114 §Implementation Guidance.
 - **Related ADRs:** ADR-0016.
-- **Notes:** Not yet implemented. **The ledger's real SRAM capacity (how many distinct visited
-  regions a save can remember) is not sized by this FR** — tracked separately (`BL-0108`, routed
-  to `02-research-gbc-hardware`/`07-implementation-planning`). A save-format version bump is
-  implied (mirroring FR-9200's own precedent) but not itself specified here — an `07`-level
-  detail once packaged.
+- **Notes:** **Implemented (`IP-1104`, 2026-07-16).** The ledger's real SRAM capacity, `BL-0108`'s
+  own open sizing question, is resolved as-shipped: 128 entries × 5 bytes = 640 bytes SRAM (plus
+  a byte-identical 642-byte WRAM working copy, `BL-0119`'s own amendment — see `GDS-07`
+  §7f/§7g), against the confirmed ~8 KiB SRAM budget and ~3.1 KiB bank-0 WRAM headroom (`R111`)
+  respectively; FIFO eviction once full (`T27.c`). The save-format version bump `IP-1104` names is
+  `SAVE_VERSION_VAL` `0x04`→`0x05`, the fifth bump since ship, extending `IP-9110`'s own strictly-
+  monotonic sequence.
 
 ### FR-10600 — Indefinitely resumable Infinite Mode run (no bounded end-condition mechanic)
 
@@ -1861,7 +1876,9 @@ FR-9000's own leaves are amended or superseded by this group)*
 - **Rationale:** Project owner, direct decision, 2026-07-13 ("for now assume indefinitely
   resumable") — resolves `CR-07`, itself grounded in R216's own framing of this exact choice
   ("indefinitely resumable... matching this project's existing save/continue convention").
-- **Priority:** Must (target — not yet implemented)
+- **Priority:** Must (**Implemented, 2026-07-16, `IP-1104`** — no run-ending mechanic exists
+  anywhere in the shipped code; verified by a systematic negative-test sweep across every
+  reachable input branch from a loaded Infinite Mode save, `T27.f`.)
 - **Inputs:** A save-confirm or exit-to-main-menu action (mirroring FR-1190); a "continue" action
   from the MAIN MENU (mirroring FR-1170).
 - **Outputs:** None beyond FR-10500's own save/restore behavior — this FR adds no new state of
@@ -1877,7 +1894,10 @@ FR-9000's own leaves are amended or superseded by this group)*
   none forcibly ends a run; mirroring FR-9110's own negative-test shape).
 - **Source Documents:** Project owner decision, 2026-07-13; R216 §Concepts.
 - **Related ADRs:** ADR-0017 (point 4 — this FR is the decision that ADR point deferred).
-- **Notes:** Not yet implemented. **This is explicitly a "for now" decision, not a permanently
+- **Notes:** **Implemented (`IP-1104`, 2026-07-16).** `T27.f` drives movement, both SAVE
+  round-trip branches (B-cancel and A-save), and a full SELECT-menu round trip from a loaded
+  Infinite Mode save — none forcibly ends the run; `GAMESTATE`/`GAME_MODE` are unchanged
+  afterward. **This is explicitly a "for now" decision, not a permanently
   closed one** — the project owner's own wording leaves room to revisit if a bounded-run mechanic
   later proves desirable; any such change would be a new, dated RQ-01 delta at that time, not an
   amendment to this FR's own text. `FR-10400`'s own win-condition Preconditions field ("the run

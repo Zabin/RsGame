@@ -16,15 +16,22 @@
 > transition-triggered materialization, biome-dispatch/arrow-draw render integration)
 > implemented and independently verified, `T24` (7 checks).
 > [IP-1100](../implementation/packages/IP-1100-infinite-mode-mode-selection.md)
-> **`COMPLETE` 2026-07-14** — Workflow A (`MODE SELECT`/`INFINITE SEED ENTRY`, `GDS-01` §4d)
-> implemented, `T25` (10 checks, 280/280 full suite).
+> **`VERIFIED` 2026-07-16** — Workflow A (`MODE SELECT`/`INFINITE SEED ENTRY`, `GDS-01` §4d)
+> implemented and independently verified, `T25` (19 checks, 296/296 full suite at verification
+> time).
 > [IP-1103](../implementation/packages/IP-1103-infinite-mode-treasure-and-win-condition.md)
-> **`COMPLETE` 2026-07-16** — **Workflow C steps 1–2 only** (treasure spawn/collection, running
-> count, top-3 comparison subroutine), `T26` (16 checks, 296/296 full suite); **step 3's
+> **`VERIFIED` 2026-07-16** — **Workflow C steps 1–2 only** (treasure spawn/collection, running
+> count, top-3 comparison subroutine), `T26` (16 checks); **step 3's
 > automatic run-end trigger is explicitly NOT implemented** — `inf_check_top_score` exists with
 > zero call sites (`T26.d` asserts exactly that), per this document's own §19 Open Question 3 /
-> `BL-0112` routing. `IP-1104` remains `NOT STARTED` (awaits `IP-1100`/`1103` reaching
-> `VERIFIED`). See the
+> `BL-0112` routing.
+> [IP-1104](../implementation/packages/IP-1104-infinite-mode-ledger-save-persistence.md)
+> **`COMPLETE` 2026-07-16** — Workflow D in full (position + bounded-ledger save/load,
+> `SAVE_VERSION_VAL` `0x04`→`0x05`), `T27` (7 checks, 309/309 full suite). Amended per `BL-0119`
+> before implementation: a WRAM ledger working copy so `inf_ensure_window` consults
+> collected-state on every materialization, closing a mid-session respawn gap uniformly. **This
+> closes the Infinite Mode tranche's own five-package set — `BL-0112` (the run-end trigger for
+> `FR-10400`'s top-3 comparison) is the tranche's sole standing gap.** See the
 > [Technical Work Breakdown](../implementation/01-technical-work-breakdown.md#infinite-mode-fs-110feat-10000ep-6000-planned-2026-07-14)
 > for the split rationale. This Feature sits in the `Future` release bucket (no release commitment
 > made) — planning does not require or imply scheduling, per `05-feature-decomposition`'s own
@@ -423,17 +430,17 @@ Feature up next — named here, not decided.
    including `(0,0)`, identically — a Grass-at-spawn special case would have required an explicit
    branch that was never added, and `T22.b`'s own oracle-parity corpus includes `(0,0)`
    specifically to confirm this by direct implementation, not merely by absence of a branch.
-5. **The visited-region ledger's real SRAM capacity, and what happens when it is exceeded, are
-   both unsized** (`NFR-5400`, `BL-0108`). Resolves at: `02-research-gbc-hardware`/
-   `07-implementation-planning`, per `R114`'s own recommendation that `R106`'s SRAM/battery-save
-   grounding is the starting point.
+5. **Resolved (`IP-1104`, 2026-07-16).** 128 entries × 5 bytes = 640 bytes SRAM (`NFR-5400`,
+   `BL-0108`), sized against the confirmed ~8 KiB SRAM budget (`R106`). When exceeded: FIFO
+   eviction (the Technical Work Breakdown's own resolution, a deliberate, revisitable choice, not
+   asserted as the only correct one) — the oldest-visited entry is overwritten (`T27.c`).
 6. **Resolved (`GDS-01` §4d, `IP-1100`, 2026-07-14).** A new `MODE SELECT` cursor menu (reusing
    `MAIN MENU`'s own convention) forks "new game" into the Finite mode's unchanged `SEED/SCALE
    ENTRY` flow or a new seed-only `INFINITE SEED ENTRY` state — two new `GameState` values
    (`GS_MODE_SELECT=10`, `GS_INFINITE_SEED_ENTRY=11`), shipped exactly per the diagram, `T25`.
-7. **The new save-format version value this Feature's ledger-based format needs is not named.**
-   Resolves at: `07-implementation-planning`, mirroring `FEAT-5300`'s own `SAVE_VERSION_VAL`
-   precedent (a monotonic bump, never a reused value).
+7. **Resolved (`IP-1104`, 2026-07-16).** `SAVE_VERSION_VAL` bumped `0x04`→`0x05`, extending
+   `IP-9110`'s own strictly-monotonic sequence (the fifth bump since ship) — mirrors `FEAT-5300`'s
+   own precedent exactly, never a reused value.
 8. **Resolved (`IP-1102`, 2026-07-14).** The materialized window is a 3×3 radius, 1 byte/region
    (`INF_WINDOW`, 9 bytes) plus a 4-byte center-anchor (`INF_ROW`/`INF_COL`) — 13 bytes, 15
    counting `GAME_MODE`/`INF_TREASURE_HERE` — comfortably inside bank-0's confirmed ~3.1 KiB

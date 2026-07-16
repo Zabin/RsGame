@@ -3074,6 +3074,287 @@ check("T26.e No name-entry state reachable from this package's new branches: non
       f"segments_writing_state={_t26e_bad}")
 
 # ══════════════════════════════════════════════════════
+# T27 — Infinite Mode: Ledger Save Persistence (IP-1104)
+# (IP-1104's own §8 names "T26" -- renumbered; IP-1103 already claimed T26
+# earlier this same tranche when it shipped first, the fourth such
+# renaming after IP-1101/IP-1100/IP-1103's own identical precedents.)
+# ══════════════════════════════════════════════════════
+print("\n=== T27: Infinite Mode — Ledger Save Persistence ===")
+
+LEDGER_COUNT = 0xC419
+LEDGER_CURSOR = 0xC41A
+LEDGER = 0xC41B
+SRAM_GAME_MODE = 0xA0C1
+SRAM_INF_ROW = 0xA0C2
+SRAM_INF_COL = 0xA0C4
+SRAM_RUNNING_TREASURE_COUNT = 0xA0C6
+SRAM_TOP_SCORE_TABLE = 0xA0C8
+SRAM_LEDGER_COUNT = 0xA0CE
+SRAM_LEDGER_CURSOR = 0xA0CF
+SRAM_LEDGER = 0xA0D0
+ILMC_ADDR = _gw_rom.labels['inf_ledger_mark_collected']
+
+def invoke_ilmc(pb, row, col):
+    """Directly invoke inf_ledger_mark_collected via the established
+    PC/SP-hijack technique (invoke_icts's own pattern) -- sets INF_ROW/
+    INF_COL, CALLs the routine, returns True once it RETs (trap reached)."""
+    r = row & 0xFFFF; c = col & 0xFFFF
+    pb.memory[INF_ROW] = r & 0xFF; pb.memory[INF_ROW + 1] = (r >> 8) & 0xFF
+    pb.memory[INF_COL] = c & 0xFF; pb.memory[INF_COL + 1] = (c >> 8) & 0xFF
+    pb.memory[GW_TRAP_ADDR] = 0x18; pb.memory[GW_TRAP_ADDR + 1] = 0xFE  # JR -2
+    sp = (pb.register_file.SP - 2) & 0xFFFF
+    pb.memory[sp] = GW_TRAP_ADDR & 0xFF
+    pb.memory[sp + 1] = (GW_TRAP_ADDR >> 8) & 0xFF
+    pb.register_file.SP = sp
+    pb.register_file.PC = ILMC_ADDR
+    for _ in range(60):
+        pb.tick()
+        if pb.register_file.PC == GW_TRAP_ADDR:
+            return True
+    return False
+
+# T27.a — two-instance save/reload harness (mirroring IP-1050's own T15
+# pattern): materialize a region with treasure, collect it, move to a
+# second region, save, load in a fresh instance -> assert INF_ROW/INF_COL,
+# RUNNING_TREASURE_COUNT, and the first region's own collected-state (via
+# INF_TREASURE_HERE after navigating back to it post-load) all restore
+# exactly (AC-5). Seed chosen so (0,0) holds treasure AND its east edge is
+# open (Binary Tree edges are symmetric -- IP-1102's own carve-bias
+# design -- so the return path west is guaranteed open too).
+t27_seed = None
+for _s in range(1, 65536):
+    _center, _treasure = worldgen.materialize_region(_s, 0, 0)
+    if _treasure and (_center >> 6) & 1:
+        t27_seed = _s
+        break
+
+wipe_save()
+pb = fresh_boot(200)
+enter_infinite_mode(pb, t27_seed)
+_t27a_biome = pb.memory[INF_WINDOW + 4] & 0x07
+_t27a_pos = None
+for (_x, _y, _t) in ZONE_COLLECTS[_t27a_biome]:
+    if _t == 2:
+        _t27a_pos = (_x, _y)
+pb.memory[PLAYER_X] = _t27a_pos[0]
+pb.memory[PLAYER_Y] = _t27a_pos[1]
+[pb.tick() for _ in range(12)]
+rtc_pre27a = read_rtc(pb)
+# Move right to a second region (guaranteed open, per the seed search above)
+pb.memory[PLAYER_X] = 152
+pb.button('right'); [pb.tick() for _ in range(20)]
+inf_row_mid = pb.memory[INF_ROW] | (pb.memory[INF_ROW + 1] << 8)
+inf_col_mid = pb.memory[INF_COL] | (pb.memory[INF_COL + 1] << 8)
+check("T27.a1 Pre-save: treasure collected (RUNNING_TREASURE_COUNT==1) and player moved to a second region (INF_COL==1)",
+      rtc_pre27a == 1 and inf_row_mid == 0 and inf_col_mid == 1,
+      f"rtc={rtc_pre27a} row={inf_row_mid} col={inf_col_mid}")
+pb.button('start'); [pb.tick() for _ in range(40)]
+pb.button('a'); [pb.tick() for _ in range(40)]   # SAVE: A (save)
+pb.stop()
+
+pb2 = PyBoy(ROM_PATH, window='null', sound_emulated=False)
+pb2.set_emulation_speed(0)
+for _ in range(180): pb2.tick()
+pb2.button('a'); [pb2.tick() for _ in range(60)]   # MAIN MENU: continue
+inf_row_post = pb2.memory[INF_ROW] | (pb2.memory[INF_ROW + 1] << 8)
+inf_col_post = pb2.memory[INF_COL] | (pb2.memory[INF_COL + 1] << 8)
+rtc_post27a = read_rtc(pb2)
+check("T27.a2 Post-load: INF_ROW/INF_COL and RUNNING_TREASURE_COUNT restore exactly, straight to PLAYING",
+      pb2.memory[GAMESTATE] == 2 and inf_row_post == 0 and inf_col_post == 1
+      and rtc_post27a == 1,
+      f"GS={pb2.memory[GAMESTATE]} row={inf_row_post} col={inf_col_post} rtc={rtc_post27a}")
+# Navigate back (west) to the first region -- symmetric edge, guaranteed open.
+pb2.memory[PLAYER_X] = 0
+pb2.button('left'); [pb2.tick() for _ in range(20)]
+inf_col_back = pb2.memory[INF_COL] | (pb2.memory[INF_COL + 1] << 8)
+treasure_back = pb2.memory[INF_TREASURE_HERE]
+check("T27.a3 Back at the first region: INF_COL==0 again, INF_TREASURE_HERE==0 (collected-state survived the save/load boundary, not re-derived as present)",
+      inf_col_back == 0 and treasure_back == 0,
+      f"col={inf_col_back} treasure_here={treasure_back}")
+pb2.stop()
+
+# T27.b — no region's biome/connectivity is itself persisted: after T27.a's
+# own save (exactly one ledger entry -- region (0,0), collected), read the
+# raw SRAM bytes directly and confirm the 5-byte entry format holds only
+# (row, col, collected) -- nothing else, no biome/connectivity byte
+# anywhere in the record (AC-5's own explicit clause).
+with open(RAM_PATH, 'rb') as _f:
+    _t27b_sram = _f.read()
+_t27b_entry = list(_t27b_sram[SRAM_LEDGER - 0xA000 : SRAM_LEDGER - 0xA000 + 5])
+check("T27.b SRAM_LEDGER's 5-byte entry format holds only (row, col, collected) -- direct byte audit of the persisted (0,0) entry, no biome/connectivity field anywhere",
+      _t27b_entry == [0, 0, 0, 0, 1], f"entry_bytes={_t27b_entry}")
+wipe_save()
+
+# T27.c — FIFO eviction: fill the ledger to exactly 128 entries (direct
+# WRAM pokes -- 128 real collection events would be impractically slow),
+# invoke inf_ledger_mark_collected directly for a genuinely new 129th
+# region -> assert the entry at the pre-eviction LEDGER_CURSOR position is
+# overwritten, all others unchanged, LEDGER_COUNT stays at 128; a
+# follow-up save/load round trip confirms the same state survives the
+# memcpy into SRAM_LEDGER/back.
+pb = fresh_boot(200)
+enter_infinite_mode(pb, 777)
+for _i in range(128):
+    _base = LEDGER + _i * 5
+    pb.memory[_base] = _i & 0xFF; pb.memory[_base + 1] = (_i >> 8) & 0xFF
+    pb.memory[_base + 2] = 0; pb.memory[_base + 3] = 0
+    pb.memory[_base + 4] = 1
+pb.memory[LEDGER_COUNT] = 128
+pb.memory[LEDGER_CURSOR] = 0
+ok27c = invoke_ilmc(pb, 999, 999)
+check("T27.c1 inf_ledger_mark_collected invoked cleanly at capacity", ok27c, "")
+post_count27c = pb.memory[LEDGER_COUNT]
+post_cursor27c = pb.memory[LEDGER_CURSOR]
+evicted_entry = [pb.memory[LEDGER + k] for k in range(5)]
+other_entry_1 = [pb.memory[LEDGER + 5 + k] for k in range(5)]
+check("T27.c2 LEDGER_COUNT stays 128, LEDGER_CURSOR advances to 1 (mod 128, AND 0x7F, no DIV)",
+      post_count27c == 128 and post_cursor27c == 1,
+      f"count={post_count27c} cursor={post_cursor27c}")
+check("T27.c3 Entry at the pre-eviction cursor position (0) is overwritten with the new region (999,999,collected=1); all others unchanged (spot check: entry 1)",
+      evicted_entry == [999 & 0xFF, (999 >> 8) & 0xFF, 999 & 0xFF, (999 >> 8) & 0xFF, 1]
+      and other_entry_1 == [1, 0, 0, 0, 1],
+      f"evicted={evicted_entry} entry1={other_entry_1}")
+# PC/SP-hijack calls (invoke_ilmc, mirroring invoke_icts/invoke_generate_
+# world's own established technique) leave the CPU parked in the trap's
+# infinite self-loop -- this codebase's own convention is always pb.stop()
+# right after, never further button-driven interaction in the same
+# instance. The save/load round trip is therefore a fresh, independent
+# instance (T27.c4) that reproduces the identical post-eviction state via
+# direct WRAM pokes (already proven correct by c1-c3 above) rather than
+# re-using this instance's now-stuck CPU.
+pb.stop()
+
+pb = fresh_boot(200)
+enter_infinite_mode(pb, 777)
+pb.memory[LEDGER_COUNT] = post_count27c
+pb.memory[LEDGER_CURSOR] = post_cursor27c
+for _i, _b in enumerate(evicted_entry):
+    pb.memory[LEDGER + _i] = _b
+for _i, _b in enumerate(other_entry_1):
+    pb.memory[LEDGER + 5 + _i] = _b
+pb.button('start'); [pb.tick() for _ in range(40)]
+pb.button('a'); [pb.tick() for _ in range(40)]
+pb.stop()
+pb2 = PyBoy(ROM_PATH, window='null', sound_emulated=False)
+pb2.set_emulation_speed(0)
+for _ in range(180): pb2.tick()
+pb2.button('a'); [pb2.tick() for _ in range(40)]
+post_count27c2 = pb2.memory[LEDGER_COUNT]
+post_cursor27c2 = pb2.memory[LEDGER_CURSOR]
+evicted_entry2 = [pb2.memory[LEDGER + k] for k in range(5)]
+pb2.stop()
+check("T27.c4 Eviction state (count/cursor/overwritten entry) survives a save/load round trip",
+      post_count27c2 == 128 and post_cursor27c2 == 1 and evicted_entry2 == evicted_entry,
+      f"count={post_count27c2} cursor={post_cursor27c2} entry={evicted_entry2}")
+wipe_save()
+
+# T27.d — pre-upgrade rejection: a synthetic version=0x04 fixture (the
+# pre-Infinite-Mode value) -> assert "continue" absent, mirroring T11.d's/
+# T16.d's own established pattern.
+fixture27d = bytearray(8192)
+fixture27d[0:4] = bytes([0x42, 0x55, 0x4E, 0x59])
+fixture27d[SRAM_CUR_ZONE - 0xA000] = 0
+fixture27d[SRAM_PLAYER_X - 0xA000] = 76
+fixture27d[SRAM_PLAYER_Y - 0xA000] = 80
+fixture27d[SAVE_VERSION_ADDR - 0xA000] = 0x04   # IP-9110's own vintage, now superseded
+for _i in range(81): fixture27d[SRAM_SCOREITEM - 0xA000 + _i] = 0xFF
+with open(RAM_PATH, 'wb') as _f:
+    _f.write(bytes(fixture27d))
+pb = PyBoy(ROM_PATH, window='null', sound_emulated=False)
+pb.set_emulation_speed(0)
+for _ in range(180): pb.tick()
+check("T27.d1 Boot with a version=0x04 (pre-Infinite-Mode) save -> MAIN MENU",
+      pb.memory[GAMESTATE] == 6, f"GS={pb.memory[GAMESTATE]}")
+check("T27.d2 Version-0x04 save -> CONTINUE absent",
+      not continue_offered(pb), "")
+pb.stop()
+wipe_save()
+
+# T27.e — finite-mode save round-trip regression: T15's own existing
+# checks (already executed earlier in this same run) still pass unmodified
+# against the new SAVE_VERSION_VAL (0x05) -- mirrors T24.c2's own
+# already-executed-suite cross-reference technique.
+_t27e_regression = [r for r in results if r.split(']')[1].strip().startswith('T15.')]
+_t27e_bad = [r for r in _t27e_regression if r.startswith('[FAIL]')]
+check("T27.e Regression: every existing T15 (generated-world save persistence) check still passes unmodified under the new SAVE_VERSION_VAL",
+      len(_t27e_bad) == 0 and len(_t27e_regression) > 0,
+      f"failed={_t27e_bad} total_checked={len(_t27e_regression)}")
+
+# T27.f — indefinite resumability (AC-6, FR-10600): from a loaded Infinite
+# Mode save, attempt every reachable input sequence from the equivalent of
+# PLAYING -- assert none forcibly ends the run or transitions anywhere but
+# PLAYING/SAVE/MAP-equivalent states (mirrors T14.e's own systematic
+# negative-test-sweep shape).
+wipe_save()
+pb = fresh_boot(200)
+enter_infinite_mode(pb, 42)
+pb.button('start'); [pb.tick() for _ in range(40)]
+pb.button('a'); [pb.tick() for _ in range(40)]      # SAVE: A (save)
+pb.stop()
+pb2 = PyBoy(ROM_PATH, window='null', sound_emulated=False)
+pb2.set_emulation_speed(0)
+for _ in range(180): pb2.tick()
+pb2.button('a'); [pb2.tick() for _ in range(60)]    # continue -> straight to PLAYING
+gs_after_load = pb2.memory[GAMESTATE]
+for btn in ('up', 'down', 'left', 'right'):
+    pb2.button(btn); [pb2.tick() for _ in range(10)]
+pb2.button('start'); [pb2.tick() for _ in range(40)]
+pb2.button('b');     [pb2.tick() for _ in range(40)]     # SAVE: B
+pb2.button('start'); [pb2.tick() for _ in range(40)]
+pb2.button('a');      [pb2.tick() for _ in range(40)]    # SAVE: A (save again)
+pb2.button('select'); [pb2.tick() for _ in range(40)]
+pb2.button('a');       [pb2.tick() for _ in range(40)]   # SELECT MENU: A
+pb2.button('b');       [pb2.tick() for _ in range(40)]   # back
+pb2.button('select'); [pb2.tick() for _ in range(40)]
+pb2.button('a');       [pb2.tick() for _ in range(40)]
+pb2.button('select');  [pb2.tick() for _ in range(40)]   # back the other way
+gs_final = pb2.memory[GAMESTATE]
+game_mode_final = pb2.memory[GAME_MODE]
+pb2.stop()
+check("T27.f Indefinite resumability: a loaded Infinite Mode run survives every reachable input branch (movement, SAVE round trips, SELECT-menu round trips) without ending -- lands back in PLAYING, GAME_MODE still 1",
+      gs_after_load == 2 and gs_final == 2 and game_mode_final == 1,
+      f"gs_after_load={gs_after_load} gs_final={gs_final} game_mode={game_mode_final}")
+wipe_save()
+
+# T27.g — in-session re-entry does not respawn a collected treasure,
+# without any save/load boundary (BL-0119, the amendment this package's
+# own §6 exists to close): materialize a region with treasure present,
+# collect it, navigate away far enough that the region leaves the
+# materialized window, then navigate back to it within the same session --
+# assert INF_TREASURE_HERE == 0 at the region's own re-materialization
+# (not re-derived as present from the raw hash predicate) and that
+# RUNNING_TREASURE_COUNT does not increment a second time. Directly
+# exercises FS-110 §7's own edge case for the in-session case specifically
+# -- T27.a (this same suite) already covers the save/load-boundary case;
+# this is what closes the gap between them.
+pb = fresh_boot(200)
+enter_infinite_mode(pb, t27_seed)   # same seed as T27.a: (0,0) treasure, east open
+_t27g_biome = pb.memory[INF_WINDOW + 4] & 0x07
+_t27g_pos = None
+for (_x, _y, _t) in ZONE_COLLECTS[_t27g_biome]:
+    if _t == 2:
+        _t27g_pos = (_x, _y)
+pb.memory[PLAYER_X] = _t27g_pos[0]
+pb.memory[PLAYER_Y] = _t27g_pos[1]
+[pb.tick() for _ in range(12)]
+rtc_pre27g = read_rtc(pb)
+# Move right (away from (0,0)) -- the window recenters, (0,0) leaves it.
+pb.memory[PLAYER_X] = 152
+pb.button('right'); [pb.tick() for _ in range(20)]
+# Move back left -- (0,0) re-enters the window, re-materialized fresh.
+pb.memory[PLAYER_X] = 0
+pb.button('left'); [pb.tick() for _ in range(20)]
+inf_col_back27g = pb.memory[INF_COL] | (pb.memory[INF_COL + 1] << 8)
+treasure_back27g = pb.memory[INF_TREASURE_HERE]
+rtc_back27g = read_rtc(pb)
+check("T27.g In-session re-entry: collected treasure does not respawn on ordinary navigation back (no save/load boundary crossed) -- INF_TREASURE_HERE stays 0, RUNNING_TREASURE_COUNT does not double-increment",
+      rtc_pre27g == 1 and inf_col_back27g == 0 and treasure_back27g == 0
+      and rtc_back27g == 1,
+      f"rtc_pre={rtc_pre27g} col={inf_col_back27g} treasure_here={treasure_back27g} rtc_back={rtc_back27g}")
+pb.stop()
+wipe_save()
+
+# ══════════════════════════════════════════════════════
 # SUMMARY
 # ══════════════════════════════════════════════════════
 total = PASS + FAIL

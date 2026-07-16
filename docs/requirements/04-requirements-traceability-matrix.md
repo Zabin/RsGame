@@ -21,7 +21,9 @@
 > 2026-07-14 (cont'd) — FR-10100 row filled Implemented (`IP-1100`, `T25`); delta 2026-07-16 —
 > FR-10300 row completed (collection half, `IP-1103`, `T26.a/b`), FR-10400 row filled **partial**
 > (state + comparison subroutine only, zero call sites — `BL-0112`'s trigger gap stated
-> explicitly, `T26.c/d/e`)).**
+> explicitly, `T26.c/d/e`); delta 2026-07-16 (cont'd) — FR-10500/FR-10600/NFR-5400 rows filled
+> Implemented/Met (`IP-1104`, `T27`) — this closes the Infinite Mode tranche's own FR/NFR set in
+> full, `BL-0112` (run-end trigger) the sole standing gap).**
 > Owned by `04-requirements-engineering`.
 > One row per [RQ-01](01-functional-requirements.md)/[RQ-02](02-non-functional-requirements.md)
 > requirement (Candidates marked). Populates the row-level matrix
@@ -91,9 +93,9 @@
 | FR-10210 | Revisit-consistent region materialization | R114 | ADS-001 §User Stories | ADR-0016 | `asm_game.py` | FS-110 | IP-1101 (partial — data layer; IP-1102/1104 own the window/ledger halves) | T22.c |
 | FR-10300 | Treasure placement decoupled from maze structure | R216 | ADS-001 §System Architecture | ADR-0017 | `asm_game.py`/`worldgen.py` | FS-110 | IP-1101 (presence half) + IP-1103 (collection half) | T22.d, T26.a/T26.b |
 | FR-10400 | Score-chasing win condition (running count + top-3, no name entry) | R216 | ADS-001 §Executive Design Overview | ADR-0017 | `asm_game.py` | FS-110 | IP-1103 (**partial** — state + `inf_check_top_score` subroutine only; **no automatic trigger calls it**, the run-end trigger is `BL-0112`'s open question, a follow-up package wires the call site) | T26.c (subroutine corpus), T26.d (zero-call-site state, explicit), T26.e (no name entry) |
-| FR-10500 | Visited-region-ledger save/load (position + collected-state only) | R114 | ADS-001 §System Architecture | ADR-0016 | `asm_game.py` (prospective) | UNASSIGNED | UNASSIGNED | UNASSIGNED |
+| FR-10500 | Visited-region-ledger save/load (position + collected-state only) | R114 | ADS-001 §System Architecture | ADR-0016 | `asm_game.py` | FS-110 | IP-1104 | T27.a, T27.c |
 | CR-07 | Infinite Mode run/session shape (`BL-0106`) — **RESOLVED 2026-07-13, baselined as FR-10600** once the project owner decided directly ("for now assume indefinitely resumable") | R216 | — | ADR-0017 | `asm_game.py` (prospective) | `CANDIDATE — NOT BASELINED` (see FR-10600) | `CANDIDATE — NOT BASELINED` | `CANDIDATE — NOT BASELINED` |
-| FR-10600 | Indefinitely resumable Infinite Mode run (no bounded end-condition mechanic) | R216 | ADS-001 §Open Questions (Q1) | ADR-0017 | `asm_game.py` (prospective) | UNASSIGNED | UNASSIGNED | UNASSIGNED |
+| FR-10600 | Indefinitely resumable Infinite Mode run (no bounded end-condition mechanic) | R216 | ADS-001 §Open Questions (Q1) | ADR-0017 | `asm_game.py` | FS-110 | IP-1104 | T27.f |
 
 ## Non-Functional Requirements
 
@@ -121,7 +123,7 @@
 | NFR-1400 | Infinite Mode region-materialization timing (status NOT MET, measured 2026-07-14) | R114 | ADS-001 §Non-functional Requirements | ADR-0016 | `asm_game.py` | FS-110 | IP-1102 | T24.e — measured 78,860–81,792 cycles vs. 70,224-cycle frame budget |
 | NFR-2300 | Positional determinism for Infinite Mode generation | R114 | ADS-001 §System Architecture | ADR-0016 | `asm_game.py` | FS-110 | IP-1101 | T22.e, T22.a, T22.b |
 | NFR-4300 | Infinite Mode materialized-window WRAM headroom (Met, 2026-07-14) | R114 | ADS-001 §System Architecture | ADR-0016 | `asm_game.py` | FS-110 | IP-1102 | GDS-07 §7e inspection — 15 bytes vs. ~3.1 KiB bank-0 headroom |
-| NFR-5400 | Infinite Mode visited-region-ledger integrity and bounded capacity (status NOT YET SIZED) | R114 | ADS-001 §System Architecture | ADR-0016 | `asm_game.py` (prospective) | UNASSIGNED | UNASSIGNED | UNASSIGNED |
+| NFR-5400 | Infinite Mode visited-region-ledger integrity and bounded capacity (Met, 128 entries FIFO-bounded) | R114 | ADS-001 §System Architecture | ADR-0016 | `asm_game.py` | FS-110 | IP-1104 | T27.a, T27.c |
 
 ## Notes on this matrix's honesty discipline
 

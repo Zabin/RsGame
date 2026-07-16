@@ -5,7 +5,8 @@
 > delta 2026-07-11 — NFR-4200 extended for ADR-0012's maze-generation WRAM cost; delta 2026-07-13
 > for the Infinite Mode epic, NFR-1400/2300/4300/5400; delta 2026-07-14 — NFR-2300 flipped to Met
 > (`IP-1101`); delta 2026-07-14 (cont'd) — NFR-2200 extended for `FR-9170`/`ADR-0018`'s
-> biome-blob-clustering pass, no new NFR needed — see Changelog).** Owned by
+> biome-blob-clustering pass, no new NFR needed; delta 2026-07-16 — NFR-5400 flipped to Met
+> (`IP-1104`, 128-entry FIFO-bounded ledger, `BL-0108` sized) — see Changelog).** Owned by
 > `04-requirements-engineering`. Derives from
 > [GDS-06](../architecture/06-non-functional-requirements.md)'s five NFRs (N1–N5) — formalized
 > into numbered `NFR-xxxx` requirements per
@@ -16,6 +17,12 @@
 
 ## Changelog
 
+- **2026-07-16 — NFR-5400 flipped to Met** (`IP-1104`, visited-region-ledger save persistence).
+  `BL-0108`'s own open sizing question resolved as-shipped: 128 entries × 5 bytes = 640 bytes
+  SRAM, FIFO eviction once full (Technical Work Breakdown's own resolution of `OQ5`). A matching
+  642-byte WRAM working copy (`BL-0119`'s own amendment, closing a mid-session ledger-consult gap
+  `IP-1103` left open) is additionally sized against the confirmed ~3.1 KiB bank-0 headroom
+  (`R111`) — a separate WRAM allocation from `NFR-4300`'s own materialized-window scope.
 - **2026-07-14 — NFR-2200 extended for `FR-9170`/`ADR-0018`** (finite-mode biome-blob
   clustering). The new super-cell-hash snap/fallback branch is confirmed determinism-preserving
   by construction (`ADR-0018` point 7) — no new NFR needed; `NFR-2200`'s existing guarantee
@@ -520,23 +527,29 @@
 - **Rationale:** ADR-0016 point 5; R114 ("Sizing that ledger's real capacity... is new
   SRAM-budget work this topic flags but does not size — R106's existing SRAM/battery-save
   grounding is the starting point").
-- **Priority:** Must (target — not yet implemented)
-- **Status: NOT YET SIZED.** No FR/NFR in this baseline fixes the ledger's actual entry-count
-  capacity — tracked separately as `BL-0108`, routed to `02-research-gbc-hardware`/
-  `07-implementation-planning`. A save-format version bump is implied (mirroring NFR-5300's own
-  precedent) but not itself specified here.
+- **Priority:** Must (**Met, 2026-07-16, `IP-1104`** — 128 entries × 5 bytes = 640 bytes SRAM
+  (`SRAM_LEDGER`) against the confirmed ~8 KiB SRAM budget, sized here as-shipped; FIFO eviction
+  once full, `T27.c`.)
+- **Status: SIZED AND MET.** `BL-0108`'s own open sizing question is resolved as-shipped: 128
+  entries, a fixed capacity chosen against real SRAM headroom (R106) — not an assumption of
+  unbounded capacity. The save-format version bump `SAVE_VERSION_VAL` `0x04`→`0x05` (the fifth
+  bump since ship, extending `IP-9110`'s own strictly-monotonic sequence) is `IP-1104`'s own.
 - **Acceptance Criteria:** Saving then loading an Infinite Mode game restores the exact
-  treasure-collected state for every ledger entry present at save time; the ledger's maximum
-  entry count is a documented, fixed constant against real SRAM headroom (R106), never an
-  assumption of unbounded capacity.
+  treasure-collected state for every ledger entry present at save time (`T27.a`, `T27.c4`); the
+  ledger's maximum entry count is a documented, fixed constant against real SRAM headroom (R106),
+  never an assumption of unbounded capacity (Met — 128 entries, `T27.c`).
 - **Verification Method:** Test (save/reload two-instance harness, mirroring NFR-5300's own
-  fixture pattern) — not yet possible; no implementation exists.
+  fixture pattern) — `T27.a` (single-entry round trip), `T27.c` (FIFO eviction at capacity +
+  round trip).
 - **Source Documents:** ADR-0016 point 5; R114 §Implementation Guidance.
 - **Related ADRs:** ADR-0016.
-- **Notes:** Not yet implemented. What happens when a player visits more distinct regions than
-  the ledger's capacity allows (oldest-entry eviction, a hard cap on further materialization, or
-  another policy) is not decided by this NFR — a real design question for whichever
-  `07-implementation-planning` pass sizes the capacity, not resolved here.
+- **Notes:** **Implemented (`IP-1104`, 2026-07-16).** The eviction policy this NFR's own Notes
+  left open is FIFO (oldest-visited entry overwritten first) — the Technical Work Breakdown's own
+  resolution of `OQ5`, named a deliberate, revisitable choice (not asserted as the only correct
+  one) rather than a distance-from-current-position rule or another alternative. A 642-byte WRAM
+  working copy (`BL-0119`'s own amendment) additionally exists alongside the 640-byte SRAM
+  backing store, sized against the confirmed ~3.1 KiB bank-0 headroom (`R111`) — a separate WRAM
+  allocation from `NFR-4300`'s own materialized-window scope.
 
 ## Portability
 
