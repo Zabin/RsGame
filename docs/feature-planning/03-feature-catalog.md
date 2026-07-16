@@ -752,7 +752,7 @@
   mechanically-checkable subset (undefined tile indices, illegal adjacency pairs).
 - **Open Questions:** None surfaced yet.
 
-## FEAT-10000 — Infinite Mode (new — not yet implemented)
+## FEAT-10000 — Infinite Mode (implemented and verified 2026-07-16 — see forward reference)
 
 > **Forward reference (metadata only):** specified by
 > [FS-110](../features/FS-110-infinite-mode.md) (2026-07-14). 8 Open Questions, all routed
@@ -762,6 +762,14 @@
 > and dependency-summary row updated in the same pass. `CR-07`'s run/session-shape question is
 > already resolved (`FR-10600`); `CR-05`'s finite-mode blob mechanism (`ADR-0018`) remains a
 > separate, unrelated Candidate, not part of this Feature's own scope (see Excluded Requirements).
+> **Implementation status (metadata only, `BL-0126`, 2026-07-16):** all five planned packages
+> (`IP-1100`–`IP-1104`) are `VERIFIED` on the Master Build Plan, and the set passed
+> `10-integration-review` clean (one unrelated Medium finding — this entry's own then-stale
+> status, now fixed here). `FR-10400`'s automatic run-end trigger remains unwired by deliberate,
+> adjudicated scope choice (`BL-0112`, `IP-1103`'s own explicit routing), not an implementation
+> gap. This Feature still sits in the **`Future`** release bucket — full implementation does not
+> itself change release scheduling, which remains `11-release-readiness`'s own call once the user
+> decides whether to fold it into a release.
 > `BL-0107`/`BL-0108`/`BL-0109` (Binary Tree aesthetic, ledger SRAM sizing, materialization
 > timing) remain real open implementation-time questions, correctly deferred past this stage.
 
