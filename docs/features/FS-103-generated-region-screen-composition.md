@@ -25,6 +25,13 @@
 > own dispatch to 5 — both are already fully authored and already emitted into the ROM by
 > `build_tile_data()`. What remains is a dispatch-table rewire (§9), not new content authoring —
 > see §5/§19 below. §5, §6, §7, §10, §19 updated.
+>
+> **Planned 2026-07-16:** [IP-1033](../implementation/packages/IP-1033-nine-biome-family-collectible-spawn-content.md)
+> (`NOT STARTED`, not yet authorized) authors the four new identities' own collectible-spawn
+> content — the paired content half of the same completeness question this revision's own Open
+> Question 1 named — but only the *content*; final `ZONE_COLLECTS`/dispatch wiring remains
+> deferred, blocked on `CR-08` (see `FS-102` §19 Open Question 1 for the ordering question, `IP-1033`'s
+> own Dependencies for the exact boundary).
 
 [↑ Features index](INDEX.md) · [Feature Catalog](../feature-planning/03-feature-catalog.md) ·
 [Epic Catalog](../feature-planning/02-epic-catalog.md)

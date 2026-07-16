@@ -1146,3 +1146,94 @@ buildable without it.
 - **`BL-0114`** (materialized-window radius/byte cost) — resolved this pass, see "Per-region
   encoding, materialized-window, and ledger sizing decisions" above. `BL-0114` flips to `DONE`
   once `00-pipeline-manager` harvests this run.
+
+## Nine biome-family identities (`FS-102`/`FS-103` revision, `FR-4320`, `BL-0128`, planned 2026-07-16)
+
+Project-owner decision (`BL-0128`): merge the original Release-1 nine-zone art with the
+five-family procgen taxonomy so no shipped screen art stays permanently orphaned. Baselined as
+`FR-4320` (`04-requirements-engineering`, run #169); `FS-102`/`FS-103` both revised to cover it
+(`06-feature-specification`, run #170).
+
+### Verb inventory (mandatory — this capability spans generate/render/persist)
+
+| Verb | Owner | Notes |
+|---|---|---|
+| **Generate** (finite mode: which numeric biome-id a region draws) | Deferred — see below | The clamp-bound widening itself (`4`→`8`) is mechanical, but the *meaning* of positions 5-8 (which of the four new identities occupies which slot) is `CR-08`'s own unresolved question — inseparable from **Render**'s own dispatch assignment (same numeric ID drives both). Bundled into the deferred package below, not split. |
+| **Generate** (Infinite Mode: `_materialize_region`'s own independent per-region hash draw, still `%5`) | Deferred — see below | **Confirmed by direct code read (`worldgen.py:284-285`) to have no neighbor-based grammar-adjacency clamp at all** — the draw's *value range* genuinely doesn't need `CR-08`'s answer on its own terms. **But it cannot ship ahead of Render's own dispatch cascade regardless**: widening the draw to `%9` while `dsr_p_dispatch` still only has branches for 0-3 (falling through unconditionally to Brick) would make Infinite Mode *actually generate* regions the renderer would silently mis-render as Castle — a real regression in an already-`VERIFIED`, player-facing feature. Bundled into the deferred package below for this reason, not `CR-08`'s. |
+| **Represent** (Infinite Mode `region_byte`/`INF_MZ_RESULT`'s own bit-field layout — biome bits 0-2→0-3, connectivity nibble bits 3-6→4-7) | [IP-1105](packages/IP-1105-infinite-mode-biome-domain-widening.md) | **Genuinely independent, behavior-preserving infrastructure**: repacks *where* the same 0-4 biome value and the same connectivity nibble live within the byte, preparing bit headroom for a future value-range widening, without changing the draw's own value range (`%5` unchanged) or any rendered/observable behavior. Every consumer of the byte's bit positions (`dsr_p_inf`, `czt_infinite`, `draw_region_arrows_inf`, `szc_infinite`'s own mask) updated in lockstep so the existing 5-value behavior is bit-for-bit unchanged. |
+| **Render** (screen dispatch, `dsr_p`/`dsr_p_dispatch`, shared by both modes) | Deferred — see below | The dispatch cascade must assign each of the four new identities a specific `CP_n` branch (numeric position 5-8) — the same assignment **Generate** (finite) needs, and the same one **Generate** (Infinite Mode) must wait for before its own value-range widening is safe to ship. |
+| **Persist** (`ZONE_COLLECTS` collectible-spawn content) | [IP-1033](packages/IP-1033-nine-biome-family-collectible-spawn-content.md) | Content authoring itself (choosing each screen's own collectible x/y/type triples) needs no numeric-ID decision — but final array-index wiring, and `inf_treasure_pos`'s own matching table extension (indexed by the same biome-id, `asm_game.py:1838`), both do. Gated on the deferred package below (see Dependencies). |
+
+**Deferred (not packaged this pass): finite-mode generation, Infinite Mode's own value-range
+widening, and screen-dispatch wiring — bundled as one future package.** `generate_world`/
+`worldgen.py`'s clamp-bound widening (`asm_game.py:2087`/`2109`, `worldgen.py:66`/`85`, all
+`4`→`8`), `_materialize_region`'s own `%5`→`%9` widening (safe only once dispatch exists, per the
+verb inventory above), the `dsr_p`/`dsr_p_dispatch` cascade extension (`asm_game.py:1392`–`1411`,
+plus `tilemaps.py`'s `ALL_SCREENS`/`build_rom.py`'s patch wiring), and `inf_treasure_pos`'s
+4-entry extension (`asm_game.py:1838`) all require the same single undecided input: **which of
+the four new identities occupies which of biome-id positions 5, 6, 7, 8** — `CR-08`
+(`01-functional-requirements.md`, Candidate Requirements), routed to
+`02-research-game-design`/`03-architecture-design-synthesis`, not resolved here (this skill's own
+SHALL-NOT-invent-a-design-decision rule). A placeholder ordering was considered and rejected:
+shipping an arbitrary 5-8 assignment now and reordering once `CR-08` resolves would mean
+re-testing and potentially re-authoring content around a discarded ordering — worse than waiting,
+not better. **No package authored for this bundle; it re-enters planning once `CR-08` closes.**
+
+### Supersession sweep
+
+This delta widens an existing domain (5→9 biome-family values); it does not retire or replace a
+model the way `IP-1030`'s `ALL_SCREENS` generalization did. Swept `asm_game.py`/`tilemaps.py`/
+`build_rom.py` for every other site encoding the old `0`–`4`/5-value assumption or the current
+bit-field layout beyond the ones already named above: **found the full consumer set of
+`INF_WINDOW`/`INF_MZ_RESULT`'s packed byte** — `dsr_p_inf` (`asm_game.py:1386`, biome mask),
+`czt_infinite` (`asm_game.py:1160,1171,1182,1193`, four connectivity-bit tests), `draw_region_
+arrows_inf` (`asm_game.py:1573,1576,1579,1582`, four more), `szc_infinite` (`asm_game.py:1936`,
+biome mask) — every one now named in `IP-1105`'s own Files to Modify, none missed. Also found:
+`dsr_p`'s own inline comment ("biome-id 4 (`generate_world`'s own invariant: axis-clamped to
+0..4)," `asm_game.py:1397`) is documentation only, not code; will need updating whenever the
+deferred dispatch package eventually lands, no package needed now. No other call site (searched
+for literal `% 5`, `CP_n(4)`, `0..4`/`0-4` range comments) found beyond the ones already named —
+confirmed clean.
+
+### Work units and package cut
+
+| Work unit | Package | Owner | Depends on |
+|---|---|---|---|
+| Infinite Mode `region_byte`/`INF_MZ_RESULT` bit-field repack (biome 0-2→0-3, connectivity 3-6→4-7) — behavior-preserving, value range unchanged (`%5`) | [IP-1105](packages/IP-1105-infinite-mode-biome-domain-widening.md) | `08-code-implementation` | `IP-1101`/`IP-1102` (`VERIFIED`, the shipped format this repacks) |
+| Collectible-spawn content for the four newly-folded identities (Village, Cave, Desert, Plains) | [IP-1033](packages/IP-1033-nine-biome-family-collectible-spawn-content.md) | `08-content-authoring` | `FR-4320` (baselined — the identity list/palette mapping this content targets); final `ZONE_COLLECTS`/`inf_treasure_pos` array wiring additionally depends on the deferred bundle (§ above, `CR-08`) |
+
+**Split rationale:** two packages, not three or one. `IP-1105` (Infinite Mode's own bit-layout
+repack) is genuinely independent of `CR-08` *and* safe to ship ahead of the value-range widening
+precisely because it changes nothing observable — confirmed by requiring every one of its own
+Verification Checklist items to show byte-for-byte-unchanged behavior for the existing 5-value
+case, the same bar an `08-refactoring` equivalence contract would set, even though this ships as
+forward infrastructure for `FR-4320` rather than housekeeping (so it stays `08-code-
+implementation`, not `08-refactoring` — no debt is being retired, headroom is being built). It is
+independent of `IP-1033` (disjoint files/concerns) — its own package. `IP-1033` (content) is
+authorable now (the pixel-content decisions don't need a numeric ordering) but its own Definition
+of Done cannot fully close until the deferred bundle supplies a final array index — stated
+honestly in its own Dependencies rather than pretending full independence. The finite-mode
+generation+dispatch+Infinite-Mode-value-widening bundle is **not** packaged at all this pass (see
+Deferred, above) — a package with `CR-08` as an unresolvable Blocking condition on day one would
+sit `BLOCKED` indefinitely with nothing to do until then; better to leave it unpackaged and let
+`CR-08`'s resolution trigger a fresh planning pass, mirroring `CR-06`'s own `03→04` precedent (an
+Open Question closes upstream, then planning returns).
+
+### Sequencing summary
+
+No critical-path change — both packages are independent of each other and of every in-flight
+package elsewhere in the tree (confirmed: `IP-1105` touches `worldgen.py`/`asm_game.py` regions no
+other open package names; `IP-1033` touches only `tilemaps.py`'s `ZONE_COLLECTS`, likewise clear).
+Both are parallel-eligible once authorized. The deferred bundle is **not** on any critical path
+today — nothing downstream is waiting on it (Infinite Mode's own tranche is fully `VERIFIED` and
+closed independent of this delta; the finite-mode procgen tranche is likewise already `VERIFIED`
+and closed, this delta is purely additive). **`IP-1105` shipping first is a genuine, deliberate
+prerequisite for the deferred bundle**, not merely parallel-eligible with it — once `CR-08`
+resolves, the deferred package's own value-range widening lands on top of `IP-1105`'s already-
+repacked bit layout rather than needing to do both at once.
+
+### Backlog riders honored in this pass
+
+- **`BL-0130`** (catalog Included-Requirements gap for `FR-4320`) — **not** riding this pass; it's
+  a `05-feature-decomposition` metadata fix, out of this skill's own write scope, confirmed
+  correctly excluded.

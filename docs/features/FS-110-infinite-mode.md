@@ -37,6 +37,15 @@
 > made) — planning does not require or imply scheduling, per `05-feature-decomposition`'s own
 > established precedent. Open Question 3 (`BL-0112`, run-end trigger timing) is deliberately left
 > unresolved by this planning pass, exactly as this document's own §19 routes it.
+>
+> **Delta planned 2026-07-16** (`FR-4320`/`BL-0128`, `FS-102`'s own nine-biome-family-identity
+> revision): [IP-1105](../implementation/packages/IP-1105-infinite-mode-biome-domain-widening.md)
+> (`NOT STARTED`, not yet authorized) repacks `region_byte`/`INF_MZ_RESULT`'s bit layout (biome
+> bits 0-2→0-3, connectivity bits 3-6→4-7) — behavior-preserving infrastructure, value range
+> unchanged (`%5`) — preparing this Feature's own materialization format for a future widening to
+> nine identities once `CR-08` (adjacency-grammar ordering, `01-functional-requirements.md`
+> Candidate Requirements) resolves upstream. Does not itself implement any new player-visible
+> behavior for this Feature.
 
 [↑ Features index](INDEX.md) · [Feature Catalog](../feature-planning/03-feature-catalog.md) ·
 [Epic Catalog](../feature-planning/02-epic-catalog.md)
