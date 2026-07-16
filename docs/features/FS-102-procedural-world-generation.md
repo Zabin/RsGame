@@ -37,6 +37,12 @@
 > `CR-08` rather than decided here. §10 and §19 updated; no other section changes (this Feature's
 > generation *mechanism* — PRNG step order, edge-proposal logic, `FR-9170`'s snap/fallback bias —
 > is unaffected, only the domain size it operates over).
+>
+> **`CR-08` resolved 2026-07-16** (baselined into `FR-4310`, `R212` v1.1). **Planned same day:**
+> [IP-1022](../implementation/packages/IP-1022-finite-mode-nine-identity-generation-and-dispatch.md)
+> (`BLOCKED` on `IP-1033`, not yet authorized) implements the widened generation clamp and the
+> shared screen-dispatch cascade together — Open Question 1 (grammar-table contents) and Open
+> Question 6 (collectible-spawn content) both close once it and `IP-1033` both ship.
 
 [↑ Features index](INDEX.md) · [Feature Catalog](../feature-planning/03-feature-catalog.md) ·
 [Epic Catalog](../feature-planning/02-epic-catalog.md)

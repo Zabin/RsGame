@@ -46,6 +46,12 @@
 > nine identities once `CR-08` (adjacency-grammar ordering, `01-functional-requirements.md`
 > Candidate Requirements) resolves upstream. Does not itself implement any new player-visible
 > behavior for this Feature.
+>
+> **`CR-08` resolved 2026-07-16.** [IP-1106](../implementation/packages/IP-1106-infinite-mode-nine-identity-value-widening.md)
+> (`BLOCKED` on `IP-1105`/`IP-1022`/`IP-1033`, not yet authorized) completes the widening
+> `IP-1105` prepared — the actual `%5`→`%9` draw-range widening and `inf_treasure_pos`'s own
+> table extension. Deepest point in the delta's own dependency chain; the earliest this Feature's
+> own player-visible nine-identity behavior can ship.
 
 [↑ Features index](INDEX.md) · [Feature Catalog](../feature-planning/03-feature-catalog.md) ·
 [Epic Catalog](../feature-planning/02-epic-catalog.md)

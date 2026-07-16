@@ -814,28 +814,26 @@ first-in-critical-path package.)*
 
 ## Nine biome-family identities (`FS-102`/`FS-103` revision, `FR-4320`, `BL-0128`, planned 2026-07-16)
 
-Two packages implementing the safely-unblocked half of `FR-4320`'s biome-family widening — see
-the [TWBS](01-technical-work-breakdown.md#nine-biome-family-identities-fs-102fs-103-revision-fr-4320-bl-0128-planned-2026-07-16)
-for the full verb inventory and the deferred bundle's own scope (finite-mode generation,
-`dsr_p_dispatch`'s screen-selection cascade, and Infinite Mode's own value-range widening — all
-three genuinely blocked on `CR-08`, the adjacency-grammar ordering for the four new identities,
-not packaged this pass).
+Four packages implementing `FR-4320`'s biome-family widening in full — see the
+[TWBS](01-technical-work-breakdown.md#nine-biome-family-identities-fs-102fs-103-revision-fr-4320-bl-0128-planned-2026-07-16)
+for the full verb inventory. `CR-08` (the adjacency-grammar ordering for the four new identities)
+was resolved into `FR-4310` on 2026-07-16, unblocking the two packages below that were originally
+deferred pending it.
 
 | Package | Title | Owner (08 peer) | Status | Depends on | Authorized? | Notes |
 |---|---|---|---|---|---|---|
-| [IP-1105](packages/IP-1105-infinite-mode-biome-domain-widening.md) | Infinite Mode `region_byte` bit-field repack (biome-domain widening, phase 1) | `08-code-implementation` | **NOT STARTED** | IP-1101 (VERIFIED), IP-1102 (VERIFIED), IP-1103 (VERIFIED) | **NOT YET — no G3 on record** | Behavior-preserving infrastructure: repacks `region_byte`/`INF_MZ_RESULT`'s bit layout (biome 0-2→0-3, connectivity 3-6→4-7) without widening the draw's own value range (stays `%5`). Every existing 5-value Infinite Mode behavior must be bit-for-bit unchanged — verified via the existing test suite's own unmodified expected values. Prepares headroom for a future value-range widening once `CR-08` resolves; does not itself implement any part of `FR-4320`'s player-visible behavior. |
-| [IP-1033](packages/IP-1033-nine-biome-family-collectible-spawn-content.md) | Collectible-spawn content for the four newly-folded biome identities | `08-content-authoring` | **NOT STARTED** | FR-4320 (baselined), IP-9070 (VERIFIED) | **NOT YET — no G3 on record** | Authors `ZONE_COLLECTS`-format spawn lists for Village/Cave/Desert/Plains, staged as inert data (not yet spliced into the live array — final wiring is the deferred bundle's own job, entangled with `CR-08`). `IP-9070` deleted the originals rather than orphaning them; this is fresh authoring, not recovery. |
+| [IP-1105](packages/IP-1105-infinite-mode-biome-domain-widening.md) | Infinite Mode `region_byte` bit-field repack (biome-domain widening, phase 1) | `08-code-implementation` | **NOT STARTED** | IP-1101 (VERIFIED), IP-1102 (VERIFIED), IP-1103 (VERIFIED) | **NOT YET — no G3 on record** | Behavior-preserving infrastructure: repacks `region_byte`/`INF_MZ_RESULT`'s bit layout (biome 0-2→0-3, connectivity 3-6→4-7) without widening the draw's own value range (stays `%5`). Every existing 5-value Infinite Mode behavior must be bit-for-bit unchanged — verified via the existing test suite's own unmodified expected values. |
+| [IP-1033](packages/IP-1033-nine-biome-family-collectible-spawn-content.md) | Collectible-spawn content for the four newly-folded biome identities | `08-content-authoring` | **NOT STARTED** | FR-4320 (baselined), IP-9070 (VERIFIED) | **NOT YET — no G3 on record** | Authors `ZONE_COLLECTS`-format spawn lists for Village/Cave/Desert/Plains, staged as inert data — final wiring is `IP-1022`'s own job. |
+| [IP-1022](packages/IP-1022-finite-mode-nine-identity-generation-and-dispatch.md) | Finite-mode nine-identity generation & screen dispatch | `08-code-implementation` | **BLOCKED** (real prerequisite unshipped, not merely unauthorized) | FR-4310/FR-4320 (baselined), IP-1033 (NOT STARTED) | **NOT YET — no G3 on record** | Widens `generate_world`'s clamp `[0,4]`→`[0,8]`, extends `dsr_p_dispatch`'s cascade to all nine identities, splices `IP-1033`'s staged content into `ZONE_COLLECTS`'s real array. `CR-08`'s resolution unblocked this package's own planning; `IP-1033`'s own shipping is what unblocks its *execution*. |
+| [IP-1106](packages/IP-1106-infinite-mode-nine-identity-value-widening.md) | Infinite Mode nine-identity value-range widening | `08-code-implementation` | **BLOCKED** (three real prerequisites unshipped) | IP-1105 (NOT STARTED), IP-1022 (BLOCKED), IP-1033 (NOT STARTED) | **NOT YET — no G3 on record** | Widens `materialize_region`'s draw `%5`→`%9`, extends `inf_treasure_pos` to nine entries. The deepest point in this delta's own dependency chain (`IP-1033`/`IP-1105` → `IP-1022` → `IP-1106`) — shipping ahead of its own prerequisites would reintroduce the exact live-regression risk `IP-1105`'s own TWBS entry first identified. |
 
-**Deferred, not packaged this pass:** the finite-mode `generate_world`/`worldgen.py` clamp
-widening, the `dsr_p`/`dsr_p_dispatch` screen-selection cascade extension, `inf_treasure_pos`'s
-own table extension, and `_materialize_region`'s own value-range widening (`%5`→`%9`) — all four
-require **`CR-08`** (`docs/requirements/01-functional-requirements.md`, Candidate Requirements:
-which of the four new identities occupies which of biome-id positions 5-8), routed to
-`02-research-game-design`/`03-architecture-design-synthesis`, not resolved at this stage. No
-package exists for this bundle yet — it re-enters planning once `CR-08` closes, mirroring `CR-06`'s
-own `03→04` precedent.
+**Critical-path chain within this delta:** `IP-1033`/`IP-1105` (parallel-eligible roots) →
+`IP-1022` → `IP-1106`. Does not extend or block any other in-flight critical path — both
+Infinite Mode's own tranche and the finite-mode procgen tranche are already `VERIFIED` and closed
+independent of this delta.
 
-**Authorization state: neither package authorized** — both are new, additive forward-design work,
-not covered by the `BL-0001`…`BL-0005` G3 bootstrap carve-out. `IP-1105`/`IP-1033` are independent
-of each other and parallel-eligible once authorized; `IP-1105` is a genuine prerequisite for the
-deferred bundle's own future value-range widening (ships its bit-layout groundwork first).
+**Authorization state: none of the four packages authorized** — all are new, additive
+forward-design work, not covered by the `BL-0001`…`BL-0005` G3 bootstrap carve-out. `IP-1105`/
+`IP-1033` are `NOT STARTED` (gated only on G3); `IP-1022`/`IP-1106` are `BLOCKED` (gated on both
+G3 *and* their own unshipped prerequisites — a strictly later point in the chain than "just needs
+authorization").

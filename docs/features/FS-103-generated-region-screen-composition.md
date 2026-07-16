@@ -29,9 +29,10 @@
 > **Planned 2026-07-16:** [IP-1033](../implementation/packages/IP-1033-nine-biome-family-collectible-spawn-content.md)
 > (`NOT STARTED`, not yet authorized) authors the four new identities' own collectible-spawn
 > content — the paired content half of the same completeness question this revision's own Open
-> Question 1 named — but only the *content*; final `ZONE_COLLECTS`/dispatch wiring remains
-> deferred, blocked on `CR-08` (see `FS-102` §19 Open Question 1 for the ordering question, `IP-1033`'s
-> own Dependencies for the exact boundary).
+> Question 1 named — but only the *content*; final `ZONE_COLLECTS`/dispatch wiring rides
+> [IP-1022](../implementation/packages/IP-1022-finite-mode-nine-identity-generation-and-dispatch.md)
+> instead (`BLOCKED` on `IP-1033`'s own content existing first). **`CR-08` resolved 2026-07-16**
+> (baselined into `FR-4310`), unblocking `IP-1022`'s own planning the same day.
 
 [↑ Features index](INDEX.md) · [Feature Catalog](../feature-planning/03-feature-catalog.md) ·
 [Epic Catalog](../feature-planning/02-epic-catalog.md)
