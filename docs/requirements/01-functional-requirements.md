@@ -18,8 +18,9 @@
 > tranche's own FR set; delta 2026-07-16 (cont'd) — new **FR-4320** (nine biome-family
 > identities, `BL-0128`), a requirements delta to `FR-9100`/`FR-10200`'s shared biome-family
 > axis, widening it from five to nine identities so every already-shipped zone screen becomes a
-> reachable generation target; `FR-9170`/`FR-4310` updated in place for the new domain — see
-> Changelog).**
+> reachable generation target; `FR-9170`/`FR-4310` updated in place for the new domain; delta
+> 2026-07-16 (cont'd) — **`CR-08` resolved and baselined into `FR-4310`**, a concrete nine-value
+> adjacency-grammar ordering grounded in `R212` v1.1 — see Changelog).**
 > Owned by `04-requirements-engineering`.
 > Derives from [GDS-05](../architecture/05-functional-requirements.md)'s six capability groupings
 > (C1–C6) — this document formalizes each into numbered, testable `FR-xxxx` requirements per
@@ -32,6 +33,23 @@
 
 ## Changelog
 
+- **2026-07-16 — `CR-08` resolved and baselined into `FR-4310`** (`BL-0128`/`BL-0129`,
+  `02-research-game-design`'s `R212` v1.1 delta). `FR-4310`'s own Description/Postconditions/
+  Acceptance Criteria now state a concrete nine-value adjacency-grammar ordering — `Water(0) –
+  Sand(1) – Grass(2) – Stone(3) – Brick(4) – Village(5) – Cave(6) – Desert(7) – Plains(8)` —
+  replacing the previous abstract "appears in R212's adjacency grammar table" phrasing with the
+  table's own actual contents, now that R212 states them. Grounded in three independent real-
+  world precedents, not invented: Cappadocia's Uçhisar (a real castle-fortress-plus-troglodyte-
+  village-plus-cave-city, grounding Castle↔Village↔Cave as one real place rather than three
+  separately-invented pairings), Petra (desert cave dwellings, a documented thermal-adaptation
+  motive grounding Cave↔Desert), and Minecraft's own real biome-generation rule (already `R212`'s
+  own cited precedent source, now reused to ground Desert↔Plains). Confirmed no architecture
+  conflict — `FR-4320`'s own palette-mapping decision (§10 there) is independent of this axis, per
+  direct cross-check. One honest, deliberately-kept trade-off restated in `FR-4310`'s own Notes
+  rather than hidden: the append-only ordering (preserving the shipped `0`-`4` range to avoid a
+  renumbering risk) decouples the four new identities' grammar-legality from their palette-group
+  siblings — not a defect, since this FR never required the two to coincide. `CR-08` is closed —
+  see its own entry for the full resolution trail (`02-research-game-design` → this delta).
 - **2026-07-16 — New FR-4320 (nine biome-family identities); FR-9170/FR-4310 updated for the new
   domain** (`BL-0128`, direct project-owner decision: "merge the two sets keeping the art from
   both... there should be no art content and area definitions unused"). Widens the biome-family
@@ -956,18 +974,30 @@ FR-6000 for the presentation half)*
 - **Title:** The system shall only generate region adjacencies that appear in the biome-adjacency
   grammar.
 - **Description:** For every pair of adjacent generated regions, their biome families' pairing
-  shall appear in R212's adjacency grammar table (e.g. water may border beach; water shall never
-  border sky directly).
-- **Rationale:** MSTR-001 C9; R212; ADR-0009 (enforced by construction, not post-hoc validation).
+  shall appear in R212's adjacency grammar table — two identities are grammar-legal adjacent iff
+  they are the same or immediately adjacent on the ordered axis **(2026-07-16 delta, `BL-0128`,
+  resolves `CR-08`):** `Water(0) – Sand(1) – Grass(2) – Stone(3) – Brick(4) – Village(5) –
+  Cave(6) – Desert(7) – Plains(8)`, per R212 v1.1's own Delta section — e.g. water may border
+  beach but never sky; Brick(Castle) may border Village but never Desert directly.
+- **Rationale:** MSTR-001 C9; R212 (v1.1 delta, `CR-08`'s resolution); ADR-0009 (enforced by
+  construction, not post-hoc validation).
 - **Priority:** Must (target — not yet implemented)
 - **Inputs:** The candidate adjacency the generator is about to create.
 - **Outputs:** The adjacency is created only if grammar-legal; otherwise the generator selects a
   different candidate.
 - **Preconditions:** Generation is in progress (FR-9100).
-- **Postconditions:** Every edge in the generated region graph is grammar-legal.
-- **Acceptance Criteria:** For any generated world, every adjacent region pair's biome-family
-  combination appears in the grammar table; no illegal pairing exists anywhere in the graph.
-- **Dependencies:** FR-9100.
+- **Postconditions:** Every edge in the generated region graph is grammar-legal — for any two
+  adjacent regions' biome-id values `a`/`b` on the nine-value axis above, `|a - b| <= 1`.
+- **Acceptance Criteria:** For any generated world (finite or Infinite Mode, once `FR-4320`'s own
+  domain widening ships in each), every adjacent region pair's biome-family combination appears in
+  the nine-value grammar table above; no illegal pairing exists anywhere in the graph. Specifically:
+  `Stone(3)` may border `Brick(4)` but not `Village(5)`; `Village(5)` may border `Brick(4)` and
+  `Cave(6)` but not `Stone(3)` or `Desert(7)`; `Cave(6)` may border `Village(5)` and `Desert(7)`
+  but not `Brick(4)` or `Plains(8)`; `Desert(7)` may border `Cave(6)` and `Plains(8)` but not
+  `Village(5)`; `Plains(8)` may border only `Desert(7)` (the axis's far endpoint, symmetric with
+  `Water(0)`'s own single-neighbor status at the near endpoint).
+- **Dependencies:** FR-9100, FR-4320 (the nine-identity domain and palette mapping this
+  Acceptance Criteria's own axis operates over).
 - **Verification Method:** Test (property test across a (seed, scale) corpus, per R305's
   extension).
 - **Source Documents:** R212; ADR-0009; GDS-04 delta.
@@ -987,6 +1017,18 @@ FR-6000 for the presentation half)*
   **CR-08** (Candidate Requirements, below), routed to `02-research-game-design` (extend R212's
   grammar table) or `03-architecture-design-synthesis` (a GDS-08 §8 delta) — the same routing
   `NFR-6510`'s own Stone↔Brick finding already used for a smaller version of this question.
+  **Resolved (`02-research-game-design`, 2026-07-16): `R212` v1.1 grounds a concrete ordering**
+  (Water–Sand–Grass–Stone–Brick–Village–Cave–Desert–Plains), real-precedented (Cappadocia's
+  Uçhisar castle-village-cave cluster, Petra's desert cave dwellings, Minecraft's own
+  desert-plains adjacency rule). **Baselined into this FR's own Description/Postconditions/
+  Acceptance Criteria above, same day.** One honest, deliberately-kept trade-off, stated by R212
+  itself and restated here rather than hidden: the append-only ordering (positions 5-8, preserving
+  the shipped `0`-`4` order intact) decouples the four new identities' grammar-legality from their
+  palette-group siblings — Village/Cave share Stone's palette (GDS-08 §4) but are not
+  grammar-adjacent to Stone(3) on this axis. Not a defect — this FR never required palette
+  grouping and adjacency-axis position to coincide, and R212 itself confirms `FR-4320`'s own
+  palette-mapping decision (§10 there) is independent of this FR's own axis. `CR-08` is closed —
+  see its own entry below for the resolution trail.
 
 ### FR-4320 — Nine biome-family identities, mapped onto five terrain-palette groups (target — 2026-07-16)
 
@@ -2163,7 +2205,7 @@ excluded from the numbered baseline above; marked `CANDIDATE — NOT BASELINED` 
   ("for now") is carried into `FR-10600`'s Notes verbatim — this is a revisitable decision, not a
   permanently closed one.
 
-### CR-08 — Adjacency-grammar ordering position for the four newly-folded biome identities (`BL-0128`)
+### CR-08 — Adjacency-grammar ordering position for the four newly-folded biome identities (`BL-0128`) — RESOLVED, BASELINED 2026-07-16
 
 - **Description:** Once `FR-4320` ships, `FR-4310`'s adjacency grammar (today defined only over
   the five-value palette-family axis — water/sand/grass/stone/brick, per R212's own worked
@@ -2196,3 +2238,12 @@ excluded from the numbered baseline above; marked `CANDIDATE — NOT BASELINED` 
   — only `FR-4310`'s own extension to the nine-identity axis, and any future generator code that
   consumes it, waits on this answer. `04-requirements-engineering` returns to derive the real
   `FR-4310` delta once that lands, mirroring `CR-06`'s own `03→04` precedent exactly.
+  **Resolved (`02-research-game-design`, 2026-07-16): `R212` v1.1 grounds reading (b)** — a
+  distinct nine-point axis, not the minimal-change palette-inheritance reading (a) — with real,
+  independently-documented precedent for each new adjacency (Cappadocia's Uçhisar grounding
+  Castle-Village-Cave as one real place, not three invented pairings; Petra grounding Cave-Desert;
+  Minecraft's own real generation rule, already R212's own cited source, grounding Desert-Plains).
+  **Baselined (`04-requirements-engineering`, same day): `FR-4310`'s own Description/
+  Postconditions/Acceptance Criteria now state the concrete nine-value ordering** (`Water(0) –
+  Sand(1) – Grass(2) – Stone(3) – Brick(4) – Village(5) – Cave(6) – Desert(7) – Plains(8)`). This
+  Candidate is now closed; further tracking lives on `FR-4310` itself.

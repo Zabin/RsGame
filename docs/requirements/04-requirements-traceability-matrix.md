@@ -25,7 +25,8 @@
 > Implemented/Met (`IP-1104`, `T27`) — this closes the Infinite Mode tranche's own FR/NFR set in
 > full, `BL-0112` (run-end trigger) the sole standing gap); delta 2026-07-16 (cont'd) — FR-4320
 > added and CR-08 filed for the nine-biome-family-identity delta, `BL-0128`; FR-9170 row updated
-> for the widened `[0,8]` domain.**
+> for the widened `[0,8]` domain; delta 2026-07-16 (cont'd) — CR-08 resolved and closed, baselined
+> into FR-4310's own row (concrete nine-value adjacency ordering, `R212` v1.1).**
 > Owned by `04-requirements-engineering`.
 > One row per [RQ-01](01-functional-requirements.md)/[RQ-02](02-non-functional-requirements.md)
 > requirement (Candidates marked). Populates the row-level matrix
@@ -79,7 +80,7 @@
 | FR-1210 | LEGEND state (Met, 2026-07-13) | — | GDS-08 §11 | — | `asm_game.py`, `tilemaps.py` | FS-109 | IP-1090 | **T21.e, T21.f1–f3 — 246/246 pass** |
 | FR-3220 | Item-agnostic KeyItem collection (generalizes FR-3210) | — | GDS-04 delta | ADR-0009 | `asm_game.py` | FS-102 | IP-1020 | T8.7, T8.8 (retargeted KEYITEM_FLAGS/KEYITEM_COUNT checks), T12.g (cross-reference) — 133/133 pass |
 | FR-4300 | One biome per screen (Met — code half `IP-1030`, content half `IP-1031`, both 2026-07-10/11) | R212 | GDS-08 delta §8 | ADR-0009 | `asm_game.py`, `tilemaps.py` | FS-103 | IP-1030 (code), IP-1031 (content) | T13.a (tile-family audit, exercises both halves) — 180/180 pass |
-| FR-4310 | Grammar-valid adjacency only (**2026-07-16 delta**: Notes flag the nine-identity axis needs an ordering position for the four new identities — see CR-08) | R212 | GDS-04 delta | ADR-0009 | `asm_game.py`, `worldgen.py` | FS-102 | IP-1020 | T12.d (15-entry seed/scale corpus, 0 illegal edges) |
+| FR-4310 | Grammar-valid adjacency only (**2026-07-16 delta**: baselined nine-value adjacency ordering, resolving `CR-08`, `R212` v1.1 — Water-Sand-Grass-Stone-Brick-Village-Cave-Desert-Plains) | R212 (v1.1) | GDS-04 delta | ADR-0009 | `asm_game.py`, `worldgen.py` | FS-102 | IP-1020 (5-identity case); the 9-identity dispatch bundle UNASSIGNED, deferred pending `07-implementation-planning` | T12.d (15-entry seed/scale corpus, 0 illegal edges) — 5-identity case only; 9-identity test coverage UNASSIGNED |
 | FR-4320 | Nine biome-family identities, mapped onto five terrain-palette groups (target, `BL-0128`) | R212 Implementation Guidance | `07-data-model.md` §5, `08-presentation-architecture.md` §8 | ADR-0009 | `tilemaps.py`, `worldgen.py`, `asm_game.py` (prospective) | UNASSIGNED | UNASSIGNED | UNASSIGNED |
 | FR-9100 | Deterministic world generation from (seed, scale) | R111, R213 | GDS-04 delta; ADR-0009 | ADR-0009, ADR-0014 | `asm_game.py`, `worldgen.py` | FS-102 | IP-1020, IP-9110 | T12.a (two-boot determinism), T12.b (oracle parity), T12.e (region count), T12.j (non-degeneracy statistical check), T12.k (BL-0074 direct reproduction re-check) |
 | FR-9110 | Seed/scale immutable per save, new-game-only (Met, 2026-07-10) | — | ADR-0010 | ADR-0010 | `asm_game.py` (only `sse_compose_seed`, reachable only via `st_seed_scale_entry`'s A-confirm, writes `SEED`/`WORLD_SCALE`) | FS-102, FS-104 | IP-1020, IP-1040 | T14.e1 (static write-site audit), T14.e2 (runtime sweep, PLAYING/SAVE/MAP) — 180/180 pass (T14 sub-total 20/20) |
@@ -98,7 +99,7 @@
 | FR-10400 | Score-chasing win condition (running count + top-3, no name entry) | R216 | ADS-001 §Executive Design Overview | ADR-0017 | `asm_game.py` | FS-110 | IP-1103 (**partial** — state + `inf_check_top_score` subroutine only; **no automatic trigger calls it**, the run-end trigger is `BL-0112`'s open question, a follow-up package wires the call site) | T26.c (subroutine corpus), T26.d (zero-call-site state, explicit), T26.e (no name entry) |
 | FR-10500 | Visited-region-ledger save/load (position + collected-state only) | R114 | ADS-001 §System Architecture | ADR-0016 | `asm_game.py` | FS-110 | IP-1104 | T27.a, T27.c |
 | CR-07 | Infinite Mode run/session shape (`BL-0106`) — **RESOLVED 2026-07-13, baselined as FR-10600** once the project owner decided directly ("for now assume indefinitely resumable") | R216 | — | ADR-0017 | `asm_game.py` (prospective) | `CANDIDATE — NOT BASELINED` (see FR-10600) | `CANDIDATE — NOT BASELINED` | `CANDIDATE — NOT BASELINED` |
-| CR-08 | Adjacency-grammar ordering position for the four newly-folded biome identities (`BL-0128`) — not yet resolved, routed to `02-research-game-design`/`03-architecture-design-synthesis`, per RQ-03 finding #20 | R212 | GDS-08 §8 (pending delta) | ADR-0009 | `worldgen.py` (prospective) | `CANDIDATE — NOT BASELINED` | `CANDIDATE — NOT BASELINED` | `CANDIDATE — NOT BASELINED` |
+| CR-08 | Adjacency-grammar ordering position for the four newly-folded biome identities (`BL-0128`) — **RESOLVED and BASELINED 2026-07-16 as `FR-4310`'s own delta**, per RQ-03 finding #21 | R212 (v1.1) | GDS-04 delta | ADR-0009 | `worldgen.py` | `CLOSED — see FR-4310` | `CLOSED — see FR-4310` | `CLOSED — see FR-4310` |
 | FR-10600 | Indefinitely resumable Infinite Mode run (no bounded end-condition mechanic) | R216 | ADS-001 §Open Questions (Q1) | ADR-0017 | `asm_game.py` | FS-110 | IP-1104 | T27.f |
 
 ## Non-Functional Requirements
