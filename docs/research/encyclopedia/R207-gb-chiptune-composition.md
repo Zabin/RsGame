@@ -2,10 +2,11 @@
 
 - **Document ID:** R207 · **Version:** 1.0 · **Status:** ✅
 - **Dependencies:** R108 (the APU register facts this composition sits on)
-- **Referenced By:** none yet
+- **Referenced By:** R217 (procedural/generative music — extends this topic's single-channel,
+  phrase-length, and per-zone-flagged-as-future-work conventions into generative territory)
 - **Produces:** grounds `music.py`'s melody-writing conventions
 - **Feature Mapping:** *(none yet)*
-- **Related Topics:** R108
+- **Related Topics:** R108, R217 (delta)
 
 ## Purpose
 
