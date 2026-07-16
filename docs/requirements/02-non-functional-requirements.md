@@ -6,7 +6,9 @@
 > for the Infinite Mode epic, NFR-1400/2300/4300/5400; delta 2026-07-14 — NFR-2300 flipped to Met
 > (`IP-1101`); delta 2026-07-14 (cont'd) — NFR-2200 extended for `FR-9170`/`ADR-0018`'s
 > biome-blob-clustering pass, no new NFR needed; delta 2026-07-16 — NFR-5400 flipped to Met
-> (`IP-1104`, 128-entry FIFO-bounded ledger, `BL-0108` sized) — see Changelog).** Owned by
+> (`IP-1104`, 128-entry FIFO-bounded ledger, `BL-0108` sized); delta 2026-07-16 (cont'd) —
+> NFR-6510 delta note for `FR-4320`'s nine-identity biome axis (`BL-0128`), no NFR text change —
+> see Changelog).** Owned by
 > `04-requirements-engineering`. Derives from
 > [GDS-06](../architecture/06-non-functional-requirements.md)'s five NFRs (N1–N5) — formalized
 > into numbered `NFR-xxxx` requirements per
@@ -17,6 +19,14 @@
 
 ## Changelog
 
+- **2026-07-16 — NFR-6510 delta note for `FR-4320`** (`BL-0128`, nine biome-family identities;
+  status/text otherwise unchanged). `NFR-6510`'s existing "Status: Met" line records what was
+  actually reviewed as of 2026-07-11 (`IP-1031`'s five-family set) and is left as an accurate
+  historical record, not rewritten. Once `FR-4320` ships, the expanded nine-identity axis will
+  introduce grammar-legal adjacent pairs beyond the four already reviewed — those are not yet
+  "Met" (they don't exist yet) and cannot be until (a) `FR-4310`'s own still-open grammar-ordering
+  gap for the four new identities is resolved (`02`/`03`) and (b) `09-content-review` re-exercises
+  this NFR against whatever new pairs that ordering creates. Flagged here, not resolved.
 - **2026-07-16 — NFR-5400 flipped to Met** (`IP-1104`, visited-region-ledger save persistence).
   `BL-0108`'s own open sizing question resolved as-shipped: 128 entries × 5 bytes = 640 bytes
   SRAM, FIFO eviction once full (Technical Work Breakdown's own resolution of `OQ5`). A matching
@@ -632,7 +642,12 @@
 - **Related ADRs:** ADR-0009.
 - **Notes:** Confirms explicitly (per GDS-08 delta §8): the 8-BG-palette ceiling binds
   biome-family *count*, not blending, since FR-4300 rules out intra-screen mixing. Not yet
-  implemented.
+  implemented. **2026-07-16 delta (`BL-0128`, `FR-4320`):** the ceiling continues to hold at nine
+  identities without new palette slots — `07-data-model.md` §5 and `08-presentation-architecture.md`
+  §8 both already confirm the original nine-zone game reused palette 4 across three zones
+  (Mountain/Village/Cave alone), palette 1 across two (Beach/Desert), palette 0 across two
+  (Forest/Plains) — the exact reuse pattern `FR-4320` readopts. This NFR's own "Status: Met" line
+  above is not extended to the new pairs the expanded axis will introduce — see Changelog.
 
 ## Testability
 
