@@ -14,56 +14,54 @@
 
 ## Position
 
-- **Updated:** 2026-07-16 (run #165)
+- **Updated:** 2026-07-16 (run #166)
 - **Increment:** Infinite Mode tranche (`IP-1100`–`IP-1104`, `FS-110`/`FEAT-10000`/`EP-6000`,
   G3-authorized 2026-07-14 "Yes, build all five"; standing user instruction: iterate to a
-  playable Infinite Mode MVP). Bootstrap baseline remains fully closed (01–11 ✅, GO recorded);
-  Release 2 remains baselined GO. **Run #164:** `08-code-implementation` on `IP-1104` —
-  `COMPLETE`, 309/309, closing the tranche's five-package implementation set. **This run (#165,
-  same session):** ran `09-package-verification` on `IP-1104` — delegated to a background
-  subagent for genuine independence (this session implemented it in run #164); a first attempt
-  was interrupted mid-read by an infrastructure error (session-limit quota, unrelated to the
-  work — the repo was left clean, nothing to recover), a retry completed cleanly. Reviewed
-  before trusting: spot-checked the VR report, re-ran a fresh rebuild + full suite myself
-  (byte-identical, 309/309). **`IP-1104` → `VERIFIED`**
-  ([VR-1104](../implementation/verification/VR-1104-infinite-mode-ledger-save-persistence.md)):
-  every DoD/checklist item confirmed by direct code read (single MBC1 bracket preserved in both
-  `save_to_sram`/`try_load_save`; `inf_ledger_find`/`inf_ledger_mark_collected`/
-  `inf_ensure_window`'s cross-reference all confirmed WRAM-only; the cross-reference confirmed
-  unconditional across every call site). Independently live-driven at a non-fixture seed (9092)
-  in **two** scenarios: a save/load round trip, and — notably stronger than `T27.g`'s own
-  one-step move — a genuine two-region window eviction (the origin region actually leaves the
-  resident window, not just recenters adjacent to it) proving the `BL-0119` core claim directly.
-  Two Low documentation findings, neither blocking: `T27`'s "7 checks" claim undercounts the
-  actual 13 (same pattern as `T25`'s own earlier miscount); `IP-1104` §9 cites the wrong
-  requirements file for `NFR-5400` (harmless — the implementation used the correct file anyway).
-  **This closes the Infinite Mode tranche's implementation *and* verification arc in full — all
-  31 of 31 implementation packages in the tree are now `VERIFIED`.**
+  playable Infinite Mode MVP — **this run completes that instruction's own arc**). Bootstrap
+  baseline remains fully closed (01–11 ✅, GO recorded); Release 2 remains baselined GO. **Run
+  #165:** `09-package-verification` on `IP-1104` → `VERIFIED`, closing all 31 of 31 implementation
+  packages in the tree to `VERIFIED`. **This run (#166, same session):** ran
+  `10-integration-review` on the full five-package Infinite Mode set
+  ([integration-review-infinite-mode-tranche.md](../reviews/integration-review-infinite-mode-tranche.md)).
+  **Clean — one Medium finding, no Critical/High.** Full gates: 309/309, ROM byte-identical.
+  Live-drove the complete assembled cross-package flow end to end at a fresh seed (mode select →
+  seed entry → materialization → treasure collection → multi-region navigation → save →
+  fresh-instance load → post-load navigation confirming the `BL-0119` ledger fix → indefinite
+  resumability) — all six stages passed, evidence no single package's own suite could produce on
+  its own. Confirmed a real cross-package invariant explicitly: `check_complete` (pre-tranche,
+  `IP-1021`) runs unconditionally every `PLAYING` frame with no `GAME_MODE` gate, and is safe for
+  Infinite Mode by construction (not luck) — `CARROTS_COUNT` stays 0 throughout any Infinite Mode
+  session, `WORLD_SCALE` is always 3, so the finite victory comparison can never match. **One
+  Medium finding:** `docs/features/INDEX.md`/`03-feature-catalog.md`'s own `FS-110`/`FEAT-10000`
+  forward-reference status both stale (describe 4 of 5 packages as `NOT STARTED`), filed as
+  **`BL-0126`**, routed to `05-feature-decomposition` (a metadata-only touch-up, no gate needed).
 - **Pipeline state:** Bootstrap stages 01–11 ✅; Release 2 GO. **31 of 31 implementation packages
-  `VERIFIED`** — no package anywhere in the tree remains `COMPLETE`/`IN PROGRESS`/`NOT STARTED`/
-  `BLOCKED`. The Infinite Mode tranche (`IP-1100`–`IP-1104`) is fully implemented and verified;
-  its own `10-integration-review` (across the five-package set) is the natural next step,
-  mirroring every prior tranche's own closing sequence in this pipeline. Standing, non-blocking
-  work elsewhere: `09-content-review` on `IP-1081`/`IP-1082`'s shipped tile art (`BL-0097`);
-  `BL-0118`'s post-tranche `NFR-1400` optimization package; a now-seven-instance `IP-110x`
-  documentation-accuracy sweep (`BL-0115`/`117`/`120`/`121`/`124`/`125`, all Low — genuinely worth
-  a dedicated pass now that the tranche itself is closed); `BL-0123`'s minor load-time
-  inefficiency (Low, `DEFERRED`); `05-feature-decomposition` fold of `FR-9170` into `FEAT-9000`'s
-  catalog entry; `BL-0112` itself (the run-end trigger — a standing user decision, not a pipeline
-  blocker).
-- **Backlog:** 125 entries, 34 open (30 `SCHEDULED`, 6 `DEFERRED`, 0 `NEEDS-USER`). New this run:
-  **BL-0124**/**BL-0125** (both Low, `SCHEDULED`/07) — `VR-1104`'s two documentation findings,
-  both riding the now-substantial `IP-110x` text-accuracy sweep (seven instances total across the
-  tranche's five VRs).
-- **Next step:** `10-integration-review` on the `IP-1100`–`IP-1104` set (the Infinite Mode
-  tranche as a whole) — the standard next step once every package in a tranche reaches
-  `VERIFIED`, per this pipeline's own established sequencing (mirrors every prior tranche's
-  closing move). Separately available, none blocking: `09-content-review` on `IP-1081`/`IP-1082`
-  (`BL-0097`, still owed from an earlier tranche); the `IP-110x` documentation sweep (now
-  genuinely worth doing in one pass, seven Low findings); `11-release-readiness` would follow
-  once `10-integration-review` closes clean, if the user wants to fold Infinite Mode into a
-  release bucket.
-- **Open gates:** **none.**
+  `VERIFIED`.** The Infinite Mode tranche is now implemented, verified, and integration-reviewed
+  clean — the standard pre-release state every prior tranche in this tree has reached. It remains
+  in the `Future` release bucket (`FEAT-10000`'s own catalog entry, "no release commitment made")
+  — `11-release-readiness` is the pipeline's own next available step for it, but **that step
+  requires an explicit user release-bucket decision first** (this skill's own gate-check rules:
+  a release GO/bucket assignment is reserved to the user, never assumed by the manager). Standing,
+  non-blocking work elsewhere: `09-content-review` on `IP-1081`/`IP-1082`'s shipped tile art
+  (`BL-0097`, a different, still-open tranche); `BL-0118`'s post-tranche `NFR-1400` optimization
+  package; a seven-instance `IP-110x` documentation-accuracy sweep (`BL-0115`/`117`/`120`/`121`/
+  `124`/`125`, all Low); `BL-0123`'s minor load-time inefficiency (Low, `DEFERRED`); `BL-0112`
+  itself (the `FR-10400` run-end trigger — a standing user decision, not a pipeline blocker,
+  explicitly not required for release-readiness consideration per this review's own "Next step").
+- **Backlog:** 126 entries, 34 open (30 `SCHEDULED`, 6 `DEFERRED`, 0 `NEEDS-USER`). New this run:
+  **BL-0126** (Medium, `SCHEDULED`/05) — the integration review's own finding, a cheap
+  metadata-only forward-reference fix.
+- **Next step:** `05-feature-decomposition` to apply `BL-0126`'s forward-reference refresh to
+  `docs/features/INDEX.md`/`03-feature-catalog.md` (cheap, unblocking, no gate) — then the
+  pipeline is gated on the user: **does the user want to fold Infinite Mode into a release
+  bucket (`11-release-readiness`), or continue iterating on it first (e.g. resolving `BL-0112`'s
+  run-end trigger, or picking up `BL-0097`'s separately-owed content review on an earlier
+  tranche)?** This is the natural point to check in — the tranche itself is done; what happens
+  next is a scope/priority call, not a mechanical pipeline step.
+- **Open gates:** **one, informational, not blocking any in-flight work:** whether/when to run
+  `11-release-readiness` on Infinite Mode is the user's own call, per this pipeline's own G4
+  reservation — not asked as a hard stop here since no package/gate is actually blocked on the
+  answer (everything the tranche itself needed is done).
 
 ## Run log
 
@@ -238,3 +236,4 @@
 | 163 | 2026-07-16 | advance (same session; two parts) | `09-package-verification` (Part A, delegated to a background subagent) then `07-implementation-planning` (Part B) | IP-1103 (verification) then IP-1104 (amendment) | ✅ **Part A: `IP-1103` → `VERIFIED`** ([VR-1103](../implementation/verification/VR-1103-infinite-mode-treasure-and-win-condition.md), delegated to a background subagent for genuine independence, this session implemented `IP-1103` in run #161; subagent's work reviewed — VR report, ledger edits, and a fresh full-suite re-run all spot-checked — before being trusted). 296/296, ROM byte-identical, `inf_check_top_score` zero-call-site state confirmed by direct code read, live-driven at seed 53. One Low finding → **BL-0122**. **Part B: `IP-1104` amended per `BL-0119`, `NOT STARTED` → `READY`.** New 642-byte WRAM ledger working copy so `inf_ensure_window` consults collected-state on every materialization (new-game entry, ordinary navigation, post-load restore alike), not only at save/load — one uniform fix, closing `BL-0119` → **DONE**. `inf_ledger_mark_collected` now WRAM-only (correctness+performance improvement over the original SRAM-only design). Caught and fixed a second gap in the same pass: the package's own planned suite name `T26` collided with `IP-1103`'s actual shipped `T26` — renamed `T27`, new check `T27.g` for the in-session case. No code touched (rebuild+sha256 confirmed unchanged). Ledgers updated: MBP/`packages/INDEX.md`/ROADMAP. No drift. | `08-code-implementation` on `IP-1104` — the tranche's last package, now genuinely `READY` |
 | 164 | 2026-07-16 | advance (same session as run #163) | `08-code-implementation` | IP-1104 (visited-region-ledger save persistence) | ✅ **COMPLETE — 309/309 checks pass** (new suite `T27`, 7 checks). `save_to_sram`/`try_load_save` extended inside their existing MBC1 bracket; `SAVE_VERSION_VAL` `0x04`→`0x05`. The `BL-0119` amendment (planned run #163) shipped exactly as specified: 642-byte WRAM ledger working copy, shared `inf_ledger_find` subroutine (backs both `inf_ensure_window`'s cross-reference and `inf_ledger_mark_collected`), WRAM-only collection writes (no per-collection SRAM access). `T27.g` independently confirms the in-session respawn gap is closed. One `JR`→`JP` conversion (range overflow). FR-10500/FR-10600 Implemented; `NFR-5400` Met (`BL-0108` sized as-shipped). **Closes the Infinite Mode tranche's five-package implementation set** — `BL-0112` the sole standing gap. Incidentally fixed `FS-110`'s stale `IP-1100` status line while touching the file (`BL-0122` → DONE). Ledgers updated: MBP/`packages/INDEX.md`/ROADMAP/`GDS-07` §7g-§7h/RQ-01/RQ-02/RTM/`FS-110` §19 OQ5+OQ7. Harvested: **BL-0123** (Low, DEFERRED) — a named, deliberately-unfixed load-time inefficiency (`generate_world` runs even on Infinite Mode loads). No drift. | `09-package-verification` on `IP-1104` — needs an independent session/subagent, this session implemented it; then `10-integration-review` on the full `IP-1100`–`IP-1104` set once verified |
 | 165 | 2026-07-16 | advance (same session as run #164) | `09-package-verification` | IP-1104 (visited-region-ledger save persistence) | ✅ **VERIFIED** ([VR-1104](../implementation/verification/VR-1104-infinite-mode-ledger-save-persistence.md), delegated to a background subagent, reviewed before trusting — first attempt interrupted by an infrastructure session-limit error mid-read, repo left clean, retry completed cleanly). 309/309 re-confirmed (independently, by this session too, after sync). Every DoD/checklist item confirmed by direct code read. Independently live-driven at a non-fixture seed (9092) in two scenarios — a save/load round trip, and a genuine two-region window-eviction in-session re-entry (stronger evidence than T27.g's own one-step move) — both directly confirm the BL-0119 core claim. Two Low findings (T27's "7 checks" undercounts the actual 13; IP-1104 §9 cites the wrong requirements file for NFR-5400, harmless). **Closes the Infinite Mode tranche's implementation and verification arc — all 31 of 31 implementation packages in the tree are now VERIFIED.** Ledgers updated: MBP/`packages/INDEX.md`/verification `INDEX.md`/ROADMAP. Harvested: **BL-0124**/**BL-0125** (both Low, SCHEDULED/07). No drift. | `10-integration-review` on the `IP-1100`–`IP-1104` set — the tranche's own closing step, now that every package is VERIFIED |
+| 166 | 2026-07-16 | advance (same session as run #165) | `10-integration-review` | IP-1100, IP-1101, IP-1102, IP-1103, IP-1104 (Infinite Mode tranche, explicit set) | ✅ **Clean — 1 Medium finding, no Critical/High** ([integration-review-infinite-mode-tranche.md](../reviews/integration-review-infinite-mode-tranche.md)). Full gates 309/309, ROM byte-identical. Live-drove the complete assembled flow end to end at a fresh seed across six stages (mode select through indefinite resumability) — all passed. Confirmed `check_complete`'s own unconditional GAME_MODE-ungated victory check is safe for Infinite Mode by construction, not luck (explicit cross-package invariant no single package's own DoD names). All five dimensions exercised: interface consistency clean, invariant sweep clean (address map, ROM budget, VBlank-gating, one-job-per-file all confirmed), behavioral coherence clean (plus the check_complete note above), traceability coherence one Medium finding (features/INDEX.md + feature-catalog forward-reference staleness), documentation coherence clean (Claude.md/memory.md correctly and explicitly scoped to released work only, Infinite Mode's absence there is expected, not stale). Harvested: **BL-0126** (Medium, SCHEDULED/05). This closes 31/31 packages' own tranche-level review — the tranche is now implemented, verified, and integration-reviewed clean. No drift. | `05-feature-decomposition` for BL-0126's cheap metadata fix; then the pipeline is gated on the user's own release-bucket decision for Infinite Mode (`11-release-readiness`) — not assumed |
