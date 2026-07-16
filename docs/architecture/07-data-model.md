@@ -4,7 +4,9 @@
 > increment — see "Data Model delta" below; delta 2026-07-12 — §7c, per-region treasure-presence
 > concept, `ADR-0015`; delta 2026-07-14 — §7d, Infinite Mode per-region materialization WRAM
 > confirmed by `IP-1101`, `C40D`–`C418`; delta 2026-07-14 (cont'd) — §7e, Infinite Mode streaming
-> window/navigation/render WRAM confirmed by `IP-1102`, `C3F6`–`C404`).** Owned by
+> window/navigation/render WRAM confirmed by `IP-1102`, `C3F6`–`C404`; delta 2026-07-16 — §7f,
+> Infinite Mode treasure/win-condition WRAM confirmed by `IP-1103`, `C405`–`C40C`, the joint
+> reserve now fully claimed).** Owned by
 > `03-architecture-design-synthesis`.
 > Builds on [GDS-06](06-non-functional-requirements.md); the next level,
 > [GDS-08 Presentation Architecture](08-presentation-architecture.md), builds on this one.
@@ -371,6 +373,24 @@ Fifteen bytes total against `IP-1101`'s block (`0xC3F6`–`0xC418`), trivial aga
 recomputes all 9 `INF_WINDOW` cells fresh on every center change via `IP-1101`'s
 `inf_materialize_region` — no incremental shift logic, no additional WRAM beyond the table above.
 No SRAM impact in this package (`IP-1104`'s own scope).
+
+### 7f. Infinite Mode: treasure & win-condition state WRAM — `IP-1103` (confirmed 2026-07-16)
+
+Eight bytes, `0xC405`–`0xC40C` — exactly the remainder the joint `IP-1100`/`1102`/`1103` reserve
+(§7e above) left for `IP-1103`; the `0xC3F6`–`0xC418` run is now fully claimed. Both fields sit
+outside the `0xC000`–`0xC2FF` blanket boot clear and are explicitly boot-cleared (the same
+targeted-clear pattern `GAME_MODE` established, §7e), so a fresh cartridge never presents
+uninitialized bytes as standing high scores. `INF_TREASURE_HERE` (§7e) is now populated as its
+row anticipated: written from `INF_MZ_TREASURE` at `inf_ensure_window`'s center-cell
+materialization, cleared on collection, read by `setup_zone_collects`' infinite-mode spawn
+branch.
+
+| Address | Name | Size | Purpose |
+|---|---|---|---|
+| `C405`–`C406` | `RUNNING_TREASURE_COUNT` | 2 bytes | current run's treasure total, unsigned 16-bit, low byte first (`SEED`'s own byte-order convention); incremented by `check_collisions`' `GAME_MODE == 1` branch. When a *new* run resets it is `BL-0112`'s open question — deliberately undecided (`IP-1103` §13) |
+| `C407`–`C40C` | `TOP_SCORE_TABLE` | 6 bytes | 3 entries × 2 bytes (unsigned 16-bit, low byte first), stored descending — index 0 (`C407`) is the current high score. Written only by `inf_check_top_score` (which has **zero call sites**, deliberately — `BL-0112`) and, in the future, `IP-1104`'s save/load restore |
+
+Persistence of both fields is `IP-1104`'s scope (no SRAM impact in `IP-1103`).
 
 ### 8. Tile index map implication (cross-reference only — GDS-08 decides the actual strategy)
 

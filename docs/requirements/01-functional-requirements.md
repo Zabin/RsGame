@@ -11,8 +11,10 @@
 > (cont'd) — `IP-1101` partially implements FR-10200/10210/10300 (per-region materialization/
 > treasure-presence half; streaming window, render, and collection remain `IP-1102`/`1103`'s own
 > scope); delta 2026-07-14 (cont'd) — `CR-05` baselined as `FR-9170` (finite-mode biome-blob
-> clustering); `FR-10100`'s Notes/Acceptance Criteria refreshed against `GDS-01` §4d, now landed
-> — see Changelog).**
+> clustering); `FR-10100`'s Notes/Acceptance Criteria refreshed against `GDS-01` §4d, now landed;
+> delta 2026-07-16 — `IP-1103` fully implements FR-10300 (collection half lands) and partially
+> implements FR-10400 (state + comparison subroutine, no automatic trigger — `BL-0112`) — see
+> Changelog).**
 > Owned by `04-requirements-engineering`.
 > Derives from [GDS-05](../architecture/05-functional-requirements.md)'s six capability groupings
 > (C1–C6) — this document formalizes each into numbered, testable `FR-xxxx` requirements per
@@ -25,6 +27,17 @@
 
 ## Changelog
 
+- **2026-07-16 — FR-10300 fully Implemented; FR-10400 Partially Implemented** (`IP-1103`,
+  treasure collection & win-condition state; status updates only, no requirement text amended).
+  FR-10300's collection half shipped: the current region's treasure spawns as the sole
+  `COLL_DATA` entry (per-biome position mirroring `ZONE_COLLECTS`' type-2 entry) and
+  `check_collisions`' new `GAME_MODE == 1` branch counts the pickup without touching any
+  finite-mode counter (`T26.a/b`). FR-10400's state (`RUNNING_TREASURE_COUNT`,
+  `TOP_SCORE_TABLE`) and comparison subroutine (`inf_check_top_score`) shipped and
+  corpus-verified (`T26.c`), **deliberately without any automatic call site** (`T26.d` asserts
+  the zero-call-site state) — the run-end trigger is `BL-0112`'s own open question, routed to
+  `04` or a direct user decision by `FS-110` itself, so FR-10400 is recorded **Partially
+  Implemented**, not rounded up.
 - **2026-07-14 — CR-05 baselined as FR-9170** (finite-mode biome-blob clustering, `BL-0066`).
   Derives the real requirement from `ADR-0018`'s per-super-cell `hash(SEED, supercell_row,
   supercell_col)` snap-to-blob mechanism, layered on `ADR-0009` point 2's existing draw as
@@ -1702,9 +1715,10 @@ FR-9000's own leaves are amended or superseded by this group)*
   directions — a direct conflict with a literal dead-end-only rule). This is a deliberate,
   named departure from `BL-0094`'s original "at dead ends" wording, not a silent substitution —
   see Notes.
-- **Priority:** Must (**partially implemented, 2026-07-14, `IP-1101`** — the presence-predicate
-  half: `hash(SEED, row, col) mod K == 0`, `K=16` (`T22.d` measures 6.25%, matching target).
-  Collection (reusing `check_collisions`) is `IP-1103`'s own scope, not yet implemented.)
+- **Priority:** Must (**Implemented** — the presence-predicate half 2026-07-14, `IP-1101`
+  (`hash(SEED, row, col) mod K == 0`, `K=16`, `T22.d` measures 6.25%, matching target); the
+  collection half 2026-07-16, `IP-1103` (reusing `check_collisions`' existing collision-point
+  convention on a spawned type-2 item, `T26.a`/`T26.b`).)
 - **Inputs:** SEED; the region coordinate `(row, col)`; the tuned density constant `K`.
 - **Outputs:** A boolean treasure-presence value for that region.
 - **Preconditions:** The region has been materialized (FR-10200).
@@ -1727,7 +1741,13 @@ FR-9000's own leaves are amended or superseded by this group)*
   `BL-0094`'s literal "treasure only at dead ends" request — flagged explicitly per this
   document's own traceability discipline (a genuine design substitution, not an oversight);
   `FR-9160` (the finite mode's own dead-end-anchored placement) is entirely unaffected and
-  remains as shipped.
+  remains as shipped. **Collection implemented (`IP-1103`, 2026-07-16):** in Infinite Mode the
+  current region's treasure (when the presence predicate holds and it is uncollected this
+  materialization) spawns as the sole `COLL_DATA` entry at a per-biome position mirroring
+  `ZONE_COLLECTS`' own type-2 entry; `check_collisions`' new `GAME_MODE == 1` branch increments
+  `RUNNING_TREASURE_COUNT` and clears the `INF_TREASURE_HERE` cache on pickup, touching no
+  finite-mode counter (`T26.a6`/`a7`). Collected-state across window re-entry awaits `IP-1104`'s
+  ledger (FS-110 Workflow D).
 
 ### FR-10400 — Score-chasing win condition (running count + top-3 persisted, no name entry)
 
@@ -1744,7 +1764,10 @@ FR-9000's own leaves are amended or superseded by this group)*
 - **Rationale:** ADR-0017 points 2–3; R216 (the arcade high-score convention as the historically
   correct genre answer for non-terminating play; the name-entry UI's original social/cabinet
   purpose does not transfer to a single-player handheld cartridge with one save slot).
-- **Priority:** Must (target — not yet implemented)
+- **Priority:** Must (**Partially Implemented, 2026-07-16, `IP-1103`** — the win-condition
+  *state* (running count + top-3 table) and the comparison *subroutine* exist and are
+  corpus-verified (`T26.c`); **no automatic trigger calls the comparison** — the run-end trigger
+  is `BL-0112`'s own open question, deliberately not decided by implementation (see Notes).)
 - **Inputs:** Treasure-collection events (FR-10300) during the current run; the persisted top-3
   table.
 - **Outputs:** An updated running count; on run end, an updated top-3 table if the run's count
@@ -1762,7 +1785,17 @@ FR-9000's own leaves are amended or superseded by this group)*
   confirm correct insertion/non-insertion; confirm no name-entry state is reachable).
 - **Source Documents:** ADR-0017 points 2–3; R216 §Concepts.
 - **Related ADRs:** ADR-0017.
-- **Notes:** Not yet implemented. **This FR's Preconditions name "the run has ended" without
+- **Notes:** **Partially Implemented (`IP-1103`, 2026-07-16), stated precisely (mirroring
+  `IP-1080`'s own precedent for a requirement split across packages):** `RUNNING_TREASURE_COUNT`
+  (`0xC405`, 16-bit) and `TOP_SCORE_TABLE` (`0xC407`–`0xC40C`, 3 × 16-bit descending) exist,
+  boot-cleared, and the comparison subroutine `inf_check_top_score` implements the
+  strictly-exceeds/sorted-insertion/no-name-entry behavior exactly (corpus-verified, `T26.c`;
+  no name-entry state reachable, `T26.e`) — **but no in-game event calls it** (`T26.d` asserts
+  the zero-call-site state). The Acceptance Criteria's insertion half is therefore verified at
+  the subroutine level only; end-to-end ("a run's final count…") remains genuinely untestable
+  until `BL-0112` resolves the run-end trigger and a follow-up package wires the call site.
+  Persistence of both fields is `IP-1104`'s scope. **This FR's Preconditions name "the run has
+  ended" without
   defining what ends a run** — whether an Infinite Mode playthrough is indefinitely resumable
   (matching FR-5100/FR-1190's existing save/continue convention) or is its own bounded "run"
   needing a new end-condition mechanic (death/retreat/checkpoint) this game does not currently

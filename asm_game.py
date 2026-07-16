@@ -156,16 +156,37 @@ INF_WINDOW     = 0xC3FB  # 9 bytes, C3FB-C403 -- 3x3 materialized window, row-ma
                           # current region. 1 byte/region, IP-1101's own output format (bits
                           # 0-2 biome-id, bits 3-6 connectivity: up/down/left/right, 1=open)
 INF_TREASURE_HERE = 0xC404  # 1 byte -- transient cache: current region's own treasure-
-                          # presence-and-uncollected flag for this materialization. Not yet
-                          # populated by this package (IP-1103's own scope to read/write) --
-                          # reserved here since it sits in the same contiguous address run.
+                          # presence-and-uncollected flag for this materialization.
+                          # Reserved by IP-1102 (same contiguous address run); populated
+                          # by IP-1103: written from INF_MZ_TREASURE at inf_ensure_window's
+                          # center-cell materialization, cleared on collection
+                          # (check_collisions' GAME_MODE==1 branch), read by
+                          # setup_zone_collects' infinite-mode spawn branch.
+
+# Win-condition state (IP-1103, FR-10400). Outside the 0xC000-C2FF boot-clear
+# range -- explicitly boot-cleared (see the GAME_MODE clear below), the same
+# uninitialized-WRAM lesson IP-1102 recorded there: TOP_SCORE_TABLE is read
+# (compared against) before any code path guarantees a write, and a fresh
+# cartridge must not present garbage bytes as standing high scores. When a
+# NEW run's count resets (vs. an abandoned run's count persisting) is NOT
+# decided here -- that is BL-0112/OQ3's own open question (IP-1103 §13), and
+# this boot clear is initialization hygiene, not run-lifecycle semantics.
+RUNNING_TREASURE_COUNT = 0xC405  # 2 bytes, C405-C406 -- current run's treasure total,
+                          # unsigned 16-bit, low byte first (SEED's own byte-order
+                          # convention). No overflow guard (IP-1103 §6: 65536 treasures
+                          # is not a realistic play scenario).
+TOP_SCORE_TABLE = 0xC407  # 6 bytes, C407-C40C -- 3 entries x 2 bytes (unsigned 16-bit,
+                          # low byte first), stored descending: index 0 (C407-C408) is
+                          # the current high score, index 2 (C40B-C40C) the lowest.
+                          # Written only by inf_check_top_score (no automatic call site
+                          # yet -- BL-0112) and, later, IP-1104's save/load restore.
 
 # 0xC3F6-0xC40C is the full range IP-1100/1102/1103's own already-documented
 # WRAM plan reserves (docs/implementation/packages/IP-1100.../IP-1102.../
 # IP-1103...md) -- GAME_MODE/INF_ROW/INF_COL/INF_WINDOW/INF_TREASURE_HERE
-# above (this package, IP-1102) claim 0xC3F6-0xC404; 0xC405-0xC40C remains
-# reserved for IP-1103's own RUNNING_TREASURE_COUNT/TOP_SCORE_TABLE, not
-# claimed here.
+# (IP-1102) claim 0xC3F6-0xC404; RUNNING_TREASURE_COUNT/TOP_SCORE_TABLE
+# (IP-1103, above) claim the remaining 0xC405-0xC40C -- the range is now
+# fully claimed.
 INF_MZ_ROW      = 0xC40D  # 2 bytes, C40D-C40E -- inf_materialize_region's own row input
                           # (signed 16-bit, low byte first, mirrors SEED's own byte order)
 INF_MZ_COL      = 0xC40F  # 2 bytes, C40F-C410 -- column input, same convention
@@ -276,6 +297,13 @@ def build_game_asm(rom: ROM) -> dict:
     # re-zero OAM_BUF/GW_* in between, both already handled by their own
     # write-before-read discipline).
     rom.XOR_A(); rom.LD_nn_A(GAME_MODE)
+
+    # Clear RUNNING_TREASURE_COUNT + TOP_SCORE_TABLE (IP-1103) -- same
+    # outside-the-0xC000-C2FF-range situation, same targeted-clear rationale
+    # as GAME_MODE immediately above: TOP_SCORE_TABLE must never present
+    # boot-time garbage as standing high scores. 8 bytes, 0xC405-0xC40C.
+    rom.LD_HL_nn(RUNNING_TREASURE_COUNT); rom.LD_B_n(8); rom.XOR_A()
+    rom.label('cts'); rom.LD_HLI_A(); rom.DEC_B(); rom.JR_NZ('cts')
 
     # Clear VRAM bank 0 (same A-clobber caveat — re-zero each iter)
     rom.XOR_A(); rom.LDH_n_A(VBK)
@@ -854,6 +882,15 @@ def build_game_asm(rom: ROM) -> dict:
     # HIT — deactivate
     rom.POP_HL(); rom.XOR_A(); rom.LD_HL_A(); rom.INC_HL()
 
+    # IP-1103: Infinite Mode treasure branch, parallel to the KeyItem/
+    # ScoreItem branches below (FR-10300) -- those branches' own code is
+    # unchanged and now runs only when GAME_MODE == 0, so no finite-mode
+    # counter (KEYITEM_COUNT/SCORE/flags) is ever touched by an Infinite
+    # Mode pickup and check_complete's finite victory check cannot
+    # spuriously fire there (IP-1100 §6's named hazard). Handler body lives
+    # past cc_skip (cc_inf_hit) to keep this shared HIT path short.
+    rom.LD_A_nn(GAME_MODE); rom.OR_A(); rom.JP_NZ('cc_inf_hit')
+
     # If KeyItem (type 2): set KEYITEM_FLAGS[CUR_ZONE] = 1 + INC KEYITEM_COUNT
     # (IP-1020: generalizes the carrot branch — same bit-set logic, same
     # push/pop-HL discipline, only the target array/counter names change)
@@ -892,11 +929,41 @@ def build_game_asm(rom: ROM) -> dict:
     rom.label('cc_dirty')
     rom.LD_A_n(1); rom.LD_nn_A(SCORE_DIRTY)
 
+    rom.label('cc_iter')
     rom.POP_BC(); rom.DEC_B(); rom.JP_NZ('cc_loop'); rom.RET()
 
     rom.label('cc_skip')
     rom.POP_HL(); rom.INC_HL()
     rom.POP_BC(); rom.DEC_B(); rom.JP_NZ('cc_loop'); rom.RET()
+
+    # IP-1103: Infinite Mode treasure collection (FR-10300, collection-event
+    # half -- the presence-predicate half is IP-1101's, consumed via the
+    # INF_TREASURE_HERE cache). Item already deactivated by the shared HIT
+    # code above (update_oam hides it next frame). SCORE_DIRTY deliberately
+    # not set: no HUD field this routine owns changes.
+    rom.label('cc_inf_hit')
+    # Gated on INF_TREASURE_HERE != 0 (IP-1103 §5/§6). Defensive: the spawn
+    # branch (szc_infinite) only creates an item while the cache is set, so
+    # a hit with a cleared cache should be unreachable -- treated as
+    # no-collect rather than counting a phantom treasure.
+    rom.LD_A_nn(INF_TREASURE_HERE); rom.OR_A(); rom.JR_Z('cc_iter')
+    # RUNNING_TREASURE_COUNT += 1: 16-bit, INC low byte, INC high byte only
+    # on wrap (Z). No overflow guard at 0xFFFF (IP-1103 §6: an indefinitely-
+    # resumable run reaching 65536 treasures is not a realistic scenario).
+    rom.LD_A_nn(RUNNING_TREASURE_COUNT); rom.INC_A()
+    rom.LD_nn_A(RUNNING_TREASURE_COUNT)
+    rom.JR_NZ('cc_inf_nc')
+    rom.LD_A_nn(RUNNING_TREASURE_COUNT + 1); rom.INC_A()
+    rom.LD_nn_A(RUNNING_TREASURE_COUNT + 1)
+    rom.label('cc_inf_nc')
+    # Collected: not re-collectible this materialization (re-entry re-derives
+    # the cache; collected-state across re-entry is IP-1104's ledger's scope).
+    rom.XOR_A(); rom.LD_nn_A(INF_TREASURE_HERE)
+    # Mark the current region collected -- IP-1104's own ledger-write
+    # interface: the forward call IP-1103 names, IP-1104 implements the
+    # receiving end of (a RET stub until then, see inf_ledger_mark_collected).
+    rom.CALL('inf_ledger_mark_collected')
+    rom.JR('cc_iter')
 
     # ── check_zone_transition ────────────────────────────
     # czt_region_hl: HL = REGION_GRAPH + CUR_ZONE*5 (region base, biome-id
@@ -1008,6 +1075,17 @@ def build_game_asm(rom: ROM) -> dict:
         rom.CALL('inf_materialize_region')
         rom.LD_A_nn(INF_MZ_RESULT)
         rom.LD_nn_A(INF_WINDOW + _idx)
+        if _idx == 4:
+            # IP-1103: cache the center (= current) region's treasure-presence
+            # flag -- inf_materialize_region leaves it in INF_MZ_TREASURE, and
+            # every window recompute recenters on the current region, so the
+            # center cell's own materialization is exactly the "at the moment a
+            # region is materialized" evaluation FS-110 Workflow C step 1 names.
+            # Cleared on collection (check_collisions); re-derived on every
+            # re-entry -- collected-state across re-entry is IP-1104's ledger's
+            # own scope (FS-110 Workflow D), not re-checked here.
+            rom.LD_A_nn(INF_MZ_TREASURE)
+            rom.LD_nn_A(INF_TREASURE_HERE)
     rom.RET()
 
     # ── czt_infinite (IP-1102) ─────────────────────────────
@@ -1687,13 +1765,45 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_HL_nn(0xFFFF)
     rom.JP('scs_store')
 
+    # ── inf_treasure_pos (IP-1103) ────────────────────────
+    # Per-biome treasure spawn position, 5 x (x, y) pairs indexed by
+    # biome-id*2 -- the exact (x, y) of each biome family's type-2 (KeyItem)
+    # entry in tilemaps.py's ZONE_COLLECTS, so the Infinite Mode treasure
+    # appears at the same sensible, landmark-clear spot the finite mode
+    # places this item on the identical screen art (and renders with the
+    # same TL_CARROT tile/palette via update_oam's existing type-2 path --
+    # no new tile art, this tranche's own convention). Values duplicated
+    # here rather than imported (asm_game.py deliberately imports nothing
+    # from the content modules, ADR-0003); T26.a's static check asserts
+    # this table matches ZONE_COLLECTS's type-2 entries, so content-side
+    # drift fails the suite instead of silently desyncing. Data, not code:
+    # the block above ends with JP, execution never falls through here.
+    rom.label('inf_treasure_pos')
+    rom.emit(140, 56,   # 0 Water
+             132, 88,   # 1 Sand
+             84,  56,   # 2 Grass
+             60,  88,   # 3 Stone
+             84,  64)   # 4 Brick
+
     # ── setup_zone_collects ───────────────────────────────
     # IP-9070: zc_table is now indexed by REGION_GRAPH's biome-id (0-4, the
     # 5 biome-family-representative lists) instead of CUR_ZONE directly (a
     # 9-entry-only ROM table could not survive CUR_ZONE values above 8, which
     # IP-9050 makes reachable) -- mirrors dsr_p's own REGION_GRAPH read
     # exactly (same region*5 addressing, same biome-id byte position).
+    # IP-1103: GAME_MODE-gated entry, mirroring IP-1102's own gates on
+    # check_zone_transition/dsr_p -- Infinite Mode has no REGION_GRAPH or
+    # zc_table spawn concept (CUR_ZONE is stale there), so it branches to
+    # its own spawn logic (szc_infinite, below the finite body): COLL_DATA
+    # holds exactly one item -- the region's treasure -- when the current
+    # region's INF_TREASURE_HERE cache is set, and no items otherwise.
+    # Before this gate, the finite body ran against stale CUR_ZONE/
+    # REGION_GRAPH data in Infinite Mode, spawning finite-mode collectibles
+    # whose type-2 entries incremented KEYITEM_COUNT on pickup -- reachable
+    # spurious finite victory (check_complete), exactly the hazard IP-1100
+    # §6 named for this package to close.
     rom.label('setup_zone_collects')
+    rom.LD_A_nn(GAME_MODE); rom.OR_A(); rom.JP_NZ('szc_infinite')
     rom.LD_A_nn(CUR_ZONE)
     rom.LD_E_A(); rom.LD_D_n(0)        # DE = region index
     rom.LD_HL_nn(REGION_GRAPH)
@@ -1752,6 +1862,30 @@ def build_game_asm(rom: ROM) -> dict:
 
     rom.label('szc_sk')
     rom.DEC_B(); rom.JR_NZ('szc_lp'); rom.RET()
+
+    # IP-1103: Infinite Mode spawn branch (see the gate at this routine's
+    # entry). COLL_COUNT is written 0 first so a treasure-less region leaves
+    # no stale finite-mode COLL_DATA active (check_collisions/update_oam
+    # both early-out on COLL_COUNT==0). With the cache set, spawns exactly
+    # one active type-2 item at the biome's own inf_treasure_pos entry --
+    # biome-id read from INF_WINDOW's center cell, the identical source
+    # dsr_p_inf renders from, so the spawn position always matches the art
+    # on screen. Runs on every PLAYING (re)entry (menu round-trips
+    # included): cache still set -> same treasure re-spawns (uncollected);
+    # cache cleared by collection -> COLL_COUNT stays 0, no respawn.
+    rom.label('szc_infinite')
+    rom.XOR_A(); rom.LD_nn_A(COLL_COUNT)
+    rom.LD_A_nn(INF_TREASURE_HERE); rom.OR_A(); rom.RET_Z()
+    rom.LD_A_nn(INF_WINDOW + 4); rom.AND_n(0x07)   # biome-id (0..4)
+    rom.ADD_A_A()                                   # * 2 ((x,y) pairs)
+    rom.LD_E_A(); rom.LD_D_n(0)
+    rom.LD_HL_nn(rom.addr('inf_treasure_pos')); rom.ADD_HL_DE()
+    rom.LD_A_HLI(); rom.LD_nn_A(COLL_DATA)          # x
+    rom.LD_A_HL();  rom.LD_nn_A(COLL_DATA + 1)      # y
+    rom.LD_A_n(2);  rom.LD_nn_A(COLL_DATA + 2)      # type 2 (KeyItem art/palette)
+    rom.LD_A_n(1);  rom.LD_nn_A(COLL_DATA + 3)      # active
+    rom.LD_A_n(1);  rom.LD_nn_A(COLL_COUNT)
+    rom.RET()
 
     # ── update_map_hearts ─────────────────────────────────
     # 9 hearts at 3x3 grid. Read KEYITEM_FLAGS[i] and write FULL or EMPTY.
@@ -2459,6 +2593,84 @@ def build_game_asm(rom: ROM) -> dict:
     rom.label('imr_no_east')
     rom.LD_A_nn(INF_MZ_BIOME); rom.OR_E()
     rom.LD_nn_A(INF_MZ_RESULT)
+    rom.RET()
+
+    # ── inf_check_top_score (IP-1103, FR-10400) ───────────
+    # The win-condition comparison subroutine. Inputs: none (reads
+    # RUNNING_TREASURE_COUNT and TOP_SCORE_TABLE directly); clobbers A/B/D/E.
+    # If RUNNING_TREASURE_COUNT strictly exceeds TOP_SCORE_TABLE's lowest
+    # entry (index 2), inserts it at its sorted-descending position,
+    # shifting lower entries down and displacing the previous lowest;
+    # otherwise leaves the table byte-for-byte unchanged. Pure numeric
+    # insertion -- no name-entry UI in this subroutine or any caller
+    # (FR-10400's own explicit requirement).
+    #
+    # DELIBERATELY UNCALLED (IP-1103 §2/§6, FS-110 Open Question 3 /
+    # BL-0112): no in-game event invokes this routine -- when the top-3
+    # comparison fires during play is a decision FS-110 routes to
+    # 04-requirements-engineering or a direct user decision, not to
+    # implementation planning. A future package supplies the call site once
+    # BL-0112 resolves; until then it is reachable only via the test
+    # harness's direct-call mechanism (T26.c), exactly like generate_world
+    # before IP-1040 wired its call site. T26.d asserts the zero-call-site
+    # state so the future wiring shows up as a clean, detectable diff.
+    #
+    # 16-bit unsigned compare convention (little-endian, SEED's byte order):
+    # compare high bytes first; only on equality compare low bytes.
+    rom.label('inf_check_top_score')
+    rom.LD_A_nn(RUNNING_TREASURE_COUNT); rom.LD_E_A()
+    rom.LD_A_nn(RUNNING_TREASURE_COUNT + 1); rom.LD_D_A()
+    # Qualify: DE > entry2 (lowest, TABLE+4/+5)? If not, return unchanged.
+    rom.LD_A_nn(TOP_SCORE_TABLE + 5); rom.LD_B_A()
+    rom.LD_A_D(); rom.CP_B(); rom.JR_C('icts_ret'); rom.JR_NZ('icts_q')
+    rom.LD_A_nn(TOP_SCORE_TABLE + 4); rom.LD_B_A()
+    rom.LD_A_E(); rom.CP_B(); rom.JR_C('icts_ret'); rom.JR_Z('icts_ret')
+    rom.label('icts_q')
+    # Qualified. DE > entry0 (TABLE+0/+1)? -> insert at index 0.
+    rom.LD_A_nn(TOP_SCORE_TABLE + 1); rom.LD_B_A()
+    rom.LD_A_D(); rom.CP_B(); rom.JR_C('icts_chk1'); rom.JR_NZ('icts_ins0')
+    rom.LD_A_nn(TOP_SCORE_TABLE + 0); rom.LD_B_A()
+    rom.LD_A_E(); rom.CP_B(); rom.JR_C('icts_chk1'); rom.JR_Z('icts_chk1')
+    rom.label('icts_ins0')
+    # entry2 = entry1; entry1 = entry0; entry0 = DE
+    rom.LD_A_nn(TOP_SCORE_TABLE + 2); rom.LD_nn_A(TOP_SCORE_TABLE + 4)
+    rom.LD_A_nn(TOP_SCORE_TABLE + 3); rom.LD_nn_A(TOP_SCORE_TABLE + 5)
+    rom.LD_A_nn(TOP_SCORE_TABLE + 0); rom.LD_nn_A(TOP_SCORE_TABLE + 2)
+    rom.LD_A_nn(TOP_SCORE_TABLE + 1); rom.LD_nn_A(TOP_SCORE_TABLE + 3)
+    rom.LD_A_E(); rom.LD_nn_A(TOP_SCORE_TABLE + 0)
+    rom.LD_A_D(); rom.LD_nn_A(TOP_SCORE_TABLE + 1)
+    rom.RET()
+    rom.label('icts_chk1')
+    # DE > entry1 (TABLE+2/+3)? -> insert at index 1, else index 2.
+    rom.LD_A_nn(TOP_SCORE_TABLE + 3); rom.LD_B_A()
+    rom.LD_A_D(); rom.CP_B(); rom.JR_C('icts_ins2'); rom.JR_NZ('icts_ins1')
+    rom.LD_A_nn(TOP_SCORE_TABLE + 2); rom.LD_B_A()
+    rom.LD_A_E(); rom.CP_B(); rom.JR_C('icts_ins2'); rom.JR_Z('icts_ins2')
+    rom.label('icts_ins1')
+    # entry2 = entry1; entry1 = DE
+    rom.LD_A_nn(TOP_SCORE_TABLE + 2); rom.LD_nn_A(TOP_SCORE_TABLE + 4)
+    rom.LD_A_nn(TOP_SCORE_TABLE + 3); rom.LD_nn_A(TOP_SCORE_TABLE + 5)
+    rom.LD_A_E(); rom.LD_nn_A(TOP_SCORE_TABLE + 2)
+    rom.LD_A_D(); rom.LD_nn_A(TOP_SCORE_TABLE + 3)
+    rom.RET()
+    rom.label('icts_ins2')
+    # entry2 = DE (displaces the previous lowest directly)
+    rom.LD_A_E(); rom.LD_nn_A(TOP_SCORE_TABLE + 4)
+    rom.LD_A_D(); rom.LD_nn_A(TOP_SCORE_TABLE + 5)
+    rom.label('icts_ret')
+    rom.RET()
+
+    # ── inf_ledger_mark_collected (IP-1103 -> IP-1104 seam) ──
+    # The ledger-write interface IP-1103's collection branch calls forward
+    # into (IP-1103 §6/§12): marks the current region's treasure collected
+    # in the visited-region ledger. IP-1104 (ledger save persistence)
+    # implements the receiving end -- until it ships, this is an explicit
+    # RET stub, so collected-state does NOT survive leaving the materialized
+    # window (re-entry re-derives INF_TREASURE_HERE from the presence
+    # predicate alone). A known, sequenced gap, not an oversight: FS-110
+    # Workflow C step 2 names the ledger write, Workflow D gives IP-1104
+    # its read/persist half.
+    rom.label('inf_ledger_mark_collected')
     rom.RET()
 
     # ── save_to_sram ─────────────────────────────────────

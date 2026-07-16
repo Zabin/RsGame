@@ -2850,6 +2850,230 @@ check("T25.f2 seed=0 still produces a valid materialized starting region (intern
 pb.stop()
 
 # ══════════════════════════════════════════════════════
+# T26 — Infinite Mode: Treasure & Win-Condition State (IP-1103)
+# (IP-1103's own §8 names "T25"; renumbered — IP-1100 already claimed T25
+# when it shipped first: the tranche's third such renaming, after IP-1101's
+# T23->T22 and IP-1100's own T22->T25.)
+# ══════════════════════════════════════════════════════
+print("\n=== T26: Infinite Mode — Treasure & Win-Condition State ===")
+
+RUNNING_TREASURE_COUNT = 0xC405
+TOP_SCORE_TABLE = 0xC407
+ICTS_ADDR = _gw_rom.labels['inf_check_top_score']
+ITP_ADDR = _gw_rom.labels['inf_treasure_pos']
+
+def enter_infinite_mode(pb, seed):
+    """MAIN MENU -> MODE SELECT -> (infinite) -> INFINITE SEED ENTRY ->
+    seed digits -> INTRO -> A -> PLAYING. The same button script T25.d
+    established, packaged for reuse."""
+    pb.button('a'); [pb.tick() for _ in range(40)]
+    pb.button('down'); [pb.tick() for _ in range(40)]
+    pb.button('a'); [pb.tick() for _ in range(40)]
+    enter_infinite_seed(pb, [(seed // 10 ** (4 - i)) % 10 for i in range(5)])
+    pb.button('a'); [pb.tick() for _ in range(80)]
+
+def read_rtc(pb):
+    return pb.memory[RUNNING_TREASURE_COUNT] | (pb.memory[RUNNING_TREASURE_COUNT + 1] << 8)
+
+def read_top3(pb):
+    return [pb.memory[TOP_SCORE_TABLE + 2 * i] | (pb.memory[TOP_SCORE_TABLE + 2 * i + 1] << 8)
+            for i in range(3)]
+
+# T26.a0 — static: the per-biome spawn-position table in ROM matches
+# ZONE_COLLECTS's own type-2 (KeyItem) entry exactly, biome for biome.
+# asm_game.py deliberately duplicates these values rather than importing
+# the content module (ADR-0003's module-boundary rule) — this check is
+# what makes content-side drift fail the suite loudly instead of the two
+# copies desyncing silently.
+with open(ROM_PATH, 'rb') as _f:
+    _t26_rom = _f.read()
+_t26_expected_pos = []
+for _b in range(5):
+    _k2 = [(x, y) for (x, y, t) in ZONE_COLLECTS[_b] if t == 2]
+    _t26_expected_pos.append(_k2[0] if len(_k2) == 1 else None)
+_t26_table = [(_t26_rom[ITP_ADDR + 2 * _b], _t26_rom[ITP_ADDR + 2 * _b + 1]) for _b in range(5)]
+check("T26.a0 Static: inf_treasure_pos table matches ZONE_COLLECTS's single type-2 entry per biome (drift guard for the deliberate duplication)",
+      _t26_table == _t26_expected_pos, f"rom={_t26_table} expected={_t26_expected_pos}")
+
+# T26.a1 — boot init: RUNNING_TREASURE_COUNT/TOP_SCORE_TABLE sit outside
+# the 0xC000-C2FF blanket boot clear; the targeted 8-byte boot clear
+# (IP-1102's GAME_MODE lesson applied) must leave all of them zero on a
+# fresh cartridge — no garbage bytes standing as high scores.
+pb = fresh_boot(200)
+check("T26.a1 Boot: RUNNING_TREASURE_COUNT == 0 and TOP_SCORE_TABLE == [0,0,0] (explicit boot clear — the range sits outside the 0xC000-C2FF blanket clear)",
+      read_rtc(pb) == 0 and read_top3(pb) == [0, 0, 0],
+      f"rtc={read_rtc(pb)} top3={read_top3(pb)}")
+
+# T26.a — treasure collection end-to-end (FR-10300, collection half).
+# Seed chosen by oracle search: the first seed whose (0,0) region holds
+# treasure, so the starting region itself is the collection site.
+t26_seed = None
+for _s in range(1, 65536):
+    if worldgen.materialize_region(_s, 0, 0)[1]:
+        t26_seed = _s
+        break
+enter_infinite_mode(pb, t26_seed)
+check("T26.a2 Reached PLAYING in Infinite Mode (GS=2, GAME_MODE=1)",
+      pb.memory[GAMESTATE] == 2 and pb.memory[GAME_MODE] == 1,
+      f"GS={pb.memory[GAMESTATE]} mode={pb.memory[GAME_MODE]} seed={t26_seed}")
+check("T26.a3 INF_TREASURE_HERE cached == 1 at the region's own materialization (IP-1101's predicate via inf_ensure_window's center cell)",
+      pb.memory[INF_TREASURE_HERE] == 1, f"cache={pb.memory[INF_TREASURE_HERE]}")
+_t26_biome = pb.memory[INF_WINDOW + 4] & 0x07
+_t26_pos = _t26_expected_pos[_t26_biome]
+_t26_cd = tuple(pb.memory[COLL_DATA + i] for i in range(4))
+check("T26.a4 Spawn: COLL_COUNT == 1 and COLL_DATA[0] == (biome's table x, y, type 2, active 1) — exactly one item, the treasure",
+      pb.memory[COLL_COUNT] == 1 and _t26_cd == (_t26_pos[0], _t26_pos[1], 2, 1),
+      f"count={pb.memory[COLL_COUNT]} entry={_t26_cd} expected={_t26_pos + (2, 1)}")
+_t26_oam1 = oam_entry(pb, 1)
+check("T26.a4b Render: the treasure is a live OAM sprite at the spawn position (update_oam's existing type-2 path, TL_CARROT)",
+      _t26_oam1[0] == _t26_pos[1] + 16 and _t26_oam1[1] == _t26_pos[0] + 8
+      and _t26_oam1[2] == TL_CARROT,
+      f"oam={_t26_oam1} expected=({_t26_pos[1]+16},{_t26_pos[0]+8},0x{TL_CARROT:02X},*)")
+_t26_score0 = pb.memory[SCORE]
+_t26_carrots0 = pb.memory[CARROTS_COUNT]
+check("T26.a5 Pre-collection baseline: RUNNING_TREASURE_COUNT == 0, SCORE == 0, CARROTS_COUNT == 0",
+      read_rtc(pb) == 0 and _t26_score0 == 0 and _t26_carrots0 == 0,
+      f"rtc={read_rtc(pb)} score={_t26_score0} carrots={_t26_carrots0}")
+# Drive the player onto the collection position (check_collisions' own
+# existing collision-point convention: 0 <= item-player < 8/16 box, T8's
+# established synthetic-position technique).
+pb.memory[PLAYER_X] = _t26_pos[0]
+pb.memory[PLAYER_Y] = _t26_pos[1]
+[pb.tick() for _ in range(12)]
+check("T26.a6 Collection: RUNNING_TREASURE_COUNT increments by exactly 1, INF_TREASURE_HERE clears, item deactivates",
+      read_rtc(pb) == 1 and pb.memory[INF_TREASURE_HERE] == 0 and pb.memory[COLL_DATA + 3] == 0,
+      f"rtc={read_rtc(pb)} cache={pb.memory[INF_TREASURE_HERE]} active={pb.memory[COLL_DATA + 3]}")
+check("T26.a7 No finite-mode counter touched: SCORE/CARROTS_COUNT(=KEYITEM_COUNT) unchanged, KEYITEM_FLAGS[0] untouched",
+      pb.memory[SCORE] == _t26_score0 and pb.memory[CARROTS_COUNT] == _t26_carrots0
+      and pb.memory[KEYITEM_FLAGS] == 0,
+      f"score={pb.memory[SCORE]} carrots={pb.memory[CARROTS_COUNT]} kif0={pb.memory[KEYITEM_FLAGS]}")
+[pb.tick() for _ in range(10)]
+check("T26.a8 No spurious finite victory: GAMESTATE stays PLAYING after collection (IP-1100 §6's named confirmation, owned by this package)",
+      pb.memory[GAMESTATE] == 2, f"GS={pb.memory[GAMESTATE]}")
+
+# T26.b — no double collection.
+[pb.tick() for _ in range(30)]
+check("T26.b1 No double collection: RUNNING_TREASURE_COUNT stays 1 while standing on the collection point (item inactive, cache cleared)",
+      read_rtc(pb) == 1, f"rtc={read_rtc(pb)}")
+# Menu round-trip: SELECT -> SELECT MENU -> B -> PLAYING forces a full
+# do_screen_redraw -> setup_zone_collects re-run without leaving the
+# region or the materialized window — the collected treasure must not
+# respawn (szc_infinite's cache-cleared path: COLL_COUNT stays 0).
+pb.button('select'); [pb.tick() for _ in range(40)]
+pb.button('b'); [pb.tick() for _ in range(40)]
+check("T26.b2 Redraw after collection does not respawn the treasure: back in PLAYING with COLL_COUNT == 0 and the count still 1",
+      pb.memory[GAMESTATE] == 2 and pb.memory[COLL_COUNT] == 0 and read_rtc(pb) == 1,
+      f"GS={pb.memory[GAMESTATE]} count={pb.memory[COLL_COUNT]} rtc={read_rtc(pb)}")
+pb.stop()
+
+# T26.c — inf_check_top_score against a synthetic corpus (FR-10400, AC-4's
+# insertion half), called directly via the established PC/SP-hijack
+# technique (invoke_generate_world's own pattern) — no in-game call site
+# exists, deliberately (see T26.d).
+def invoke_icts(pb, count, table):
+    """Write RUNNING_TREASURE_COUNT + TOP_SCORE_TABLE fixtures, CALL
+    inf_check_top_score via PC/SP hijack, return the table read back
+    (list of 3 ints), or None if the routine never returned."""
+    pb.memory[RUNNING_TREASURE_COUNT] = count & 0xFF
+    pb.memory[RUNNING_TREASURE_COUNT + 1] = (count >> 8) & 0xFF
+    for i, v in enumerate(table):
+        pb.memory[TOP_SCORE_TABLE + 2 * i] = v & 0xFF
+        pb.memory[TOP_SCORE_TABLE + 2 * i + 1] = (v >> 8) & 0xFF
+    pb.memory[GW_TRAP_ADDR] = 0x18; pb.memory[GW_TRAP_ADDR + 1] = 0xFE  # JR -2
+    sp = (pb.register_file.SP - 2) & 0xFFFF
+    pb.memory[sp] = GW_TRAP_ADDR & 0xFF
+    pb.memory[sp + 1] = (GW_TRAP_ADDR >> 8) & 0xFF
+    pb.register_file.SP = sp
+    pb.register_file.PC = ICTS_ADDR
+    for _ in range(30):
+        pb.tick()
+        if pb.register_file.PC == GW_TRAP_ADDR:
+            return read_top3(pb)
+    return None
+
+def icts_model(count, table):
+    """The subroutine's specified behavior (IP-1103 §6): strictly-exceeds
+    qualification against the lowest entry, sorted-descending insertion,
+    previous lowest displaced; ties never insert."""
+    if count <= table[2]:
+        return list(table)
+    if count > table[0]:
+        return [count, table[0], table[1]]
+    if count > table[1]:
+        return [table[0], count, table[1]]
+    return [table[0], table[1], count]
+
+_t26c_corpus = [
+    (5, [0, 0, 0]),          # empty table -> straight to index 0
+    (7, [10, 5, 2]),         # mid insertion -> [10, 7, 5]
+    (1, [10, 5, 2]),         # below lowest -> unchanged
+    (2, [10, 5, 2]),         # TIE with lowest -> unchanged (strictly-exceeds)
+    (100, [10, 5, 2]),       # new high -> [100, 10, 5]
+    (10, [10, 5, 2]),        # tie with top -> slots at index 1
+    (5, [10, 5, 2]),         # tie with middle -> slots at index 2
+    (0x0200, [0x1234, 0x0100, 0x00FF]),   # 16-bit, high-byte-decided
+    (0x0105, [0x0110, 0x0107, 0x0102]),   # 16-bit, equal-high low-byte-decided
+    (0xFFFF, [0xFFFE, 0x8000, 0x0001]),   # top of the unsigned range
+    (0x00FF, [0x0100, 0x0100, 0x0100]),   # below all, high-byte-decided -> unchanged
+]
+pb = fresh_boot(200)
+_t26c_bad = []
+for _count, _table in _t26c_corpus:
+    _got = invoke_icts(pb, _count, _table)
+    _want = icts_model(_count, _table)
+    if _got != _want:
+        _t26c_bad.append((_count, _table, _got, _want))
+check("T26.c1 inf_check_top_score corpus: qualifying counts insert at the sorted-descending position displacing the previous lowest; non-qualifying (incl. exact ties) leave the table byte-for-byte unchanged (FR-10400/AC-4)",
+      not _t26c_bad, f"mismatches={_t26c_bad}")
+# Two hand-written spot expectations, independent of the model function:
+check("T26.c2 Spot: (7 into [10,5,2]) -> [10,7,5]; (2 into [10,5,2]) -> unchanged (tie rejected)",
+      invoke_icts(pb, 7, [10, 5, 2]) == [10, 7, 5]
+      and invoke_icts(pb, 2, [10, 5, 2]) == [10, 5, 2], "spot-checked")
+pb.stop()
+
+# T26.d — negative test, stating the BL-0112 deferral explicitly rather
+# than leaving it silent (IP-1103 §8/§10): inf_check_top_score has ZERO
+# call sites — no in-game event invokes it. A future package's addition of
+# the automatic trigger (once BL-0112 resolves) shows up as a clean,
+# detectable diff: this check flips.
+_t26_src = (BASE / 'asm_game.py').read_text()
+_t26d_refs = re.findall(
+    r"rom\.(?:CALL|CALL_NZ|CALL_Z|JP|JP_Z|JP_NZ|JP_C|JP_NC|JR|JR_Z|JR_NZ|JR_C|JR_NC)\('inf_check_top_score'\)",
+    _t26_src)
+_t26d_labels = _t26_src.count("rom.label('inf_check_top_score')")
+# ROM-level corroboration: no CALL/JP-family opcode carrying the routine's
+# resolved address appears anywhere in the assembled code region.
+_t26d_lo, _t26d_hi = ICTS_ADDR & 0xFF, (ICTS_ADDR >> 8) & 0xFF
+_t26d_code_end = _gw_rom.pos
+_t26d_hits = [i for i in range(0x150, _t26d_code_end)
+              if _t26_rom[i] in (0xCD, 0xC4, 0xCC, 0xD4, 0xDC,
+                                 0xC3, 0xC2, 0xCA, 0xD2, 0xDA)
+              and _t26_rom[i + 1] == _t26d_lo and _t26_rom[i + 2] == _t26d_hi]
+check("T26.d Zero call sites for inf_check_top_score: source audit (label defined once, never CALLed/JPed) + ROM scan of the code region — the BL-0112 trigger deferral, checkable",
+      _t26d_refs == [] and _t26d_labels == 1 and _t26d_hits == [],
+      f"src_refs={_t26d_refs} labels={_t26d_labels} rom_hits={[hex(h) for h in _t26d_hits]}")
+
+# T26.e — no name-entry state is reachable from any code path this package
+# adds (FR-10400/FS-110 AC-4's own explicit requirement): static audit over
+# exactly the three new/extended code blocks — none of them writes
+# TRANSITION_TO or GAMESTATE at all (so they cannot transition anywhere,
+# let alone to a name-entry state), and no name-entry GAMESTATE exists
+# anywhere in the source to transition to.
+def _t26_seg(start_marker, end_marker):
+    return _t26_src[_t26_src.index(start_marker):_t26_src.index(end_marker)]
+_t26e_segs = {
+    'szc_infinite': _t26_seg("rom.label('szc_infinite')", "rom.label('update_map_hearts')"),
+    'cc_inf_hit': _t26_seg("rom.label('cc_inf_hit')", "rom.label('czt_region_hl')"),
+    'inf_check_top_score+ledger stub': _t26_seg("rom.label('inf_check_top_score')",
+                                                "rom.label('save_to_sram')"),
+}
+_t26e_bad = [name for name, s in _t26e_segs.items()
+             if 'TRANSITION_TO' in s or "LD_nn_A(GAMESTATE" in s]
+check("T26.e No name-entry state reachable from this package's new branches: none writes TRANSITION_TO/GAMESTATE, and no name-entry GAMESTATE exists in the source at all",
+      _t26e_bad == [] and re.search(r"GS_\w*NAME", _t26_src) is None,
+      f"segments_writing_state={_t26e_bad}")
+
+# ══════════════════════════════════════════════════════
 # SUMMARY
 # ══════════════════════════════════════════════════════
 total = PASS + FAIL

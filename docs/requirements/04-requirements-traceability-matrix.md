@@ -18,7 +18,10 @@
 > 2026-07-14 (cont'd) — FR-9170 added, `CR-05` closed and resolved to it; FR-10100 row refreshed
 > for `GDS-01` §4d/`IP-1100`; delta 2026-07-14 (cont'd) — FR-10200/NFR-4300 rows filled
 > (`IP-1102`, `T24`), NFR-1400 row filled with T24.e's own measured `NOT MET` result; delta
-> 2026-07-14 (cont'd) — FR-10100 row filled Implemented (`IP-1100`, `T25`)).**
+> 2026-07-14 (cont'd) — FR-10100 row filled Implemented (`IP-1100`, `T25`); delta 2026-07-16 —
+> FR-10300 row completed (collection half, `IP-1103`, `T26.a/b`), FR-10400 row filled **partial**
+> (state + comparison subroutine only, zero call sites — `BL-0112`'s trigger gap stated
+> explicitly, `T26.c/d/e`)).**
 > Owned by `04-requirements-engineering`.
 > One row per [RQ-01](01-functional-requirements.md)/[RQ-02](02-non-functional-requirements.md)
 > requirement (Candidates marked). Populates the row-level matrix
@@ -86,8 +89,8 @@
 | FR-10100 | Infinite Mode new-game entry (seed-only, no world-scale) (Implemented, 2026-07-14) | — | ADS-001 §System Architecture; GDS-01 §4d | ADR-0016 | `asm_game.py` | FS-110 | IP-1100 | T25 |
 | FR-10200 | Streaming, positionally-deterministic region generation (Implemented, 2026-07-14) | R114 | ADS-001 §System Architecture | ADR-0016 | `asm_game.py`/`worldgen.py` | FS-110 | IP-1101 (generate half), IP-1102 (navigate/render half) | T22.a, T22.b, T24.a, T24.b |
 | FR-10210 | Revisit-consistent region materialization | R114 | ADS-001 §User Stories | ADR-0016 | `asm_game.py` | FS-110 | IP-1101 (partial — data layer; IP-1102/1104 own the window/ledger halves) | T22.c |
-| FR-10300 | Treasure placement decoupled from maze structure | R216 | ADS-001 §System Architecture | ADR-0017 | `asm_game.py`/`worldgen.py` | FS-110 | IP-1101 (partial — presence half; IP-1103 owns collection) | T22.d |
-| FR-10400 | Score-chasing win condition (running count + top-3, no name entry) | R216 | ADS-001 §Executive Design Overview | ADR-0017 | `asm_game.py` (prospective) | UNASSIGNED | UNASSIGNED | UNASSIGNED |
+| FR-10300 | Treasure placement decoupled from maze structure | R216 | ADS-001 §System Architecture | ADR-0017 | `asm_game.py`/`worldgen.py` | FS-110 | IP-1101 (presence half) + IP-1103 (collection half) | T22.d, T26.a/T26.b |
+| FR-10400 | Score-chasing win condition (running count + top-3, no name entry) | R216 | ADS-001 §Executive Design Overview | ADR-0017 | `asm_game.py` | FS-110 | IP-1103 (**partial** — state + `inf_check_top_score` subroutine only; **no automatic trigger calls it**, the run-end trigger is `BL-0112`'s open question, a follow-up package wires the call site) | T26.c (subroutine corpus), T26.d (zero-call-site state, explicit), T26.e (no name entry) |
 | FR-10500 | Visited-region-ledger save/load (position + collected-state only) | R114 | ADS-001 §System Architecture | ADR-0016 | `asm_game.py` (prospective) | UNASSIGNED | UNASSIGNED | UNASSIGNED |
 | CR-07 | Infinite Mode run/session shape (`BL-0106`) — **RESOLVED 2026-07-13, baselined as FR-10600** once the project owner decided directly ("for now assume indefinitely resumable") | R216 | — | ADR-0017 | `asm_game.py` (prospective) | `CANDIDATE — NOT BASELINED` (see FR-10600) | `CANDIDATE — NOT BASELINED` | `CANDIDATE — NOT BASELINED` |
 | FR-10600 | Indefinitely resumable Infinite Mode run (no bounded end-condition mechanic) | R216 | ADS-001 §Open Questions (Q1) | ADR-0017 | `asm_game.py` (prospective) | UNASSIGNED | UNASSIGNED | UNASSIGNED |

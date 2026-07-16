@@ -1,19 +1,21 @@
 # Master Build Plan
 
-> **Status (updated 2026-07-14, `08-code-implementation` on `IP-1100`): 28 of 31 packages
-> VERIFIED; `IP-1100` (Infinite Mode, mode selection & new-game entry) implemented — `COMPLETE`,
-> 280/280 full suite (`T25`, 10 checks). `IP-1102` (Infinite Mode, streaming window/navigation/
-> render) independently verified —
-> `VERIFIED`, 260/260 full suite (`T24`, 7 checks; `NFR-4300` Met, `NFR-1400` honestly measured
-> `NOT MET`, independently re-confirmed by a standalone re-measurement — see
-> [VR-1102](verification/VR-1102-infinite-mode-streaming-window-and-render.md) and
-> `02-non-functional-requirements.md`). `IP-1101` (per-region
-> materialization) independently verified `VERIFIED` — 253/253 checks pass, fresh session, 0 open
-> findings ([VR-1101](verification/VR-1101-infinite-mode-region-materialization.md); three
-> Low-severity documentation findings noted, none blocking). `IP-1103` is `READY` (both its
-> dependencies, `IP-1101`/`IP-1102`, are `VERIFIED`); `IP-1104` remains `NOT STARTED` —
-> still depends on `IP-1100`/`1102`/`1103` reaching `VERIFIED` (`IP-1100` awaiting its own
-> `09-package-verification` pass; `IP-1102` cleared; `IP-1103` not yet built).**
+> **Status (updated 2026-07-16, `08-code-implementation` on `IP-1103`): 28 of 31 packages
+> VERIFIED; `IP-1103` (Infinite Mode, treasure placement & win-condition state) implemented —
+> `COMPLETE`, 296/296 full suite (`T26`, 16 checks). Deliberate scope boundary (`IP-1103`
+> §2/§7, `FS-110` OQ3/`BL-0112`): Workflow C steps 1–2 shipped in full (treasure spawn/
+> collection/running count) plus the top-3 comparison subroutine `inf_check_top_score` —
+> which has **zero call sites, by design** (`T26.d` asserts exactly that); the automatic
+> run-end trigger awaits `BL-0112`'s resolution, so `FR-10400` is recorded Partially
+> Implemented, not rounded up. `IP-1100` (mode selection & new-game entry) remains `COMPLETE`
+> (280/280 at its own implementation, `T25`, 10 checks), awaiting `09-package-verification`
+> (independent session). `IP-1102` `VERIFIED`
+> ([VR-1102](verification/VR-1102-infinite-mode-streaming-window-and-render.md); `NFR-4300` Met,
+> `NFR-1400` honestly measured `NOT MET`, see `02-non-functional-requirements.md`). `IP-1101`
+> `VERIFIED` ([VR-1101](verification/VR-1101-infinite-mode-region-materialization.md), 0 open
+> findings). `IP-1104` (the tranche's last package) remains `NOT STARTED` —
+> still depends on `IP-1100`/`1102`/`1103` reaching `VERIFIED` (`IP-1100` and `IP-1103` both
+> awaiting their own `09-package-verification` passes; `IP-1102` cleared).**
 > Every prior package remains `VERIFIED` —
 > nothing below this line is re-opened by the new tranche. **Prior status (corrected 2026-07-13, `09-package-verification` on `IP-1082`):
 > 26 of 26 packages VERIFIED.** `IP-1090` (SELECT Menu & Edge-Indicator Legend Screen, `BL-0100`)
@@ -313,13 +315,38 @@ by a fresh "finite" new-game would leave `GAME_MODE` stuck at 1). Implements FR-
 half, now fully Implemented alongside `IP-1101`'s generate half). `docs/architecture/01-concept-
 of-play.md` (§4d confirmed shipped), `docs/requirements/01`/`04`, `FS-110`'s own metadata + §19
 OQ6 marked Resolved, this Master Build Plan, `packages/INDEX.md` all updated in sync.
+**`IP-1103` implemented 2026-07-16 — `COMPLETE`, 296/296 checks pass** (new suite `T26`, 16
+checks — the package's own §8 names "T25", renamed since `IP-1100` claimed `T25` first, the
+tranche's third such renaming). **Deliberate scope boundary, stated exactly (§2/§7,
+`FS-110` OQ3/`BL-0112`):** Workflow C steps 1–2 shipped in full — `RUNNING_TREASURE_COUNT`/
+`TOP_SCORE_TABLE` WRAM (`0xC405`–`0xC40C`, `GDS-07` §7f, explicitly boot-cleared per
+`GAME_MODE`'s own §7e lesson), treasure spawn (`setup_zone_collects`' new `GAME_MODE == 1`
+branch: exactly one `COLL_DATA` item at a per-biome position mirroring `ZONE_COLLECTS`' type-2
+entry — values deliberately duplicated, `T26.a0` is the drift guard), collection
+(`check_collisions`' new `GAME_MODE == 1` branch: 16-bit count increment, `INF_TREASURE_HERE`
+cache clear, forward `CALL inf_ledger_mark_collected` — a `RET` stub until `IP-1104` implements
+the receiving end), and the corpus-verified comparison subroutine `inf_check_top_score`
+(`T26.c`) — **which has zero call sites, by design** (`T26.d` asserts the zero-call-site state;
+the automatic run-end trigger awaits `BL-0112`). `INF_TREASURE_HERE` is now populated (cached at
+`inf_ensure_window`'s center-cell materialization — the write `IP-1102` §7e reserved for this
+package). **Same-package hazard closed (named by `IP-1100` §6 for this package to confirm):**
+the `GAME_MODE` gates mean Infinite Mode no longer runs the finite spawn/collection paths
+against stale `CUR_ZONE`/`REGION_GRAPH` data — before this package, colliding with a stale
+type-2 item incremented `KEYITEM_COUNT` toward a reachable spurious finite victory; now no
+finite counter is touched (`T26.a7`) and `GAMESTATE` stays `PLAYING` (`T26.a8`). Re-entry
+re-collection after leaving the materialized window remains possible until `IP-1104`'s ledger
+ships — the sequenced gap `FS-110` Workflow C/D split across the two packages, not an oversight.
+Implements FR-10300 (collection half — now fully Implemented alongside `IP-1101`'s presence
+half); FR-10400 recorded **Partially Implemented**, not rounded up. `docs/requirements/01`/`04`,
+`GDS-07` §7f, `FS-110` metadata + §19 OQ3 cross-referenced (left open), this Master Build Plan,
+`packages/INDEX.md` all updated in sync.
 
 | Package | Title | Owner | Status | Depends on | Authorized? |
 |---|---|---|---|---|---|
 | [IP-1100](packages/IP-1100-infinite-mode-mode-selection.md) | Mode selection & new-game entry | `08-code-implementation` | **COMPLETE** (280/280, 2026-07-14) | IP-1101 (VERIFIED) | **YES — explicit user G3, 2026-07-14 ("Yes, build all five")** |
 | [IP-1101](packages/IP-1101-infinite-mode-region-materialization.md) | Per-region materialization | `08-code-implementation` | **VERIFIED** ([VR-1101](verification/VR-1101-infinite-mode-region-materialization.md), 2026-07-14) | — (tranche root) | **YES — explicit user G3, 2026-07-14 ("Yes, build all five")** |
 | [IP-1102](packages/IP-1102-infinite-mode-streaming-window-and-render.md) | Streaming window, navigation & render integration | `08-code-implementation` | **VERIFIED** ([VR-1102](verification/VR-1102-infinite-mode-streaming-window-and-render.md), 2026-07-14) | IP-1101 (VERIFIED) | **YES — explicit user G3, 2026-07-14 ("Yes, build all five")** |
-| [IP-1103](packages/IP-1103-infinite-mode-treasure-and-win-condition.md) | Treasure placement & win-condition state | `08-code-implementation` | **IN PROGRESS** (2026-07-16) | IP-1101 (VERIFIED), IP-1102 (VERIFIED) | **YES — explicit user G3, 2026-07-14 ("Yes, build all five")** |
+| [IP-1103](packages/IP-1103-infinite-mode-treasure-and-win-condition.md) | Treasure placement & win-condition state | `08-code-implementation` | **COMPLETE** (296/296, 2026-07-16 — Workflow C steps 1–2 + comparison subroutine only; the automatic trigger is deliberately unwired, `BL-0112`) | IP-1101 (VERIFIED), IP-1102 (VERIFIED) | **YES — explicit user G3, 2026-07-14 ("Yes, build all five")** |
 | [IP-1104](packages/IP-1104-infinite-mode-ledger-save-persistence.md) | Visited-region-ledger save persistence | `08-code-implementation` | **NOT STARTED** | IP-1100, IP-1101 (VERIFIED), IP-1102, IP-1103 | **YES — explicit user G3, 2026-07-14 ("Yes, build all five")** |
 
 ## Dependency graph
@@ -419,7 +446,7 @@ graph TD
     IP1100["IP-1100 mode selection<br/>& new-game entry<br/>(COMPLETE)"]
     IP1101["IP-1101 per-region<br/>materialization<br/>(VERIFIED)"]
     IP1102["IP-1102 streaming window<br/>& render integration<br/>(VERIFIED)"]
-    IP1103["IP-1103 treasure &<br/>win-condition state<br/>(READY)"]
+    IP1103["IP-1103 treasure &<br/>win-condition state<br/>(COMPLETE)"]
     IP1104["IP-1104 ledger save<br/>persistence<br/>(NOT STARTED)"]
     IP1040 --> IP1100
     IP1101 --> IP1100
