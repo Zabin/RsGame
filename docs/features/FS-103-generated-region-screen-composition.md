@@ -274,7 +274,8 @@ collectible-content gap (`FS-102` §19 Open Question 6), not new rendering-mecha
    `tilemaps.py` — see header revision note). What remains for `07-implementation-planning` is a
    mechanical dispatch-table rewire (`ALL_SCREENS`/`REGION_GRAPH` biome-id range), not new content
    authoring. **Not resolved for the paired collectible-content half** — see `FS-102` §19 Open
-   Question 6.
+   Question 6. **Fully resolved (`IP-1022`, 2026-07-17):** the collectible-content half shipped —
+   see `FS-102`'s own updated §19 Open Question 6. This Open Question is now fully closed.
 2. **The exact tile-index ranges/palette assignments for whatever biome-family set is eventually
    chosen** are, per GDS-07 §8/GDS-08 §9's own cross-references, deferred to the same future
    content-sizing package — this spec does not invent tile-index ranges beyond citing the
@@ -283,7 +284,15 @@ collectible-content gap (`FS-102` §19 Open Question 6), not new rendering-mecha
    **(2026-07-16 delta, `FR-4320`/`BL-0128`) — RESOLVED.** Both the tile-index ranges and the
    palette-group assignments for all four newly-dispatched identities already exist (§10 above) —
    no new allocation of either kind is needed; `07-implementation-planning` only needs to point
-   the dispatch table at what already exists.
+   the dispatch table at what already exists. **Deviation from this resolution's own framing
+   (`IP-1022`/`ADR-0020`, 2026-07-17):** the four new identities are **not** dispatched via
+   `ALL_SCREENS`'s baked-array mechanism at all — a first `08-code-implementation` attempt found
+   baking their full arrays overflows the ROM budget (`BL-0134`); `ADR-0020` instead renders them
+   via a runtime procedural-fill routine + landmark-overlay list. The tile-index ranges and
+   palette-group assignments this Open Question resolved remain exactly correct (the tile IDs
+   themselves are unchanged) — only the *storage/dispatch mechanism* differs from what this
+   resolution assumed, worth recording since a future reader of this Open Question would otherwise
+   expect an `ALL_SCREENS` entry that does not exist for these four identities.
 3. **(New, 2026-07-16, `FR-4320`/`BL-0128`) `FEAT-4100`'s own catalog Included Requirements list
    does not yet name `FR-4320`**, mirroring the exact gap class `FS-102` §19 Open Question 4
    already established for `FR-9160`/`FR-9161`/`FR-9170`. Not blocking this Feature's own

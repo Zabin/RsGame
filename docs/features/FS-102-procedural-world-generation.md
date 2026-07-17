@@ -487,7 +487,10 @@ ordinary implementation risk for `07`/`08`.
    outside `ZONE_COLLECTS`'s own array until `IP-1022` (the deferred dispatch package) splices it
    into the real, index-5-8 positions once `CR-08`'s ordering is resolved (already the case as of
    this same date). A region assigned Village/Cave/Desert/Plains still has no collectible until
-   that splice ships.
+   that splice ships. **Fully resolved (`IP-1022`, 2026-07-17):** the splice shipped — all four
+   staged lists now occupy `ZONE_COLLECTS` indices 5-8 exactly as `CR-08` ordered, confirmed live
+   by `T13.f`'s dispatch-cascade completeness check. Every one of the nine biome identities now
+   has a real, spawnable collectible list.
 
 ## 20. Related ADRs
 

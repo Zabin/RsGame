@@ -223,6 +223,38 @@ LEDGER         = 0xC41B  # 640 bytes, C41B-C69A -- 128 entries x 5 bytes: row (s
                           # SRAM_LEDGER_COUNT/SRAM_LEDGER_CURSOR/SRAM_LEDGER byte-for-byte
                           # (same field order, same sizes) so save/load is a single memcpy.
 
+# IP-1022 (ADR-0020): fill_procedural_screen/apply_landmark_overlay's own
+# transient scratch -- never saved, never read across a screen redraw
+# boundary (fully re-initialized from each screen's ROM parameter block
+# on every call). Placed immediately after LEDGER's own block ends
+# (C69A), confirmed free by direct grep of every existing 0xC6xx/0xC7xx
+# WRAM constant in this file.
+FPS_MULT_X     = 0xC69B  # 1 byte -- this screen's own column-step constant
+FPS_MODULUS    = 0xC69C  # 1 byte
+FPS_THRESHOLD  = 0xC69D  # 1 byte
+FPS_TILE_A     = 0xC69E  # 1 byte
+FPS_TILE_B     = 0xC69F  # 1 byte
+FPS_ATTR       = 0xC6A0  # 1 byte -- constant attr for this screen's entire base fill
+FPS_WALL_TILE  = 0xC6A1  # 1 byte -- 0xFF sentinel means "no wall rows this screen"
+FPS_ROWTAB_HI  = 0xC6A2  # 2 bytes, C6A2-C6A3 -- pointer into this screen's own
+FPS_ROWTAB_LO  = 0xC6A3  #   17-byte row-start table, advances by 1 per row
+FPS_VRAM_HI    = 0xC6A4  # 2 bytes, C6A4-C6A5 -- the tile-plane VRAM write pointer,
+FPS_VRAM_LO    = 0xC6A5  #   saved/restored around the per-row row-table read
+FPS_ROW_CTR    = 0xC6A6  # 1 byte -- rows remaining (17 downto 0)
+FPS_COL_CTR    = 0xC6A7  # 1 byte -- columns remaining within the current row (32 downto 0)
+FPS_LM_COUNT   = 0xC6A8  # 1 byte -- landmark-overlay entry count for the current screen
+FPS_LM_CTR     = 0xC6A9  # 1 byte -- landmark entries remaining
+FPS_LM_PTR_HI  = 0xC6AA  # 2 bytes, C6AA-C6AB -- advancing pointer into the landmark list
+FPS_LM_PTR_LO  = 0xC6AB
+FPS_LM_BASE_HI = 0xC6AC  # 2 bytes, C6AC-C6AD -- the landmark list's own first-entry address,
+FPS_LM_BASE_LO = 0xC6AD  #   preserved so the attr-plane pass can restart from the beginning
+FPS_LM_X       = 0xC6AE  # 1 byte -- current landmark entry's tile_x, held across the
+FPS_LM_Y       = 0xC6AF  #   HL-clobbering VRAM-address computation (1 byte, tile_y)
+FPS_LM_TILE    = 0xC6B0  # 1 byte -- current landmark entry's tile_id
+FPS_LM_ATTR    = 0xC6B1  # 1 byte -- current landmark entry's attr
+FPS_TEMP       = 0xC6B2  # 1 byte -- short-lived scratch (holds the just-read row_table
+                          # byte across the HL-clobbering pointer-save shuffle)
+
 SAVE_VERSION_ADDR = 0xA012   # save-format version guard (FR-5220 / Design Decision 2)
 SAVE_VERSION_VAL  = 0x05     # bumped 0x04->0x05 (IP-1104, fifth bump since ship — the
                               # value sequence is strictly monotonic, never reused). A single
@@ -1394,8 +1426,13 @@ def build_game_asm(rom: ROM) -> dict:
     rom.CP_n(1); rom.JR_Z('dsr_p_sand')
     rom.CP_n(2); rom.JR_Z('dsr_p_grass')
     rom.CP_n(3); rom.JR_Z('dsr_p_stone')
-    rom.JR('dsr_p_brick')              # biome-id 4 (generate_world's own
-                                        # invariant: axis-clamped to 0..4)
+    rom.CP_n(4); rom.JR_Z('dsr_p_brick')
+    rom.CP_n(5); rom.JR_Z('dsr_p_village')
+    rom.CP_n(6); rom.JR_Z('dsr_p_cave')
+    rom.CP_n(7); rom.JR_Z('dsr_p_desert')
+    rom.JR('dsr_p_plains')             # biome-id 8 (generate_world's own
+                                        # invariant: axis-clamped to 0..8,
+                                        # IP-1022 widened from 0..4)
 
     def _dsr_family(lbl, pt_key, pa_key):
         rom.label(lbl)
@@ -1409,8 +1446,30 @@ def build_game_asm(rom: ROM) -> dict:
     _dsr_family('dsr_p_stone', 'stone_t', 'stone_a')
     _dsr_family('dsr_p_brick', 'brick_t', 'brick_a')
 
+    # IP-1022 (ADR-0020): the four newly-folded identities render via a
+    # runtime procedural-fill routine + landmark-overlay list instead of
+    # a baked ROM array (BL-0134's ROM-budget finding) -- no water_t-
+    # style patch pair; each branch calls fill_procedural_screen with
+    # HL pointing at that screen's own fill-parameter block, then
+    # apply_landmark_overlay with HL pointing at that screen's own
+    # landmark list, then joins the common tail directly (skipping
+    # copy_screen entirely -- there is no baked array to copy).
+    def _dsr_family_procedural(lbl, fill_key, lm_key):
+        rom.label(lbl)
+        rom.LD_HL_nn(0); patches[fill_key] = rom.pos - 2
+        rom.CALL('fill_procedural_screen')
+        rom.LD_HL_nn(0); patches[lm_key] = rom.pos - 2
+        rom.CALL('apply_landmark_overlay')
+        rom.JR('dsr_p_after_copy')
+
+    _dsr_family_procedural('dsr_p_village', 'village_fill', 'village_lm')
+    _dsr_family_procedural('dsr_p_cave',    'cave_fill',    'cave_lm')
+    _dsr_family_procedural('dsr_p_desert',  'desert_fill',  'desert_lm')
+    _dsr_family_procedural('dsr_p_plains',  'plains_fill',  'plains_lm')
+
     rom.label('dsr_p_copy')
     rom.CALL('copy_screen')
+    rom.label('dsr_p_after_copy')
     rom.POP_HL()                       # HL -> 'up' neighbor byte, restored (finite mode) or
                                         # a discarded stack-balance value (infinite mode)
     rom.LD_A_nn(GAME_MODE); rom.OR_A(); rom.JR_NZ('dsr_p_copy_inf')
@@ -1441,6 +1500,150 @@ def build_game_asm(rom: ROM) -> dict:
     rom.label('cs_a')
     rom.LD_A_DE(); rom.LD_HLI_A(); rom.INC_DE(); rom.DEC_BC()
     rom.LD_A_B(); rom.OR_C(); rom.JR_NZ('cs_a')
+    rom.XOR_A(); rom.LDH_n_A(VBK)
+    rom.RET()
+
+    # ── fill_procedural_screen (IP-1022, ADR-0020) ────────
+    # On entry: HL -> this screen's own 24-byte fill-parameter block
+    # (tilemaps.py's *_FILL tuples, emitted verbatim by build_rom.py):
+    # [0]=mult_x [1]=modulus [2]=threshold [3]=tile_a [4]=tile_b
+    # [5]=attr [6]=wall_tile [7..23]=row_table (17 bytes, one per tile
+    # row y=1..17; a 0xFF entry means "this row is a solid wall").
+    # Fills the tile plane (VBK=0) tile-by-tile via the same
+    # `(mult_y*y + mult_x*x + offset) % modulus` formula each
+    # `tilemaps.py` `*_screen()` function already uses -- row_table
+    # precomputes each row's own x=0 seed at build time (this codebase's
+    # own no-multiply convention, NFR-2200, mirroring generate_world's
+    # `gw_mod3`/`WORLD_SCALE^2` precedent -- confirmed by direct
+    # simulation against all four screens' real output: every
+    # discrepancy is exactly a landmark-overlay cell, none is a fill
+    # bug), then a flat constant-attr pass over the attr plane (VBK=1) --
+    # every one of these four screens uses a single attr value for its
+    # entire base fill, confirmed by direct read.
+    rom.label('fill_procedural_screen')
+    rom.LD_A_HL(); rom.LD_nn_A(FPS_MULT_X);    rom.INC_HL()
+    rom.LD_A_HL(); rom.LD_nn_A(FPS_MODULUS);   rom.INC_HL()
+    rom.LD_A_HL(); rom.LD_nn_A(FPS_THRESHOLD); rom.INC_HL()
+    rom.LD_A_HL(); rom.LD_nn_A(FPS_TILE_A);    rom.INC_HL()
+    rom.LD_A_HL(); rom.LD_nn_A(FPS_TILE_B);    rom.INC_HL()
+    rom.LD_A_HL(); rom.LD_nn_A(FPS_ATTR);      rom.INC_HL()
+    rom.LD_A_HL(); rom.LD_nn_A(FPS_WALL_TILE); rom.INC_HL()
+    rom.LD_A_H(); rom.LD_nn_A(FPS_ROWTAB_HI)
+    rom.LD_A_L(); rom.LD_nn_A(FPS_ROWTAB_LO)
+
+    rom.XOR_A(); rom.LDH_n_A(VBK)
+    rom.LD_HL_nn(0x9800 + 32)          # row 1, col 0 (row 0 is the score bar)
+    rom.LD_A_H(); rom.LD_nn_A(FPS_VRAM_HI)
+    rom.LD_A_L(); rom.LD_nn_A(FPS_VRAM_LO)
+    rom.LD_A_n(17); rom.LD_nn_A(FPS_ROW_CTR)
+
+    rom.label('fps_row_loop')
+    # -- read this row's own row_table byte, HL temporarily repurposed --
+    rom.LD_A_nn(FPS_ROWTAB_HI); rom.LD_H_A()
+    rom.LD_A_nn(FPS_ROWTAB_LO); rom.LD_L_A()
+    rom.LD_A_HL(); rom.LD_nn_A(FPS_TEMP)   # this row's own seed (or 0xFF)
+    rom.INC_HL()
+    rom.LD_A_H(); rom.LD_nn_A(FPS_ROWTAB_HI)
+    rom.LD_A_L(); rom.LD_nn_A(FPS_ROWTAB_LO)
+    rom.LD_A_nn(FPS_VRAM_HI); rom.LD_H_A()
+    rom.LD_A_nn(FPS_VRAM_LO); rom.LD_L_A()
+
+    rom.LD_A_nn(FPS_TEMP)
+    rom.CP_n(0xFF); rom.JR_Z('fps_wall_row')
+
+    # -- normal row: A (this row's seed) becomes the running cell value (E) --
+    rom.LD_E_A()
+    rom.LD_A_nn(FPS_MULT_X);    rom.LD_B_A()
+    rom.LD_A_nn(FPS_MODULUS);   rom.LD_C_A()
+    rom.LD_A_nn(FPS_THRESHOLD); rom.LD_D_A()
+    rom.LD_A_n(32); rom.LD_nn_A(FPS_COL_CTR)
+
+    rom.label('fps_cell_loop')
+    rom.LD_A_E(); rom.CP_D(); rom.JR_C('fps_use_a')
+    rom.LD_A_nn(FPS_TILE_B); rom.JR('fps_store')
+    rom.label('fps_use_a')
+    rom.LD_A_nn(FPS_TILE_A)
+    rom.label('fps_store')
+    rom.LD_HLI_A()
+    rom.LD_A_E(); rom.ADD_A_B(); rom.CP_C(); rom.JR_C('fps_no_reduce')
+    rom.SUB_C()
+    rom.label('fps_no_reduce')
+    rom.LD_E_A()
+    rom.LD_A_nn(FPS_COL_CTR); rom.DEC_A(); rom.LD_nn_A(FPS_COL_CTR)
+    rom.JR_NZ('fps_cell_loop')
+    rom.JR('fps_row_done')
+
+    rom.label('fps_wall_row')
+    rom.LD_A_nn(FPS_WALL_TILE); rom.LD_B_A()
+    rom.LD_A_n(32); rom.LD_nn_A(FPS_COL_CTR)
+    rom.label('fps_wall_loop')
+    rom.LD_A_B(); rom.LD_HLI_A()
+    rom.LD_A_nn(FPS_COL_CTR); rom.DEC_A(); rom.LD_nn_A(FPS_COL_CTR)
+    rom.JR_NZ('fps_wall_loop')
+
+    rom.label('fps_row_done')
+    rom.LD_A_H(); rom.LD_nn_A(FPS_VRAM_HI)
+    rom.LD_A_L(); rom.LD_nn_A(FPS_VRAM_LO)
+    rom.LD_A_nn(FPS_ROW_CTR); rom.DEC_A(); rom.LD_nn_A(FPS_ROW_CTR)
+    rom.JR_NZ('fps_row_loop')
+
+    # -- attr plane: one constant byte across all 17*32=544 cells --
+    rom.LD_A_n(1); rom.LDH_n_A(VBK)
+    rom.LD_HL_nn(0x9800 + 32)
+    rom.LD_BC_nn(17 * 32)
+    rom.label('fps_attr_loop')
+    rom.LD_A_nn(FPS_ATTR); rom.LD_HLI_A()
+    rom.DEC_BC(); rom.LD_A_B(); rom.OR_C(); rom.JR_NZ('fps_attr_loop')
+    rom.XOR_A(); rom.LDH_n_A(VBK)
+    rom.RET()
+
+    # ── apply_landmark_overlay (IP-1022, ADR-0020) ────────
+    # On entry: HL -> this screen's own landmark list (tilemaps.py's
+    # *_LANDMARKS lists, emitted by build_rom.py as a 1-byte count
+    # prefix followed by count*(tile_x, tile_y, tile_id, attr) 4-byte
+    # entries). Applied after fill_procedural_screen's own base fill
+    # completes -- the exact cells where each screen's real, shipped
+    # art (houses, crystals, cacti, flowers, etc.) overrides the
+    # procedural pattern. Two full passes over the list (tile plane,
+    # then attr plane), mirroring copy_screen's own one-VBK-switch-per-
+    # plane convention rather than switching VBK per entry.
+    rom.label('apply_landmark_overlay')
+    rom.LD_A_HL(); rom.LD_nn_A(FPS_LM_COUNT)
+    rom.INC_HL()
+    rom.LD_A_H(); rom.LD_nn_A(FPS_LM_BASE_HI)
+    rom.LD_A_L(); rom.LD_nn_A(FPS_LM_BASE_LO)
+
+    def _lm_pass(vbk_val, use_tile):
+        rom.LD_A_n(vbk_val); rom.LDH_n_A(VBK)
+        rom.LD_A_nn(FPS_LM_COUNT); rom.LD_nn_A(FPS_LM_CTR)
+        rom.LD_A_nn(FPS_LM_BASE_HI); rom.LD_H_A()
+        rom.LD_A_nn(FPS_LM_BASE_LO); rom.LD_L_A()
+        loop_lbl = 'lm_tile_loop' if use_tile else 'lm_attr_loop'
+        rom.label(loop_lbl)
+        rom.LD_A_HL(); rom.LD_nn_A(FPS_LM_X); rom.INC_HL()
+        rom.LD_A_HL(); rom.LD_nn_A(FPS_LM_Y); rom.INC_HL()
+        rom.LD_A_HL(); rom.LD_nn_A(FPS_LM_TILE); rom.INC_HL()
+        rom.LD_A_HL(); rom.LD_nn_A(FPS_LM_ATTR); rom.INC_HL()
+        rom.LD_A_H(); rom.LD_nn_A(FPS_LM_PTR_HI)
+        rom.LD_A_L(); rom.LD_nn_A(FPS_LM_PTR_LO)
+        # HL = 0x9800 + tile_y*32 + tile_x
+        rom.LD_A_nn(FPS_LM_Y); rom.LD_H_n(0); rom.LD_L_A()
+        rom.ADD_HL_HL(); rom.ADD_HL_HL(); rom.ADD_HL_HL()
+        rom.ADD_HL_HL(); rom.ADD_HL_HL()          # HL = tile_y * 32
+        rom.LD_DE_nn(0x9800); rom.ADD_HL_DE()
+        rom.LD_A_nn(FPS_LM_X); rom.LD_E_A(); rom.LD_D_n(0)
+        rom.ADD_HL_DE()                            # HL = final VRAM address
+        rom.LD_A_nn(FPS_LM_TILE if use_tile else FPS_LM_ATTR)
+        rom.LD_HL_A()
+        rom.LD_A_nn(FPS_LM_CTR); rom.DEC_A(); rom.LD_nn_A(FPS_LM_CTR)
+        rom.JR_Z('lm_pass_done_tile' if use_tile else 'lm_pass_done_attr')
+        rom.LD_A_nn(FPS_LM_PTR_HI); rom.LD_H_A()
+        rom.LD_A_nn(FPS_LM_PTR_LO); rom.LD_L_A()
+        rom.JR(loop_lbl)
+        rom.label('lm_pass_done_tile' if use_tile else 'lm_pass_done_attr')
+
+    _lm_pass(0, True)
+    _lm_pass(1, False)
     rom.XOR_A(); rom.LDH_n_A(VBK)
     rom.RET()
 
@@ -2084,7 +2287,7 @@ def build_game_asm(rom: ROM) -> dict:
     # b = anchor + delta, guarded to [0,4]
     rom.LD_A_E(); rom.CP_n(1); rom.JR_Z('gw_delta_zero')
     rom.JR_C('gw_delta_neg')
-    rom.LD_A_nn(GW_B_SCRATCH); rom.CP_n(4); rom.JR_Z('gw_b_same')
+    rom.LD_A_nn(GW_B_SCRATCH); rom.CP_n(8); rom.JR_Z('gw_b_same')
     rom.INC_A(); rom.JR('gw_b_done')
     rom.label('gw_delta_neg')
     rom.LD_A_nn(GW_B_SCRATCH); rom.OR_A(); rom.JR_Z('gw_b_same')

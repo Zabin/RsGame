@@ -253,11 +253,13 @@ check("T1.8 VBlank ISR @ 0x40 = PUSH AF", raw[0x40] == 0xF5, f"0x{raw[0x40]:02X}
 check("T1.9 VBlank ISR sets VBLANK_FLAG", raw[0x41:0x44] == bytes([0x3E, 0x01, 0xEA]))
 
 # Source-data invariants (BL-0017 rider): exactly one carrot per list.
-# IP-9070: ZONE_COLLECTS is now 5 biome-family-representative lists (indexed
-# by REGION_GRAPH's biome-id), not 9 zone-named lists.
+# IP-9070 widened ZONE_COLLECTS from 9 zone-named lists to 5 biome-family-
+# representative ones (indexed by REGION_GRAPH's biome-id); IP-1022 widened
+# it again to 9 biome-family-representative lists (Village/Cave/Desert/
+# Plains spliced in at indices 5-8, FR-4320/BL-0128).
 from tilemaps import ZONE_COLLECTS
-check("T1.10 ZONE_COLLECTS has 5 biome-family lists (IP-9070)",
-      len(ZONE_COLLECTS) == 5, f"{len(ZONE_COLLECTS)}")
+check("T1.10 ZONE_COLLECTS has 9 biome-family lists (IP-1022)",
+      len(ZONE_COLLECTS) == 9, f"{len(ZONE_COLLECTS)}")
 carrots_per_zone = [sum(1 for (_, _, t) in z if t == 2) for z in ZONE_COLLECTS]
 check("T1.11 Exactly one carrot per list", all(c == 1 for c in carrots_per_zone),
       f"{carrots_per_zone}")
@@ -991,6 +993,13 @@ wipe_save()
 print("\n=== T12: World Generation ===")
 
 T12_CORPUS = [(seed, scale) for scale in (2, 3, 9) for seed in (0, 1, 42, 12345, 65535)]
+# IP-1022 (FR-4320): the base corpus above never actually reaches biome-ids
+# 5-8 (confirmed by direct check — a small/short random walk from the
+# Grass(2) origin rarely wanders 3+ steps in one direction) — T12.d's own
+# grammar-validity check would otherwise pass vacuously against the widened
+# 0-8 domain. Seeds 38/50 (scale=9), found by direct search, together cover
+# every biome-id 0-8 at least once.
+T12_CORPUS += [(38, 9), (50, 9)]
 
 # T12.b/c/d/e — reuse one long-lived instance across the whole corpus:
 # generate_world completes within a single tick() and depends only on
@@ -1156,13 +1165,20 @@ def field_tiles(pb):
 # T13.a — tile-family audit (AC-1): one representative region per biome-id,
 # directly forced via REGION_GRAPH (isolates the rendering dispatch from
 # generation correctness, which T12 already covers exhaustively) — confirms
-# dsr_p's biome-id dispatch selects the right family screen for all 5 IDs.
+# dsr_p's biome-id dispatch selects the right family screen for all 9 IDs
+# (widened from 5 by IP-1022/FR-4320 — village/cave/desert/plains' own
+# landmark-overlay tiles all stay within their own family's tile range too,
+# confirmed by direct check of every *_LANDMARKS entry against tiles.py).
 FAMILY_RANGES = {
     0: (0x88, 0x8D),   # water -> lake_screen
     1: (0x70, 0x76),   # sand  -> beach_screen
     2: (0x78, 0x7D),   # grass -> forest_screen
     3: (0x80, 0x85),   # stone -> mountain_screen
     4: (0xB0, 0xB5),   # brick -> castle_screen
+    5: (0x90, 0x95),   # village -> procedural fill + landmark overlay (IP-1022)
+    6: (0x98, 0x9D),   # cave    -> procedural fill + landmark overlay (IP-1022)
+    7: (0xA0, 0xA5),   # desert  -> procedural fill + landmark overlay (IP-1022)
+    8: (0xA8, 0xAD),   # plains  -> procedural fill + landmark overlay (IP-1022)
 }
 pb = fresh_boot(180)
 advance_to_playing(pb)
@@ -1176,8 +1192,92 @@ for biome_id, (lo, hi) in FAMILY_RANGES.items():
     if in_family <= 40:
         family_bad.append((biome_id, in_family))
 pb.stop()
-check("T13.a Tile-family audit: each of the 5 biome-ids renders its own family's tiles (AC-1)",
+check("T13.a Tile-family audit: each of the 9 biome-ids renders its own family's tiles (AC-1)",
       len(family_bad) == 0, f"bad={family_bad}")
+
+# T13.e — oracle-parity (IP-1022, ADR-0020): the on-device procedural-fill +
+# landmark-overlay routine's output must be byte-for-byte identical to each
+# Python *_screen() function's own returned arrays — not a sampled/visual
+# check, every one of the 17*32=544 tile cells and 544 attr cells, for all
+# four newly-folded identities. Mirrors T12.b's own oracle-parity precedent.
+# Reads the attribute plane by directly toggling VBK (0xFF4F) between reads,
+# the same register the game's own code writes via LDH (VBK),A.
+# Excludes the four navigation-arrow/blocked-edge-indicator tile positions
+# (row,col) draw_region_arrows(_inf) draws *after* this package's own fill+
+# overlay work completes, in the same dsr_p_after_copy tail every screen
+# (baked or procedural) already shares — T13.a's own family-range check
+# tolerates the identical class of overwrite via its own count threshold,
+# not a defect this package introduces.
+_ARROW_EXCLUDE_RC = {(1, 15), (16, 15), (9, 1), (9, 18)}   # up/down/left/right
+def full_screen_tiles_attrs(pb):
+    tiles = [pb.memory[0x9800 + r*32 + c] for r in range(1, 18) for c in range(32)]
+    pb.memory[0xFF4F] = 1
+    attrs = [pb.memory[0x9800 + r*32 + c] for r in range(1, 18) for c in range(32)]
+    pb.memory[0xFF4F] = 0
+    return tiles, attrs
+
+from tilemaps import village_screen, cave_screen, desert_screen, plains_screen
+_ORACLE_SCREENS = {
+    5: ('village', village_screen),
+    6: ('cave',    cave_screen),
+    7: ('desert',  desert_screen),
+    8: ('plains',  plains_screen),
+}
+pb = fresh_boot(180)
+advance_to_playing(pb)
+oracle_bad = []
+for biome_id, (name, screen_fn) in _ORACLE_SCREENS.items():
+    pb.memory[REGION_GRAPH] = biome_id
+    for k in range(4): pb.memory[REGION_GRAPH + 1 + k] = 0xFF
+    force_region_redraw(pb, 0)
+    actual_tiles, actual_attrs = full_screen_tiles_attrs(pb)
+    exp_tiles_full, exp_attrs_full = screen_fn()
+    W = 32
+    exp_tiles = [exp_tiles_full[y*W+x] for y in range(1, 18) for x in range(W)]
+    exp_attrs = [exp_attrs_full[y*W+x] for y in range(1, 18) for x in range(W)]
+    tile_mismatches = 0
+    attr_mismatches = 0
+    for i in range(len(exp_tiles)):
+        row, col = 1 + i // W, i % W
+        if (row, col) in _ARROW_EXCLUDE_RC:
+            continue
+        if actual_tiles[i] != exp_tiles[i]: tile_mismatches += 1
+        if actual_attrs[i] != exp_attrs[i]: attr_mismatches += 1
+    if tile_mismatches or attr_mismatches:
+        oracle_bad.append((name, tile_mismatches, attr_mismatches))
+pb.stop()
+check("T13.e Oracle-parity: on-device procedural-fill + landmark-overlay output is "
+      "byte-for-byte identical to each Python *_screen() function, all four new "
+      "identities, full 544-tile + 544-attr comparison (ADR-0020)",
+      len(oracle_bad) == 0, f"bad={oracle_bad}")
+
+# T13.f — dispatch-cascade completeness (IP-1022): confirms the ZONE_COLLECTS
+# splice landed at exactly the indices dsr_p_dispatch's cascade expects (5=
+# Village, 6=Cave, 7=Desert, 8=Plains, CR-08's resolved order) by forcing
+# each biome-id and checking setup_zone_collects' own live spawn output
+# (COLL_COUNT/COLL_DATA) matches that identity's own ZONE_COLLECTS list
+# exactly, entry-for-entry — the risk this package's own §13 Risks named
+# explicitly (a wrong splice index would silently spawn the wrong
+# collectible list on the wrong screen, not a build-time-caught error).
+from tilemaps import ZONE_COLLECTS as _ZC_CHECK
+pb = fresh_boot(180)
+advance_to_playing(pb)
+spawn_bad = []
+for biome_id in (5, 6, 7, 8):
+    pb.memory[REGION_GRAPH] = biome_id
+    for k in range(4): pb.memory[REGION_GRAPH + 1 + k] = 0xFF
+    force_region_redraw(pb, 0)
+    expected = _ZC_CHECK[biome_id]
+    actual_count = pb.memory[COLL_COUNT]
+    actual_entries = [tuple(pb.memory[COLL_DATA + i*4 + k] for k in range(3))
+                      for i in range(actual_count)]
+    expected_entries = [(x, y, t) for (x, y, t) in expected]
+    if actual_count != len(expected) or actual_entries != expected_entries:
+        spawn_bad.append((biome_id, actual_count, actual_entries, expected_entries))
+pb.stop()
+check("T13.f Dispatch-cascade completeness: setup_zone_collects spawns the exact "
+      "ZONE_COLLECTS list for each of biome-ids 5-8, entry-for-entry",
+      len(spawn_bad) == 0, f"bad={spawn_bad}")
 
 # T13.b — transition call-site audit (AC-2, Inspection): exactly one
 # copy_screen call site handles region-entry (PLAYING) rendering, mirroring
