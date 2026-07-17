@@ -1133,8 +1133,14 @@ FR-6000 for the presentation half)*
   gap without bank switching. Oracle-parity confirmed (`T13.e`, 311/311 suite): the on-device
   fill+overlay output is byte-for-byte identical to each screen's own Python source, for all four
   identities. **This FR's own Postcondition (b) is now fully met** — all nine biome identities are
-  reachable generation targets in finite-mode play. **Not yet implemented for Infinite Mode**
-  (`FR-10200`'s side) — that remains `IP-1106`'s own scope, now unblocked.
+  reachable generation targets in finite-mode play. **`IP-1106` implemented 2026-07-17** (after
+  `IP-1105`/`IP-1022`/`IP-1033` all `VERIFIED`): Infinite Mode's own draw widened `%5`→`%9`
+  (`worldgen.py` `materialize_region` + `asm_game.py` `inf_mod9`, single call site confirmed) and
+  `inf_treasure_pos` extended to nine entries matching `ZONE_COLLECTS`'s type-2 entries
+  (`T26.a0`-guarded). Value-range coverage (`T26.h`, all nine values reached in live SM83 output)
+  and dispatch-integration (`T26.i`, ids 5-8 render + spawn treasure in Infinite Mode
+  specifically) both confirmed; 313/313 suite. **Both halves of this FR are now implemented**
+  (finite: `IP-1022`; Infinite Mode: `IP-1106`, `COMPLETE` — own `09` pass owed).
 
 ## FR-5000 — Save / load (SRAM)
 

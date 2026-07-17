@@ -2025,8 +2025,8 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_HL_nn(0xFFFF)
     rom.JP('scs_store')
 
-    # ── inf_treasure_pos (IP-1103) ────────────────────────
-    # Per-biome treasure spawn position, 5 x (x, y) pairs indexed by
+    # ── inf_treasure_pos (IP-1103; extended IP-1106) ──────
+    # Per-biome treasure spawn position, 9 x (x, y) pairs indexed by
     # biome-id*2 -- the exact (x, y) of each biome family's type-2 (KeyItem)
     # entry in tilemaps.py's ZONE_COLLECTS, so the Infinite Mode treasure
     # appears at the same sensible, landmark-clear spot the finite mode
@@ -2043,7 +2043,11 @@ def build_game_asm(rom: ROM) -> dict:
              132, 88,   # 1 Sand
              84,  56,   # 2 Grass
              60,  88,   # 3 Stone
-             84,  64)   # 4 Brick
+             84,  64,   # 4 Brick
+             48,  64,   # 5 Village (IP-1106, = VILLAGE_COLLECTS type-2)
+             136, 72,   # 6 Cave    (IP-1106, = CAVE_COLLECTS type-2)
+             128, 40,   # 7 Desert  (IP-1106, = DESERT_COLLECTS type-2)
+             144, 88)   # 8 Plains  (IP-1106, = PLAINS_COLLECTS type-2)
 
     # ── setup_zone_collects ───────────────────────────────
     # IP-9070: zc_table is now indexed by REGION_GRAPH's biome-id (0-4, the
@@ -2747,13 +2751,15 @@ def build_game_asm(rom: ROM) -> dict:
     rom.CALL('gw_prng_step')
     rom.RET()
 
-    # inf_mod5: A := A mod 5 (repeated-subtraction, no DIV/MUL -- NFR-2300,
-    # generalizes gw_mod3's own established pattern, 3->5).
-    rom.label('inf_mod5')
-    rom.label('im5_loop')
-    rom.CP_n(5); rom.JR_C('im5_done')
-    rom.SUB_n(5); rom.JR('im5_loop')
-    rom.label('im5_done')
+    # inf_mod9: A := A mod 9 (repeated-subtraction, no DIV/MUL -- NFR-2300,
+    # generalizes gw_mod3's own established pattern). Widened from mod 5
+    # (IP-1106, FR-4320's Infinite Mode half) -- single call site, the
+    # biome draw in inf_materialize_region, confirmed by direct grep.
+    rom.label('inf_mod9')
+    rom.label('im9_loop')
+    rom.CP_n(9); rom.JR_C('im9_done')
+    rom.SUB_n(9); rom.JR('im9_loop')
+    rom.label('im9_done')
     rom.RET()
 
     # inf_materialize_region: on entry, INF_MZ_ROW/INF_MZ_COL hold the
@@ -2793,7 +2799,7 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_nn(INF_MZ_COL + 1); rom.LD_nn_A(INF_MZ_TCOL + 1)
     rom.CALL('inf_region_seed0')
     rom.CALL('gw_prng_step')          # draw 1: biome
-    rom.CALL('inf_mod5')
+    rom.CALL('inf_mod9')
     rom.LD_nn_A(INF_MZ_BIOME)
     rom.CALL('gw_prng_step')          # draw 2: own carve-bias
     rom.AND_n(1)

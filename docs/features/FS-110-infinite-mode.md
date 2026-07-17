@@ -48,10 +48,14 @@
 > behavior for this Feature.
 >
 > **`CR-08` resolved 2026-07-16.** [IP-1106](../implementation/packages/IP-1106-infinite-mode-nine-identity-value-widening.md)
-> (`BLOCKED` on `IP-1105`/`IP-1022`/`IP-1033`, not yet authorized) completes the widening
-> `IP-1105` prepared — the actual `%5`→`%9` draw-range widening and `inf_treasure_pos`'s own
-> table extension. Deepest point in the delta's own dependency chain; the earliest this Feature's
-> own player-visible nine-identity behavior can ship.
+> completes the widening `IP-1105` prepared — the actual `%5`→`%9` draw-range widening and
+> `inf_treasure_pos`'s own table extension. Deepest point in the delta's own dependency chain;
+> the earliest this Feature's own player-visible nine-identity behavior can ship.
+> **Implemented 2026-07-17** (`IP-1106` `COMPLETE`, after `IP-1105`/`IP-1022`/`IP-1033` all
+> `VERIFIED`): Infinite Mode now draws from the full nine-value biome-id domain and spawns
+> treasure in all nine identities (`inf_treasure_pos` extended to nine entries, matching
+> `ZONE_COLLECTS`'s type-2 entries, `T26.a0`-guarded) — closing the "prepares… for a future
+> widening" framing `IP-1105`'s own note above used.
 
 [↑ Features index](INDEX.md) · [Feature Catalog](../feature-planning/03-feature-catalog.md) ·
 [Epic Catalog](../feature-planning/02-epic-catalog.md)

@@ -2499,13 +2499,13 @@ check("T22.d Treasure-density: measured rate near K=16's 6.25% target (2%-11% ba
       0.02 <= rate <= 0.11, f"rate={rate:.4f} ({present}/{total})")
 
 # T22.e -- determinism static audit (AC-7, Inspection): inf_materialize_region/
-# inf_region_seed0/inf_mod5 must read no hardware register (DIV et al., via
+# inf_region_seed0/inf_mod9 must read no hardware register (DIV et al., via
 # LDH) -- a real source-text scan, mirroring T12.h's own established pattern.
 _t22_src = (BASE / 'asm_game.py').read_text()
 _t22_start = _t22_src.index("rom.label('inf_region_seed0')")
 _t22_end = _t22_src.index("rom.RET()", _t22_src.index("rom.label('inf_materialize_region')"))
 _t22_slice = _t22_src[_t22_start:_t22_end]
-check("T22.e Static audit: no LDH (hardware register, incl. DIV) read in inf_materialize_region/inf_region_seed0/inf_mod5 (NFR-2300)",
+check("T22.e Static audit: no LDH (hardware register, incl. DIV) read in inf_materialize_region/inf_region_seed0/inf_mod9 (NFR-2300)",
       'LDH_A_n' not in _t22_slice and 'LDH_A_C' not in _t22_slice, "source-scanned")
 
 # T22.f -- seed=0 normalization: direct WRAM inspection of the PRNG state
@@ -2988,11 +2988,11 @@ def read_top3(pb):
 with open(ROM_PATH, 'rb') as _f:
     _t26_rom = _f.read()
 _t26_expected_pos = []
-for _b in range(5):
+for _b in range(9):   # IP-1106: all nine identities, not just the original five
     _k2 = [(x, y) for (x, y, t) in ZONE_COLLECTS[_b] if t == 2]
     _t26_expected_pos.append(_k2[0] if len(_k2) == 1 else None)
-_t26_table = [(_t26_rom[ITP_ADDR + 2 * _b], _t26_rom[ITP_ADDR + 2 * _b + 1]) for _b in range(5)]
-check("T26.a0 Static: inf_treasure_pos table matches ZONE_COLLECTS's single type-2 entry per biome (drift guard for the deliberate duplication)",
+_t26_table = [(_t26_rom[ITP_ADDR + 2 * _b], _t26_rom[ITP_ADDR + 2 * _b + 1]) for _b in range(9)]
+check("T26.a0 Static: inf_treasure_pos table matches ZONE_COLLECTS's single type-2 entry per biome, all nine identities (drift guard for the deliberate duplication)",
       _t26_table == _t26_expected_pos, f"rom={_t26_table} expected={_t26_expected_pos}")
 
 # T26.a1 — boot init: RUNNING_TREASURE_COUNT/TOP_SCORE_TABLE sit outside
@@ -3172,6 +3172,53 @@ _t26e_bad = [name for name, s in _t26e_segs.items()
 check("T26.e No name-entry state reachable from this package's new branches: none writes TRANSITION_TO/GAMESTATE, and no name-entry GAMESTATE exists in the source at all",
       _t26e_bad == [] and re.search(r"GS_\w*NAME", _t26_src) is None,
       f"segments_writing_state={_t26e_bad}")
+
+# T26.h — value-range coverage (IP-1106, FR-4320's Infinite Mode half):
+# the live SM83 biome draw reaches every value of the widened 0-8 domain
+# across T22's own (seed,row,col) corpus — asserted on the *SM83 output*,
+# not the oracle, so the check cannot pass vacuously if the corpus never
+# actually exercised the widened range (T12.d's own IP-1022 lesson applied
+# here); each drawn value is simultaneously re-checked against the oracle
+# (redundant with T22.b by construction, kept as this check's own guard).
+pb = fresh_boot(180)
+_t26h_seen = set()
+_t26h_mismatch = []
+for _seed, _row, _col in T22_CORPUS:
+    _got = invoke_inf_materialize_region(pb, _seed, _row, _col)
+    _exp_byte, _exp_t = worldgen.materialize_region(_seed, _row, _col)
+    if _got is None or _got[0] != _exp_byte:
+        _t26h_mismatch.append((_seed, _row, _col, _got))
+        continue
+    _t26h_seen.add(_got[0] & 0x0F)
+pb.stop()
+check("T26.h Value-range coverage: SM83 biome draw reaches all nine values 0-8 across the corpus, oracle-matched (IP-1106/FR-4320)",
+      _t26h_seen == set(range(9)) and _t26h_mismatch == [],
+      f"seen={sorted(_t26h_seen)} mismatches={_t26h_mismatch[:3]}")
+
+# T26.i — dispatch-integration (IP-1106): for each of the four newly-folded
+# identities, force INF_WINDOW's center cell to that biome-id (T24's own
+# force_infinite_redraw_with_center isolation pattern) with the region's
+# treasure cache set — confirming the correct family screen renders (IP-1022's
+# cascade, exercised from the *infinite* path specifically) AND the correct
+# treasure position spawns from inf_treasure_pos's own new entries (this
+# package's extension) — the end-to-end integration point neither package
+# alone verifies (IP-1022's own VR drove finite mode only).
+pb = fresh_boot(200)
+advance_to_playing(pb)
+_t26i_bad = []
+for _biome in (5, 6, 7, 8):
+    pb.memory[INF_TREASURE_HERE] = 1
+    force_infinite_redraw_with_center(pb, _biome)   # connectivity nibble 0
+    _lo, _hi = FAMILY_RANGES[_biome]
+    _field = field_tiles(pb)
+    _in_family = sum(1 for _b in _field if _lo <= _b <= _hi)
+    _pos = _t26_expected_pos[_biome]
+    _cd = tuple(pb.memory[COLL_DATA + _i] for _i in range(4))
+    if _in_family <= 40 or pb.memory[COLL_COUNT] != 1 or _cd != (_pos[0], _pos[1], 2, 1):
+        _t26i_bad.append((_biome, _in_family, pb.memory[COLL_COUNT], _cd, _pos))
+pb.stop()
+check("T26.i Dispatch-integration: biome-ids 5-8 render their own family screen and spawn their own inf_treasure_pos treasure in Infinite Mode (IP-1106 + IP-1022 jointly)",
+      _t26i_bad == [], f"bad={_t26i_bad}")
 
 # ══════════════════════════════════════════════════════
 # T27 — Infinite Mode: Ledger Save Persistence (IP-1104)

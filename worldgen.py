@@ -259,12 +259,12 @@ def materialize_region(seed, row, col):
     region's own history (NFR-2300).
 
     Returns (region_byte, treasure_present):
-      region_byte -- bits 0-3 biome-id (0-4), bits 4-7 connectivity nibble
+      region_byte -- bits 0-3 biome-id (0-8), bits 4-7 connectivity nibble
         (bit4=north/up, bit5=south/down, bit6=west/left, bit7=east/right,
         1=open); the TWBS's own per-region encoding decision, repacked
         IP-1105 (biome 0-2->0-3, connectivity 3-6->4-7) to free a fourth
-        biome-id bit for FR-4320's widened domain -- value range itself
-        stays %5, unchanged by this repack.
+        biome-id bit for FR-4320's widened domain -- value range widened
+        %5 -> %9 by IP-1106 on top of that headroom.
       treasure_present -- bool, hash(seed,row,col) mod 16 == 0 (K=16,
         ADR-0017/TWBS's own resolution of FS-110 Open Question 2).
 
@@ -286,7 +286,7 @@ def materialize_region(seed, row, col):
     """
     x0 = _region_seed0(seed, row, col)
     x1 = _step(x0)
-    biome = (x1 & 0xFF) % 5
+    biome = (x1 & 0xFF) % 9
     x2 = _step(x1)
     own_bias = x2 & 1          # 0 = carve north (open north), 1 = carve west
     x3 = _step(x2)
