@@ -49,7 +49,21 @@ zc_table                  — 9 × 2 bytes, pointer to each zone's collectible t
 ```
 
 **Total used: 23148 of 32768 bytes** (~9.6KB headroom — [GDS-02](02-system-context.md)/
-[GDS-06](06-non-functional-requirements.md) N1), confirmed by a direct build.
+[GDS-06](06-non-functional-requirements.md) N1), confirmed by a direct build. **This section
+predates several deltas this session (`IP-1030`'s 5-biome-family `ALL_SCREENS` generalization,
+`IP-1050`'s save-format changes, etc.) and is not fully current — out of scope for `IP-1110`'s own
+delta below to fully re-sync.**
+
+**Delta (`IP-1110`, 2026-07-16, `FR-7100`):** the `music data` line above is now nine tracks
+(Grass = the unmodified main theme, `music_data()`; the other eight generated via
+`generate_theme_variations()`), emitted in `FR-4320`'s own biome-id order (0=Water…8=Plains, per
+`build_rom.py`'s `_MUSIC_IDENTITY_ORDER`), immediately followed by an 18-byte **`music_table`** —
+nine 16-bit little-endian addresses, one per track, in the same biome-id order (mirrors
+`zc_table`'s own pointer-array shape/convention exactly). 1466 net new bytes (1629 bytes of new
+track data + 18-byte table, minus the 181 bytes the single pre-existing track already counted).
+`mus_lo`/`mus_hi`/`mus_reset` (§2 below) continue to point at the Grass/main-theme track's own
+address, unchanged — existing single-track playback is completely unaffected until a future
+package adds runtime selection logic.
 
 ### 2. WRAM map (`0xC000`–`0xC3A0`)
 

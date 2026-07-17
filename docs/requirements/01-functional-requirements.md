@@ -1378,11 +1378,22 @@ confirmed unused before this delta by direct grep of the existing document.)*
   generation has no separate runtime routine to compare against — see `ADR-0019` point 3).
 - **Source Documents:** `ADR-0019` points 1–4; `R217`.
 - **Related ADRs:** ADR-0019.
-- **Notes:** Not yet implemented. **Explicitly does not require a new build-side sibling module**
-  (`ADR-0019` point 3's own reasoning: no runtime/oracle lockstep discipline applies here, unlike
-  `worldgen.py`'s) — the generation function belongs inside `music.py` itself, called from
-  `build_rom.py`. **Explicitly excludes the shared-ostinato/second-APU-channel transform option**
-  (`ADR-0019` point 5) — a future revision could extend this FR to cover it, not assumed here.
+- **Notes:** **Implemented (`IP-1110`, 2026-07-16).** `music.py`'s `generate_theme_variations()`
+  produces the eight non-Grass sub-themes via transposition (real semitone shifts, via each note's
+  own known hz, not an approximation) and/or duration scaling; Grass is the zero-transform anchor
+  (main theme's own unmodified `music_data()` output) — the concrete resolution of `FS-111`'s Open
+  Question 3, not decided by this FR's own text. Build-time comparison check
+  (`verify_music_generation.py`) confirms every generated sequence is a pure transform of `SONG`.
+  Nine tracks exposed via a flat, biome-id-indexed ROM address table (`music_table`, mirroring
+  `zc_table`'s own precedent) — not the per-identity named-patch-key scheme `IP-1110`'s own
+  planning text originally proposed, which turned out to require `asm_game.py` changes
+  contradicting that package's own scope boundary (a real planning inconsistency found and
+  resolved during implementation, using the plan's own already-named fallback option). **Explicitly
+  does not require a new build-side sibling module** (`ADR-0019` point 3's own reasoning: no
+  runtime/oracle lockstep discipline applies here, unlike `worldgen.py`'s) — the generation
+  function lives inside `music.py` itself, called from `build_rom.py`. **Explicitly excludes the
+  shared-ostinato/second-APU-channel transform option** (`ADR-0019` point 5) — a future revision
+  could extend this FR to cover it, not assumed here.
 
 ### FR-7110 — Biome-family-identity-keyed sub-theme playback selection
 

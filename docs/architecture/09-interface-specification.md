@@ -67,6 +67,29 @@ marker for the playback routine to detect end-of-song and restart. **Contract: a
 multi-track or per-zone music extension must preserve this terminal marker convention** — the
 playback code in `asm_game.py` reads until it sees `0xFF`, not a fixed length.
 
+### `generate_theme_variations(main_theme=SONG, transforms=THEME_TRANSFORMS) -> dict[str, list[int]]` (`music.py`, `IP-1110`)
+
+Build-time-only (called from `build_rom.py`, never on-console — `ADR-0019` point 2/3). Produces
+one `music_data()`-format byte list per non-Grass biome-family identity (`water`/`sand`/`stone`/
+`brick`/`village`/`cave`/`desert`/`plains`) by applying a per-identity `(semitone_shift,
+duration_scale)` pair to every note in `SONG`, reusing `music_data()`'s own terminal-`0xFF`-marker
+convention via the shared `_encode_notes()` helper (`music_data()` itself now delegates to it).
+Grass is the zero-transform anchor (`IP-1110`'s own resolution of `FS-111` Open Question 3) — its
+own track is `music_data()`'s existing output, unmodified, not a `generate_theme_variations()`
+entry. Raises `ValueError` at build time if any transposed frequency falls outside `freq()`'s own
+representable 11-bit range (`note()`'s encoding would otherwise silently truncate it).
+
+**Contract: the nine tracks (Grass + eight generated) are exposed via a flat, ROM-resident
+16-bit address table (`build_rom.py`'s `music_table_addr`), indexed by `FR-4320`'s own biome-id
+order (0=Water…8=Plains), mirroring `zc_table`'s own established pointer-array pattern** — **not**
+the per-identity named-patch-key scheme `IP-1110`'s own planning text originally proposed
+(mirroring `mus_lo`/`mus_hi`'s two-key shape). That scheme would require creating each new patch
+key at the SM83 instruction that loads it, which only `asm_game.py` code can do — contradicting
+`IP-1110`'s own explicit no-`asm_game.py`-changes scope boundary, a genuine inconsistency in the
+original plan discovered during implementation. This table-indexed contract is what a future
+runtime-selection package (`IP-1111`) must consume — it needs to build the table's own base
+address and index by biome-id (`table_addr + biome_id*2`), not read a per-identity named constant.
+
 ## Interface delta (2026-07-09 — target state, not yet shipped)
 
 Per **ADR-0009**/**ADR-0010** and [GDS-07](07-data-model.md)'s/

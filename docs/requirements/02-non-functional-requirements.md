@@ -461,13 +461,15 @@
   main theme's own compiled size, not assumed free.
 - **Rationale:** `ADR-0019`'s own Consequences section (direct measurement: `music_data()` = 181
   bytes today; nine tracks at comparable size ≈ 1629 bytes of new data).
-- **Priority:** Must (target — not yet implemented)
-- **Status: target, sizing estimated but not yet confirmed against the built ROM.** At the last
-  full build, 29896 of 32768 bytes were used (~2872 bytes free) — `ADR-0019`'s own ≈1629-byte
-  estimate fits with roughly 1200 bytes to spare, **but this figure must be re-measured against
-  the tree's actual state at implementation time**, since other in-flight, unauthorized work (the
-  nine-biome-family widening itself, `IP-1105`/`IP-1033`/`IP-1022`/`IP-1106`) will also consume
-  some of this same headroom before this capability ships.
+- **Priority:** Must — Implemented (`IP-1110`, 2026-07-16)
+- **Status: Met (`IP-1110`, 2026-07-16), confirmed by direct build measurement.** The nine tracks
+  (1629 bytes) plus a new 18-byte biome-id-indexed address table add 1466 net new bytes (the
+  pre-existing single track's own 181 bytes no longer counted separately). Built ROM: 31362 of
+  32768 bytes used (1406 bytes free), still exactly 32768 bytes total, no bank-switching change —
+  `ADR-0019`'s own ≈1629-byte estimate held almost exactly (measured delta 1466 net, or 1647 gross
+  including the table). **This headroom figure does not yet include arc (3)'s own still-landing
+  packages** (`IP-1022`/`IP-1106`, not yet implemented) — a future measurement once those ship is
+  still owed for the tree's own final combined state, per this NFR's own re-measurement discipline.
 - **Acceptance Criteria:** After `FR-7100`'s nine sub-themes are compiled into the ROM, the built
   ROM remains exactly 32768 bytes (`NFR-4000`, unaffected — this is a data-budget question within
   the existing single-bank limit, not a request to exceed it) with the new data fitting inside
@@ -476,9 +478,10 @@
   `NFR-4200`/`NFR-4300`'s own precedent).
 - **Source Documents:** `ADR-0019` Consequences.
 - **Related ADRs:** ADR-0019.
-- **Notes:** Not yet implemented. If a future implementation's actual measured cost exceeds this
-  estimate (e.g. the shared-ostinato transform option is later adopted, per `ADR-0019` point 5's
-  own explicit deferral), this NFR's own Status must be re-measured, not assumed to still hold.
+- **Notes:** Implemented, Met. If a future change's actual measured cost exceeds this figure (e.g.
+  the shared-ostinato transform option is later adopted, per `ADR-0019` point 5's own explicit
+  deferral, or arc (3)'s own `IP-1022`/`IP-1106` land and consume more headroom than expected),
+  this NFR's own Status must be re-measured, not assumed to still hold.
 
 ## Data Integrity
 

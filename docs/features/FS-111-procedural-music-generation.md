@@ -7,22 +7,33 @@
 >
 > **Planned 2026-07-16** (`07-implementation-planning`) — two packages,
 > [IP-1110](../implementation/packages/IP-1110-procedural-music-generation.md) (build-time
-> generation, `NOT STARTED`) and
+> generation) and
 > [IP-1111](../implementation/packages/IP-1111-biome-family-sub-theme-playback-selection.md)
-> (runtime selection, `BLOCKED` on `IP-1110` and `IP-1022`). **Neither authorized (G3).** Open
-> Question 3 (which identity the main theme represents) resolved by `IP-1110`'s own planning:
-> Grass, mirroring `generate_world`'s `(0,0)=Grass` precedent. Open Question 1 (selection-mechanism
-> shape) resolved by `IP-1111`'s own planning: hooks `do_screen_redraw`'s per-state dispatch and
-> `dsr_p_dispatch`'s per-identity cascade — no new WRAM poll. Open Question 4 (the `ADR-0019`
-> citation-precision note) confirmed accurate — `dsr_p_dispatch` is indeed the mechanism used, not
-> the `_score_bar` shape. Open Questions 2 (two-source sequencing) and 5 (address-table shape,
-> resolved: per-identity patch-key pairs, not a flat array) both addressed in the packages above.
+> (runtime selection, `BLOCKED` on `IP-1022`). **Both authorized (G3, user "Build all six,"
+> 2026-07-16).** Open Question 3 (which identity the main theme represents) resolved by `IP-1110`'s
+> own planning: Grass, mirroring `generate_world`'s `(0,0)=Grass` precedent. Open Question 1
+> (selection-mechanism shape) resolved by `IP-1111`'s own planning: hooks `do_screen_redraw`'s
+> per-state dispatch and `dsr_p_dispatch`'s per-identity cascade — no new WRAM poll. Open
+> Question 4 (the `ADR-0019` citation-precision note) confirmed accurate — `dsr_p_dispatch` is
+> indeed the mechanism used, not the `_score_bar` shape. Open Question 2 (two-source sequencing)
+> addressed in the packages above. **Open Question 5 (address-table shape) resolved differently
+> than originally planned, during `IP-1110`'s own implementation (2026-07-16):** the originally-
+> planned per-identity named-patch-key scheme (mirroring `mus_lo`/`mus_hi`) turned out to require
+> `asm_game.py` changes contradicting `IP-1110`'s own no-`asm_game.py` scope boundary — a genuine
+> planning inconsistency, resolved using this same planning pass's own already-named fallback
+> option instead: a flat, biome-id-indexed ROM address table (`music_table`, mirroring `zc_table`'s
+> own precedent). `IP-1111`'s own §5/§6 (not yet executed) will need a `07-implementation-planning`
+> touch to consume this table correctly before it runs.
 > **A real technical finding this planning pass surfaced, not in this spec's own §7/§13**:
 > `music_tick`'s loop-restart branch is hardcoded to the main theme's own ROM address, not
-> track-agnostic — `IP-1111` adds a fix (new `MUSIC_BASE_LO`/`MUSIC_BASE_HI` WRAM field). This
-> Feature sits in the `Future` release bucket (no release commitment made); planning does not
-> require or imply scheduling, per `05-feature-decomposition`'s own established precedent
-> (`FS-110`'s own identical framing).
+> track-agnostic — `IP-1111` adds a fix (new `MUSIC_BASE_LO`/`MUSIC_BASE_HI` WRAM field).
+> **`IP-1110` implemented 2026-07-16 — `COMPLETE`**: `music.py`'s `generate_theme_variations()`
+> ships all eight non-Grass sub-themes, confirmed as pure transforms of the main theme by a new
+> build-time comparison check (`verify_music_generation.py`); `NFR-4400` (ROM budget) now **Met**,
+> measured directly (31362/32768 bytes, 1466 net new). This Feature sits in the `Future` release
+> bucket (no release commitment made); planning/implementation does not require or imply
+> scheduling, per `05-feature-decomposition`'s own established precedent (`FS-110`'s own identical
+> framing).
 
 [↑ Features index](INDEX.md) · [Feature Catalog](../feature-planning/03-feature-catalog.md) ·
 [Epic Catalog](../feature-planning/02-epic-catalog.md)
