@@ -14,45 +14,40 @@
 
 ## Position
 
-- **Updated:** 2026-07-17 (run #197)
+- **Updated:** 2026-07-17 (run #198)
 - **Increment:** Four independent arcs. **(1)/(2)** unchanged, closed at runs #167/#168. **(3)
-  Nine biome-family identities** (`BL-0128`/`FR-4320`) — `IP-1105`/`IP-1033` both `VERIFIED` (runs
-  #187, #191). `IP-1022` hit a genuine ROM-budget overflow when attempted (run #192), resolved via
-  `ADR-0020`'s procedural-fill decision (run #195) and re-planned (run #196). **Implemented this
-  run (#197)**: two new shared subroutines (`fill_procedural_screen`/`apply_landmark_overlay`,
-  `asm_game.py`) render Village/Cave/Desert/Plains from a no-multiply formula (build-time
-  per-row seed table + on-device incremental column accumulator, `NFR-2200`) + a landmark-overlay
-  list (`tilemaps.py`) — `ALL_SCREENS` confirmed unchanged. ROM: 32158/32768 bytes (610 headroom).
-  **311/311 suite passes**, including new `T13.e` (oracle-parity — proven byte-for-byte identical
-  to each Python `*_screen()` function, all four screens) and `T13.f` (dispatch-cascade
-  completeness); `T12_CORPUS` extended (two seeds) since the prior corpus never reached biome-ids
-  5-8. `IP-1022` → `COMPLETE`; `IP-1106` remains `BLOCKED` pending its own `09` pass (no longer any
-  open gate — purely a verification-ordering wait). **(4) Procgen music** (`BL-0127`) — `IP-1110`
-  `VERIFIED` (run #188). `IP-1111` remains `BLOCKED` on `IP-1022`, same reason. Bootstrap baseline
-  remains fully closed (01–11 ✅, GO recorded); Release 2 remains baselined GO.
-- **Pipeline state:** Bootstrap stages 01–11 ✅; Release 2 GO. **34 of 35 implementation packages
-  `VERIFIED`, 1 `COMPLETE`** (`IP-1022`, own `09` pass owed — this session implemented it, so a
-  fresh session is needed for genuine independence). `IP-1106`/`IP-1111` `BLOCKED` on that
-  verification landing. `IP-9150` (`NOT STARTED`, not authorized) remains a parallel, independent
-  hygiene win, no longer necessary for anything. Standing, non-blocking work elsewhere, unchanged:
-  `BL-0118`'s `NFR-1400` optimization package; the `IP-110x` documentation-accuracy sweep
-  (`BL-0115`/`117`/`120`/`121`/`124`/`125`/`132`, all Low); `BL-0123` (Low, `DEFERRED`); `BL-0112`
-  (the `FR-10400` run-end trigger — a standing user decision); `BL-0097`'s own remediation (Medium,
-  optional craft polish, no `07` package authored yet); `BL-0130` (catalog gap, routed `05`);
-  `BL-0133` (intake, "infinite-map mob mode + treasure-fed ranged weapon", filed run #190-adjacent
-  on this branch's own PR #26) — triaged `SCHEDULED`, queued behind this delta's chain, entry
-  stage `03`; **new this run** `BL-0135` (Low, `DEFERRED`) — `IP-1022` crossed the code/content
-  peer seam (touched `tilemaps.py`'s data half under `08-code-implementation`), mitigated by the
-  oracle-parity check, self-deferred (Low severity, no corrective action needed).
-- **Backlog:** 135 entries. `BL-0134` closed `DONE` this run (`IP-1022` implemented and passing).
-  `BL-0135` (new, Low) filed and self-deferred. `BL-0131` closed `DONE` (run #191). `BL-0133`
-  `SCHEDULED`, not ripe. `BL-0132` (Low, `DEFERRED`) still rides a future `IP-1111` touch;
-  `BL-0127`/`BL-0128` both still `IN PIPELINE` (both now narrow to `IP-1022`'s own verification as
-  their sole remaining step).
-- **Next step:** `09-package-verification` on `IP-1022` — **requires a fresh session** for genuine
-  independence (this session implemented it). Once verified: `08-code-implementation` on `IP-1106`
-  (unblocks `IP-1111`'s own eventual `07` touch + implementation). `IP-9150` remains available in
-  parallel if the user wants it authorized, but is no longer necessary for anything.
+  Nine biome-family identities** (`BL-0128`/`FR-4320`) — `IP-1105`/`IP-1033`/`IP-1022` all
+  `VERIFIED` (runs #187, #191, **#198 this run**). **`VR-1022` (fresh session, genuine
+  independence): 311/311 suite, byte-identical ROM rebuild (32158/32768, 610 headroom), every
+  DoD/checklist item re-derived from the tree, plus an independent live drive at non-default
+  parameters (seed=50, scale=9 — real menu entry, real held-button edge-crossing navigation into
+  regions of all four new identities): 81/81 live `REGION_GRAPH` records oracle-matched, 0/544
+  tile + 0/544 attr parity mismatches on all four screens.** `IP-1106` → `READY` (all deps
+  `VERIFIED`, G3 already on record) — the arc's last package. **(4) Procgen music** (`BL-0127`) —
+  `IP-1110` `VERIFIED` (run #188). `IP-1111`'s sole remaining blocker is now its own `07` §5/§6
+  touch (consume `IP-1110`'s shipped `music_table` interface); both code deps `VERIFIED`.
+  Bootstrap baseline remains fully closed (01–11 ✅, GO recorded); Release 2 remains baselined GO.
+- **Pipeline state:** Bootstrap stages 01–11 ✅; Release 2 GO. **All 35 previously-implemented
+  packages `VERIFIED`.** `IP-1106` `READY` (authorized, eligible for `08-code-implementation`
+  pickup now); `IP-1111` `BLOCKED` on its own `07` planning touch only. `IP-9150` (`NOT STARTED`,
+  not authorized) remains a parallel, independent hygiene win, no longer necessary for anything.
+  Standing, non-blocking work elsewhere, unchanged: `BL-0118`'s `NFR-1400` optimization package;
+  the `IP-110x` documentation-accuracy sweep (`BL-0115`/`117`/`120`/`121`/`124`/`125`/`132`, all
+  Low, joined this run by `BL-0136`); `BL-0123` (Low, `DEFERRED`); `BL-0112` (the `FR-10400`
+  run-end trigger — a standing user decision); `BL-0097`'s own remediation (Medium, optional craft
+  polish, no `07` package authored yet); `BL-0130` (catalog gap, routed `05`); `BL-0133` (intake,
+  "infinite-map mob mode + treasure-fed ranged weapon") — `SCHEDULED`, queued behind this delta's
+  chain, entry stage `03`.
+- **Backlog:** 137 entries. **New this run (VR-1022 harvest): `BL-0136`** (Low, `DEFERRED` — stale
+  "5 UI entries" `ALL_SCREENS` wording, `tilemaps.py` docstring + package text, rides the
+  doc-accuracy sweep) **and `BL-0137`** (Low, `DEFERRED` — `IP-1022` §5/§6 never amended for the
+  shipped parameter-block/row-table fill design; as-built record lives in the Build Plan + VR).
+  `BL-0127`/`BL-0128` both still `IN PIPELINE` — `BL-0128` narrows to `IP-1106`'s implementation,
+  `BL-0127` to `IP-1111`'s `07` touch + implementation. `BL-0133` `SCHEDULED`, not ripe.
+- **Next step:** `08-code-implementation` on `IP-1106` (Infinite Mode nine-identity value-range
+  widening — `READY`, authorized, the arc's last code package). After it: a fresh session's
+  `09-package-verification` pass on it, then `07-implementation-planning`'s `IP-1111` §5/§6 touch.
+  `IP-9150` remains available in parallel if the user wants it authorized.
 - **Open gates:** **one, unchanged.** Whether/when to run `11-release-readiness` on Infinite Mode
   remains the user's own call (G4) — informational only, not currently blocking anything.
 
@@ -261,3 +256,4 @@
 | 195 | 2026-07-17 | advance (same session, user directed: "pursue efficient ROM use, implement compression without asking; bank switching too if genuinely needed; use the pipeline process on both") | `03-architecture-design-synthesis` | ROM-efficiency decision for `IP-1022`'s content | ✅ Authored **`ADR-0020`**: the four newly-folded biome screens (Village/Cave/Desert/Plains) render via a runtime procedural-fill routine — evaluating each screen's own small Python modulo formula on-device (e.g. cave's `(y*13+x*5+7)%18`) — plus a compact landmark-overlay list, instead of baking each screen's full 1,152-byte tile+attr array. Grounded in a direct code read: `do_screen_redraw`'s entire screen-composition dispatch runs with the LCD fully disabled, a structurally different, cycle-unconstrained context from `NFR-1400`'s own tight per-frame concern (Infinite Mode's separate `inf_ensure_window` routine) — so this carries none of that risk. Estimated recovery ~4,272 bytes (independently re-derived from each screen's own landmark counts: 24+12+22+25=83 entries × 4 bytes + 4 count-prefix bytes = 336 bytes of overlay data, vs. 4,608 bytes baked), comfortably closing `BL-0134`'s ~3,358-byte shortfall without triggering `ADR-0011`'s bank-switching cutover — its own trigger condition ("content genuinely cannot fit remaining bank-0 headroom" *after* available ROM-efficiency options are exhausted) is judged not met. Scope: these four screens only; the five original, already-`VERIFIED` screens keep their existing baked-array format, avoiding unnecessary regression risk. `ADR-0011` itself unaffected — remains the committed long-term direction, not implemented by this pass. Index + ROADMAP updated. No new findings beyond the decision itself. | `07-implementation-planning` to re-cut `IP-1022` against `ADR-0020` |
 | 196 | 2026-07-17 | advance (same session) | `07-implementation-planning` | `IP-1022` re-plan against `ADR-0020` | ✅ Rewrote `IP-1022`'s package doc in full (Interfaces/Files-to-Modify/Implementation Tasks/Tests-to-Add/Definition-of-Done/Verification-Checklist/Risks) — `ALL_SCREENS`/`build_rom.py` no longer gain baked entries for the four new screens; instead, four `*_LANDMARKS` lists + fill-formula constants land in `tilemaps.py`, a shared no-multiplication procedural-fill subroutine (incremental accumulator + repeated-subtraction modulo, mirroring `generate_world`'s own established technique — `NFR-2200`) plus a landmark-overlay applier land in `asm_game.py`, and a new oracle-parity check (mirroring `T12.b`'s own precedent) proves the on-device output is byte-for-byte identical to each Python `*_screen()` function for all four screens. Verb inventory + supersession sweep both re-run and recorded clean in the TWBS. `IP-9150` confirmed still independently useful, no longer a prerequisite. `IP-1022` → `READY`, `IP-1106`'s blocking note updated (blocked on implementation, not any gate). Master Build Plan + packages `INDEX.md` updated; `BL-0134` re-dispositioned `NEEDS-USER`→`SCHEDULED`. No drift. | `08-code-implementation` on `IP-1022` — `READY`, `AUTHORIZED`, no gate |
 | 197 | 2026-07-17 | advance (same session, "Iterate pipeline skill") | `08-code-implementation` | `IP-1022`, re-planned against `ADR-0020` | ✅ **COMPLETE — 311/311 checks pass.** Implemented two new shared subroutines (`fill_procedural_screen`/`apply_landmark_overlay`, `asm_game.py`): a no-multiply procedural fill (build-time-precomputed 17-byte per-row seed table + on-device incremental column accumulator with repeated-subtraction modulo reduction, mirroring `generate_world`'s own established `NFR-2200` technique) plus a compact landmark-overlay applier, both running inside `do_screen_redraw`'s existing LCD-off bracket. `tilemaps.py` gained four `*_FILL` parameter tuples + four `*_LANDMARKS` lists (83 entries total, derived programmatically by diffing the fill formula against each real `*_screen()` function's own output — zero hand-transcription, independently confirmed by direct simulation before writing any SM83 code). `ZONE_COLLECTS` spliced to 9 entries. `build_rom.py` emits the new data + resolves 8 new patch keys; `ALL_SCREENS` confirmed unchanged (still 5+11). ROM: 32158/32768 bytes (610 headroom) — recovers ~4,272 bytes versus the ~4,764 the original bake-everything plan needed. Added `T13.e` (oracle-parity: on-device output proven byte-for-byte identical to each Python `*_screen()` function for all four screens, excluding the two pre-existing arrow/blocked-indicator overwrite positions every screen already tolerates) and `T13.f` (dispatch-cascade completeness: `setup_zone_collects` spawns the exact list for biome-ids 5-8); corrected `T1.10` (9 lists not 5); extended `T12_CORPUS` with 2 seeds (38/50 at scale=9) since the prior corpus never reached biome-ids 5-8, which would have left `T12.d` passing vacuously. Documentation updated: `FR-4310`/`FR-4320`, `NFR-4000` (MET, no bank-switching needed), RTM, `FS-102`/`FS-103` Open Questions (resolved). Harvested: `BL-0134` → `DONE`; new `BL-0135` (Low, code/content seam crossing, self-deferred — mitigated by oracle-parity). Ledgers updated (`IP-1022`→`COMPLETE`, `IP-1106`/`IP-1111` notes refreshed, a pre-existing stale "none of the four packages authorized" paragraph also corrected while touching this section). No drift beyond what's already noted. | `09-package-verification` on `IP-1022` — requires a fresh session for genuine independence (this session implemented it) |
+| 198 | 2026-07-17 | advance (fresh session — user: "Iterate pipeline skill until fully blocked") | `09-package-verification` | `IP-1022` (finite-mode nine-identity generation & dispatch, `ADR-0020` re-plan) | ✅ **VERIFIED** ([VR-1022](../implementation/verification/VR-1022-finite-mode-nine-identity-generation-and-dispatch.md)). Genuine independence: fresh session/container, PyBoy installed clean, every claim re-derived from the tree (not the Implementation Summary). 311/311 suite; ROM rebuilds byte-identical to the checked-in binary (32158/32768, 610 headroom). Every DoD/Verification-Checklist item evidenced: nine-value clamp in both `worldgen.py` and `generate_world`; dispatch cascade explicit 0-7 + plains fallthrough; fill routine confirmed multiplication-free by direct code read; `ALL_SCREENS` confirmed untouched by diff; nine `ZONE_COLLECTS` entries each exactly one type-2; new `FPS_*` WRAM scratch confirmed collision-free (starts exactly at `LEDGER` end, 0xC69B). **`BL-0055`-rule live drive at non-default parameters (seed=50, scale=9): real menu entry, real held-button edge-crossing navigation into regions of biome-ids 5/6/7/8 — 81/81 live `REGION_GRAPH` records oracle-matched, 0/544+0/544 parity mismatches per screen, collectibles spawned; 4 screenshots captured.** Ledgers: `IP-1022` → `VERIFIED`; `IP-1106` → `READY` (all deps `VERIFIED`); `IP-1111` blocker narrowed to its own `07` touch; RTM `FR-4310`/`FR-4320` cells corrected. **Drift corrected:** `packages/INDEX.md` still showed `IP-1033` `COMPLETE` despite `VR-1033` Pass 2 (run #191 missed the cell) — fixed. Harvested 2 findings → `BL-0136` (Low, stale "5 UI entries" wording, `DEFERRED` onto the doc-accuracy sweep), `BL-0137` (Low, `IP-1022` §5/§6 not amended for the shipped row-table parameterization, `DEFERRED`). | `08-code-implementation` on `IP-1106` (`READY`, authorized, the arc's last code package) |
