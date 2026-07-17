@@ -266,6 +266,19 @@ check("T1.11 Exactly one carrot per list", all(c == 1 for c in carrots_per_zone)
 check("T1.12 No zone exceeds 8 collectibles (1-byte bitfield capacity)",
       all(len(z) <= 8 for z in ZONE_COLLECTS), f"{[len(z) for z in ZONE_COLLECTS]}")
 
+# T1.13 — tile-data bounds (IP-9150): the trimmed emission length matches
+# the shared constant exactly, and every TL_* index sits below the trim
+# boundary — the permanent guard against a future tile added at or beyond
+# the boundary without bumping TILE_DATA_TILES.
+import tiles as _tiles_mod
+_t113_len = len(_tiles_mod.build_tile_data())
+_t113_tl = [(n, getattr(_tiles_mod, n)) for n in dir(_tiles_mod)
+            if n.startswith('TL_') and isinstance(getattr(_tiles_mod, n), int)]
+_t113_over = [(n, v) for n, v in _t113_tl if v >= _tiles_mod.TILE_DATA_TILES]
+check("T1.13 Tile-data bounds: build_tile_data() length == TILE_DATA_TILES*16 and every TL_* index < TILE_DATA_TILES (IP-9150)",
+      _t113_len == _tiles_mod.TILE_DATA_TILES * 16 and _t113_over == [],
+      f"len={_t113_len} expected={_tiles_mod.TILE_DATA_TILES * 16} over={_t113_over}")
+
 # ══════════════════════════════════════════════════════
 # T2 — VRAM Tile Data
 # ══════════════════════════════════════════════════════
@@ -1209,10 +1222,18 @@ check("T13.a Tile-family audit: each of the 9 biome-ids renders its own family's
 # tolerates the identical class of overwrite via its own count threshold,
 # not a defect this package introduces.
 _ARROW_EXCLUDE_RC = {(1, 15), (16, 15), (9, 1), (9, 18)}   # up/down/left/right
+# IP-9160: row 0 is now compared too (the zone-name region is real
+# per-screen oracle content — its wholesale exclusion masked BL-0138's
+# stale-name defect). Only the live digit cells update_status_disp
+# rewrites at runtime are excluded: col 2 (carrot count), cols 8-10
+# (score) — inventoried by direct read of every row-0 writer
+# (_score_bar's own placeholders are static; update_status_disp is the
+# sole runtime row-0 writer, tile plane only).
+_ROW0_DYNAMIC_RC = {(0, 2), (0, 8), (0, 9), (0, 10)}
 def full_screen_tiles_attrs(pb):
-    tiles = [pb.memory[0x9800 + r*32 + c] for r in range(1, 18) for c in range(32)]
+    tiles = [pb.memory[0x9800 + r*32 + c] for r in range(0, 18) for c in range(32)]
     pb.memory[0xFF4F] = 1
-    attrs = [pb.memory[0x9800 + r*32 + c] for r in range(1, 18) for c in range(32)]
+    attrs = [pb.memory[0x9800 + r*32 + c] for r in range(0, 18) for c in range(32)]
     pb.memory[0xFF4F] = 0
     return tiles, attrs
 
@@ -1233,13 +1254,13 @@ for biome_id, (name, screen_fn) in _ORACLE_SCREENS.items():
     actual_tiles, actual_attrs = full_screen_tiles_attrs(pb)
     exp_tiles_full, exp_attrs_full = screen_fn()
     W = 32
-    exp_tiles = [exp_tiles_full[y*W+x] for y in range(1, 18) for x in range(W)]
-    exp_attrs = [exp_attrs_full[y*W+x] for y in range(1, 18) for x in range(W)]
+    exp_tiles = [exp_tiles_full[y*W+x] for y in range(0, 18) for x in range(W)]
+    exp_attrs = [exp_attrs_full[y*W+x] for y in range(0, 18) for x in range(W)]
     tile_mismatches = 0
     attr_mismatches = 0
     for i in range(len(exp_tiles)):
-        row, col = 1 + i // W, i % W
-        if (row, col) in _ARROW_EXCLUDE_RC:
+        row, col = i // W, i % W
+        if (row, col) in _ARROW_EXCLUDE_RC or (row, col) in _ROW0_DYNAMIC_RC:
             continue
         if actual_tiles[i] != exp_tiles[i]: tile_mismatches += 1
         if actual_attrs[i] != exp_attrs[i]: attr_mismatches += 1
@@ -1248,7 +1269,8 @@ for biome_id, (name, screen_fn) in _ORACLE_SCREENS.items():
 pb.stop()
 check("T13.e Oracle-parity: on-device procedural-fill + landmark-overlay output is "
       "byte-for-byte identical to each Python *_screen() function, all four new "
-      "identities, full 544-tile + 544-attr comparison (ADR-0020)",
+      "identities, full 18-row tile + attr comparison incl. row 0's static "
+      "cells (ADR-0020; row-0 name region per IP-9160)",
       len(oracle_bad) == 0, f"bad={oracle_bad}")
 
 # T13.f — dispatch-cascade completeness (IP-1022): confirms the ZONE_COLLECTS
@@ -1278,6 +1300,44 @@ pb.stop()
 check("T13.f Dispatch-cascade completeness: setup_zone_collects spawns the exact "
       "ZONE_COLLECTS list for each of biome-ids 5-8, entry-for-entry",
       len(spawn_bad) == 0, f"bad={spawn_bad}")
+
+# T13.g — stale-name regression (IP-9160/BL-0138): render a procedural
+# screen AFTER a differently-named screen and assert the name region
+# (row 0, cols 12-19) shows the SECOND screen's own oracle cells — the
+# exact scenario the content review's screenshots caught (Village showing
+# "FOREST"). Both directions: procedural-after-baked (the shipped defect)
+# and baked-after-procedural (documents the baked path's copy_screen
+# already rewrites all of row 0, closing the asymmetry from both sides).
+def _t13g_name_region_tiles(pb):
+    return [pb.memory[0x9800 + 0*32 + c] for c in range(12, 20)]
+
+def _t13g_oracle_name(screen_fn):
+    t, _a = screen_fn()
+    return [t[c] for c in range(12, 20)]
+
+pb = fresh_boot(180)
+advance_to_playing(pb)
+# direction 1: grass/forest (baked, name "FOREST") then village (procedural)
+pb.memory[REGION_GRAPH] = 2
+for k in range(4): pb.memory[REGION_GRAPH + 1 + k] = 0xFF
+force_region_redraw(pb, 0)
+_t13g_after_forest = _t13g_name_region_tiles(pb)
+pb.memory[REGION_GRAPH] = 5
+force_region_redraw(pb, 0)
+_t13g_after_village = _t13g_name_region_tiles(pb)
+from tilemaps import forest_screen as _t13g_forest
+_t13g_ok1 = (_t13g_after_forest == _t13g_oracle_name(_t13g_forest)
+             and _t13g_after_village == _t13g_oracle_name(village_screen))
+# direction 2: back to a baked screen (stone/mountain, name "MOUNTAIN")
+pb.memory[REGION_GRAPH] = 3
+force_region_redraw(pb, 0)
+from tilemaps import mountain_screen as _t13g_mountain
+_t13g_ok2 = _t13g_name_region_tiles(pb) == _t13g_oracle_name(_t13g_mountain)
+pb.stop()
+check("T13.g Stale-name regression: name region shows each screen's own name after "
+      "a differently-named predecessor, both directions (IP-9160/BL-0138)",
+      _t13g_ok1 and _t13g_ok2,
+      f"forest={_t13g_after_forest} village={_t13g_after_village}")
 
 # T13.b — transition call-site audit (AC-2, Inspection): exactly one
 # copy_screen call site handles region-entry (PLAYING) rendering, mirroring
@@ -2499,13 +2559,13 @@ check("T22.d Treasure-density: measured rate near K=16's 6.25% target (2%-11% ba
       0.02 <= rate <= 0.11, f"rate={rate:.4f} ({present}/{total})")
 
 # T22.e -- determinism static audit (AC-7, Inspection): inf_materialize_region/
-# inf_region_seed0/inf_mod5 must read no hardware register (DIV et al., via
+# inf_region_seed0/inf_mod9 must read no hardware register (DIV et al., via
 # LDH) -- a real source-text scan, mirroring T12.h's own established pattern.
 _t22_src = (BASE / 'asm_game.py').read_text()
 _t22_start = _t22_src.index("rom.label('inf_region_seed0')")
 _t22_end = _t22_src.index("rom.RET()", _t22_src.index("rom.label('inf_materialize_region')"))
 _t22_slice = _t22_src[_t22_start:_t22_end]
-check("T22.e Static audit: no LDH (hardware register, incl. DIV) read in inf_materialize_region/inf_region_seed0/inf_mod5 (NFR-2300)",
+check("T22.e Static audit: no LDH (hardware register, incl. DIV) read in inf_materialize_region/inf_region_seed0/inf_mod9 (NFR-2300)",
       'LDH_A_n' not in _t22_slice and 'LDH_A_C' not in _t22_slice, "source-scanned")
 
 # T22.f -- seed=0 normalization: direct WRAM inspection of the PRNG state
@@ -2988,11 +3048,11 @@ def read_top3(pb):
 with open(ROM_PATH, 'rb') as _f:
     _t26_rom = _f.read()
 _t26_expected_pos = []
-for _b in range(5):
+for _b in range(9):   # IP-1106: all nine identities, not just the original five
     _k2 = [(x, y) for (x, y, t) in ZONE_COLLECTS[_b] if t == 2]
     _t26_expected_pos.append(_k2[0] if len(_k2) == 1 else None)
-_t26_table = [(_t26_rom[ITP_ADDR + 2 * _b], _t26_rom[ITP_ADDR + 2 * _b + 1]) for _b in range(5)]
-check("T26.a0 Static: inf_treasure_pos table matches ZONE_COLLECTS's single type-2 entry per biome (drift guard for the deliberate duplication)",
+_t26_table = [(_t26_rom[ITP_ADDR + 2 * _b], _t26_rom[ITP_ADDR + 2 * _b + 1]) for _b in range(9)]
+check("T26.a0 Static: inf_treasure_pos table matches ZONE_COLLECTS's single type-2 entry per biome, all nine identities (drift guard for the deliberate duplication)",
       _t26_table == _t26_expected_pos, f"rom={_t26_table} expected={_t26_expected_pos}")
 
 # T26.a1 — boot init: RUNNING_TREASURE_COUNT/TOP_SCORE_TABLE sit outside
@@ -3172,6 +3232,53 @@ _t26e_bad = [name for name, s in _t26e_segs.items()
 check("T26.e No name-entry state reachable from this package's new branches: none writes TRANSITION_TO/GAMESTATE, and no name-entry GAMESTATE exists in the source at all",
       _t26e_bad == [] and re.search(r"GS_\w*NAME", _t26_src) is None,
       f"segments_writing_state={_t26e_bad}")
+
+# T26.h — value-range coverage (IP-1106, FR-4320's Infinite Mode half):
+# the live SM83 biome draw reaches every value of the widened 0-8 domain
+# across T22's own (seed,row,col) corpus — asserted on the *SM83 output*,
+# not the oracle, so the check cannot pass vacuously if the corpus never
+# actually exercised the widened range (T12.d's own IP-1022 lesson applied
+# here); each drawn value is simultaneously re-checked against the oracle
+# (redundant with T22.b by construction, kept as this check's own guard).
+pb = fresh_boot(180)
+_t26h_seen = set()
+_t26h_mismatch = []
+for _seed, _row, _col in T22_CORPUS:
+    _got = invoke_inf_materialize_region(pb, _seed, _row, _col)
+    _exp_byte, _exp_t = worldgen.materialize_region(_seed, _row, _col)
+    if _got is None or _got[0] != _exp_byte:
+        _t26h_mismatch.append((_seed, _row, _col, _got))
+        continue
+    _t26h_seen.add(_got[0] & 0x0F)
+pb.stop()
+check("T26.h Value-range coverage: SM83 biome draw reaches all nine values 0-8 across the corpus, oracle-matched (IP-1106/FR-4320)",
+      _t26h_seen == set(range(9)) and _t26h_mismatch == [],
+      f"seen={sorted(_t26h_seen)} mismatches={_t26h_mismatch[:3]}")
+
+# T26.i — dispatch-integration (IP-1106): for each of the four newly-folded
+# identities, force INF_WINDOW's center cell to that biome-id (T24's own
+# force_infinite_redraw_with_center isolation pattern) with the region's
+# treasure cache set — confirming the correct family screen renders (IP-1022's
+# cascade, exercised from the *infinite* path specifically) AND the correct
+# treasure position spawns from inf_treasure_pos's own new entries (this
+# package's extension) — the end-to-end integration point neither package
+# alone verifies (IP-1022's own VR drove finite mode only).
+pb = fresh_boot(200)
+advance_to_playing(pb)
+_t26i_bad = []
+for _biome in (5, 6, 7, 8):
+    pb.memory[INF_TREASURE_HERE] = 1
+    force_infinite_redraw_with_center(pb, _biome)   # connectivity nibble 0
+    _lo, _hi = FAMILY_RANGES[_biome]
+    _field = field_tiles(pb)
+    _in_family = sum(1 for _b in _field if _lo <= _b <= _hi)
+    _pos = _t26_expected_pos[_biome]
+    _cd = tuple(pb.memory[COLL_DATA + _i] for _i in range(4))
+    if _in_family <= 40 or pb.memory[COLL_COUNT] != 1 or _cd != (_pos[0], _pos[1], 2, 1):
+        _t26i_bad.append((_biome, _in_family, pb.memory[COLL_COUNT], _cd, _pos))
+pb.stop()
+check("T26.i Dispatch-integration: biome-ids 5-8 render their own family screen and spawn their own inf_treasure_pos treasure in Infinite Mode (IP-1106 + IP-1022 jointly)",
+      _t26i_bad == [], f"bad={_t26i_bad}")
 
 # ══════════════════════════════════════════════════════
 # T27 — Infinite Mode: Ledger Save Persistence (IP-1104)
@@ -3451,6 +3558,137 @@ check("T27.g In-session re-entry: collected treasure does not respawn on ordinar
       rtc_pre27g == 1 and inf_col_back27g == 0 and treasure_back27g == 0
       and rtc_back27g == 1,
       f"rtc_pre={rtc_pre27g} col={inf_col_back27g} treasure_here={treasure_back27g} rtc_back={rtc_back27g}")
+pb.stop()
+wipe_save()
+
+# ══════════════════════════════════════════════════════
+# T28 — Biome-Family Sub-Theme Playback Selection (IP-1111)
+# ══════════════════════════════════════════════════════
+print("\n=== T28: Biome-Family Sub-Theme Playback Selection ===")
+
+MUSIC_CTR = 0xC00F; MUSIC_PTR_LO = 0xC010; MUSIC_PTR_HI = 0xC011
+MUSIC_BASE_LO = 0xC6B3; MUSIC_BASE_HI = 0xC6B4
+
+# Expected per-biome track addresses: read straight from the built ROM's
+# own music_table via the music_tbl patch pointer (re-derive the patch
+# position with a fresh in-process assembly pass — deterministic, same
+# positions as the shipped build), not recomputed from music.py.
+_t28_patches = _build_game_asm(_ROM())
+with open(ROM_PATH, 'rb') as _f:
+    _t28_rom = _f.read()
+_t28_tbl_pos = _t28_patches['music_tbl']
+MUSIC_TBL_ADDR = _t28_rom[_t28_tbl_pos] | (_t28_rom[_t28_tbl_pos + 1] << 8)
+_t28_track = [_t28_rom[MUSIC_TBL_ADDR + 2*_b] | (_t28_rom[MUSIC_TBL_ADDR + 2*_b + 1] << 8)
+              for _b in range(9)]
+check("T28.a0 Static: music_tbl patch resolves inside ROM and the nine table entries are distinct, ordered track addresses",
+      0x150 <= MUSIC_TBL_ADDR < 0x8000 and len(set(_t28_track)) == 9,
+      f"tbl=0x{MUSIC_TBL_ADDR:04X} entries={[hex(a) for a in _t28_track]}")
+
+def read_music_ptr(pb):
+    return pb.memory[MUSIC_PTR_LO] | (pb.memory[MUSIC_PTR_HI] << 8)
+
+def read_music_base(pb):
+    return pb.memory[MUSIC_BASE_LO] | (pb.memory[MUSIC_BASE_HI] << 8)
+
+# T28.a — selection correctness, finite path: force each of the nine
+# biome-ids current during PLAYING (T13.a's REGION_GRAPH direct-force +
+# redraw pattern) and assert MUSIC_PTR/MUSIC_BASE == that identity's own
+# music_table entry.
+pb = fresh_boot(180)
+advance_to_playing(pb)
+# MUSIC_BASE is the stable selection record; MUSIC_PTR is a live playback
+# cursor that has already advanced past the first note(s) by read time —
+# assert BASE equals the entry exactly and PTR sits inside that track's
+# own byte range (start..next track's start), proving playback is running
+# the selected track, not merely that a value was written once.
+_t28_end = _t28_track + [MUSIC_TBL_ADDR]   # each track ends where the next begins
+def _t28_on_track(pb, biome):
+    return (read_music_base(pb) == _t28_track[biome]
+            and _t28_track[biome] <= read_music_ptr(pb) < _t28_end[biome + 1])
+_t28a_bad = []
+for _biome in range(9):
+    pb.memory[REGION_GRAPH] = _biome
+    for _k in range(4): pb.memory[REGION_GRAPH + 1 + _k] = 0xFF
+    force_region_redraw(pb, 0)
+    if not _t28_on_track(pb, _biome):
+        _t28a_bad.append((_biome, hex(read_music_ptr(pb)), hex(read_music_base(pb)), hex(_t28_track[_biome])))
+check("T28.a Selection: each of the nine biome-ids repoints MUSIC_BASE to its own music_table entry with MUSIC_PTR playing inside that track (finite path, FR-7110)",
+      _t28a_bad == [], f"bad={_t28a_bad}")
+
+# T28.b — selection correctness, Infinite Mode path: at least one identity
+# selected via the INF_WINDOW-center force (T26.i's pattern), proving the
+# shared dsr_p_dispatch entry point serves both modes. Biome 7 (Desert) --
+# arbitrary non-Grass pick among the newly-folded ids.
+pb.memory[INF_TREASURE_HERE] = 0
+force_infinite_redraw_with_center(pb, 7)
+check("T28.b Selection via Infinite Mode window path: biome 7 (Desert) repoints MUSIC_BASE to music_table[7], MUSIC_PTR playing inside that track",
+      _t28_on_track(pb, 7),
+      f"ptr=0x{read_music_ptr(pb):04X} base=0x{read_music_base(pb):04X} expected=0x{_t28_track[7]:04X}")
+pb.memory[GAME_MODE] = 0   # restore finite mode for the checks below
+
+# T28.c — main-theme fallback: force entry into each of the eleven
+# non-PLAYING states via TRANSITION_TO/NEED_REDRAW (the game's own
+# transition mechanism, exercised with a non-main-theme track selected
+# first) and assert the default reset repointed to music_table[2] (Grass =
+# the main theme).
+TRANSITION_TO = 0xC00B
+_t28c_bad = []
+for _gs in (0, 1, 3, 4, 5, 6, 7, 8, 9, 10, 11):
+    pb.memory[REGION_GRAPH] = 7
+    for _k in range(4): pb.memory[REGION_GRAPH + 1 + _k] = 0xFF
+    force_region_redraw(pb, 0)          # select Desert's sub-theme first
+    pb.memory[TRANSITION_TO] = _gs
+    pb.memory[NEED_REDRAW] = 1
+    [pb.tick() for _ in range(10)]
+    if not _t28_on_track(pb, 2):
+        _t28c_bad.append((_gs, hex(read_music_ptr(pb)), hex(read_music_base(pb))))
+    pb.memory[TRANSITION_TO] = 2        # back to PLAYING for the next round
+    pb.memory[NEED_REDRAW] = 1
+    [pb.tick() for _ in range(10)]
+check("T28.c Fallback: every one of the eleven non-PLAYING states resets MUSIC_BASE to music_table[2] (the main theme), MUSIC_PTR playing inside it",
+      _t28c_bad == [], f"bad={_t28c_bad}")
+
+# T28.d — loop-restart correctness (the music_tick fix): with a non-Grass
+# sub-theme selected, plant a terminal 0xFF at the playback cursor's
+# current position... impossible in ROM — instead point MUSIC_PTR at the
+# track's own real terminal 0xFF (scan the ROM from the track's start) and
+# force MUSIC_CTR to expire; music_tick must restart from MUSIC_BASE (the
+# sub-theme's own start), not the main theme's address.
+pb.memory[REGION_GRAPH] = 5             # Village's sub-theme
+for _k in range(4): pb.memory[REGION_GRAPH + 1 + _k] = 0xFF
+force_region_redraw(pb, 0)
+_t28d_start = _t28_track[5]
+_t28d_ff = _t28d_start
+while _t28_rom[_t28d_ff] != 0xFF:
+    _t28d_ff += 1
+pb.memory[MUSIC_PTR_LO] = _t28d_ff & 0xFF
+pb.memory[MUSIC_PTR_HI] = (_t28d_ff >> 8) & 0xFF
+pb.memory[MUSIC_CTR] = 1                # expires on the next music_tick
+[pb.tick() for _ in range(2)]           # music_tick runs once per frame
+_t28d_ptr = read_music_ptr(pb)
+check("T28.d Loop restart: a sub-theme reaching its terminal 0xFF restarts from its own MUSIC_BASE start (Village), never the main theme (the music_tick fix)",
+      _t28d_start < _t28d_ptr <= _t28d_start + 6 and read_music_base(pb) == _t28d_start,
+      f"ptr=0x{_t28d_ptr:04X} base=0x{read_music_base(pb):04X} start=0x{_t28d_start:04X} ff=0x{_t28d_ff:04X}")
+
+# T28.e — transition timing (FR-7110's "within one frame"): the redraw that
+# performs a state transition also performs the repoint — confirmed by
+# forcing a transition and checking the track after a single redraw
+# completes (the [10-tick settle above already proves ≤10 frames; this
+# check pins the mechanism: the repoint happens inside do_screen_redraw
+# itself, i.e. the same frame the new state's screen appears).
+pb.memory[REGION_GRAPH] = 8             # Plains current
+for _k in range(4): pb.memory[REGION_GRAPH + 1 + _k] = 0xFF
+pb.memory[TRANSITION_TO] = 2
+pb.memory[NEED_REDRAW] = 1
+_t28e_frames = None
+for _i in range(10):
+    pb.tick()
+    if read_music_ptr(pb) == _t28_track[8]:
+        _t28e_frames = _i + 1
+        break
+check("T28.e Timing: the sub-theme repoint lands with the redraw itself (within FR-7110's one-frame budget of the screen appearing)",
+      _t28e_frames is not None and _t28e_frames <= 2,
+      f"frames={_t28e_frames}")
 pb.stop()
 wipe_save()
 

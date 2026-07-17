@@ -1133,8 +1133,14 @@ FR-6000 for the presentation half)*
   gap without bank switching. Oracle-parity confirmed (`T13.e`, 311/311 suite): the on-device
   fill+overlay output is byte-for-byte identical to each screen's own Python source, for all four
   identities. **This FR's own Postcondition (b) is now fully met** — all nine biome identities are
-  reachable generation targets in finite-mode play. **Not yet implemented for Infinite Mode**
-  (`FR-10200`'s side) — that remains `IP-1106`'s own scope, now unblocked.
+  reachable generation targets in finite-mode play. **`IP-1106` implemented 2026-07-17** (after
+  `IP-1105`/`IP-1022`/`IP-1033` all `VERIFIED`): Infinite Mode's own draw widened `%5`→`%9`
+  (`worldgen.py` `materialize_region` + `asm_game.py` `inf_mod9`, single call site confirmed) and
+  `inf_treasure_pos` extended to nine entries matching `ZONE_COLLECTS`'s type-2 entries
+  (`T26.a0`-guarded). Value-range coverage (`T26.h`, all nine values reached in live SM83 output)
+  and dispatch-integration (`T26.i`, ids 5-8 render + spawn treasure in Infinite Mode
+  specifically) both confirmed; 313/313 suite. **Both halves of this FR are now implemented**
+  (finite: `IP-1022`; Infinite Mode: `IP-1106`, `COMPLETE` — own `09` pass owed).
 
 ## FR-5000 — Save / load (SRAM)
 
@@ -1454,7 +1460,13 @@ confirmed unused before this delta by direct grep of the existing document.)*
   baselining**: this FR's eventual implementation needs `FR-4320`'s own packages
   (`IP-1105`/`IP-1033`/`IP-1022`/`IP-1106`, all unauthorized as of this delta) to have shipped
   first, since it reads the same widened biome-id domain those packages establish — named here,
-  not resolved, per `ADR-0019`'s own identical note.
+  not resolved, per `ADR-0019`'s own identical note. **`IP-1111` implemented 2026-07-17**
+  (`COMPLETE`, own `09` pass owed; all four prerequisite packages shipped first): the mechanism
+  chosen is a shared `music_select` subroutine reading `IP-1110`'s biome-id-indexed
+  `music_table`, called (a) as an unconditional main-theme default on every screen redraw and
+  (b) once at `dsr_p_dispatch`'s entry during `PLAYING` (both mode paths); plus the `music_tick`
+  loop-restart fix (new `MUSIC_BASE_LO`/`MUSIC_BASE_HI`, `mus_reset` retired). `T28.a`–`T28.e`
+  verify all Acceptance Criteria; 319/319 suite.
 
 ## FR-9000 — World generation (target — 2026-07-09, new capability, not yet shipped)
 

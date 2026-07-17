@@ -921,9 +921,20 @@ _FONT = {
 def font_tile(c): return enc(_FONT.get(c, _FONT[' ']))
 
 # ── build_tile_data ────────────────────────────────────────
+# IP-9150: the emitted array is trimmed to TILE_DATA_TILES slots (was a
+# fixed 256). Highest used index is TL_TORCH = 181; 184 = that ceiling
+# rounded up to a multiple-of-8 boundary, leaving two spare slots before
+# this constant needs bumping. asm_game.py's boot-time tile-copy count
+# references this same constant, so the two ends of the copy can never
+# silently desync; put() asserts every write stays below the boundary.
+TILE_DATA_TILES = 184
+
 def build_tile_data():
-    data = bytearray(256 * 16)
+    data = bytearray(TILE_DATA_TILES * 16)
     def put(idx, tile):
+        assert idx < TILE_DATA_TILES, (
+            f"tile index {idx:#x} >= TILE_DATA_TILES ({TILE_DATA_TILES}) -- "
+            "bump TILE_DATA_TILES in tiles.py (IP-9150 trim boundary)")
         for i, b in enumerate(tile):
             data[idx * 16 + i] = b
 

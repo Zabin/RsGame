@@ -1319,6 +1319,20 @@ choice with no downstream algorithm-validity or save-format consequence (unlike 
 grammar-legality stakes) — cheaply reversible if a future pass disagrees, stated explicitly here
 rather than silently invented, per this package's own §2.
 
+**Revision (2026-07-17, `07-implementation-planning` — the touch `IP-1110`'s Outstanding Issue
+requested):** `IP-1111`'s §5/§6 updated to consume the interface `IP-1110` actually shipped —
+the flat, biome-id-indexed `music_table` (18 ROM bytes, `zc_table`'s own precedent), which the
+implementation chose over the originally-planned per-identity `*_mus_lo`/`*_mus_hi` named
+patch-key pairs (those keys were never created; `IP-1110`'s in-scope deviation, recorded on its
+Build Plan row and confirmed by `VR-1110`). The table's indexability collapses the original
+eight per-branch override snippets into **one shared `music_select` subroutine + one `CALL` at
+`dsr_p_dispatch`'s entry** (where both mode paths already converge with A = biome-id) — a
+smaller `asm_game.py` footprint than originally planned, zero instructions inside any branch
+body. One new patch key (`music_tbl`) is added, resolved exactly as `zc_table` already is.
+`IP-1022` `VERIFIED` (2026-07-17) closed the original "cannot cite post-widening line numbers"
+caveat — all §6 citations are now against the live tree. `IP-1111` → `READY` (both code
+dependencies `VERIFIED`; authorization "Build all six," 2026-07-16, already on record).
+
 ### Sequencing summary
 
 **New, independent chain: `IP-1110` (root, `NOT STARTED`) → `IP-1111` (`BLOCKED` on `IP-1110` and
@@ -1492,3 +1506,34 @@ exhausted — unaffected, not implemented by this pass.
 `BL-0134` — re-planned `IP-1022` against `ADR-0020`'s decision; the package's own Verification
 Checklist now carries the oracle-parity obligation `ADR-0020` requires. `BL-0134`'s own
 disposition is updated by the pipeline manager once this package ships and verifies.
+
+## Zone-name restoration on the procedural screens (`BL-0138` remediation, planned 2026-07-17)
+
+**Source:** `09-content-review` Finding 1
+([content-review-nine-biome-family-delta.md](../reviews/content-review-nine-biome-family-delta.md)):
+the four `ADR-0020` procedurally-filled screens never write the row-0 zone name their Python
+oracles ship, so the previous screen's name persists on every visit.
+
+**Verb inventory:** *render* only — one verb, one package. No generate/navigate/persist impact
+(row 0 is presentation; the name is static per-screen content). The *review* verb is what caught
+it and re-runs after the fix per the normal loop.
+
+**Cut and rationale — one package, `IP-9160`, owned by `08-content-authoring`:** the shipped
+`apply_landmark_overlay` routine already writes arbitrary `(x, y)` cells including row 0
+(direct-read confirmed, no row filter), and `build_rom.py`'s landmark emission is generic over
+list length — so the entire production fix is *data*: append each screen's name-region row-0
+cells (mechanically derived from its own `*_screen()` oracle) to the four existing `*_LANDMARKS`
+lists in `tilemaps.py`. Pure data-half + its verifying tests = the content peer's exact charter;
+no `asm_game.py` change exists to justify `08-code-implementation` (contrast `BL-0135`'s seam
+note on `IP-1022`, where a new shared subroutine dominated the cut). Split considered and
+rejected: a separate test-only package (the `T13.e` row-0-exclusion narrowing + `T13.g`
+stale-name regression) would decouple the fix from the exact check that proves it — the same
+one-coherent-DoD rule every remediation package here has followed.
+
+**Supersession sweep:** nothing is retired; swept for other row-0 writers to inventory the live
+digit cells the narrowed `T13.e` exclusion must keep (`_score_bar` placeholders,
+`update_status_disp`) — the package makes completing that inventory an explicit implementation
+task rather than baking this planning pass's own list in as an assumption.
+
+**Authorization:** **not authorized** — new remediation package for a post-bootstrap finding
+(`BL-0138`), not covered by any standing go-ahead; awaits an explicit G3 user decision.

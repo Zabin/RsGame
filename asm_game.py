@@ -15,7 +15,7 @@ from tiles import (TL_CARROT, TL_STAR, TL_FLOWER_OBJ,
                    TL_HEART_FULL, TL_HEART_EMPTY, TL_DIGIT_0,
                    TL_ARROW_U, TL_ARROW_D, TL_ARROW_L, TL_ARROW_R,
                    TL_BLOCKED_U, TL_BLOCKED_D, TL_BLOCKED_L, TL_BLOCKED_R,
-                   TL_BG_BLANK)
+                   TL_BG_BLANK, TILE_DATA_TILES)
 
 # ── WRAM addresses ─────────────────────────────────────────
 GAMESTATE      = 0xC000
@@ -255,6 +255,15 @@ FPS_LM_ATTR    = 0xC6B1  # 1 byte -- current landmark entry's attr
 FPS_TEMP       = 0xC6B2  # 1 byte -- short-lived scratch (holds the just-read row_table
                           # byte across the HL-clobbering pointer-save shuffle)
 
+# IP-1111 (FR-7110): the currently-selected music track's own base (start)
+# address -- written by music_select at every repoint alongside
+# MUSIC_PTR_LO/HI, read by music_tick's loop-restart branch in place of the
+# retired hardcoded mus_reset patch constant (without this, any sub-theme
+# would silently truncate to a single pass and fall back to the main theme
+# the moment it loops). Transient, session-only -- never persisted to SRAM.
+MUSIC_BASE_LO  = 0xC6B3  # 1 byte
+MUSIC_BASE_HI  = 0xC6B4  # 1 byte
+
 SAVE_VERSION_ADDR = 0xA012   # save-format version guard (FR-5220 / Design Decision 2)
 SAVE_VERSION_VAL  = 0x05     # bumped 0x04->0x05 (IP-1104, fifth bump since ship — the
                               # value sequence is strictly monotonic, never reused). A single
@@ -388,7 +397,7 @@ def build_game_asm(rom: ROM) -> dict:
 
     # Copy tile data → 0x8000
     rom.LD_DE_nn(0); patches['tile_src'] = rom.pos - 2
-    rom.LD_HL_nn(0x8000); rom.LD_BC_nn(256 * 16)
+    rom.LD_HL_nn(0x8000); rom.LD_BC_nn(TILE_DATA_TILES * 16)  # IP-9150 trim
     rom.CALL('memcpy')
 
     # BG palettes
@@ -421,8 +430,10 @@ def build_game_asm(rom: ROM) -> dict:
 
     rom.LD_A_n(0); patches['mus_lo'] = rom.pos - 1
     rom.LD_nn_A(MUSIC_PTR_LO)
+    rom.LD_nn_A(MUSIC_BASE_LO)         # IP-1111: defensive pre-first-redraw init
     rom.LD_A_n(0); patches['mus_hi'] = rom.pos - 1
     rom.LD_nn_A(MUSIC_PTR_HI)
+    rom.LD_nn_A(MUSIC_BASE_HI)         # IP-1111: defensive pre-first-redraw init
     rom.LD_A_n(1); rom.LD_nn_A(MUSIC_CTR)
 
     # IP-1040: the auto-load-on-boot bypass (unconditional try_load_save call)
@@ -1292,13 +1303,42 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_nn(MUSIC_PTR_LO); rom.LD_L_A()
     rom.LD_A_nn(MUSIC_PTR_HI); rom.LD_H_A()
     rom.LD_A_HL(); rom.CP_n(0xFF); rom.JR_NZ('mt_play')
-    rom.LD_HL_nn(0); patches['mus_reset'] = rom.pos - 2
+    # IP-1111: loop-restart target is the currently-selected track's own
+    # base address (MUSIC_BASE_*, written by music_select at every repoint),
+    # not the retired build-time mus_reset constant -- a sub-theme loops
+    # from its own start instead of silently falling back to the main theme.
+    rom.LD_A_nn(MUSIC_BASE_LO); rom.LD_L_A()
+    rom.LD_A_nn(MUSIC_BASE_HI); rom.LD_H_A()
     rom.label('mt_play')
     rom.LD_A_HLI(); rom.LDH_n_A(NR13)
     rom.LD_A_HLI(); rom.LDH_n_A(NR14)
     rom.LD_A_HLI(); rom.LD_nn_A(MUSIC_CTR)
     rom.LD_A_H(); rom.LD_nn_A(MUSIC_PTR_HI)
     rom.LD_A_L(); rom.LD_nn_A(MUSIC_PTR_LO)
+    rom.RET()
+
+    # ── music_select (IP-1111, FR-7110) ──────────────────
+    # On entry: A = biome-id (0-8). Repoints playback to that identity's
+    # own sub-theme: HL = music_table + 2*A (music_tbl resolved by
+    # build_rom.py exactly as zc_table is), reads the little-endian track
+    # address, writes it to both MUSIC_PTR_* (playback cursor) and
+    # MUSIC_BASE_* (music_tick's loop-restart target), resets MUSIC_CTR
+    # to 1 (the boot-init pattern) so the new track starts on the next
+    # tick. Preserves A -- both callers still need it (dsr_p_dispatch
+    # dispatches its CP_n cascade on it). Called only from inside
+    # do_screen_redraw's LCD-off bracket (NFR-1300: no VBlank exposure).
+    rom.label('music_select')
+    rom.PUSH_AF()
+    rom.ADD_A_A()                      # A = biome-id * 2 (table index)
+    rom.LD_E_A(); rom.LD_D_n(0)
+    rom.LD_HL_nn(0); patches['music_tbl'] = rom.pos - 2
+    rom.ADD_HL_DE()                    # HL -> music_table[biome-id]
+    rom.LD_A_HLI()
+    rom.LD_nn_A(MUSIC_PTR_LO); rom.LD_nn_A(MUSIC_BASE_LO)
+    rom.LD_A_HL()
+    rom.LD_nn_A(MUSIC_PTR_HI); rom.LD_nn_A(MUSIC_BASE_HI)
+    rom.LD_A_n(1); rom.LD_nn_A(MUSIC_CTR)
+    rom.POP_AF()
     rom.RET()
 
     # ── update_status_disp ───────────────────────────────
@@ -1343,6 +1383,13 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_nn(TRANSITION_TO); rom.LD_nn_A(GAMESTATE)
     rom.XOR_A(); rom.LD_nn_A(NEED_REDRAW)
     rom.LD_A_n(1); rom.LD_nn_A(SCORE_DIRTY)
+
+    # IP-1111 (FR-7110): default reset to the main theme on EVERY redraw,
+    # every state -- biome-id 2 (Grass) is the zero-transform anchor whose
+    # music_table entry IS the main theme (IP-1110). PLAYING's own region
+    # dispatch (dsr_p_dispatch, below) then overrides to the current
+    # region's sub-theme; every other state keeps this default.
+    rom.LD_A_n(2); rom.CALL('music_select')
 
     # When entering PLAYING, set up zone collectibles
     rom.LD_A_nn(GAMESTATE); rom.CP_n(GS_PLAYING); rom.JR_NZ('dsr_no_coll')
@@ -1422,6 +1469,13 @@ def build_game_asm(rom: ROM) -> dict:
                                         # ignores HL entirely (reads WRAM directly)
 
     rom.label('dsr_p_dispatch')
+    # IP-1111 (FR-7110): repoint music to this region's own sub-theme --
+    # A = biome-id here on both mode paths (finite REGION_GRAPH read /
+    # infinite INF_WINDOW center); music_select preserves A for the
+    # cascade below. One call site covers all nine identities (Grass's
+    # table entry is the main theme, so its override is a harmless
+    # rewrite of the default already set at redraw entry).
+    rom.CALL('music_select')
     rom.CP_n(0); rom.JR_Z('dsr_p_water')
     rom.CP_n(1); rom.JR_Z('dsr_p_sand')
     rom.CP_n(2); rom.JR_Z('dsr_p_grass')
@@ -2025,8 +2079,8 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_HL_nn(0xFFFF)
     rom.JP('scs_store')
 
-    # ── inf_treasure_pos (IP-1103) ────────────────────────
-    # Per-biome treasure spawn position, 5 x (x, y) pairs indexed by
+    # ── inf_treasure_pos (IP-1103; extended IP-1106) ──────
+    # Per-biome treasure spawn position, 9 x (x, y) pairs indexed by
     # biome-id*2 -- the exact (x, y) of each biome family's type-2 (KeyItem)
     # entry in tilemaps.py's ZONE_COLLECTS, so the Infinite Mode treasure
     # appears at the same sensible, landmark-clear spot the finite mode
@@ -2043,7 +2097,11 @@ def build_game_asm(rom: ROM) -> dict:
              132, 88,   # 1 Sand
              84,  56,   # 2 Grass
              60,  88,   # 3 Stone
-             84,  64)   # 4 Brick
+             84,  64,   # 4 Brick
+             48,  64,   # 5 Village (IP-1106, = VILLAGE_COLLECTS type-2)
+             136, 72,   # 6 Cave    (IP-1106, = CAVE_COLLECTS type-2)
+             128, 40,   # 7 Desert  (IP-1106, = DESERT_COLLECTS type-2)
+             144, 88)   # 8 Plains  (IP-1106, = PLAINS_COLLECTS type-2)
 
     # ── setup_zone_collects ───────────────────────────────
     # IP-9070: zc_table is now indexed by REGION_GRAPH's biome-id (0-4, the
@@ -2747,13 +2805,15 @@ def build_game_asm(rom: ROM) -> dict:
     rom.CALL('gw_prng_step')
     rom.RET()
 
-    # inf_mod5: A := A mod 5 (repeated-subtraction, no DIV/MUL -- NFR-2300,
-    # generalizes gw_mod3's own established pattern, 3->5).
-    rom.label('inf_mod5')
-    rom.label('im5_loop')
-    rom.CP_n(5); rom.JR_C('im5_done')
-    rom.SUB_n(5); rom.JR('im5_loop')
-    rom.label('im5_done')
+    # inf_mod9: A := A mod 9 (repeated-subtraction, no DIV/MUL -- NFR-2300,
+    # generalizes gw_mod3's own established pattern). Widened from mod 5
+    # (IP-1106, FR-4320's Infinite Mode half) -- single call site, the
+    # biome draw in inf_materialize_region, confirmed by direct grep.
+    rom.label('inf_mod9')
+    rom.label('im9_loop')
+    rom.CP_n(9); rom.JR_C('im9_done')
+    rom.SUB_n(9); rom.JR('im9_loop')
+    rom.label('im9_done')
     rom.RET()
 
     # inf_materialize_region: on entry, INF_MZ_ROW/INF_MZ_COL hold the
@@ -2793,7 +2853,7 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_nn(INF_MZ_COL + 1); rom.LD_nn_A(INF_MZ_TCOL + 1)
     rom.CALL('inf_region_seed0')
     rom.CALL('gw_prng_step')          # draw 1: biome
-    rom.CALL('inf_mod5')
+    rom.CALL('inf_mod9')
     rom.LD_nn_A(INF_MZ_BIOME)
     rom.CALL('gw_prng_step')          # draw 2: own carve-bias
     rom.AND_n(1)

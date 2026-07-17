@@ -367,7 +367,13 @@
   NFR remains **MET**, still within a single 32768-byte bank, no bank-switching introduced. This
   is the closest this budget has come to its own named supersession trigger to date; the next
   package that grows ROM usage should re-affirm headroom explicitly (`BL-0019`'s standing
-  convention) given how little margin now remains.
+  convention) given how little margin now remains. **2026-07-17 (`IP-9150`):** the tile-data
+  padding trim recovered exactly 1,152 bytes (`build_tile_data()` now emits 184 slots instead of
+  a fixed 256 — highest used index is 181, `TL_TORCH`; the copy count and the emission share one
+  `TILE_DATA_TILES` constant, with a build-time bounds assertion and a suite guard `T1.13`).
+  Post-trim usage: **31390/32768 (1,378 bytes headroom)**, measured after `IP-1106`/`IP-1111`/
+  `IP-9160` also landed — comfortably `MET` again; 72 tile slots (indices 184–255) remain
+  reclaimable-free above the current ceiling with zero further layout change up to index 183.
 
 ### NFR-4100 — CGB palette budget (cross-referenced, not re-derived)
 

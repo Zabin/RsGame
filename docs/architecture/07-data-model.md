@@ -428,6 +428,14 @@ no boot clear (`LEDGER_COUNT == 0` gates validity, the `COLL_COUNT`/`COLL_DATA` 
 | `C41A` | `LEDGER_CURSOR` | 1 byte | FIFO write cursor, 0-127 |
 | `C41B`–`C69A` | `LEDGER` | 640 bytes | 128 entries × 5 bytes: row (signed 16-bit, low byte first), col (same), collected-flag (1 byte) |
 
+Immediately after `LEDGER`'s block: `C69B`–`C6B2` is `IP-1022`'s transient `FPS_*`
+procedural-fill/landmark-overlay scratch (never saved, re-initialized per redraw — see
+`asm_game.py`'s own constants block), and `C6B3`/`C6B4` are **`MUSIC_BASE_LO`/`MUSIC_BASE_HI`**
+(`IP-1111`, `FR-7110`/`ADR-0019` point 6, 2026-07-17): the currently-selected music track's own
+base address, written by `music_select` at every repoint alongside `MUSIC_PTR_LO`/`MUSIC_PTR_HI`
+and read by `music_tick`'s loop-restart branch (replacing the retired build-time `mus_reset`
+patch constant). Transient, session-only — never persisted to SRAM.
+
 `inf_ledger_find` (shared search) and `inf_ledger_mark_collected` (`IP-1103`'s own forward call,
 now implemented) both operate on this WRAM block exclusively — no per-collection SRAM/MBC1
 access. `inf_ensure_window`'s existing `INF_TREASURE_HERE` write (§7e/§7f) is amended to

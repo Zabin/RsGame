@@ -22,15 +22,22 @@
 > `asm_game.py` changes contradicting `IP-1110`'s own no-`asm_game.py` scope boundary — a genuine
 > planning inconsistency, resolved using this same planning pass's own already-named fallback
 > option instead: a flat, biome-id-indexed ROM address table (`music_table`, mirroring `zc_table`'s
-> own precedent). `IP-1111`'s own §5/§6 (not yet executed) will need a `07-implementation-planning`
-> touch to consume this table correctly before it runs.
+> own precedent). `IP-1111`'s §5/§6 received that `07-implementation-planning` touch 2026-07-17
+> and were revised to consume the table (one shared `music_select` subroutine + a single `CALL`
+> at `dsr_p_dispatch`'s entry — Open Questions 1 and 4 are therefore **fully resolved as
+> implemented**, not merely as planned).
 > **A real technical finding this planning pass surfaced, not in this spec's own §7/§13**:
 > `music_tick`'s loop-restart branch is hardcoded to the main theme's own ROM address, not
 > track-agnostic — `IP-1111` adds a fix (new `MUSIC_BASE_LO`/`MUSIC_BASE_HI` WRAM field).
 > **`IP-1110` implemented 2026-07-16 — `COMPLETE`**: `music.py`'s `generate_theme_variations()`
 > ships all eight non-Grass sub-themes, confirmed as pure transforms of the main theme by a new
 > build-time comparison check (`verify_music_generation.py`); `NFR-4400` (ROM budget) now **Met**,
-> measured directly (31362/32768 bytes, 1466 net new). This Feature sits in the `Future` release
+> measured directly (31362/32768 bytes, 1466 net new).
+> **`IP-1111` implemented 2026-07-17 — `COMPLETE`** (own `09` pass owed): runtime sub-theme
+> selection live via `music_select`/`music_table` (per-redraw main-theme default + per-region
+> override at `dsr_p_dispatch` entry, both mode paths) and the `music_tick` loop-restart fix
+> (`MUSIC_BASE_*`, `mus_reset` retired); `T28.a`–`T28.e`, 319/319 suite. **Both of this
+> Feature's packages are now implemented.** This Feature sits in the `Future` release
 > bucket (no release commitment made); planning/implementation does not require or imply
 > scheduling, per `05-feature-decomposition`'s own established precedent (`FS-110`'s own identical
 > framing).
