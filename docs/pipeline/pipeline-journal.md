@@ -14,43 +14,43 @@
 
 ## Position
 
-- **Updated:** 2026-07-16 (run #174)
-- **Increment:** Three independent arcs. **(1)/(2)** unchanged, closed at runs #167/#168. **(3)
-  Nine biome-family identities** (`BL-0128`/`FR-4320`) — baselined (#169), specced (#170), planned
-  (#171), researched (#172), `CR-08` resolved (#173), and **this run (#174)**: the previously-
-  deferred bundle packaged in full — `IP-1022` (finite generation+dispatch, `BLOCKED` on
-  `IP-1033`) and `IP-1106` (Infinite Mode value widening, `BLOCKED` on `IP-1105`/`IP-1022`/
-  `IP-1033`). **Arc (3) is now fully planned — all four remaining packages
-  (`IP-1105`/`IP-1033`/`IP-1022`/`IP-1106`) gated on G3, nothing left to mechanically advance
-  without it.** Bootstrap baseline remains fully closed (01–11 ✅, GO recorded); Release 2 remains
+- **Updated:** 2026-07-16 (run #175)
+- **Increment:** Four independent arcs now. **(1)/(2)** unchanged, closed at runs #167/#168.
+  **(3) Nine biome-family identities** (`BL-0128`/`FR-4320`) — fully planned as of run #174: four
+  packages (`IP-1105`/`IP-1033`/`IP-1022`/`IP-1106`), all gated on G3, nothing left to
+  mechanically advance. **(4) Procgen music** (`BL-0127`) — **new this run (#175)**:
+  `03-architecture-design-synthesis` produced `ADR-0019` (build-time generation, transposition +
+  tempo-scaling, ostinato/second-channel option deferred, nine sub-themes against `FR-4320`'s
+  axis). A user `AskUserQuestion` call (offering the G3 decision for arc (3) and asking whether to
+  continue arc (4)) failed twice with an `AbortError`; the user's "Continue from where you left
+  off" was treated, per this same session's own established precedent (run #168), as
+  authorization to keep advancing the one genuinely ungated thread rather than assume G3 or pause
+  indefinitely. Bootstrap baseline remains fully closed (01–11 ✅, GO recorded); Release 2 remains
   baselined GO.
 - **Pipeline state:** Bootstrap stages 01–11 ✅; Release 2 GO. **31 of 31 implementation packages
-  `VERIFIED`; 4 new packages planned this delta** (`IP-1105`/`IP-1033` `NOT STARTED`, `IP-1022`/
-  `IP-1106` `BLOCKED` on real unshipped prerequisites one level further downstream) **— none
-  authorized.** Arc (3) has reached the natural stopping point the user's own "iterate until
-  blocked" instruction names, for this arc specifically. **One thread remains genuinely
-  unblocked, outside arc (3):** `BL-0127` (procgen music) is ready for
-  `03-architecture-design-synthesis` (the transform-menu/channel-budget decision `R217` flagged)
-  — a separate, larger-scoped capability (a new music-generation subsystem, not a delta to an
-  existing one) than arc (3)'s own biome-taxonomy merge. Standing, non-blocking work elsewhere,
-  unchanged: `BL-0118`'s `NFR-1400` optimization package; the seven-instance `IP-110x`
-  documentation-accuracy sweep (`BL-0115`/`117`/`120`/`121`/`124`/`125`, all Low); `BL-0123` (Low,
-  `DEFERRED`); `BL-0112` (the `FR-10400` run-end trigger — a standing user decision); `BL-0097`'s
-  own remediation (Medium, optional craft polish, no `07` package authored yet); `BL-0130`
-  (catalog gap, routed `05`).
+  `VERIFIED`; 4 new packages planned in arc (3)** (`IP-1105`/`IP-1033` `NOT STARTED`, `IP-1022`/
+  `IP-1106` `BLOCKED`) **— none authorized.** Arc (4) now has an accepted `ADR-0019`, ready for
+  `04-requirements-engineering` to derive a real FR — not gated, mechanically advanceable, mirroring
+  `ADR-0018`→`FR-9170`'s own precedent. Standing, non-blocking work elsewhere, unchanged:
+  `BL-0118`'s `NFR-1400` optimization package; the seven-instance `IP-110x` documentation-
+  accuracy sweep (`BL-0115`/`117`/`120`/`121`/`124`/`125`, all Low); `BL-0123` (Low, `DEFERRED`);
+  `BL-0112` (the `FR-10400` run-end trigger — a standing user decision); `BL-0097`'s own
+  remediation (Medium, optional craft polish, no `07` package authored yet); `BL-0130` (catalog
+  gap, routed `05`).
 - **Backlog:** 130 entries, 38 open (31 `SCHEDULED`, 6 `DEFERRED`, 0 `NEW`, 1 `NEEDS-USER`).
-  `BL-0128` updated (still `NEEDS-USER`, now naming all four planned packages). `BL-0127` remains
-  `SCHEDULED`, next `03-architecture-design-synthesis`.
-- **Next step:** arc (3)'s own implementation-planning surface is exhausted — the only
-  mechanically-advanceable step left anywhere in the tree is `03-architecture-design-synthesis`
-  on `BL-0127` (procgen music), a distinct, larger-scoped capability outside this arc. Given its
-  size (a new subsystem, not a delta) and that it was the less-central of the two requests this
-  session's "iterate until blocked" instruction has been driving, recommend checking with the
-  user before committing further effort to it, rather than assuming continued autonomous drive
-  is wanted for a genuinely new capability of that scope.
-- **Open gates:** **two, unchanged.** G3 for `IP-1105`/`IP-1033`/`IP-1022`/`IP-1106` (not yet
-  asked). The pre-existing, informational one: whether/when to run `11-release-readiness` on
-  Infinite Mode remains the user's own call (G4).
+  `BL-0127` updated (still `SCHEDULED`, next `04-requirements-engineering`). `BL-0128` remains
+  `NEEDS-USER` (unchanged, G3), still the only open gate this session hasn't been able to ask
+  about (two consecutive `AskUserQuestion` failures).
+- **Next step:** `04-requirements-engineering` on `BL-0127`/`ADR-0019` — derive a real FR for
+  procedural music generation. This is genuinely the last ungated mechanical step across the
+  entire tree right now; once it lands, every remaining thread (arc (3)'s four packages, and
+  whatever arc (4)'s own future `05`/`06`/`07`/`08` chain produces) will be gated on either G3 or
+  further user decisions, satisfying the user's own "iterate until all remaining items are
+  blocked" instruction in full.
+- **Open gates:** **two, unchanged.** G3 for `IP-1105`/`IP-1033`/`IP-1022`/`IP-1106` (asked twice
+  via tool call, both failed with an AbortError — genuinely undelivered, not declined). The
+  pre-existing, informational one: whether/when to run `11-release-readiness` on Infinite Mode
+  remains the user's own call (G4).
 
 ## Run log
 
@@ -234,3 +234,4 @@
 | 172 | 2026-07-16 | advance (same session as run #171) | `02-research-game-design` | CR-08/BL-0129 (adjacency-grammar ordering) + BL-0127 (procgen music), batched | ✅ Extended `R212` to v1.1 with a concrete, real-precedented axis extension for `CR-08`: `Water–Sand–Grass–Stone–Brick–Village–Cave–Desert–Plains` — grounded in Cappadocia's Uçhisar (a real castle-fortress-plus-troglodyte-village-plus-cave-city cluster, one real place instantiating all three new-identity adjacencies at once, not three invented pairings), Petra's desert cave dwellings (a documented thermal-adaptation motive, not coincidence), and Minecraft's own real desert-plains adjacency rule (the same source R212 already trusted for the original five). Named one honest trade-off rather than hiding it: the append-only constraint (preserving the shipped `0`–`4` order to avoid renumbering risk) decouples the new positions' grammar-legality from their palette-group siblings — Village/Cave share Stone's palette but can't sit adjacent to Stone(3) on this axis. Also named why a true multi-axis model (closer to Minecraft's own real multi-parameter system) isn't representable by this project's actual single-linear-axis `[lo,hi]` mechanism without a deeper change. New **`R217`** grounds `BL-0127`: leitmotif/theme-and-variation precedent (Zelda's shared-melody model vs. Pokémon's independent-themes model — `BL-0127`'s own wording reads as the former), a concrete transform menu (transposition/tempo-drift/shared-ostinato, each real-precedented), Markov-chain generation feasibility and its documented "random wandering" failure mode without a higher-order model, and a build-time-Python-generation recommendation mirroring `worldgen.py`'s own established precedent (the sub-theme set is fixed/finite, unlike the unbounded world geometry that actually needs runtime generation). Both topics correctly stop at grounding — neither writes a spec. Cross-links/INDEX/ROADMAP updated. Harvested: none new (both threads already tracked). Triaged: **`BL-0129`** → still `SCHEDULED`, next `04-requirements-engineering` (baseline the ordering as a real `FR-4310` delta, likely no new ADR needed per `FR-4320`'s own precedent); **`BL-0127`** → still `SCHEDULED`, next `03-architecture-design-synthesis` (R217's own guidance flags a real architecture decision needed first — the transform menu, the shared-ostinato channel-2 cost). No drift. | `04-requirements-engineering` on `CR-08`/`BL-0129` — baseline `R212`'s proposed ordering as an `FR-4310` delta, unblocking the deferred `IP-1105`-adjacent bundle. `03-architecture-design-synthesis` on `BL-0127` is a separate, parallel thread. |
 | 173 | 2026-07-16 | advance (same session as run #172) | `04-requirements-engineering` | CR-08/BL-0129 (baseline the researched adjacency ordering) | ✅ Closed `CR-08` — `FR-4310`'s own Description/Postconditions/Acceptance Criteria now state the concrete nine-value adjacency ordering `R212` v1.1 researched (`Water–Sand–Grass–Stone–Brick–Village–Cave–Desert–Plains`), replacing the prior abstract "appears in R212's adjacency grammar table" phrasing with the table's own actual contents. `03-requirements-review.md` finding #21 reviewed the delta clean: the per-identity adjacency list arithmetically cross-checked against the stated `|a-b|<=1` rule (no off-by-one, no missing/accidentally-legal pair), no architecture conflict found (`FR-4320`'s own palette mapping confirmed independent of this axis), the one honest trade-off (`R212` itself names — grammar-legality now decoupled from palette-family grouping for the four new identities) confirmed correctly stated rather than smoothed over. RTM rows updated; `CR-08`'s own Candidate Requirements entry marked RESOLVED/BASELINED with its full trail preserved (a seventh instance of this project's supersession/closure discipline). Harvested: none new — clean delta, no findings. `BL-0129` → `DONE`. No drift. | `07-implementation-planning` on the now-unblocked deferred bundle (Technical Work Breakdown, "Nine biome-family identities" section) — finite-mode `generate_world` clamp widening, `dsr_p_dispatch`'s screen-selection cascade, Infinite Mode's own value-range widening, `inf_treasure_pos`'s table extension. Mirrors `CR-05`'s own resolution-into-`FR-9170` precedent (returns directly to `07`, no fresh `05`/`06` pass needed — the owning Feature, `FS-102`/`FEAT-9000`, is already specified). |
 | 174 | 2026-07-16 | advance (same session as run #173) | `07-implementation-planning` | Deferred bundle (finite generation+dispatch, Infinite Mode value widening) — now unblocked by `CR-08`'s closure | ✅ Packaged the bundle the earlier pass deliberately left unpackaged. Re-ran the verb inventory fresh rather than reusing the prior "one deferred lump" framing verbatim — found Infinite Mode's own value-range widening is genuinely separable from finite-mode generation+dispatch (a real module-boundary seam, not merely sharing `CR-08` as a blocking condition), so split into two packages instead of one: **`IP-1022`** (`08-code-implementation`, `FS-102`+`FS-103` delta) — widens `generate_world`'s clamp `[0,4]`→`[0,8]`, extends `dsr_p_dispatch`'s shared cascade to all nine identities, splices `IP-1033`'s staged `ZONE_COLLECTS` content into the real array; **`BLOCKED`** on `IP-1033` (a real unshipped prerequisite, not merely G3). **`IP-1106`** (`08-code-implementation`, `FS-110` delta) — widens `materialize_region`'s draw `%5`→`%9`, extends `inf_treasure_pos` to nine entries; **`BLOCKED`** on `IP-1105`/`IP-1022`/`IP-1033` — the deepest point in this delta's own dependency chain (`IP-1033`/`IP-1105` → `IP-1022` → `IP-1106`). Correctly distinguished `BLOCKED` (real unshipped prerequisite) from `NOT STARTED` (gated only on G3) — `IP-1033`/`IP-1105` stay `NOT STARTED`, `IP-1022`/`IP-1106` are `BLOCKED` one level further downstream. Master Build Plan/`packages/INDEX.md`/TWBS/`FS-102`/`FS-103`/`FS-110`/`ROADMAP.md` all cross-linked. **None of the four packages in this delta authorized.** Harvested: none new — clean delta. No drift. | **All four packages in arc (3) (`IP-1105`/`IP-1033`/`IP-1022`/`IP-1106`) now gated on G3** — arc (3) is fully advanced to the point the user's own "iterate until all remaining items are blocked" instruction names as a stopping condition, for this arc specifically. `BL-0127` (procgen music, `03-architecture-design-synthesis`) remains the one standing, genuinely-unblocked thread outside this arc. |
+| 175 | 2026-07-16 | advance (same session as run #174; `AskUserQuestion` on G3/procgen-music continuation failed with an AbortError, user's "Continue from where you left off" treated as authorization to keep driving the one genuinely ungated thread rather than assume G3 or pause indefinitely) | `03-architecture-design-synthesis` | BL-0127 (procgen music architecture decision) | ✅ New **`ADR-0019`**: build-time (Python) generation confirmed over runtime, grounded in the real distinction `worldgen.py`'s own module shape doesn't transfer here — that module exists because its algorithm needs two lockstep implementations (SM83 + Python oracle); procedural music under this decision has no second implementation to keep in sync, so it belongs inside `music.py` itself, not a new sibling module (a real architectural correction to a naive "just copy worldgen.py" instinct, caught and explained rather than assumed). Transform menu: transposition + tempo/duration scaling, combinable; the shared-ostinato/second-APU-channel option explicitly deferred, not adopted — a real resource commitment `BL-0127`'s own wording doesn't require. Existing shipped 16-bar theme becomes the main theme unchanged; nine sub-themes generated from it, one per `FR-4320`'s biome-family identity (committed now — `FR-4320` is requirements-baselined even though its own implementation packages haven't shipped, a settled fact independent of that execution status). ROM budget grounded in direct measurement (`music_data()` = 181 bytes today; nine variations ≈ 1629 bytes fit the ~2872-byte headroom with room to spare, not assumed free). Named one real, non-blocking sequencing dependency: the eventual music-selection trigger needs `FR-4320`'s own packages shipped first (same biome-id domain), but this ADR's own decision doesn't depend on that. `docs/architecture/adr/INDEX.md`/`ROADMAP.md` updated. Harvested: none new — clean decision, no findings. No drift. | `04-requirements-engineering` to derive a real FR from `ADR-0019`, mirroring `ADR-0018`→`FR-9170`'s own precedent |
