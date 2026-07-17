@@ -1580,3 +1580,36 @@ none exists beyond `_score_bar`'s own bake, confirmed clean.
 
 **Authorization:** **not authorized** — new remediation package for a post-bootstrap finding
 (`BL-0139`), not covered by any standing go-ahead; awaits an explicit G3 user decision.
+
+## Infinite Mode HUD target-digit convention (`BL-0144`, planned 2026-07-17)
+
+**Source:** `07-implementation-planning` run #213's own split of `BL-0139` — the design question
+`IP-9170` deliberately left open (what should Infinite Mode's HUD col-4 cell show, since it has
+no fixed carrot ceiling). **User decision, 2026-07-17: show the running treasure count.**
+
+**Verb inventory:** *render* only, same class as `IP-9170`.
+
+**Scope note — single-digit constraint inherited from the existing HUD format:** the target-digit
+cell is exactly one tile (col 4); `RUNNING_TREASURE_COUNT` is a 2-byte WRAM counter that can
+exceed 9 in a long-running Infinite Mode session. Showing the value mod 10 (the low decimal
+digit) is the only fit within the existing one-cell format without widening it — the user's own
+decision text named this option explicitly ("`RUNNING_TREASURE_COUNT` (or its low digit)"). A
+genuinely multi-digit display would need to claim additional HUD cells (a real layout change,
+out of this package's own scope — named as a Risk, not silently expanded into).
+
+**Cut and rationale — one package, `IP-9180`, owned by `08-code-implementation`:** mirrors
+`IP-9170`'s own shape exactly — a `GAME_MODE`-gated conditional inside `update_status_disp`, this
+time the Infinite Mode branch (`GAME_MODE != 0`) rather than the finite-mode branch `IP-9170`
+already added. Both branches now live side-by-side in the same routine, sharing the same
+`SCORE_DIRTY`-gated redraw trigger. No split considered — one routine, one coherent change,
+same test-authoring pattern as `IP-9170`.
+
+**Supersession sweep:** nothing retired; swept for any other Infinite-Mode-specific row-0 writer
+— none exists beyond this package's own new branch.
+
+**Note:** `RUNNING_TREASURE_COUNT mod 10` needs a repeated-subtraction reduction (no `DIV`/`MUL`
+on SM83), mirroring `inf_mod9`'s own established technique (`asm_game.py`, `IP-1106`) — a
+`mod 10` variant of the same pattern, not a new technique.
+
+**Authorization:** **not authorized** — new remediation package resolving `BL-0144`, not covered
+by any standing go-ahead; awaits an explicit G3 user decision.
