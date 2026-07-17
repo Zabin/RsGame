@@ -1537,3 +1537,46 @@ task rather than baking this planning pass's own list in as an assumption.
 
 **Authorization:** **not authorized** — new remediation package for a post-bootstrap finding
 (`BL-0138`), not covered by any standing go-ahead; awaits an explicit G3 user decision.
+
+## HUD carrot-target digit fix (`BL-0139` remediation, planned 2026-07-17)
+
+**Source:** `08-content-authoring` run #206 (`IP-9160`'s own Outstanding Issue, spotted during
+that package's row-0 writer inventory): every screen's `_score_bar` bakes a literal `"-9"` at
+row-0 cols 3-4 (`tilemaps.py:44-45`) and no runtime writer ever updates col 4 — but the finite-mode
+win condition is `CARROTS_COUNT == WORLD_SCALE` (`IP-1021`), so any world at a scale other than 9
+shows a target digit that doesn't match its own real win condition.
+
+**Verb inventory:** *render* only (a HUD digit is presentation, not generation/navigation/
+persistence). One verb, one runtime concern — no split needed on that axis.
+
+**Scope decision — finite mode only, Infinite Mode explicitly deferred:** `BL-0139` itself named
+a second, harder question: what should Infinite Mode's slot show, since Infinite Mode has no
+fixed carrot target at all (`RUNNING_TREASURE_COUNT` only ever increases, no `WORLD_SCALE`-style
+ceiling). Folding that question into this package would either (a) invent a display convention
+for Infinite Mode that no FS/GDS document has ever specified, or (b) block this package's own
+straightforward finite-mode fix on an upstream design decision it doesn't need. **Cut in two:**
+this package (`IP-9170`) fixes only the finite-mode digit, gated on `GAME_MODE == 0` so Infinite
+Mode's own row-0 col-4 cell is left completely untouched (whatever `_score_bar` baked there
+persists exactly as it does today — no behavior change for Infinite Mode, positive or negative).
+The Infinite-Mode-HUD question itself is **not** resolved here — it is named as an Open Question
+for `03-architecture-design-synthesis`/`06-feature-specification` to actually decide (does
+Infinite Mode's slot show a running count instead, a fixed decorative glyph, get removed/blanked,
+or something else — a real design choice, not a mechanical fix), filed back to the backlog as a
+narrower successor to `BL-0139`'s own second half.
+
+**Cut and rationale — one package, `IP-9170`, owned by `08-code-implementation`:** the fix is a
+runtime write (`update_status_disp`, `asm_game.py`), not data — `WORLD_SCALE` is read and written
+to tile col 4 the same way `CARROTS_COUNT` is already written to col 2 two lines above it
+(`TL_DIGIT_0 + value`, direct `LD_HL_nn`/`LD_HL_A` write, no new subroutine needed since the
+existing digit-write pattern already covers a single-digit 0-9 range and `WORLD_SCALE`'s own
+range is 2-9, per its own existing comment). This belongs to the code peer, not content —
+`tilemaps.py`'s baked `"-9"` glyph itself is untouched (it's the correct fallback for the one
+frame before `update_status_disp` first runs, and for every other `GAMESTATE`, exactly mirroring
+`_score_bar`'s existing carrot/score digit placeholders' own established convention).
+
+**Supersession sweep:** nothing is retired (`WORLD_SCALE`'s own semantics are unchanged, this is
+an additive HUD write); swept `asm_game.py`/`tilemaps.py` for every other row-0, col-4 writer —
+none exists beyond `_score_bar`'s own bake, confirmed clean.
+
+**Authorization:** **not authorized** — new remediation package for a post-bootstrap finding
+(`BL-0139`), not covered by any standing go-ahead; awaits an explicit G3 user decision.

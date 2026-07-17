@@ -871,3 +871,16 @@ inside `IP-1111`, not split out).
 
 **Authorization state: both packages authorized** (G3, user "Build all six," 2026-07-16).
 Both `IP-1110` and `IP-1111` are now `VERIFIED`.
+
+## HUD carrot-target digit fix (`BL-0139`, planned 2026-07-17)
+
+One package — see the
+[TWBS](01-technical-work-breakdown.md#hud-carrot-target-digit-fix-bl-0139-remediation-planned-2026-07-17)
+for the scope decision (finite-mode fix only; Infinite Mode's own display convention is a
+separate, unresolved design question, deliberately not folded in).
+
+| Package | Title | Owner (08 peer) | Status | Depends on | Authorized? | Notes |
+|---|---|---|---|---|---|---|
+| [IP-9170](packages/IP-9170-hud-carrot-target-digit-fix.md) | HUD carrot-target digit fix | `08-code-implementation` | **NOT STARTED** | None | **Not authorized** | `update_status_disp` gains a `GAME_MODE`-gated write of `WORLD_SCALE` to the HUD's row-0/col-4 target digit (finite mode only, col 4 = `0x9804`). Infinite Mode's own col-4 cell deliberately untouched. Awaits explicit G3. |
+
+No critical-path interaction — independent of every other package in the tree.
