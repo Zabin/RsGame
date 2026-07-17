@@ -491,17 +491,13 @@ ZONE_COLLECTS = [
      (84, 64, 2)],
 ]
 
-# ── IP-1033: staged content for the four newly-folded biome identities ────
-# Village/Cave/Desert/Plains — FR-4320 (BL-0128). NOT yet spliced into
-# ZONE_COLLECTS above; final array-index assignment (which of positions
-# 5-8 each list occupies) rides the deferred dispatch package (IP-1022),
-# entangled with CR-08's identity-to-position resolution. This block is
-# pure staged data, unreferenced by any code path until that package
-# splices it in. Same (pixel_x, pixel_y, type) format, same pixel space
-# (x∈[8,151], y∈[24,128]) and player-spawn exclusion (76, 72) as the
-# five lists above. Placement verified visually against each screen's
-# real, shipped landmark layout (village_screen/cave_screen/desert_
-# screen/plains_screen) via a temporary-force render, not committed here.
+# ── IP-1022: collectible-spawn content for the four newly-folded biome
+# identities — Village/Cave/Desert/Plains — FR-4320 (BL-0128). Same
+# (pixel_x, pixel_y, type) format, same pixel space (x∈[8,151],
+# y∈[24,128]) and player-spawn exclusion (76, 72) as the five lists
+# above. Spliced into ZONE_COLLECTS at indices 5-8 below (CR-08's
+# resolved order). Placement independently re-verified clear of every
+# landmark by direct tile-grid arithmetic (VR-1033 Pass 2).
 
 VILLAGE_COLLECTS = [
     # avoids the four top houses (cols 3/11/19), two lanterns (col 1),
@@ -553,4 +549,91 @@ PLAINS_COLLECTS = [
     (40, 40, 1), (88, 40, 0), (128, 72, 1),
     (48, 112, 0), (104, 96, 1),
     (144, 88, 2),
+]
+
+# IP-1022: splice the four staged lists into ZONE_COLLECTS's real array,
+# indices 5-8, CR-08's resolved order (Village/Cave/Desert/Plains).
+ZONE_COLLECTS += [VILLAGE_COLLECTS, CAVE_COLLECTS, DESERT_COLLECTS, PLAINS_COLLECTS]
+
+# ── IP-1022 (ADR-0020): procedural background-fill parameters for the
+# four newly-folded biome screens, replacing a full baked tile+attr
+# array with a small on-device fill routine + the landmark-overlay
+# lists below. Each screen's base fill is `tile_a` if
+# `(mult_y*y + mult_x*x + offset) % modulus < threshold` else `tile_b`,
+# at a constant `attr`, for y in 1..17 (row 0 is the score bar, handled
+# separately) — exactly the formula each `*_screen()` function above
+# already uses. `row_table[y-1]` precomputes `(mult_y*y + offset) %
+# modulus` (the row's own seed at x=0) at build time, so the on-device
+# routine only needs to step by `mult_x` per column (confirmed by direct
+# simulation against every one of these four screens' own real output:
+# zero mismatches outside the landmark positions below). A `row_table`
+# entry of 0xFF means "this row is a solid wall" (Cave's rows 1/17
+# only) — the on-device routine fills the whole row with `wall_tile`
+# instead of evaluating the formula.
+#
+# Format: (mult_x, modulus, threshold, tile_a, tile_b, attr, wall_tile,
+# row_table) — `wall_tile` is 0xFF (unused sentinel, never a real tile
+# index in this codebase) for the three screens with no wall rows.
+
+VILLAGE_FILL = (1, 2, 1, TL_COBBLE, TL_COBBLE_VAR, 4, 0xFF,
+    [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1])
+
+CAVE_FILL = (5, 18, 14, TL_CAVE_FLOOR, TL_CAVE_BUMP, 4, TL_CAVE_WALL,
+    [0xFF, 15, 10, 5, 0, 13, 8, 3, 16, 11, 6, 1, 14, 9, 4, 17, 0xFF])
+
+DESERT_FILL = (11, 17, 12, TL_DUNE, TL_DUNE_BUMP, 1, 0xFF,
+    [11, 13, 15, 0, 2, 4, 6, 8, 10, 12, 14, 16, 1, 3, 5, 7, 9])
+
+PLAINS_FILL = (7, 16, 11, TL_PLAIN_GRASS, TL_GRASS_TUFT, 0, 0xFF,
+    [9, 0, 7, 14, 5, 12, 3, 10, 1, 8, 15, 6, 13, 4, 11, 2, 9])
+
+# ── IP-1022 (ADR-0020): landmark overlays — the exact cells where each
+# screen's real, shipped art (houses, crystals, cacti, flowers, etc.)
+# overrides the procedural base fill above. Format: (tile_x, tile_y,
+# tile_id, attr), one entry per overridden cell. Derived by direct,
+# per-cell diff against each `*_screen()` function's own returned
+# arrays (not hand-transcribed) — every entry here is a cell where the
+# base-fill formula's own output does not match the real screen, and
+# every one of those cells is covered by an entry (confirmed: 0
+# unaccounted mismatches for all four screens).
+
+VILLAGE_LANDMARKS = [
+    (3, 2, 146, 5), (11, 2, 146, 5), (19, 2, 146, 5), (26, 2, 146, 5),
+    (3, 3, 147, 5), (11, 3, 147, 5), (19, 3, 147, 5), (26, 3, 147, 5),
+    (8, 6, 149, 1), (17, 6, 149, 1), (24, 6, 149, 1),
+    (1, 7, 148, 2), (29, 7, 148, 2), (1, 11, 148, 2), (29, 11, 148, 2),
+    (8, 12, 149, 1), (17, 12, 149, 1), (24, 12, 149, 1),
+    (5, 14, 146, 5), (14, 14, 146, 5), (23, 14, 146, 5),
+    (5, 15, 147, 5), (14, 15, 147, 5), (23, 15, 147, 5),
+]
+
+CAVE_LANDMARKS = [
+    (7, 2, 156, 3), (16, 2, 156, 3), (24, 2, 156, 3),
+    (11, 3, 157, 4), (5, 4, 155, 7), (20, 4, 157, 4),
+    (22, 5, 155, 7), (13, 6, 155, 7), (28, 9, 155, 7),
+    (8, 11, 155, 7), (17, 13, 155, 7), (25, 14, 155, 7),
+]
+
+DESERT_LANDMARKS = [
+    (22, 4, 165, 1),
+    (4, 5, 162, 6), (12, 5, 162, 6), (19, 5, 162, 6), (27, 5, 162, 6),
+    (4, 6, 163, 6), (12, 6, 163, 6), (19, 6, 163, 6), (27, 6, 163, 6),
+    (14, 8, 165, 1), (23, 8, 164, 4), (7, 9, 164, 4), (16, 11, 164, 4),
+    (4, 12, 162, 6), (12, 12, 162, 6), (19, 12, 162, 6), (27, 12, 162, 6),
+    (4, 13, 163, 6), (12, 13, 163, 6), (19, 13, 163, 6), (27, 13, 163, 6),
+    (10, 14, 164, 4),
+]
+
+PLAINS_LANDMARKS = [
+    (8, 3, 171, 2), (18, 3, 169, 5), (28, 3, 170, 3),
+    (3, 4, 169, 5), (13, 4, 170, 3), (23, 4, 171, 2),
+    (10, 5, 172, 7),
+    (5, 7, 170, 3), (17, 7, 171, 2), (29, 7, 170, 3),
+    (11, 8, 169, 5), (24, 8, 169, 5),
+    (20, 9, 172, 7),
+    (4, 10, 173, 0), (16, 10, 173, 0), (25, 10, 173, 0),
+    (3, 12, 171, 2), (15, 12, 169, 5), (27, 12, 170, 3),
+    (9, 13, 170, 3), (21, 13, 171, 2),
+    (7, 14, 172, 7),
+    (6, 15, 169, 5), (22, 15, 170, 3), (14, 16, 171, 2),
 ]

@@ -1041,7 +1041,12 @@ FR-6000 for the presentation half)*
   grammar-adjacent to Stone(3) on this axis. Not a defect — this FR never required palette
   grouping and adjacency-axis position to coincide, and R212 itself confirms `FR-4320`'s own
   palette-mapping decision (§10 there) is independent of this FR's own axis. `CR-08` is closed —
-  see its own entry below for the resolution trail.
+  see its own entry below for the resolution trail. **`IP-1022` implemented 2026-07-17**: the
+  full nine-value grammar axis is now live in finite-mode generation (`generate_world`'s clamp
+  widened `[0,4]`→`[0,8]`), confirmed by `T12.d`'s grammar-validity property test — extended with
+  two additional corpus seeds (38/50 at scale=9) specifically found to reach biome-ids 5-8, since
+  the pre-existing corpus never actually exercised the widened domain (a real coverage gap the
+  original corpus's own random-walk behavior left, not a defect this package introduced).
 
 ### FR-4320 — Nine biome-family identities, mapped onto five terrain-palette groups (target — 2026-07-16)
 
@@ -1118,7 +1123,18 @@ FR-6000 for the presentation half)*
   3-6→4-7), freeing the fourth biome-id bit this FR's own nine-value domain needs — a
   behavior-preserving repack only, the draw's own value range stays `%5` (not yet widened; that
   and the finite-mode dispatch/identity-assignment work remain open, riding `IP-1022`/`IP-1106`).
-  This FR itself is **not** marked Implemented by this step alone.
+  This FR itself is **not** marked Implemented by this step alone. **`IP-1022` implemented
+  2026-07-17**: `generate_world`'s biome-draw clamp widened `[0,4]`→`[0,8]`; `dsr_p_dispatch`'s
+  cascade extended to all nine identities; `IP-1033`'s staged `ZONE_COLLECTS` content spliced in
+  at indices 5-8. **Deviation from the original plan** (`ADR-0020`, 2026-07-17): Village/Cave/
+  Desert/Plains render via a runtime procedural-fill routine + landmark-overlay list rather than
+  a baked ROM array — the first `08-code-implementation` attempt found baking all four screens
+  overflows the ROM budget by ~3,358 bytes (`BL-0134`); the procedural-fill approach recovers the
+  gap without bank switching. Oracle-parity confirmed (`T13.e`, 311/311 suite): the on-device
+  fill+overlay output is byte-for-byte identical to each screen's own Python source, for all four
+  identities. **This FR's own Postcondition (b) is now fully met** — all nine biome identities are
+  reachable generation targets in finite-mode play. **Not yet implemented for Infinite Mode**
+  (`FR-10200`'s side) — that remains `IP-1106`'s own scope, now unblocked.
 
 ## FR-5000 — Save / load (SRAM)
 

@@ -1336,3 +1336,159 @@ cross-arc sequencing risk. This chain does not extend or block arc (3)'s own cri
 
 None — this pass carries no `SCHEDULED` backlog entry riding along; it is the direct, expected
 continuation of `BL-0127`'s own `05`→`06`→`07` chain, already tracked under that ID.
+
+## BL-0134 — `IP-1022`'s ROM-budget overflow: mechanical recovery + upstream routing
+
+**Trigger:** `08-code-implementation`'s fresh attempt at `IP-1022` (2026-07-17) hit a hard ROM
+overflow — wiring `village`/`cave`/`desert`/`plains` into `ALL_SCREENS` makes `build_rom.py` emit
+their full tile+attr arrays for the first time (`IP-1033`'s own content stayed inert/unwired, so
+no prior package paid this cost). All source edits were reverted; the tree is back to
+last-known-good (31362/32768, 309/309 passing). This entry re-derives the exact byte math and
+determines what, if anything, can close the gap without an architecture-level decision.
+
+### Byte math (re-derived directly from source, not the crash's own partial count)
+
+`IP-1022`'s full scope would add:
+
+- **4,608 bytes** — four new screens' tile+attr arrays (`village_screen`/`cave_screen`/
+  `desert_screen`/`plains_screen`, each `W*H=576` tiles + `576` attrs = 1,152 bytes; confirmed by
+  directly invoking each function and measuring its output).
+- **~108 bytes** — `ZONE_COLLECTS`'s four new spawn lists (25 bytes each: 1-byte length + 6
+  entries × 4 bytes) plus `zc_table`'s growth (4 × 2-byte pointers).
+- **~48 bytes** — `dsr_p_dispatch`'s four new `CP_n`/`JR_Z` comparison pairs (16 bytes: `brick`
+  becomes explicit, `village`/`cave`/`desert` are new) plus four new `_dsr_family` blocks (32
+  bytes: `LD_DE_nn`+`LD_BC_nn`+`JR`, 8 bytes each — `plains`'s block costs the same as the other
+  three; only its *reach* is a fallthrough, not its size).
+
+**Total: ~4,764 bytes needed. Headroom available: 1,406 bytes (31362/32768 used). Shortfall:
+~3,358 bytes** — a more complete figure than the crash-triggered 3,202-byte estimate `BL-0134`
+was originally filed with (the crash occurred mid-emission of the *first* new screen, before the
+remaining screens/collectible data/code were even reached).
+
+### Mechanical recovery found (safe, no architecture change)
+
+`tiles.py`'s `build_tile_data()` (`tiles.py:924-925`) allocates a **fixed 256-tile (4,096-byte)**
+array (`bytearray(256 * 16)`) regardless of how many tile slots are actually populated. Direct
+scan of every `TL_*` constant in `tiles.py` finds the highest in use is `TL_TORCH = 0xB5` (181) —
+only **182 of 256 slots** (indices 0–181) are ever written by a `put()` call; slots 182–255 are
+pure zero-padding, 74 slots × 16 bytes = **1,184 wasted bytes**, shipped in every build today and
+already present in the *current* 31362-byte baseline, not something this package would newly
+introduce.
+
+The boot-time consumer (`asm_game.py:358-360`) copies exactly `256 * 16` bytes from ROM to VRAM
+(`0x8000`) via a single hardcoded `LD_BC_nn(256 * 16)` — the *only* other site referencing this
+constant (confirmed by grep across `asm_game.py`/`tiles.py`/`build_rom.py`). Truncating both to
+the actual highest-used index (rounded to a clean tile-count boundary, e.g. 184 tiles = 2,944
+bytes, headroom for a few more before the next size-class boundary) is a pure, mechanical,
+behavior-preserving reduction — slots 182+ are never addressed by any `_put()`/OAM/tilemap byte
+anywhere in the tree, and the boot sequence already zero-clears the full VRAM tile-pattern region
+(`asm_game.py:350-355`) before this copy runs, so the untransferred slots read as blank either way.
+**Recovers ~1,152–1,184 bytes.** Not remotely sufficient on its own (headroom would rise to
+~2,558–2,590 bytes against a ~4,764-byte need — still ~2,174–2,206 bytes short), but a legitimate,
+free, zero-risk win regardless of how the larger gap is resolved. Packaged as **`IP-9150`** below.
+
+### What does NOT close the gap
+
+- **Reducing tile-art variety per new screen** does not help — a screen's ROM cost is `W*H`
+  fixed-size grid bytes (1,152 bytes total) regardless of how many *distinct* tile indices it
+  uses; a screen drawn with 3 tile types costs the same as one drawn with 30.
+- **Shrinking `BG_PALETTES`/`OBJ_PALETTES`** — both are hardware-mandated 8-slot arrays (64 bytes
+  each) copied by their own fixed-count loops (`asm_game.py:363-376`); several `OBJ_PALETTES`
+  slots are already unused placeholders, but the recoverable amount (≤32 bytes) is negligible
+  against a multi-thousand-byte gap and not worth the same-pattern risk as the tile-data trim for
+  so little return.
+- **Compressing the new screens' tile/attr arrays at build time, decompressing at runtime** would
+  recover real space (these screens' fill patterns are already build-time-computed from small
+  seed formulas — e.g. cave's `(y*13+x*5+7)%18` — so a compact on-ROM representation is plausible
+  in principle), but this is not a mechanical trim: it requires a **new SM83 decompression
+  routine**, a real per-frame/per-redraw CPU-cycle cost this codebase already has an open,
+  **`NOT MET`** cycle-budget finding against (`NFR-1400`, Infinite Mode's `dsr_p_inf` path) — adding
+  decompression to the shared `copy_screen`/`dsr_p` redraw path risks compounding that existing gap
+  rather than being a free win. This is a genuine new engine capability, not a data trim, and
+  belongs to `03-architecture-design-synthesis` (an ADR) if pursued.
+- **Multi-bank ROM** — `ADR-0001` (single-bank ROM, no MBC bank switching) explicitly named
+  `MSTR-001` `C7`'s world-scale growth as its own future supersession trigger; this exact scenario
+  (a biome-family/world-content expansion outgrowing the single 32KB bank) is what that trigger
+  describes. `ADR-0006` already establishes MBC1, which supports banking — reversing `ADR-0001`'s
+  no-bank-switching decision is technically available, but is a first-class architecture decision
+  (bank-boundary-aware code/data layout, `gbc_lib.py`'s `ROM` class would need bank-aware emission,
+  every cross-bank call site audited) far beyond this package's own scope.
+
+### Work units and package cut
+
+| Work unit | Package | Owner | Depends on |
+|---|---|---|---|
+| Trim `build_tile_data()`'s emitted range to the highest actually-used tile index (rounded to a clean boundary) and correspondingly reduce the boot-time tile-copy DMA count | [IP-9150](packages/IP-9150-tile-data-padding-trim.md) | `08-code-implementation` | None — independent of `IP-1022`, safe to ship on its own |
+
+**`IP-1022` itself is not re-packaged here.** Its own scope, as specified, remains correct and
+unchanged — the blocker is a ROM-budget ceiling the package's own §13 Risks should have named
+(a planning gap, not a defect in the package's design), not a flaw in *what* it specifies. Even
+with `IP-9150`'s full recovery applied first, `IP-1022` still cannot fit (~2,200-byte residual
+shortfall) — closing that residual requires either **descoping** (shipping fewer than all four
+newly-folded identities in this pass, contradicting the user's own "Build all six" authorization
+as currently scoped) or a **genuine architecture-level decision** (runtime tile-array compression,
+or reversing `ADR-0001`'s single-bank decision per its own named `C7` trigger). Neither is this
+skill's call to make — both require the user's explicit direction before any further package can
+be authored against `IP-1022`'s own scope. Routed upstream: **`03-architecture-design-synthesis`**
+if the user chooses the compression or bank-switching path (a new ADR is needed either way); a
+direct user answer alone suffices if the user instead chooses to descope this pass.
+
+### Backlog riders honored in this pass
+
+`BL-0134` (High) — re-derived the exact byte math, packaged the one safe mechanical recovery
+(`IP-9150`), and confirmed (not assumed) that no further mechanical trim closes the remaining gap.
+Disposition updated from `SCHEDULED` to `NEEDS-USER` — the residual ~2,200-byte shortfall needs the
+user's explicit direction among the options named above before `IP-1022` can be re-attempted.
+
+## `IP-1022` re-plan against `ADR-0020` (procedural screen fill)
+
+**Trigger:** `ADR-0020` (2026-07-17) decided the four newly-folded biome screens render via a
+runtime procedural-fill routine + landmark-overlay list rather than baked full arrays, closing
+`BL-0134`'s ROM shortfall without needing `ADR-0011`'s bank switching. This entry records the
+re-planning rationale; `IP-1022`'s own package doc carries the full technical detail.
+
+### What changed and why
+
+The prior TWBS entry (`BL-0134`'s mechanical-recovery pass, same day) found `IP-9150`'s tile-data
+padding trim insufficient alone and concluded the residual ~2,200-byte gap needed either
+descoping, tile compression, or bank switching — routing to `03-architecture-design-synthesis` to
+decide. `ADR-0020` chose compression, specifically via a technique this package's own content
+happens to make unusually cheap: all four new screens' background patterns are already expressed
+as small, closed-form Python modulo formulas (`tilemaps.py`'s own `*_screen()` functions), not
+arbitrary hand-authored pixel art — the same class of "computable, not merely storable" content
+`generate_world`'s own on-device generation (`ADR-0009`) already demonstrates is both feasible and
+this codebase's own established idiom.
+
+**Verb inventory re-check:** the four verbs this delta touches — *generate* (`generate_world`'s
+domain widening, unchanged), *render* (now split into two sub-verbs: procedural background fill +
+landmark overlay, both new), *navigate* (`dsr_p_dispatch`'s cascade, unchanged in shape, extended
+in reach), *persist* (`ZONE_COLLECTS`, unchanged) — each still has a named owner within this one
+package; the *render* verb's split is recorded explicitly here rather than left implicit.
+
+**Supersession sweep (re-run):** searched `asm_game.py`/`build_rom.py` for any other site assuming
+"every `ALL_SCREENS` entry has a baked ROM address" — found none: `screen_addrs`'s own dict-keyed
+lookup (`build_rom.py`'s `for name, fn in ALL_SCREENS` loop) naturally has no entry for
+`village`/`cave`/`desert`/`plains` once they are removed from `ALL_SCREENS`, and no other code
+path indexes `ALL_SCREENS` positionally or assumes it holds all nine identities — confirmed clean.
+
+### No split from `IP-9150`
+
+`IP-9150` (tile-data padding trim, 1,152 bytes) remains packaged and independently useful — it
+recovers real headroom regardless of how `IP-1022`'s own gap is closed, and this re-plan does not
+change its own scope. With `ADR-0020`'s ~4,272-byte estimated recovery alone comfortably exceeding
+the ~3,358-byte shortfall, `IP-9150` is no longer strictly required to unblock `IP-1022` — it
+remains a good-hygiene parallel package, not a prerequisite.
+
+### Bank switching (`ADR-0011`) not triggered
+
+`ADR-0020` explicitly recorded this: the narrower, already-precedented, lower-risk technique
+closes this specific gap, so `ADR-0011`'s own cutover trigger ("content genuinely cannot fit
+remaining bank-0 headroom" *after* available ROM-efficiency options are exhausted) is not met by
+this delta. `ADR-0011` remains the committed long-term direction for when ROM-cheap tricks are
+exhausted — unaffected, not implemented by this pass.
+
+### Backlog riders honored in this pass
+
+`BL-0134` — re-planned `IP-1022` against `ADR-0020`'s decision; the package's own Verification
+Checklist now carries the oracle-parity obligation `ADR-0020` requires. `BL-0134`'s own
+disposition is updated by the pipeline manager once this package ships and verifies.

@@ -357,7 +357,17 @@
 - **Related ADRs:** ADR-0001 (names this budget's future supersession trigger, commitment C7).
 - **Notes:** This NFR does **not** anticipate C7's eventual bank-switching need — when that work
   is planned, this NFR will require a dated revision, not a silent redefinition, per the
-  ladder's delta-update discipline.
+  ladder's delta-update discipline. **2026-07-17 (`IP-1022`, `BL-0134`):** `IP-1022`'s first
+  implementation attempt genuinely hit this budget's ceiling — baking all four newly-folded
+  screens' full tile+attr arrays would have overflowed by ~3,358 bytes. Per `ADR-0011` (accepted
+  2026-07-09, already committing to MBC1 bank switching for exactly this class of overflow) and
+  `ADR-0020` (2026-07-17), the overflow was resolved **without** triggering `ADR-0011`'s cutover:
+  a runtime procedural-fill + landmark-overlay technique recovered ~4,272 bytes at the cost of
+  ~796 bytes of new data/code, leaving the ROM at 32158/32768 bytes (610 bytes headroom) — this
+  NFR remains **MET**, still within a single 32768-byte bank, no bank-switching introduced. This
+  is the closest this budget has come to its own named supersession trigger to date; the next
+  package that grows ROM usage should re-affirm headroom explicitly (`BL-0019`'s standing
+  convention) given how little margin now remains.
 
 ### NFR-4100 — CGB palette budget (cross-referenced, not re-derived)
 

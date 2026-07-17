@@ -7,8 +7,9 @@ only by test_rom.py (T12's oracle-parity check) — never imported by
 build_rom.py/asm_game.py (GDS-09 delta, explicit — this is a test-only mirror,
 not shared code).
 
-Biome axis (5 families, linear grammar per the TWBS's resolved FS-102 OQ1):
-  0=Water 1=Sand 2=Grass 3=Stone 4=Brick
+Biome axis (9 families, linear grammar per the TWBS's resolved FS-102 OQ1,
+widened from the original 5 per FR-4320/CR-08, IP-1022):
+  0=Water 1=Sand 2=Grass 3=Stone 4=Brick 5=Village 6=Cave 7=Desert 8=Plains
 Adjacency is grammar-legal iff axis indices differ by at most 1.
 """
 
@@ -41,7 +42,7 @@ def generate(seed: int, scale: int, _with_treasure: bool = False):
     Deterministically generate a scale x scale region grid from (seed, scale).
 
     Returns a list of `scale*scale` dicts, row-major order (index = row*scale+col):
-        {'biome_id': int (0-4), 'neighbors': [up, down, left, right]}
+        {'biome_id': int (0-8), 'neighbors': [up, down, left, right]}
     where each neighbor is a region index (int) or None (grid boundary, 0xFF on
     the SM83 side).
 
@@ -65,7 +66,7 @@ def generate(seed: int, scale: int, _with_treasure: bool = False):
             i = row * scale + col
             if i == 0:
                 continue
-            lo, hi = 0, 4
+            lo, hi = 0, 8
             top = biome[(row - 1) * scale + col] if row > 0 else None
             left = biome[row * scale + (col - 1)] if col > 0 else None
             if top is not None:
@@ -81,8 +82,8 @@ def generate(seed: int, scale: int, _with_treasure: bool = False):
             b = anchor + delta
             if b < 0:
                 b = 0
-            if b > 4:
-                b = 4
+            if b > 8:
+                b = 8
             if b < lo:
                 b = lo
             if b > hi:

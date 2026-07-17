@@ -13,7 +13,9 @@ Output: BunnyQuest.gbc
 import os, sys
 from gbc_lib import ROM, rgb15
 from tiles    import build_tile_data
-from tilemaps import ALL_SCREENS, ZONE_COLLECTS
+from tilemaps import (ALL_SCREENS, ZONE_COLLECTS,
+                      VILLAGE_FILL, CAVE_FILL, DESERT_FILL, PLAINS_FILL,
+                      VILLAGE_LANDMARKS, CAVE_LANDMARKS, DESERT_LANDMARKS, PLAINS_LANDMARKS)
 from music    import music_data, generate_theme_variations
 from asm_game import build_game_asm
 
@@ -168,6 +170,27 @@ def build(out_path='BunnyQuest.gbc'):
     for a in zone_data_addrs:
         rom.emit(a & 0xFF, (a >> 8) & 0xFF)
 
+    # IP-1022 (ADR-0020): procedural-fill parameter blocks + landmark-
+    # overlay lists for the four newly-folded biome identities — see
+    # tilemaps.py's own *_FILL/*_LANDMARKS comment block for the format.
+    fill_addrs = {}
+    for name, fill in [('village', VILLAGE_FILL), ('cave', CAVE_FILL),
+                        ('desert', DESERT_FILL), ('plains', PLAINS_FILL)]:
+        mult_x, modulus, threshold, tile_a, tile_b, attr, wall_tile, row_table = fill
+        addr = rom.pos
+        rom.emit(mult_x, modulus, threshold, tile_a, tile_b, attr, wall_tile)
+        for b in row_table: rom.emit(b)
+        fill_addrs[name] = addr
+
+    landmark_addrs = {}
+    for name, lm in [('village', VILLAGE_LANDMARKS), ('cave', CAVE_LANDMARKS),
+                      ('desert', DESERT_LANDMARKS), ('plains', PLAINS_LANDMARKS)]:
+        addr = rom.pos
+        rom.emit(len(lm))
+        for (x, y, t, a) in lm:
+            rom.emit(x, y, t, a)
+        landmark_addrs[name] = addr
+
     total = rom.pos
     print(f"Total used:   0x{total:04X} ({total} bytes of 32768)")
 
@@ -224,6 +247,18 @@ def build(out_path='BunnyQuest.gbc'):
     p16(patches['stone_a'], screen_addrs['stone'][1])
     p16(patches['brick_t'], screen_addrs['brick'][0])
     p16(patches['brick_a'], screen_addrs['brick'][1])
+
+    # IP-1022 (ADR-0020): fill-parameter-block + landmark-list addresses
+    # for the four newly-folded identities — no baked screen_addrs entry
+    # (they are not in ALL_SCREENS), a fill/landmark pointer pair instead.
+    p16(patches['village_fill'], fill_addrs['village'])
+    p16(patches['village_lm'],   landmark_addrs['village'])
+    p16(patches['cave_fill'],    fill_addrs['cave'])
+    p16(patches['cave_lm'],      landmark_addrs['cave'])
+    p16(patches['desert_fill'],  fill_addrs['desert'])
+    p16(patches['desert_lm'],    landmark_addrs['desert'])
+    p16(patches['plains_fill'],  fill_addrs['plains'])
+    p16(patches['plains_lm'],    landmark_addrs['plains'])
 
     p16(patches['zc_table'], zc_table_addr)
 
