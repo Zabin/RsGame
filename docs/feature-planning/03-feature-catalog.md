@@ -25,6 +25,9 @@
 > `ADR-0017`, `BL-0082`/`BL-0094`/`BL-0106`) — 11 new requirement IDs, not yet implemented; the
 > running requirement tally also folds in a pre-existing `BL-0102` bookkeeping gap (`FR-9160`/
 > `FR-9161`, never previously counted) — see the tally section below for the full reconciliation.**
+> **Delta 2026-07-16 (cont'd): one new Feature (`FEAT-7100`, Procedural Music Generation)
+> formalizes the `FR-7000` group (`ADR-0019`, `BL-0127`) — this project's first Feature in the
+> audio capability area, 2 new requirement IDs plus `NFR-4400`, not yet implemented.**
 
 ## FEAT-1000 — Game State Machine & Menu Flow
 
@@ -871,6 +874,73 @@
   above for the real, already-tracked implementation-time questions this Feature carries forward
   (`BL-0107`/`BL-0108`/`BL-0109`).
 
+## FEAT-7100 — Procedural Music Generation (new — not yet implemented)
+
+- **Feature ID:** FEAT-7100
+- **Title:** Procedural Music Generation
+- **Purpose:** Give each biome-family identity its own musical character without hand-authoring
+  nine separate tracks or committing a second APU channel — generate the variation algorithmically
+  from the game's existing, shipped main theme.
+- **Description:** Formalizes `ADR-0019`'s architecture decision end to end: at ROM-build time,
+  `music.py` transposes and/or tempo/duration-scales the existing 16-bar `SONG` (unchanged, still
+  the main theme played outside gameplay) to produce nine sub-themes, one per `FR-4320`'s
+  biome-family identity; during `PLAYING`, playback selects the sub-theme matching the current
+  region's biome-family identity, reusing the same biome-id read `FR-4310`/`FR-4320` already
+  establish rather than a new WRAM field. No new sibling Python module (`ADR-0019`'s own explicit
+  rejection of the `worldgen.py` pattern — there is no runtime/oracle-lockstep need here, unlike
+  world generation).
+- **Scope:** The build-time generation algorithm (transposition/tempo-duration transform,
+  combinable, per `ADR-0019`) and the runtime selection mechanism (which sub-theme plays when).
+  Explicitly **excludes**: composing genuinely new melodic material (transform-only, not
+  composition); the shared-ostinato/second-APU-channel option (`ADR-0019` names it and explicitly
+  defers it, not adopted); the exact `GAMESTATE`/WRAM playback-trigger mechanism (left to
+  `06-feature-specification`/`07-implementation-planning`, per `FR-7110`'s own Notes); *which*
+  biome-family identity a region has (`FEAT-9000`'s/`FEAT-10000`'s own generation output — this
+  Feature only reads it, mirroring how `FEAT-4100` consumes the same output for screen rendering
+  without owning it).
+- **Included Requirements:** FR-7100, FR-7110; NFR-4400.
+- **Excluded Requirements:** FR-4310/FR-4320 (the biome-family identity axis itself — generation-
+  time, `FEAT-9000`'s own concern; this Feature is a consumer, not an owner, of that data).
+- **Dependencies:** FEAT-9000 (Procedural World Generation — supplies the finite-mode biome-family
+  identity this Feature's playback selection reads); FEAT-10000 (Infinite Mode — supplies the same
+  identity for a materialized region; `FR-7110` names no mode restriction, so both sources apply);
+  FEAT-1000 (Game State Machine — gates when sub-theme playback is active, `PLAYING`, versus when
+  the main theme plays instead).
+- **Dependent Features:** None yet — no Feature in this catalog builds on this Feature's own
+  output.
+- **Affected Modules:** `music.py` (new build-time generation function — transposition/tempo-
+  duration transform over the existing `SONG` data), `build_rom.py` (call site emitting the nine
+  generated sub-themes into ROM), `asm_game.py` (prospective — the runtime selection/playback
+  mechanism; no code exists yet, per `FR-7110`'s own deferred-mechanism Notes).
+- **Related ADRs:** ADR-0019 (procedural music generation architecture).
+- **User Value:** Medium — atmospheric enrichment (each biome-family identity gets a distinct
+  musical character), not core-loop-blocking; a project-owner-requested capability (`BL-0127`),
+  not tied to any `MSTR-001` commitment.
+- **Technical Value:** Low-Medium — reuses the existing shipped `SONG` data and single-APU-channel
+  commitment unchanged; the generation technique itself (build-time transform over fixed source
+  data) has no reuse value elsewhere in this catalog the way `FEAT-9000`'s PRNG construction did
+  for `FEAT-10000`.
+- **Complexity:** Medium — the build-time transform logic itself is straightforward (transposition/
+  tempo-duration math over an existing, fixed 16-bar structure), but the runtime selection half
+  depends on an axis (`FR-4320`'s nine identities) that is itself requirements-baselined but not
+  yet implemented (`IP-1105`/`IP-1033`/`IP-1022`/`IP-1106`, all gated on G3) — this Feature's own
+  playback half cannot be fully exercised against all nine identities until that separate arc
+  ships.
+- **Risk:** Medium — real, named sequencing dependency (playback selection needs `FR-4320`'s own
+  packages shipped to have all nine identities to key against; `ADR-0019` itself states this
+  dependency does not block the architecture decision, only full end-to-end verification of this
+  Feature). ROM budget is grounded in direct measurement but explicitly **not yet re-confirmed**
+  against the tree's actual state at implementation time (`NFR-4400`'s own Notes) — flagged
+  honestly rather than assumed to still hold.
+- **Suggested Verification Strategy:** Test (byte-level check of each generated sub-theme's data
+  against the stated transform rule, mirroring `music_data()`'s own directly-measurable output) /
+  Demonstration (audible playback per biome-family identity via `run-bunnygarden`).
+- **Open Questions:** (1) The exact `GAMESTATE`/WRAM selection mechanism is deliberately left open
+  by `ADR-0019`/`FR-7110`, for `06-feature-specification`/`07-implementation-planning` to decide —
+  not a gap in this cataloging pass. (2) This Feature's own playback half cannot be fully verified
+  end-to-end (all nine biome-family identities) until `FR-4320`'s own implementation packages ship
+  — a real, already-tracked cross-arc sequencing dependency (see Risk), not newly invented here.
+
 ## Requirement-to-Feature tally (completeness check)
 
 **Bootstrap baseline:** 25 `FR-xxxx` + 11 `NFR-xxxx` = 36 requirement IDs, all owned by exactly
@@ -885,8 +955,11 @@ were always unambiguously `FEAT-9000`'s own). **Edge-indicator legend screen del
 2 new `FR-xxxx`, owned by `FEAT-1200`. **Running total before this delta: 53 + 3 + 2 + 2 = 60.**
 **Infinite Mode delta** (2026-07-14, this pass): 7 new `FR-xxxx` (`FR-10100`–`FR-10600`) + 4 new
 `NFR-xxxx` (`NFR-1400`/`2300`/`4300`/`5400`) = 11 new requirement IDs, all owned by `FEAT-10000`
-above. **Total: 60 + 11 = 71 requirement IDs**, every one assigned to exactly one Feature
-project-wide (verified by direct tally, restated in [FP-05](05-feature-review.md)'s review rather
-than only asserted here). (`CR-05`/`CR-07` are explicitly outside this tally where still
-un-baselined — `CR-05` remains a Candidate per `ADR-0018`'s own routing to a future `04` pass;
-`CR-07` is no longer a Candidate at all, already counted above as `FR-10600`.)
+above. **Running total before this delta: 60 + 11 = 71.** **Procedural music generation delta**
+(2026-07-16, `ADR-0019`/`BL-0127`): 2 new `FR-xxxx` (`FR-7100`/`FR-7110`) + 1 new `NFR-xxxx`
+(`NFR-4400`) = 3 new requirement IDs, all owned by `FEAT-7100` above — this project's first use of
+the `FR-7xxx` audio range. **Total: 71 + 3 = 74 requirement IDs**, every one assigned to exactly
+one Feature project-wide (verified by direct tally, restated in [FP-05](05-feature-review.md)'s
+review rather than only asserted here). (`CR-05`/`CR-07` are explicitly outside this tally where
+still un-baselined — `CR-05` remains a Candidate per `ADR-0018`'s own routing to a future `04`
+pass; `CR-07` is no longer a Candidate at all, already counted above as `FR-10600`.)

@@ -6,7 +6,8 @@
 > (edge-indicator legend screen delta, `FEAT-1200` — see finding #8); re-run 2026-07-14 (Infinite
 > Mode delta, `FEAT-10000`/`EP-6000` — see finding #9; also closes `BL-0102`'s tally gap); re-run
 > 2026-07-14 (cont'd) (`FEAT-10000`'s missing `FEAT-4100` dependency corrected — see finding #10,
-> closes `BL-0111`).** Owned by
+> closes `BL-0111`); re-run 2026-07-16 (Procedural Music Generation delta, `FEAT-7100`/`EP-7000`
+> — see finding #11).** Owned by
 > `05-feature-decomposition`. Reviews
 > [FP-02](02-epic-catalog.md)–[FP-04](04-feature-dependency-graph.md) for oversized/undersized
 > Features, duplicates, missing Features, mis-assigned requirements, and architectural
@@ -82,6 +83,16 @@ un-baselined per `ADR-0018`'s own routing to a future `04` pass — the same dis
 already applied to `CR-05` before that ADR existed. `CR-07` is no longer a Candidate — already
 counted above as `FR-10600`.)
 
+**Procedural Music Generation delta** (2026-07-16 RQ-01/RQ-02 delta, `ADR-0019`/`BL-0127`) — 2 new
+`FR-xxxx` + 1 new `NFR-xxxx` = 3 new requirement IDs:
+
+- FEAT-7100: FR-7100, FR-7110, NFR-4400 (3)
+
+**Total: 71 + 3 = 74.** Checked against every existing list above — no overlap, no ID reused.
+**Clean — no unassigned or double-assigned requirements.** This is this project's first use of
+the `FR-7xxx` audio range — confirmed unused before this delta both here and independently by
+`03-requirements-review.md` finding #22.
+
 ## Findings
 
 | # | Finding type | IDs involved | Description | Severity | Recommendation |
@@ -96,6 +107,7 @@ counted above as `FR-10600`.)
 | 8 | 05-delta review (`FEAT-1200` added) | FEAT-1200, FEAT-1000, FEAT-1100, FEAT-2100 | Reviewed the new Feature against the catalog's own consistency rules. **Cohesion/coupling:** `FEAT-1200` cleanly separates from `FEAT-1000` (extends its state set, doesn't modify its existing states' behavior) and from `FEAT-2100` (displays its tiles, doesn't redefine their meaning or render-time classification) — no straddle, no artificial split needed. **Dependency correctness:** cross-checked against [FP-04](04-feature-dependency-graph.md) — `FEAT-1200`'s three dependencies (`FEAT-1000`, `FEAT-1100`, `FEAT-2100`) are correctly a *content* dependency on `FEAT-2100` (its already-shipped tiles), not a *build-order* dependency on `FEAT-2100`'s own still-in-flight render branch — confirmed by direct re-read of `IP-1081`'s `VERIFIED` status (tiles shipped) versus `IP-1082`'s `COMPLETE`-pending-verification status (render branch, unrelated to what `FEAT-1200` needs). **Requirement assignment:** `FR-1200`/`FR-1210` assigned to `FEAT-1200` only, confirmed not double-assigned anywhere else in the catalog. **Bucket placement:** joins Release 2 as a second, independent addendum (this stage's own established "no Release 3" convention, per the `ADR-0012` addendum's own precedent) — reviewed and confirmed not a forced fit, since `FEAT-1200` genuinely has no dependency on the `ADR-0012` remediation thread it shares a bucket with. | — (clean check, no new defect; one new Feature added, correctly scoped and placed) | None — this finding records that the delta was reviewed and found internally consistent, per this stage's own Step-5 discipline (a zero-finding pass is a signal to re-check, not proof of quality — this re-check found the addition clean). |
 | 9 | 05-delta review (`FEAT-10000`/`EP-6000` added; `BL-0102` tally gap closed) | FEAT-10000, EP-6000, EP-5000, FEAT-9000, FEAT-1100, FEAT-3000, FEAT-5000 | Reviewed the new Feature/Epic against the catalog's own consistency rules. **Epic-boundary judgment call, reviewed and accepted:** `FEAT-10000` was kept in a new `EP-6000` rather than folded into `EP-5000` (the existing world-generation Epic) — confirmed the right call, not a forced split: `ADR-0016` point 7 explicitly frames Infinite Mode as "a second, independent generation architecture," unlike `FEAT-9100`'s 2026-07-11 addition to `EP-5000`, which directly extended `FEAT-9000`'s own generation routine. Splitting on "does this extend an existing routine or start a new one" is a real, defensible line, not an arbitrary one. **Dependency correctness:** cross-checked against [FP-04](04-feature-dependency-graph.md) — `FEAT-10000`'s five dependencies (`FEAT-1000`, `FEAT-1100`, `FEAT-3000`, `FEAT-5000`, `FEAT-9000`) are all already shipped/`VERIFIED`; the `FEAT-9000` dependency confirmed as code-reuse only (`gw_prng_step`), not a build-order dependency on anything `FEAT-9000`-specific — matches `FEAT-10000`'s own catalog entry text exactly, not merely asserted. **Unsplit-Feature judgment call, reviewed and accepted:** `FEAT-10000` bundles mode entry, generation, treasure placement, win condition, save/load, and session shape into one Feature (11 requirements, the largest in the catalog, surpassing `FEAT-9000`'s own 8) — mirrors finding #6's own precedent (`FEAT-9000` itself started unsplit) rather than forcing a premature split before implementation reveals a real seam; explicitly not pre-judged, per `FEAT-10000`'s own Scope field. **Requirement assignment:** all 11 new IDs assigned to `FEAT-10000` only, confirmed not double-assigned. **Bucket placement:** `Future`, not a numbered Release — confirmed correct: `FEAT-10000` has zero graph-blocking dependencies (unlike a genuine technical blocker), so its Future placement is a release-commitment choice, not a technical one, and is stated as such rather than conflated. **`BL-0102`'s tally gap also closed in this same pass** (a natural fold-in, not a separate delta) — `FR-9160`/`FR-9161` added to the running tally, `FEAT-9000`'s own 8-requirement count in finding #6 above is now stale by 2 (10, not 8) as a direct consequence; noted here rather than silently left inconsistent. | — (clean check, no new defect; one new Feature/Epic added, correctly scoped and placed; one pre-existing bookkeeping gap closed) | None — this finding records that the delta was reviewed and found internally consistent, per this stage's own Step-5 discipline. |
 | 10 | Missing dependency edge — **RESOLVED same-day (2026-07-14)** | FEAT-10000, FEAT-4100 | **`FEAT-10000`'s own Dependencies field omitted `FEAT-4100`** — rendering a materialized Infinite Mode region requires `FEAT-4100`'s existing biome-family screen-composition dispatch (the same dispatch the finite mode's `REGION_GRAPH`-sourced biome-id already selects through, per `FS-103`), but finding #9's own review (above) missed it too, cross-checking only the five dependencies the catalog entry stated rather than independently re-deriving the full set from `FEAT-10000`'s own Description. Correctly caught downstream instead, by `06-feature-specification`'s own `FS-110` Open Question 1 (filed `BL-0111`) — this stage's SHALL-NOT-modify-the-catalog-entry rule meant `06` could only flag it, not fix it, so the correction rode a dedicated same-day `05-feature-decomposition` re-touch rather than sitting unresolved. **Resolved:** `FEAT-10000`'s Dependencies field, `FEAT-4100`'s Dependent Features field, and the corresponding [FP-04](04-feature-dependency-graph.md) edge/summary-row/critical-path note all updated in the same pass. Re-verified: `FEAT-4100` is already shipped/`VERIFIED`, so this is a documentation correction only — no build-order risk, no requirement-tally change (both Features' Included Requirements are unchanged). | Low-Medium (a real, correctly-surfaced gap — not a defect in what was implemented, since nothing depending on this edge has shipped yet) | No further action — `BL-0111` closed. Worth noting for future dependency reviews: cross-check a new Feature's Dependencies field against its own Description/Purpose text, not only against the requirements it lists, since a code-reuse or rendering-path dependency can be real without appearing in the Included Requirements list. |
+| 11 | 05-delta review (`FEAT-7100`/`EP-7000` added) | FEAT-7100, EP-7000, FEAT-9000, FEAT-10000, FEAT-1000, FEAT-4100 | Reviewed the new Feature/Epic against the catalog's own consistency rules. **Epic-boundary judgment call, reviewed and accepted:** `FEAT-7100` was placed in a new `EP-7000` rather than folded into any existing Epic — confirmed the right call: `EP-2000` (World Content & Presentation) was the closest candidate by surface analogy (both are "presentation"), but its own Features (`FEAT-4000`/`FEAT-6000`) are visual, module-adjacent to `tilemaps.py`/`tiles.py`, while `FEAT-7100` is audio, module-adjacent to `music.py` — no real cohesion gain from forcing the merge, and `EP-2000`'s own Purpose text doesn't mention audio at all. **Dependency correctness:** cross-checked against [FP-04](04-feature-dependency-graph.md) — `FEAT-7100`'s three dependencies (`FEAT-9000`, `FEAT-10000`, `FEAT-1000`) are correctly named: `FEAT-9000` and `FEAT-10000` are genuine build-order dependencies (both supply the biome-family identity `FEAT-7100`'s own playback selection reads), unlike `FEAT-10000`'s own earlier code-reuse-only relationship to `FEAT-9000` — confirmed this is a materially different dependency *kind*, not miscategorized. **Requirement assignment:** `FR-7100`/`FR-7110`/`NFR-4400` assigned to `FEAT-7100` only, confirmed not double-assigned anywhere else in the catalog (this project's first use of the `FR-7xxx` range, independently confirmed by `03-requirements-review.md` finding #22). **Bucket placement:** `Future`, not a numbered Release — confirmed correct per the same reasoning `FEAT-10000` established: zero graph-blocking dependencies on the build-time half, but no release commitment made. **Real cross-arc sequencing risk surfaced, not smoothed over:** unlike every prior new-Feature delta in this catalog, `FEAT-7100`'s own full verification (all nine biome-family identities) depends on *two separate, both-still-open* upstream threads — `FR-4320`'s four implementation packages (gated on G3, `BL-0128`) and `FEAT-10000`'s own release scheduling (currently `Future`, no commitment) — named explicitly in [FP-04](04-feature-dependency-graph.md)'s critical-path and parallel-opportunities sections rather than left implicit. | — (clean check, no new defect; one new Feature/Epic added, correctly scoped and placed; one genuine cross-arc sequencing dependency correctly surfaced rather than hidden) | None — this finding records that the delta was reviewed and found internally consistent, per this stage's own Step-5 discipline. `06-feature-specification` is the natural next step; its own spec pass should state the two-source sequencing dependency in `FS-xxx`'s own Open Questions rather than silently assume `FR-4320`/`FEAT-10000` will both be ready by the time this Feature is implemented. |
 
 ## Oversized / undersized Feature check
 
@@ -107,7 +119,9 @@ with FEAT-5100's own precedent (1 requirement) for a new, narrowly-scoped additi
 **`ADR-0012` delta (2026-07-11):** FEAT-9100 (2 requirements) and FEAT-2100 (1 requirement) are
 both appropriately small — FEAT-9100's 2-requirement size mirrors FEAT-4100/FEAT-5300/FEAT-6100's
 own established precedent for a focused, single-capability extension; FEAT-2100's 1-requirement
-size mirrors FEAT-5100's own precedent exactly.
+size mirrors FEAT-5100's own precedent exactly. **Procedural Music Generation delta (2026-07-16):**
+FEAT-7100 (3 requirements) is appropriately small, mirroring FEAT-9100's own 2-3-requirement,
+single-capability-extension precedent.
 
 ## Duplicate Feature check
 
@@ -116,6 +130,8 @@ every other Feature (new and bootstrap); no overlap in player-visible or system-
 **`ADR-0012` delta:** FEAT-9100/FEAT-2100 checked against all fifteen other Features — neither
 overlaps `FEAT-9000` (generation vs. adjacency-shaping) nor `FEAT-2000` (base traversal/signaling
 vs. maze-aware signaling extension); both are genuinely new capability, not restatements.
+**Procedural Music Generation delta:** FEAT-7100 checked against all seventeen other Features —
+no overlap; it is the only Feature in the catalog whose Purpose concerns audio at all.
 
 ## Architectural consistency check
 
@@ -128,7 +144,10 @@ implies a module boundary violation. **`ADR-0012` delta:** FEAT-9100's Affected 
 (`worldgen.py`, `asm_game.py`) match `ADR-0012` point 1 exactly (a second pass within the same two
 modules `FEAT-9000` already touches, not a new module); FEAT-2100's (`asm_game.py`, `tiles.py`/
 `tilemaps.py`) match `FEAT-2000`'s own precedent for the identical straddle (finding #2 above) —
-consistent, not a new pattern.
+consistent, not a new pattern. **Procedural Music Generation delta:** FEAT-7100's Affected Modules
+(`music.py`, `build_rom.py`, prospective `asm_game.py`) match `ADR-0019`'s own explicit decision
+exactly — no new sibling module (the `worldgen.py` pattern this ADR deliberately did not copy),
+generation logic living inside the existing `music.py` module per GDS-03's one-job-per-file rule.
 
 ## Circular dependency check
 
@@ -145,7 +164,10 @@ sink, never introduce a cycle by construction. **`BL-0111` correction (same day)
 clean with the added `FEAT-4100 → FEAT-10000` edge — `FEAT-4100` is itself a sink with only one
 prior dependent (`FEAT-6100`, also a sink), so the new edge extends an existing terminal branch
 into `FEAT-10000` (already confirmed a sink above) without creating any new path back toward the
-graph's root; still a strict DAG.
+graph's root; still a strict DAG. **Procedural Music Generation delta:** re-confirmed clean with
+`FEAT-7100` added — all three of its own edges (`FEAT-1000`, `FEAT-9000`, `FEAT-10000`) point
+*into* it, and `FEAT-7100` itself has zero dependents, so it can only ever be a sink, never
+introduce a cycle by construction.
 
 ## Summary
 
@@ -179,3 +201,14 @@ were both judgment calls, reviewed and accepted, not defects. `CR-05`/`BL-0066` 
 received no Feature row (still un-baselined, per `ADR-0018`'s own routing to a future `04` pass) —
 this stage continues not inventing one to fill that gap. No finding in this delta requires
 revising FP-01–FP-04 before advancing to `06-feature-specification` on `FEAT-10000`.
+
+**2026-07-16 Procedural Music Generation delta review:** see finding #11 — the Feature Catalog
+remains complete and internally consistent after adding `FEAT-7100`/`EP-7000` — all 74 requirement
+IDs (71 prior + 3 new) are owned exactly once, the new Feature is appropriately sized (3
+requirements), and no circular dependency exists. **No new Critical/High/Medium finding** — the
+Epic-boundary choice was a judgment call, reviewed and accepted, not a defect. **One genuine
+cross-arc sequencing dependency correctly surfaced, not a defect but worth carrying forward:**
+`FEAT-7100`'s own full verification depends on both `FR-4320`'s implementation packages (gated on
+G3) and `FEAT-10000`'s own release scheduling (currently `Future`) — named explicitly in
+[FP-04](04-feature-dependency-graph.md) rather than left implicit. No finding in this delta
+requires revising FP-01–FP-04 before advancing to `06-feature-specification` on `FEAT-7100`.

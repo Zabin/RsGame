@@ -4,9 +4,10 @@
 > increment); delta 2026-07-11 (`ADR-0012` maze-adjacency remediation, `FEAT-9100`/`FEAT-2100`);
 > delta 2026-07-13 (edge-indicator legend screen, `FEAT-1200`, `CR-06`/`BL-0100`); delta
 > 2026-07-14 (Infinite Mode, `FEAT-10000`, `ADS-001`/`ADR-0016`/`ADR-0017`/`BL-0082`); delta
-> 2026-07-14 (cont'd) (`FEAT-10000`'s missing `FEAT-4100` edge added, `BL-0111`).**
+> 2026-07-14 (cont'd) (`FEAT-10000`'s missing `FEAT-4100` edge added, `BL-0111`); delta 2026-07-16
+> (`FEAT-7100` added, `ADR-0019`/`BL-0127`).**
 > Owned by `05-feature-decomposition`. Analyzes dependencies among [FP-03](03-feature-catalog.md)'s
-> seventeen Features. **No circular dependency found.**
+> eighteen Features. **No circular dependency found.**
 
 ## Graph
 
@@ -29,6 +30,7 @@ graph TD
     FEAT2100["FEAT-2100: Maze-Aware<br/>Transition-Edge Signaling (NEW)"]
     FEAT1200["FEAT-1200: SELECT Menu &<br/>Edge-Indicator Legend (NEW)"]
     FEAT10000["FEAT-10000: Infinite Mode<br/>(NEW)"]
+    FEAT7100["FEAT-7100: Procedural Music<br/>Generation (NEW)"]
 
     FEAT1000 --> FEAT2000
     FEAT1000 --> FEAT3000
@@ -70,6 +72,9 @@ graph TD
     FEAT5000 --> FEAT10000
     FEAT9000 --> FEAT10000
     FEAT4100 --> FEAT10000
+    FEAT9000 --> FEAT7100
+    FEAT10000 --> FEAT7100
+    FEAT1000 --> FEAT7100
 
     FEAT7000 -.underpins.-> FEAT1000
     FEAT7000 -.underpins.-> FEAT2000
@@ -86,6 +91,7 @@ graph TD
     FEAT7000 -.underpins.-> FEAT2100
     FEAT7000 -.underpins.-> FEAT1200
     FEAT7000 -.underpins.-> FEAT10000
+    FEAT7000 -.underpins.-> FEAT7100
 
     style FEAT5100 fill:#9d9,stroke:#333,stroke-width:2px
     style FEAT9000 fill:#f9d,stroke:#333,stroke-width:2px
@@ -97,6 +103,7 @@ graph TD
     style FEAT2100 fill:#f96,stroke:#333,stroke-width:2px
     style FEAT1200 fill:#9cf,stroke:#333,stroke-width:2px
     style FEAT10000 fill:#c9f,stroke:#333,stroke-width:2px
+    style FEAT7100 fill:#fc9,stroke:#333,stroke-width:2px
 ```
 
 *(FEAT-5100 highlighted green — shipped and VERIFIED since this graph's last version. The five
@@ -116,7 +123,14 @@ blue Feature's own in-flight work. **`FEAT-4100 → FEAT-10000` added same-day (
 materialized Infinite Mode region's rendering path reuses `FEAT-4100`'s own biome-family
 screen-composition dispatch, omitted from the original cataloging pass and correctly surfaced by
 `06-feature-specification`'s own `FS-110` Open Question 1; `FEAT-4100` is already shipped/
-`VERIFIED`, so this addition does not change `FEAT-10000`'s immediate-buildability.
+`VERIFIED`, so this addition does not change `FEAT-10000`'s immediate-buildability. **FEAT-7100
+highlighted tan — the 2026-07-16 procedural-music-generation delta (`ADR-0019`, `BL-0127`), a
+fifth, independent thread: unlike every other pink/orange/blue/purple Feature, one of its three
+dependencies (`FEAT-10000`) is itself still `Future`-bucketed and not release-scheduled, and a
+second (`FEAT-9000`'s own `FR-4320` widening) is mid-implementation and gated on G3 — so
+`FEAT-7100`'s build-time generation half is immediately startable (its data-level dependencies are
+all shipped) but its runtime selection half cannot be fully exercised until both upstream threads
+land, a real, named sequencing constraint (see Critical path, below).
 Solid arrows are hard dependencies (A → B means B depends on A); dotted arrows from FEAT-7000
 represent the non-blocking "underpins" relationship its cross-cutting NFRs have with every
 player-visible Feature.)*
@@ -125,7 +139,7 @@ player-visible Feature.)*
 
 | Feature | Depends on | Depended on by |
 |---|---|---|
-| FEAT-1000 | — (foundational) | FEAT-2000, FEAT-3000, FEAT-5000, FEAT-6000, FEAT-9000, FEAT-1100, FEAT-1200, FEAT-10000 |
+| FEAT-1000 | — (foundational) | FEAT-2000, FEAT-3000, FEAT-5000, FEAT-6000, FEAT-9000, FEAT-1100, FEAT-1200, FEAT-10000, FEAT-7100 |
 | FEAT-4000 | — (foundational) | FEAT-2000, FEAT-3000, FEAT-6000, FEAT-9000, FEAT-4100 |
 | FEAT-2000 | FEAT-1000, FEAT-4000 | FEAT-3000, FEAT-5000, FEAT-2100 |
 | FEAT-3000 | FEAT-1000, FEAT-2000, FEAT-4000 | FEAT-5000, FEAT-6000, FEAT-5100, FEAT-9000, FEAT-10000 |
@@ -133,7 +147,7 @@ player-visible Feature.)*
 | FEAT-5000 | FEAT-1000, FEAT-2000, FEAT-3000 | FEAT-5100, FEAT-1100, FEAT-5300, FEAT-10000 |
 | FEAT-5100 | FEAT-3000, FEAT-5000 | FEAT-5300 |
 | FEAT-7000 | — (infrastructure floor) | all others, non-blocking |
-| **FEAT-9000** | FEAT-1000, FEAT-3000, FEAT-4000 | FEAT-4100, FEAT-1100, FEAT-5300, FEAT-9100, FEAT-10000 |
+| **FEAT-9000** | FEAT-1000, FEAT-3000, FEAT-4000 | FEAT-4100, FEAT-1100, FEAT-5300, FEAT-9100, FEAT-10000, FEAT-7100 |
 | **FEAT-4100** | FEAT-9000, FEAT-4000, FEAT-6000 | FEAT-6100, FEAT-10000 |
 | **FEAT-1100** | FEAT-1000, FEAT-9000, FEAT-5000 | FEAT-1200, FEAT-10000 |
 | **FEAT-5300** | FEAT-9000, FEAT-5000, FEAT-5100 | — (nothing yet) |
@@ -141,7 +155,8 @@ player-visible Feature.)*
 | **FEAT-9100** | FEAT-9000 | FEAT-2100 |
 | **FEAT-2100** | FEAT-9100, FEAT-2000 | FEAT-1200 |
 | **FEAT-1200** | FEAT-1000, FEAT-1100, FEAT-2100 | — (nothing yet) |
-| **FEAT-10000** | FEAT-1000, FEAT-1100, FEAT-3000, FEAT-5000, FEAT-9000, FEAT-4100 | — (nothing yet) |
+| **FEAT-10000** | FEAT-1000, FEAT-1100, FEAT-3000, FEAT-5000, FEAT-9000, FEAT-4100 | FEAT-7100 |
+| **FEAT-7100** | FEAT-9000, FEAT-10000, FEAT-1000 | — (nothing yet) |
 
 ## Critical path
 
@@ -177,19 +192,37 @@ still 1 node (`FEAT-10000` itself), tied with `FEAT-1200` for the shortest activ
 not extend the critical path. The `BL-0111` correction only names an already-satisfied
 dependency explicitly; it does not add build-order risk.
 
+**Procedural Music Generation (new, 2026-07-16):** `FEAT-7100`'s three dependencies split unevenly
+in readiness — `FEAT-1000` and `FEAT-9000` are shipped/`VERIFIED`, but `FEAT-9000`'s own
+nine-identity axis (`FR-4320`) is mid-implementation, gated on G3 (four packages,
+`IP-1105`/`IP-1033`/`IP-1022`/`IP-1106`, none authorized), and `FEAT-10000` itself sits in the
+`Future` bucket, fully decomposed but not release-scheduled. This is a **genuinely different
+shape of dependency than any prior delta**: every earlier new-work thread's own dependencies were
+either fully shipped or, at worst, mid-flight within the same increment (`FEAT-9100` waiting on
+its own sibling `FEAT-9000`). Here, `FEAT-7100`'s *build-time generation half* (transposing the
+existing main theme) has no such blocker and is immediately startable; only its *runtime
+selection half* (which sub-theme plays for which identity) needs both upstream threads further
+along. This thread's own *effective* new-work length is 1 node (`FEAT-7100` itself) for the
+generation half, but the selection half's true readiness trails `FR-4320`'s own arc — worth
+flagging explicitly rather than folding into a single undifferentiated "1 node, ready" claim the
+way `FEAT-1200`/`FEAT-10000` were.
+
 ## Blocking Features (high fan-out)
 
-- **FEAT-1000** (7 direct dependents) — remains the single highest-fan-out Feature; grows by one
-  (`FEAT-1200`) with this delta.
-- **FEAT-9000** (5 direct dependents: FEAT-4100, FEAT-1100, FEAT-5300, FEAT-9100, FEAT-10000) —
-  the procgen-world increment's own highest-fan-out Feature, now also gating this session's
-  remediation thread and the new Infinite Mode Epic. Any change to the generation algorithm's
-  output shape ripples into rendering, the new-game flow, save persistence, adjacency shape, *and*
-  Infinite Mode's own shared PRNG construction simultaneously — worth noting since `FEAT-9000` is
-  already `COMPLETE`/shipped, so this fan-out is now a stability/regression concern, not an open
-  design risk. `FEAT-10000`'s own dependency on `FEAT-9000` is code-reuse only (`gw_prng_step`),
-  not a structural build-order dependency on anything `FEAT-9000`-specific — see `FEAT-10000`'s
-  own catalog entry.
+- **FEAT-1000** (8 direct dependents) — remains the single highest-fan-out Feature; grows by one
+  (`FEAT-7100`) with this delta.
+- **FEAT-9000** (6 direct dependents: FEAT-4100, FEAT-1100, FEAT-5300, FEAT-9100, FEAT-10000,
+  FEAT-7100) — the procgen-world increment's own highest-fan-out Feature, now also gating this
+  session's remediation thread, the Infinite Mode Epic, and the new Procedural Music Generation
+  Epic. Any change to the generation algorithm's output shape ripples into rendering, the new-game
+  flow, save persistence, adjacency shape, Infinite Mode's own shared PRNG construction, *and* now
+  music sub-theme selection simultaneously — worth noting since `FEAT-9000` is already
+  `COMPLETE`/shipped, so this fan-out is now a stability/regression concern, not an open design
+  risk. `FEAT-10000`'s own dependency on `FEAT-9000` is code-reuse only (`gw_prng_step`), not a
+  structural build-order dependency on anything `FEAT-9000`-specific — see `FEAT-10000`'s own
+  catalog entry. `FEAT-7100`'s own dependency on `FEAT-9000` is a genuine build-order dependency
+  (it reads the biome-family identity `FEAT-9000` assigns), unlike `FEAT-10000`'s code-reuse-only
+  relationship.
 - **FEAT-4000** (5 direct dependents) — unchanged from the prior delta.
 - **FEAT-4100** (2 direct dependents: FEAT-6100, FEAT-10000) — grows by one with this delta
   (`BL-0111`); still well below the "high fan-out" threshold the three Features above meet, noted
@@ -213,6 +246,15 @@ dependency explicitly; it does not add build-order risk.
   already satisfied today (`FEAT-1000`/`FEAT-1100` shipped; `FEAT-2100`'s tiles already shipped
   independent of its still-in-flight render branch). It can proceed in parallel with `FEAT-2100`'s
   own remaining work, not after it.
+- **FEAT-7100's build-time generation half can proceed independently of every other in-flight
+  thread** — its data-level dependency is only the *existence* of `FR-4320`'s identity axis as a
+  concept (already requirements-baselined) plus the already-shipped main theme, not any specific
+  package shipping. Its *runtime selection half*, however, is the one genuinely serialized piece
+  this delta adds: it cannot be fully exercised against all nine identities until `FR-4320`'s own
+  four packages ship (gated on G3) and, separately, until `FEAT-10000` is release-scheduled if
+  Infinite Mode playback is to be verified too — a two-source wait unlike any single-blocker
+  pattern seen in prior deltas (`FEAT-2100`'s single wait on `FEAT-9100`, `FEAT-1200`'s zero
+  waits).
 
 ## Circular dependency check
 
@@ -226,3 +268,9 @@ Features and create an artificial FEAT-level cycle, both requirements were assig
 Feature (**FEAT-9000**) — the mutual coupling becomes internal cohesion within one Feature
 instead of a cross-Feature cycle. The graph above is a strict DAG — tracing every edge from any
 node terminates without revisiting a node.
+
+**Procedural Music Generation delta (2026-07-16):** re-confirmed clean with `FEAT-7100` added —
+all three of its own edges point *into* it from already-terminal-or-mid-chain Features
+(`FEAT-1000`, `FEAT-9000`, `FEAT-10000`), and `FEAT-7100` itself has zero dependents, so it can
+only ever be a sink, never introduce a cycle by construction — the same structural argument
+`FEAT-10000` itself relied on.
