@@ -14,37 +14,40 @@
 
 ## Position
 
-- **Updated:** 2026-07-16 (run #183)
+- **Updated:** 2026-07-16 (run #185)
 - **Increment:** Four independent arcs. **(1)/(2)** unchanged, closed at runs #167/#168. **(3)
-  Nine biome-family identities** (`BL-0128`/`FR-4320`) — G3 landed run #180 ("Build all six"); two
-  of four packages now `COMPLETE` this session: `IP-1033` (run #181, content — un-journaled at the
-  time, corrected here) and `IP-1105` (run #183, this run — code).
-  **(4) Procgen music** (`BL-0127`) — driven through `05`/`06`/`07` runs
-  #177–179; `IP-1110`/`IP-1111` planned, both authorized, neither built yet. **Run #182**: attempted
-  `09-package-verification` on `IP-1033` — stopped at the skill's own same-session-independence
-  rule (this session implemented it), asked the user how to proceed; **user chose "build another
-  ready package instead"** rather than accept degraded independence or wait. Advanced to `IP-1105`
-  (run #183): implemented cleanly, but the full-suite run caught a real gap in the package's own
-  plan — its `test_rom.py` file list only grepped for the `0x07` biome mask and missed three
-  hardcoded connectivity-bit sites (`T22.g`, `T24`'s `_T24_DIR_BIT` table, `T27.a`'s seed-search
-  predicate) also encoding the old bit layout. Fixed in scope (a defect this package's own change
-  introduced, per `08-code-implementation`'s own rules) — 309/309 passing, ROM byte-identical.
-  Bootstrap baseline remains fully closed (01–11 ✅, GO recorded); Release 2 remains baselined GO.
+  Nine biome-family identities** (`BL-0128`/`FR-4320`) — two of four packages `COMPLETE` this
+  session: `IP-1033` (content) and `IP-1105` (code, caught/fixed a real gap in its own test-file
+  list). **(4) Procgen music** (`BL-0127`) — `IP-1110` (run #185, this run): implemented cleanly,
+  but caught a genuine **planning inconsistency**, not a code defect: the package's own §5 chose a
+  per-identity named-patch-key scheme requiring `asm_game.py` changes, directly contradicting the
+  same package's own explicit no-`asm_game.py`-changes scope boundary. Resolved using the plan's
+  own already-named fallback (a flat, biome-id-indexed ROM table mirroring `zc_table`) — 309/309
+  passing, ROM 31362/32768 (1466 net new, `NFR-4400` now Met). Flags a real Outstanding Issue for
+  `IP-1111`'s own future `07` touch (must consume the table, not named keys). **Run #184** (drift
+  correction, folded into this run): `IP-1110`/`IP-1111`'s own Master-Build-Plan authorization
+  rows were found still reading "not authorized" despite the run #180 G3 grant — corrected before
+  proceeding. Bootstrap baseline remains fully closed (01–11 ✅, GO recorded); Release 2 remains
+  baselined GO.
 - **Pipeline state:** Bootstrap stages 01–11 ✅; Release 2 GO. **31 of 31 prior implementation
-  packages `VERIFIED`. Of the six newly-authorized packages: `IP-1033`/`IP-1105` now `COMPLETE`
-  (both own `09-package-verification` passes owed, ideally fresh-session); `IP-1110` is `READY`
-  (unbuilt); `IP-1022` is eligible in principle (`IP-1033` shipped) but its own `09` pass is still
-  owed before it's genuinely `READY`; `IP-1106`/`IP-1111` remain `BLOCKED` on `IP-1022`/`IP-1110`
-  respectively.** Standing, non-blocking work elsewhere, unchanged: `BL-0118`'s `NFR-1400`
-  optimization package; the seven-instance `IP-110x` documentation-accuracy sweep
-  (`BL-0115`/`117`/`120`/`121`/`124`/`125`, all Low); `BL-0123` (Low, `DEFERRED`); `BL-0112` (the
-  `FR-10400` run-end trigger — a standing user decision); `BL-0097`'s own remediation (Medium,
-  optional craft polish, no `07` package authored yet); `BL-0130` (catalog gap, routed `05`).
+  packages `VERIFIED`. All six newly-authorized packages have now reached either `COMPLETE`
+  (`IP-1033`/`IP-1105`/`IP-1110`, three of six) or stay genuinely `BLOCKED` on one of those three
+  reaching `VERIFIED` first (`IP-1022` on `IP-1033`; `IP-1106` on `IP-1105`/`IP-1022`/`IP-1033`;
+  `IP-1111` on `IP-1110`/`IP-1022`) — `COMPLETE` is explicitly not sufficient for `READY`, per
+  this project's own established rule. This is a genuine, full stop: every remaining package in
+  the tree needs `09-package-verification` on one of the three `COMPLETE` packages before anything
+  else can build, and that skill's own same-session-independence rule (already invoked once this
+  session, run #182, user declined to override it) blocks doing so in this same session.**
+  Standing, non-blocking work elsewhere, unchanged: `BL-0118`'s `NFR-1400` optimization package;
+  the seven-instance `IP-110x` documentation-accuracy sweep (`BL-0115`/`117`/`120`/`121`/`124`/
+  `125`, all Low); `BL-0123` (Low, `DEFERRED`); `BL-0112` (the `FR-10400` run-end trigger — a
+  standing user decision); `BL-0097`'s own remediation (Medium, optional craft polish, no `07`
+  package authored yet); `BL-0130` (catalog gap, routed `05`).
 - **Backlog:** 130 entries. `BL-0127`/`BL-0128` both `IN PIPELINE`, unchanged this run.
-- **Next step:** `09-package-verification` on `IP-1033` and/or `IP-1105` — genuinely best run in a
-  **fresh session** for real independence (this session implemented both). If continuing in this
-  same session, the next *mechanically available* step is `08-code-implementation` on `IP-1110`
-  (still `READY`, untouched, independent of the other five).
+- **Next step:** `09-package-verification` on `IP-1033`, `IP-1105`, and `IP-1110` — genuinely
+  requires a **fresh session** for real independence. This is the actual, full stopping point for
+  this session's own advance-mode work: nothing else in the tree is mechanically buildable without
+  one of these three verifications landing first.
 - **Open gates:** **one, unchanged.** Whether/when to run `11-release-readiness` on Infinite Mode
   remains the user's own call (G4) — informational only, not currently blocking anything.
 
@@ -239,3 +242,5 @@
 | 181 | 2026-07-16 | advance (same session as run #180; executed directly, not journaled at the time — corrected retroactively this run) | `08-content-authoring` | IP-1033 (collectible-spawn content for the four newly-folded biome identities) | ✅ Authored `VILLAGE_COLLECTS`/`CAVE_COLLECTS`/`DESERT_COLLECTS`/`PLAINS_COLLECTS` in `tilemaps.py`, staged as inert data per the package's own explicit scope boundary — not spliced into `ZONE_COLLECTS`'s own array (`IP-1022`'s own job). Verified placement fairness via a temporary-force render (swap one `ALL_SCREENS` slot, force the region, poke `COLL_DATA`/`COLL_COUNT` directly, screenshot, revert) against each screen's real landmark layout — no overlap; one transient PyBoy glitch on the first "cave" attempt caught and re-run cleanly. ROM byte-identical (29896/32768), 309/309 suite unchanged. `IP-1033` → `COMPLETE`. Harvested: none new. No drift beyond the missing journal entry itself, now corrected. | `09-package-verification` on `IP-1033` |
 | 182 | 2026-07-16 | advance (same session as run #181) | — (gate check) | `09-package-verification` on `IP-1033` | ✅ Stopped at the skill's own explicit rule: "SHALL NOT verify work implemented in the same session... proceed only if the user accepts the caveat explicitly." Asked the user via `AskUserQuestion` how to proceed (accept degraded independence / build another ready package instead / stop and wait for a fresh session). **User chose: build another ready package instead.** No drift. | `08-code-implementation` on `IP-1105` (or `IP-1110`) — user redirected away from same-session verification |
 | 183 | 2026-07-16 | advance (same session as run #182) | `08-code-implementation` | IP-1105 (Infinite Mode `region_byte` bit-field repack, biome-domain widening phase 1) | ✅ Repacked `INF_MZ_RESULT`/`region_byte`'s bit layout (biome 0-2→0-3, connectivity 3-6→4-7) across both producers (`worldgen.py`'s oracle, `asm_game.py`'s SM83 routine) and all four consumer sites (`dsr_p_inf`, `czt_infinite`, `draw_region_arrows_inf`, `szc_infinite`) — every cited file/line re-verified against the tree first (asm_game.py 100% exact; worldgen.py off by 1-2 lines from docstring growth, non-material). **Caught a real gap in the package's own plan**: its `test_rom.py` file list (§6) only grepped for the `0x07` biome mask, missing three hardcoded connectivity-bit sites (`T22.g`'s neighbor-symmetry check, `T24`'s `_T24_DIR_BIT` direction table feeding `T24.a`/`T24.b`/`T27.a`/`T27.g`, and `T27.a`'s own east-open seed-search predicate) that also encoded the old bit positions — surfaced by the first full-suite run (7 failures), fixed in scope per `08-code-implementation`'s own "fix defects this package introduced" rule. 309/309 passing after the fix, ROM byte-identical in size (29896/32768), zero expected-value changes. `IP-1105` → `COMPLETE`. Docs updated (`GDS-07`'s `INF_MZ_RESULT`/`INF_WINDOW` bit-layout descriptions, `FR-4320`'s Notes). Harvested: the missed-test-site finding recorded in the package's own Master Build Plan row and TWBS reasoning, not filed as a separate backlog entry (self-contained, already fixed). No drift. | `09-package-verification` on `IP-1033`/`IP-1105` (fresh session recommended for both) — or, staying in this session, `08-code-implementation` on `IP-1110` (still `READY`, untouched) |
+| 184 | 2026-07-16 | advance (same session as run #183; drift correction, folded into run #185's own advance) | — (reconciliation) | `IP-1110`/`IP-1111`'s own Master Build Plan authorization state | ✅ Found real drift during Step 1 reconciliation: both rows still read "NOT YET — no G3 on record" despite the user's run-#180 "Build all six" grant covering them explicitly. Corrected both rows (Master Build Plan + `packages/INDEX.md`) to `AUTHORIZED` before proceeding — a bookkeeping fix, not a new authorization; the underlying decision was already made and recorded at run #180. | `08-code-implementation` on `IP-1110` |
+| 185 | 2026-07-16 | advance (same session as run #184) | `08-code-implementation` | IP-1110 (Procedural Music Generation, build-time sub-theme generation) | ✅ Generated eight non-Grass sub-themes via `music.py`'s new `generate_theme_variations()` (real semitone-shift transposition through each note's own known hz, plus duration scaling) — Grass is the zero-transform anchor, resolving `FS-111`'s Open Question 3. **Caught a genuine planning inconsistency, not a code defect**: the package's own §5 chose a per-identity named-patch-key scheme (mirroring `mus_lo`/`mus_hi`) that can only be created by an `asm_game.py`-side placeholder instruction — directly contradicting the same package's own explicit no-`asm_game.py`-changes scope boundary. Resolved using the plan's own already-named fallback option instead: a flat, biome-id-indexed ROM address table (`music_table`, mirroring `zc_table`'s own established precedent) — zero `asm_game.py` involvement, fully in scope. New build-time comparison check (`verify_music_generation.py`) confirms every sub-theme is a pure transform of the main theme (`FR-7100`'s own Acceptance Criteria). 309/309 suite unchanged, ROM 31362/32768 bytes (1466 net new, matching `ADR-0019`'s own ≈1629-byte estimate almost exactly) — `NFR-4400` now Met. `IP-1110` → `COMPLETE`. Flagged a real Outstanding Issue: `IP-1111`'s own §5/§6 need a future `07-implementation-planning` touch to consume the new table-indexed interface, not the originally-planned named-key scheme. Harvested: the interface-change finding recorded in the package's own Master Build Plan row/`IP-1111`'s dependency note, not filed as a separate backlog entry (self-contained, already actionable from the doc trail). No further drift. | **Genuine full stop for this session**: all six newly-authorized packages have reached either `COMPLETE` (`IP-1033`/`IP-1105`/`IP-1110`) or stay `BLOCKED` on one of those three reaching `VERIFIED` — `09-package-verification` is required next, and its own same-session-independence rule (already invoked once, run #182) means this session cannot supply it. Recommend a fresh session for `09-package-verification` on all three `COMPLETE` packages. |
