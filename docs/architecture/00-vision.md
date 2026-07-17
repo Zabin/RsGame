@@ -1,8 +1,9 @@
 # GDS-00 — Vision
 
-> **Status: ✅ Authored (revised 2026-07-09, v3.0 — see
-> [MSTR-001 §8](../master/MSTR-001-program-vision.md#8-vision-amendment-log); previously
-> corrected 2026-07-06, same-day revision of the 2026-07-06 bootstrap draft).**
+> **Status: ✅ Authored (revised 2026-07-17, v4.0 — see
+> [MSTR-001 §8/§8a](../master/MSTR-001-program-vision.md#8-vision-amendment-log); previously
+> revised 2026-07-09, v3.0; corrected 2026-07-06, same-day revision of the 2026-07-06 bootstrap
+> draft).**
 > Owned by the `01-vision` skill, together with
 > [MSTR-001](../master/MSTR-001-program-vision.md) and the
 > [strategic assumptions register](strategic-assumptions-register.md). This level is the
@@ -54,7 +55,14 @@ duplicated here.** What every downstream design level must hold as given:
    scale grows** — a bigger world is not the same design lever as a harder or longer one. A
    generated world's scale parameter (point 6) must not be read as license to lengthen a
    *session* — scale changes world size, not the fail-state-free, interruptible pacing this
-   assumption protects.
+   assumption protects. **v4.0 carve-out (C11, 2026-07-17):** A5's trigger fired — the project
+   owner directed a bounded exception, not a reversal: an opt-in combat sub-mode on Infinite
+   Mode's map, intended for a parent/adult player, gated behind its own explicit entry point, may
+   be tonally grimmer (real adversarial mechanics, damage, a fail state). Every mode a child
+   reaches through the game's own default flow (finite mode; Infinite Mode's base collect-loop)
+   keeps A5's fail-state-free, non-violent guarantee exactly as before — GDS-01/GDS-08 design
+   work on C11's own gated mode is the only place this assumption's exception applies, and that
+   design work must keep the gate genuinely separate from the default flow, not blur it.
 6. **Long-term scale direction (C7), now concrete (C8/C9/C10, v3.0):** C7's "how many
    zones/biomes, at what scale" question has its first concrete answer: the world is
    **deterministically procedurally generated** from a **seed** and a **world-scale** parameter,

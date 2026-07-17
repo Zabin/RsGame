@@ -13,7 +13,7 @@ is closed with its decision recorded in prose. Status here and in `ROADMAP.md` m
 
 | Level | Title | File | Status |
 |---|---|---|---|
-| GDS-00 | Vision (owned by `01-vision`) | [00-vision.md](00-vision.md) | ✅ Authored (gate closed 2026-07-06; revised 2026-07-06 and again 2026-07-09 for MSTR-001 v3.0, see MSTR-001 §8) |
+| GDS-00 | Vision (owned by `01-vision`) | [00-vision.md](00-vision.md) | ✅ Authored (gate closed 2026-07-06; revised 2026-07-06, 2026-07-09 for MSTR-001 v3.0, and 2026-07-17 for v4.0's C11 dual-audience carve-out — see MSTR-001 §8/§8a) |
 | GDS-01 | Concept of Play | [01-concept-of-play.md](01-concept-of-play.md) | ✅ Authored (gate closed 2026-07-06; delta 2026-07-09 for procgen-world increment, §§2a/3a/4a/4b; delta 2026-07-13 §4c — `SELECT` becomes a small menu (`MAP`/`LEGEND`), target state, `CR-06`/`BL-0100`; delta 2026-07-14 §4d — new-game mode choice (Finite/Infinite) via `MODE SELECT`, target state, `BL-0113`) |
 | GDS-02 | System Context | [02-system-context.md](02-system-context.md) | ✅ Authored (gate closed 2026-07-06) |
 | GDS-03 | Architecture | [03-architecture.md](03-architecture.md) | ✅ Authored (gate closed 2026-07-06) |
@@ -34,7 +34,7 @@ file.
 | ID | Cluster | File | Status |
 |---|---|---|---|
 | [ADS-001](ADS-001-streaming-infinite-world-generation.md) | Streaming, positionally-deterministic world generation for a new, additive Infinite Mode (`BL-0082`) | [ADS-001-streaming-infinite-world-generation.md](ADS-001-streaming-infinite-world-generation.md) | ✅ Authored (2026-07-13; produces `ADR-0016`/`ADR-0017`) |
-| [ADS-002](ADS-002-infinite-mode-combat-sub-mode.md) | Infinite Mode combat sub-mode: mobs + treasure-fed ranged weapon (`BL-0133`) | [ADS-002-infinite-mode-combat-sub-mode.md](ADS-002-infinite-mode-combat-sub-mode.md) | 🚧 Authored, but produces no `FS-xxx`/`FR-xxxx` yet — blocked on a genuine Vision-level tension (does `MSTR-001` C9's "child-friendly collect-goal" tolerate combat, and in what tone?), routed to `01-vision` |
+| [ADS-002](ADS-002-infinite-mode-combat-sub-mode.md) | Infinite Mode combat sub-mode: mobs + treasure-fed ranged weapon (`BL-0133`) | [ADS-002-infinite-mode-combat-sub-mode.md](ADS-002-infinite-mode-combat-sub-mode.md) | 🚧 Authored, but produces no `FS-xxx`/`FR-xxxx` yet — blocked on a genuine Vision-level tension (does `MSTR-001` C9's "child-friendly collect-goal" tolerate combat, and in what tone?), routed to `01-vision`. **`01-vision` answered this 2026-07-17 (`MSTR-001` v4.0, C11)** — the next `03-architecture-design-synthesis` touch on this cluster marks Open Question 1 resolved and proceeds to a fuller pass. |
 
 ## §3 — Vision-layer artifacts owned by `01-vision`
 

@@ -46,7 +46,7 @@ build order.
 
 | ID | Document | Path | Depends on | Status |
 |---|---|---|---|---|
-| MSTR-001 | Program vision | `docs/master/MSTR-001-program-vision.md` | — | ✅ v3.0 (2026-07-09 — adds C8/C9/C10, amends C2; see §8) |
+| MSTR-001 | Program vision | `docs/master/MSTR-001-program-vision.md` | — | ✅ v4.0 (2026-07-17 — adds **C11**, a narrow dual-audience carve-out: an opt-in, gated combat sub-mode on Infinite Mode's map for a parent/adult player may be tonally grimmer than the base game, which stays exactly as child-friendly/non-violent/fail-state-free as it is today; resolves `BL-0133`'s `ADS-002` Open Question 1, fires A5's own recorded trigger; see §8/§8a. Previously v3.0, 2026-07-09 — adds C8/C9/C10, amends C2) |
 | MSTR-002…007 | Optional principle docs (see `docs/master/INDEX.md`) | `docs/master/` | MSTR-001 | ⛔ (on demand) |
 
 ## Theme: Research (`docs/research/`) — owners: the three `02-research-*` skills
