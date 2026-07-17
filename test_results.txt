@@ -1,4 +1,4 @@
-BunnyQuest ROM Tests  PASS=319/319  FAIL=0
+BunnyQuest ROM Tests  PASS=320/320  FAIL=0
 ==================================================
 [PASS] T1.1 ROM size = 32768  (32768)
 [PASS] T1.2 Entry = NOP; JP
@@ -145,8 +145,9 @@ BunnyQuest ROM Tests  PASS=319/319  FAIL=0
 [PASS] T12.j Non-degeneracy: Water fraction stays under ~40% across a seed corpus at scale=9 (BL-0074 regression guard)  (mean=0.156 over_40=[])
 [PASS] T12.k Direct BL-0074 reproduction: seed=0 scale=9 no longer near-total-Water-flooded  (water_frac=0.259 rows1-8_all_zero=False)
 [PASS] T13.a Tile-family audit: each of the 9 biome-ids renders its own family's tiles (AC-1)  (bad=[])
-[PASS] T13.e Oracle-parity: on-device procedural-fill + landmark-overlay output is byte-for-byte identical to each Python *_screen() function, all four new identities, full 544-tile + 544-attr comparison (ADR-0020)  (bad=[])
+[PASS] T13.e Oracle-parity: on-device procedural-fill + landmark-overlay output is byte-for-byte identical to each Python *_screen() function, all four new identities, full 18-row tile + attr comparison incl. row 0's static cells (ADR-0020; row-0 name region per IP-9160)  (bad=[])
 [PASS] T13.f Dispatch-cascade completeness: setup_zone_collects spawns the exact ZONE_COLLECTS list for each of biome-ids 5-8, entry-for-entry  (bad=[])
+[PASS] T13.g Stale-name regression: name region shows each screen's own name after a differently-named predecessor, both directions (IP-9160/BL-0138)  (forest=[69, 78, 81, 68, 82, 83, 16, 16] village=[85, 72, 75, 75, 64, 70, 68, 16])
 [PASS] T13.b Transition call-site audit: exactly one copy_screen call site in dsr_p (AC-2)  (1 call site(s))
 [PASS] T13.c Regression: scale=3 arrow placement matches shipped 3x3 grid, every region/direction  (bad=[])
 [PASS] T13.d Screen-visibility audit: every arrow address falls inside the true visible 20x18 window (BL-0084)  (bad=[])
@@ -259,7 +260,7 @@ BunnyQuest ROM Tests  PASS=319/319  FAIL=0
 [PASS] T24.a Real button-driven navigation: transitions occur iff the connectivity bit is set, INF_ROW/INF_COL update correctly, and the newly-entered region renders its own biome tileset (AC-1/FR-10200)  (bad=[])
 [PASS] T24.b Revisit-consistency through the render path: leaving and returning to a region redraws a pixel-identical screen (FR-10210)  (moved_away=True moved_back=True pos_back=(0,0) tiles_match=True)
 [PASS] T24.c1 Static diff: dsr_p's finite-mode body is byte-for-byte the pre-IP-1102 instruction sequence, only a 3-instruction gate prefixed  (got=['LD_A_nn', 'OR_A', 'JR_NZ', 'LD_A_nn', 'LD_E_A', 'LD_D_n', 'LD_HL_nn', 'ADD_HL_DE', 'ADD_HL_DE', 'ADD_HL_DE', 'ADD_HL_DE', 'ADD_HL_DE', 'LD_A_HLI', 'PUSH_HL', 'JR'])
-[PASS] T24.c2 Regression: every existing T13/T20 dsr_p/draw_region_arrows/check_zone_transition check still passes unmodified under the new GAME_MODE gate  (failed=[] total_checked=11)
+[PASS] T24.c2 Regression: every existing T13/T20 dsr_p/draw_region_arrows/check_zone_transition check still passes unmodified under the new GAME_MODE gate  (failed=[] total_checked=12)
 [PASS] T24.d1 Static audit: draw_region_arrows_inf's source never references TL_BLOCKED_U/D/L/R  (source-scanned)
 [PASS] T24.d2 Corpus: draw_region_arrows_inf never writes a blocked-edge tile, all 16 connectivity nibble values  (bad=[])
 [PASS] T24.e NFR-1400 Analysis: inf_ensure_window's real per-transition cost, direct cycle-count, measured and recorded (Met or not, not asserted un-measured)  (cycles=[77548, 77100, 75948] budget=70224 status=NOT MET)

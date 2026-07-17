@@ -1209,10 +1209,18 @@ check("T13.a Tile-family audit: each of the 9 biome-ids renders its own family's
 # tolerates the identical class of overwrite via its own count threshold,
 # not a defect this package introduces.
 _ARROW_EXCLUDE_RC = {(1, 15), (16, 15), (9, 1), (9, 18)}   # up/down/left/right
+# IP-9160: row 0 is now compared too (the zone-name region is real
+# per-screen oracle content — its wholesale exclusion masked BL-0138's
+# stale-name defect). Only the live digit cells update_status_disp
+# rewrites at runtime are excluded: col 2 (carrot count), cols 8-10
+# (score) — inventoried by direct read of every row-0 writer
+# (_score_bar's own placeholders are static; update_status_disp is the
+# sole runtime row-0 writer, tile plane only).
+_ROW0_DYNAMIC_RC = {(0, 2), (0, 8), (0, 9), (0, 10)}
 def full_screen_tiles_attrs(pb):
-    tiles = [pb.memory[0x9800 + r*32 + c] for r in range(1, 18) for c in range(32)]
+    tiles = [pb.memory[0x9800 + r*32 + c] for r in range(0, 18) for c in range(32)]
     pb.memory[0xFF4F] = 1
-    attrs = [pb.memory[0x9800 + r*32 + c] for r in range(1, 18) for c in range(32)]
+    attrs = [pb.memory[0x9800 + r*32 + c] for r in range(0, 18) for c in range(32)]
     pb.memory[0xFF4F] = 0
     return tiles, attrs
 
@@ -1233,13 +1241,13 @@ for biome_id, (name, screen_fn) in _ORACLE_SCREENS.items():
     actual_tiles, actual_attrs = full_screen_tiles_attrs(pb)
     exp_tiles_full, exp_attrs_full = screen_fn()
     W = 32
-    exp_tiles = [exp_tiles_full[y*W+x] for y in range(1, 18) for x in range(W)]
-    exp_attrs = [exp_attrs_full[y*W+x] for y in range(1, 18) for x in range(W)]
+    exp_tiles = [exp_tiles_full[y*W+x] for y in range(0, 18) for x in range(W)]
+    exp_attrs = [exp_attrs_full[y*W+x] for y in range(0, 18) for x in range(W)]
     tile_mismatches = 0
     attr_mismatches = 0
     for i in range(len(exp_tiles)):
-        row, col = 1 + i // W, i % W
-        if (row, col) in _ARROW_EXCLUDE_RC:
+        row, col = i // W, i % W
+        if (row, col) in _ARROW_EXCLUDE_RC or (row, col) in _ROW0_DYNAMIC_RC:
             continue
         if actual_tiles[i] != exp_tiles[i]: tile_mismatches += 1
         if actual_attrs[i] != exp_attrs[i]: attr_mismatches += 1
@@ -1248,7 +1256,8 @@ for biome_id, (name, screen_fn) in _ORACLE_SCREENS.items():
 pb.stop()
 check("T13.e Oracle-parity: on-device procedural-fill + landmark-overlay output is "
       "byte-for-byte identical to each Python *_screen() function, all four new "
-      "identities, full 544-tile + 544-attr comparison (ADR-0020)",
+      "identities, full 18-row tile + attr comparison incl. row 0's static "
+      "cells (ADR-0020; row-0 name region per IP-9160)",
       len(oracle_bad) == 0, f"bad={oracle_bad}")
 
 # T13.f — dispatch-cascade completeness (IP-1022): confirms the ZONE_COLLECTS
@@ -1278,6 +1287,44 @@ pb.stop()
 check("T13.f Dispatch-cascade completeness: setup_zone_collects spawns the exact "
       "ZONE_COLLECTS list for each of biome-ids 5-8, entry-for-entry",
       len(spawn_bad) == 0, f"bad={spawn_bad}")
+
+# T13.g — stale-name regression (IP-9160/BL-0138): render a procedural
+# screen AFTER a differently-named screen and assert the name region
+# (row 0, cols 12-19) shows the SECOND screen's own oracle cells — the
+# exact scenario the content review's screenshots caught (Village showing
+# "FOREST"). Both directions: procedural-after-baked (the shipped defect)
+# and baked-after-procedural (documents the baked path's copy_screen
+# already rewrites all of row 0, closing the asymmetry from both sides).
+def _t13g_name_region_tiles(pb):
+    return [pb.memory[0x9800 + 0*32 + c] for c in range(12, 20)]
+
+def _t13g_oracle_name(screen_fn):
+    t, _a = screen_fn()
+    return [t[c] for c in range(12, 20)]
+
+pb = fresh_boot(180)
+advance_to_playing(pb)
+# direction 1: grass/forest (baked, name "FOREST") then village (procedural)
+pb.memory[REGION_GRAPH] = 2
+for k in range(4): pb.memory[REGION_GRAPH + 1 + k] = 0xFF
+force_region_redraw(pb, 0)
+_t13g_after_forest = _t13g_name_region_tiles(pb)
+pb.memory[REGION_GRAPH] = 5
+force_region_redraw(pb, 0)
+_t13g_after_village = _t13g_name_region_tiles(pb)
+from tilemaps import forest_screen as _t13g_forest
+_t13g_ok1 = (_t13g_after_forest == _t13g_oracle_name(_t13g_forest)
+             and _t13g_after_village == _t13g_oracle_name(village_screen))
+# direction 2: back to a baked screen (stone/mountain, name "MOUNTAIN")
+pb.memory[REGION_GRAPH] = 3
+force_region_redraw(pb, 0)
+from tilemaps import mountain_screen as _t13g_mountain
+_t13g_ok2 = _t13g_name_region_tiles(pb) == _t13g_oracle_name(_t13g_mountain)
+pb.stop()
+check("T13.g Stale-name regression: name region shows each screen's own name after "
+      "a differently-named predecessor, both directions (IP-9160/BL-0138)",
+      _t13g_ok1 and _t13g_ok2,
+      f"forest={_t13g_after_forest} village={_t13g_after_village}")
 
 # T13.b — transition call-site audit (AC-2, Inspection): exactly one
 # copy_screen call site handles region-entry (PLAYING) rendering, mirroring

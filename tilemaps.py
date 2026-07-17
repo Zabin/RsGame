@@ -596,6 +596,16 @@ PLAINS_FILL = (7, 16, 11, TL_PLAIN_GRASS, TL_GRASS_TUFT, 0, 0xFF,
 # base-fill formula's own output does not match the real screen, and
 # every one of those cells is covered by an entry (confirmed: 0
 # unaccounted mismatches for all four screens).
+#
+# IP-9160 (BL-0138): each list additionally carries its screen's row-0
+# zone-name cells (cols 12-19 — the name region _score_bar/_str render,
+# 8 cells covering the longest shipped name "MOUNTAIN" so a shorter
+# name also blanks a longer predecessor's tail). Row 0 has no base-fill
+# formula — the fill routine starts at row 1 — so these entries' basis
+# is each oracle's own row-0 output directly (font tiles + TL_BG_BLANK
+# filler, attr 2 = UI palette), copied cell-for-cell, not hand-picked.
+# Without them the previous screen's name persists in the HUD (the
+# content review's stale-"FOREST" finding).
 
 VILLAGE_LANDMARKS = [
     (3, 2, 146, 5), (11, 2, 146, 5), (19, 2, 146, 5), (26, 2, 146, 5),
@@ -605,6 +615,9 @@ VILLAGE_LANDMARKS = [
     (8, 12, 149, 1), (17, 12, 149, 1), (24, 12, 149, 1),
     (5, 14, 146, 5), (14, 14, 146, 5), (23, 14, 146, 5),
     (5, 15, 147, 5), (14, 15, 147, 5), (23, 15, 147, 5),
+    # row-0 zone name "VILLAGE" + blank tail (IP-9160)
+    (12, 0, 85, 2), (13, 0, 72, 2), (14, 0, 75, 2), (15, 0, 75, 2),
+    (16, 0, 64, 2), (17, 0, 70, 2), (18, 0, 68, 2), (19, 0, 16, 2),
 ]
 
 CAVE_LANDMARKS = [
@@ -612,6 +625,9 @@ CAVE_LANDMARKS = [
     (11, 3, 157, 4), (5, 4, 155, 7), (20, 4, 157, 4),
     (22, 5, 155, 7), (13, 6, 155, 7), (28, 9, 155, 7),
     (8, 11, 155, 7), (17, 13, 155, 7), (25, 14, 155, 7),
+    # row-0 zone name "CAVE" + blank tail (IP-9160)
+    (12, 0, 66, 2), (13, 0, 64, 2), (14, 0, 85, 2), (15, 0, 68, 2),
+    (16, 0, 16, 2), (17, 0, 16, 2), (18, 0, 16, 2), (19, 0, 16, 2),
 ]
 
 DESERT_LANDMARKS = [
@@ -622,6 +638,9 @@ DESERT_LANDMARKS = [
     (4, 12, 162, 6), (12, 12, 162, 6), (19, 12, 162, 6), (27, 12, 162, 6),
     (4, 13, 163, 6), (12, 13, 163, 6), (19, 13, 163, 6), (27, 13, 163, 6),
     (10, 14, 164, 4),
+    # row-0 zone name "DESERT" + blank tail (IP-9160)
+    (12, 0, 67, 2), (13, 0, 68, 2), (14, 0, 82, 2), (15, 0, 68, 2),
+    (16, 0, 81, 2), (17, 0, 83, 2), (18, 0, 16, 2), (19, 0, 16, 2),
 ]
 
 PLAINS_LANDMARKS = [
@@ -636,4 +655,7 @@ PLAINS_LANDMARKS = [
     (9, 13, 170, 3), (21, 13, 171, 2),
     (7, 14, 172, 7),
     (6, 15, 169, 5), (22, 15, 170, 3), (14, 16, 171, 2),
+    # row-0 zone name "PLAINS" + blank tail (IP-9160)
+    (12, 0, 79, 2), (13, 0, 75, 2), (14, 0, 64, 2), (15, 0, 72, 2),
+    (16, 0, 77, 2), (17, 0, 82, 2), (18, 0, 16, 2), (19, 0, 16, 2),
 ]
