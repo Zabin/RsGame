@@ -14,7 +14,7 @@
 
 ## Position
 
-- **Updated:** 2026-07-17 (run #204)
+- **Updated:** 2026-07-17 (run #207)
 - **Increment:** Four independent arcs. **(1)/(2)** unchanged, closed at runs #167/#168.
   **(3) Nine biome-family identities** (`BL-0128`/`FR-4320`) — `IP-1105`/`IP-1033`/`IP-1022` all
   `VERIFIED` (runs #187, #191, #198 — VR-1022 included an independent live drive at seed=50/
@@ -30,26 +30,29 @@
   remediation **`IP-9160`** (pure-data fix via the existing landmark-overlay mechanism, owner
   `08-content-authoring`, ≈128 bytes — not authorized). Bootstrap baseline remains fully closed
   (01–11 ✅, GO recorded); Release 2 remains baselined GO.
-- **Pipeline state:** Bootstrap stages 01–11 ✅; Release 2 GO. 35 packages `VERIFIED`;
-  **`IP-1106`/`IP-1111` both `COMPLETE`, each owed its own `09-package-verification` pass — both
-  require a fresh session** (this session implemented both). `IP-9160` (`NOT STARTED`, G3 gate)
-  and `IP-9150` (`NOT STARTED`, G3 gate) await user authorization. After both `09` passes land:
-  `10-integration-review` on the six-package delta tranche, then the standing G4 question.
-  Standing, non-blocking work unchanged: `BL-0118`; the doc-accuracy sweep family (now incl.
-  `BL-0136`); `BL-0123`; `BL-0112`; `BL-0097`; `BL-0130`; `BL-0133` (`SCHEDULED`, queued behind
-  this delta's chain — the chain still owes its verifications).
-- **Backlog:** 138 entries. New this session: `BL-0136`/`BL-0137` (Low, `DEFERRED`, run #198
-  harvest) and **`BL-0138`** (Medium, run #202 harvest, `SCHEDULED` — rides `IP-9160`, planning
-  done, implementation G3-gated). `BL-0134` `DONE` (run #197). `BL-0127`/`BL-0128` `IN PIPELINE`
-  — each narrows to its own package's fresh-session verification (+ `BL-0138`'s fix for the
-  screens' presentation polish).
+- **Pipeline state:** Bootstrap stages 01–11 ✅; Release 2 GO. 35 packages `VERIFIED`; **four
+  packages `COMPLETE`, each owed its own `09-package-verification` pass in a fresh session**
+  (this session implemented all four): `IP-1106` (Infinite Mode nine-identity widening, 313/313
+  at completion), `IP-1111` (sub-theme playback selection, 319/319), `IP-9160` (zone-name
+  restoration, `BL-0138` fix — user-authorized G3 run #205, implemented run #206, 320/320),
+  `IP-9150` (tile-data trim — user-authorized G3 run #205, implemented run #207, 321/321, ROM
+  now 31390/32768 with 1,378 headroom). After all four verify: `10-integration-review` on the
+  delta tranche, then the standing G4 question. Standing, non-blocking work unchanged: `BL-0118`;
+  the doc-accuracy sweep family (incl. `BL-0136`); `BL-0123`; `BL-0112`; `BL-0097`; `BL-0130`;
+  `BL-0133` (`SCHEDULED`, queued behind this delta's verification chain).
+- **Backlog:** 139 entries. New this session: `BL-0136`/`BL-0137` (Low, `DEFERRED`, run #198),
+  `BL-0138` (Medium, run #202 → fix implemented run #206, closes on `IP-9160`'s VR), and
+  **`BL-0139`** (Medium, run #207 — the HUD's baked "-9" carrot-target digit never reflects
+  `WORLD_SCALE`; pre-existing since IP-1021's win-condition change; `SCHEDULED` behind the
+  pending verifications, entry stage `07` with a possible small upstream decision for Infinite
+  Mode's display). `BL-0127`/`BL-0128` `IN PIPELINE` — each narrows to its packages' VRs.
 - **Next step:** **Fully blocked for this session.** A fresh session runs
-  `09-package-verification` on `IP-1106`, then `IP-1111` (one per invocation). In parallel, two
-  G3 decisions are with the user: authorize `IP-9160` (the Medium zone-name fix) and/or `IP-9150`
-  (optional hygiene). After both verifications: `10-integration-review` on the delta tranche.
-- **Open gates:** **three.** (a) G3 on `IP-9160` — the `BL-0138` Medium fix, recommended;
-  (b) G3 on `IP-9150` — optional ROM hygiene, no longer needed by anything; (c) the standing G4
-  question (whether/when to run `11-release-readiness` on Infinite Mode) — informational.
+  `09-package-verification` on `IP-1106` → `IP-1111` → `IP-9160` → `IP-9150` (one per
+  invocation; critical-path order), then `10-integration-review` on the tranche. `BL-0139`'s
+  `07` packaging can ride after the verifications.
+- **Open gates:** **one.** The standing G4 question (whether/when to run `11-release-readiness`
+  on Infinite Mode) — informational, blocking nothing. Both G3 gates were resolved run #205
+  (user authorized `IP-9160` and `IP-9150`; both now implemented).
 
 ## Run log
 
@@ -265,3 +268,4 @@
 | 204 | 2026-07-17 | advance → gate stop (same session) | — (gate check) | Remaining step inventory | ⛔ **GATE: fully blocked for this session.** Every remaining unblocked step needs either (a) a **fresh session** — `09-package-verification` on `IP-1106` and on `IP-1111` (this session implemented both; the skill's same-session independence rule applies, and the user's standing precedent from run #190 is "stop and wait for a fresh session") — or (b) a **user decision**: G3 on `IP-9160` (Medium `BL-0138` fix, recommended), G3 on `IP-9150` (optional hygiene), and the standing informational G4 (Infinite Mode release-readiness timing). `BL-0133` stays queued behind this delta's verification chain by its own recorded disposition. Position block rewritten; batched gate questions put to the user in the session's closing summary. | Fresh session: `09-package-verification` on `IP-1106` (then `IP-1111`); user: the two G3 decisions |
 | 205 | 2026-07-17 | advance → gate resolved (same session) | — (gate check) | G3 decisions on `IP-9160`/`IP-9150` | ✅ **Both gates answered by the user (batched `AskUserQuestion`): `IP-9160` AUTHORIZED, `IP-9150` AUTHORIZED** (the user chose to authorize the hygiene package too, against the manager's defer recommendation — their call, recorded). Build Plan + `packages/INDEX.md` authorization cells updated; both packages → `READY`. `BL-0138` → `IN PIPELINE`. The run-#204 "fully blocked" state is partially lifted: both implementations are runnable this session; only the four `09-package-verification` passes (`IP-1106`/`IP-1111`/then these two) still need a fresh session. Correctness before hygiene: `IP-9160` first. | `08-content-authoring` on `IP-9160` (Medium `BL-0138` fix), then `08-code-implementation` on `IP-9150` |
 | 206 | 2026-07-17 | advance (same session) | `08-content-authoring` | `IP-9160` (procedural-screen zone-name restoration, `BL-0138`) | ✅ **COMPLETE — 320/320 suite passes.** Pure-data fix exactly per the package: each `*_LANDMARKS` list now carries its screen's row-0 name-region cells (cols 12-19, copied cell-for-cell from that screen's own oracle — derivation run live, VILLAGE/CAVE/DESERT/PLAINS spelled in font tiles + `TL_BG_BLANK` tail, attr 2), riding the shipped `apply_landmark_overlay` mechanism with zero code change. `T13.e` extended to row 0's static cells (dynamic exclusion inventoried by direct read: only `update_status_disp`'s cols 2/8/9/10); new `T13.g` stale-name regression passes both directions. ROM 32542/32768 — +128 bytes exactly as planned, no alignment shift, 226 headroom. Corrected-name screenshots captured (`docs/reviews/screenshots/fix_*.png`) — the exact stale-"FOREST" scenario now renders each screen's own name. **Outstanding Issue harvested → `BL-0139`** (below, run #207 triage): the HUD's carrot-target digit (col 4, "-9") is baked into every screen's `_score_bar` and never updated for the actual world scale — a scale-5 finite world still shows "0-9" while its win target is 5; pre-existing, unrelated to this package, spotted during the row-0 writer inventory. | `08-code-implementation` on `IP-9150` (the second G3 the user just granted) |
+| 207 | 2026-07-17 | advance (same session) | `08-code-implementation` | `IP-9150` (tile-data padding trim) | ✅ **COMPLETE — 321/321 suite passes.** Drift check first: highest `TL_*` still 181 (`TL_TORCH`), cited sites re-located (line drift only). Implemented per the package: `TILE_DATA_TILES = 184` module constant shared by `build_tile_data()`'s allocation and `asm_game.py`'s boot-time copy count (import added to the explicit import list); `put()` bounds assertion; new `T1.13` suite guard (length == constant×16, every `TL_*` < constant). ROM 31390/32768 — **exactly 1,152 bytes recovered**, 1,378 headroom (NFR-4000 Notes updated with the post-trim baseline). Ledgers → `COMPLETE`. **Triage this run:** run #206's Outstanding Issue filed as **`BL-0139`** (Medium, `SCHEDULED`) — the HUD's baked "-9" carrot-target digit never reflects `WORLD_SCALE` (win target is `CARROTS_COUNT == WORLD_SCALE` since IP-1021); pre-existing, needs a `07` package + possibly a small upstream decision for what Infinite Mode's slot should show. Position block rewritten to the fully-blocked state. | **Fully blocked for this session**: a fresh session runs `09-package-verification` on `IP-1106` → `IP-1111` → `IP-9160` → `IP-9150` (one per invocation), then `10-integration-review` on the tranche |
