@@ -34,6 +34,7 @@ file.
 | ID | Cluster | File | Status |
 |---|---|---|---|
 | [ADS-001](ADS-001-streaming-infinite-world-generation.md) | Streaming, positionally-deterministic world generation for a new, additive Infinite Mode (`BL-0082`) | [ADS-001-streaming-infinite-world-generation.md](ADS-001-streaming-infinite-world-generation.md) | ✅ Authored (2026-07-13; produces `ADR-0016`/`ADR-0017`) |
+| [ADS-002](ADS-002-infinite-mode-combat-sub-mode.md) | Infinite Mode combat sub-mode: mobs + treasure-fed ranged weapon (`BL-0133`) | [ADS-002-infinite-mode-combat-sub-mode.md](ADS-002-infinite-mode-combat-sub-mode.md) | 🚧 Authored, but produces no `FS-xxx`/`FR-xxxx` yet — blocked on a genuine Vision-level tension (does `MSTR-001` C9's "child-friendly collect-goal" tolerate combat, and in what tone?), routed to `01-vision` |
 
 ## §3 — Vision-layer artifacts owned by `01-vision`
 
