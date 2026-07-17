@@ -4,7 +4,12 @@
 > increment — see "Data Model delta" below; delta 2026-07-12 — §7c, per-region treasure-presence
 > concept, `ADR-0015`; delta 2026-07-14 — §7d, Infinite Mode per-region materialization WRAM
 > confirmed by `IP-1101`, `C40D`–`C418`; delta 2026-07-14 (cont'd) — §7e, Infinite Mode streaming
-> window/navigation/render WRAM confirmed by `IP-1102`, `C3F6`–`C404`).** Owned by
+> window/navigation/render WRAM confirmed by `IP-1102`, `C3F6`–`C404`; delta 2026-07-16 — §7f,
+> Infinite Mode treasure/win-condition WRAM confirmed by `IP-1103`, `C405`–`C40C`, the joint
+> reserve now fully claimed; delta 2026-07-16 (cont'd) — §7g/§7h, Infinite Mode ledger WRAM
+> working copy (`IP-1104`, `BL-0119` amendment, `C419`–`C69A`) and SRAM save shape (`A0C1`–`A34F`,
+> `SAVE_VERSION_VAL` `0x05`) — this closes the Infinite Mode tranche's own GDS-07 delta set in
+> full).** Owned by
 > `03-architecture-design-synthesis`.
 > Builds on [GDS-06](06-non-functional-requirements.md); the next level,
 > [GDS-08 Presentation Architecture](08-presentation-architecture.md), builds on this one.
@@ -44,7 +49,21 @@ zc_table                  — 9 × 2 bytes, pointer to each zone's collectible t
 ```
 
 **Total used: 23148 of 32768 bytes** (~9.6KB headroom — [GDS-02](02-system-context.md)/
-[GDS-06](06-non-functional-requirements.md) N1), confirmed by a direct build.
+[GDS-06](06-non-functional-requirements.md) N1), confirmed by a direct build. **This section
+predates several deltas this session (`IP-1030`'s 5-biome-family `ALL_SCREENS` generalization,
+`IP-1050`'s save-format changes, etc.) and is not fully current — out of scope for `IP-1110`'s own
+delta below to fully re-sync.**
+
+**Delta (`IP-1110`, 2026-07-16, `FR-7100`):** the `music data` line above is now nine tracks
+(Grass = the unmodified main theme, `music_data()`; the other eight generated via
+`generate_theme_variations()`), emitted in `FR-4320`'s own biome-id order (0=Water…8=Plains, per
+`build_rom.py`'s `_MUSIC_IDENTITY_ORDER`), immediately followed by an 18-byte **`music_table`** —
+nine 16-bit little-endian addresses, one per track, in the same biome-id order (mirrors
+`zc_table`'s own pointer-array shape/convention exactly). 1466 net new bytes (1629 bytes of new
+track data + 18-byte table, minus the 181 bytes the single pre-existing track already counted).
+`mus_lo`/`mus_hi`/`mus_reset` (§2 below) continue to point at the Grass/main-theme track's own
+address, unchanged — existing single-track playback is completely unaffected until a future
+package adds runtime selection logic.
 
 ### 2. WRAM map (`0xC000`–`0xC3A0`)
 
@@ -92,7 +111,7 @@ Confirmed directly against `try_load_save`/the save routine:
 | `A007` | `CARROTS_COUNT` |
 | `A008` | `SCORE` |
 | `A009`–`A011` | `CARROT_FLAGS` (9 bytes) |
-| `A012` | Save-format version guard ([FR-5220](../requirements/01-functional-requirements.md); `SAVE_VERSION_VAL = 0x03`) — added 2026-07-07 by [IP-1010](../implementation/packages/IP-1010-per-zone-scoreitem-persistence.md) at `0x01`; bumped to `0x02` by [IP-1050](../implementation/packages/IP-1050-generated-world-save-persistence.md) (seed/scale/`REGION_GRAPH`-regen/`KEYITEM_FLAGS` fields); bumped to `0x03` by [IP-9070](../implementation/packages/IP-9070-cur-zone-indexed-structures-generalization.md), 2026-07-11 (`SRAM_SCOREITEM` relocation/widening below). A save whose version byte doesn't match the current value is treated as pre-upgrade: every version-guarded field loads as its fresh-new-game default rather than trusting stale/relocated SRAM bytes. |
+| `A012` | Save-format version guard ([FR-5220](../requirements/01-functional-requirements.md); `SAVE_VERSION_VAL = 0x05`) — added 2026-07-07 by [IP-1010](../implementation/packages/IP-1010-per-zone-scoreitem-persistence.md) at `0x01`; bumped to `0x02` by [IP-1050](../implementation/packages/IP-1050-generated-world-save-persistence.md) (seed/scale/`REGION_GRAPH`-regen/`KEYITEM_FLAGS` fields); bumped to `0x03` by [IP-9070](../implementation/packages/IP-9070-cur-zone-indexed-structures-generalization.md), 2026-07-11 (`SRAM_SCOREITEM` relocation/widening below); bumped to `0x04` by [IP-9110](../implementation/packages/IP-9110-gw-prng-step-mixing-step-repair.md), 2026-07-11 (`gw_prng_step` mixing-step repair — excludes a pre-fix save from "continue"); bumped to `0x05` by [IP-1104](../implementation/packages/IP-1104-infinite-mode-ledger-save-persistence.md), 2026-07-16 (Infinite Mode save shape, §7h below). A save whose version byte doesn't match the current value is treated as pre-upgrade: every version-guarded field loads as its fresh-new-game default rather than trusting stale/relocated SRAM bytes. |
 | `A070`–`A0C0` | `SRAM_SCOREITEM` — `SCOREITEM_FLAGS` mirror, **up to 81 bytes**. Originally 9 bytes at `A013`–`A01B` ([IP-1010](../implementation/packages/IP-1010-per-zone-scoreitem-persistence.md)); relocated by [IP-9070](../implementation/packages/IP-9070-cur-zone-indexed-structures-generalization.md) to immediately after `SRAM_KEYITEM_FLAGS`'s own end, leaving `SRAM_SEED`/`SRAM_WORLD_SCALE`/`SRAM_KEYITEM_FLAGS`'s addresses untouched. |
 
 **This updates `BL-0018`'s prior field-set finding** ([GDS-04](04-domain-model.md)): per-zone
@@ -336,7 +355,7 @@ reserve (`GAME_MODE`/`INF_ROW`/`INF_COL`/`INF_WINDOW`/`INF_TREASURE_HERE`/
 |---|---|---|---|
 | `C40D`–`C40E` | `INF_MZ_ROW` | 2 bytes | `inf_materialize_region`'s own row input (signed 16-bit, low byte first, mirrors `SEED`'s own byte order) |
 | `C40F`–`C410` | `INF_MZ_COL` | 2 bytes | column input, same convention |
-| `C411` | `INF_MZ_RESULT` | 1 byte | output: packed biome (bits 0-2) + connectivity nibble (bits 3-6: up/down/left/right, 1=open) |
+| `C411` | `INF_MZ_RESULT` | 1 byte | output: packed biome (bits 0-3) + connectivity nibble (bits 4-7: up/down/left/right, 1=open). **Repacked `IP-1105`, 2026-07-16** (was biome bits 0-2/connectivity bits 3-6) — frees a fourth biome-id bit for `FR-4320`'s widened domain; the draw's own value range is unchanged (`%5`) by this repack alone. |
 | `C412` | `INF_MZ_TREASURE` | 1 byte | output: 0 or 1, `hash(SEED,row,col) mod 16 == 0` (`K=16`) |
 | `C413` | `INF_MZ_BIOME` | 1 byte | transient scratch: own biome value, held while the south/east neighbor consultations run |
 | `C414` | `INF_MZ_BIAS` | 1 byte | transient scratch: own carve-bias (0=carve north, 1=carve west) |
@@ -363,7 +382,7 @@ documents already agreed on `0xC3F6`).
 | `C3F6` | `GAME_MODE` | 1 byte | `0`=finite (default — boot-cleared explicitly, since it sits outside the `0xC000`–`0xC2FF` boot-clear range, §2), `1`=infinite |
 | `C3F7`–`C3F8` | `INF_ROW` | 2 bytes | player's current region row (signed 16-bit, low byte first, mirrors `SEED`'s own byte order), Infinite Mode only |
 | `C3F9`–`C3FA` | `INF_COL` | 2 bytes | player's current region col, same convention |
-| `C3FB`–`C403` | `INF_WINDOW` | 9 bytes | 3×3 materialized window, row-major (index = `(dr+1)*3+(dc+1)`, `dr,dc` in `{-1,0,1}`); center cell (index 4, `C3FF`) = current region. 1 byte/region, `IP-1101`'s own output format (bits 0-2 biome-id, bits 3-6 connectivity: up/down/left/right, 1=open) |
+| `C3FB`–`C403` | `INF_WINDOW` | 9 bytes | 3×3 materialized window, row-major (index = `(dr+1)*3+(dc+1)`, `dr,dc` in `{-1,0,1}`); center cell (index 4, `C3FF`) = current region. 1 byte/region, `IP-1101`'s own output format, repacked `IP-1105` (2026-07-16): bits 0-3 biome-id, bits 4-7 connectivity: up/down/left/right, 1=open |
 | `C404` | `INF_TREASURE_HERE` | 1 byte | transient cache: current region's own treasure-presence-and-uncollected flag for this materialization — reserved here, populated by `IP-1103` |
 
 Fifteen bytes total against `IP-1101`'s block (`0xC3F6`–`0xC418`), trivial against the confirmed
@@ -371,6 +390,76 @@ Fifteen bytes total against `IP-1101`'s block (`0xC3F6`–`0xC418`), trivial aga
 recomputes all 9 `INF_WINDOW` cells fresh on every center change via `IP-1101`'s
 `inf_materialize_region` — no incremental shift logic, no additional WRAM beyond the table above.
 No SRAM impact in this package (`IP-1104`'s own scope).
+
+### 7f. Infinite Mode: treasure & win-condition state WRAM — `IP-1103` (confirmed 2026-07-16)
+
+Eight bytes, `0xC405`–`0xC40C` — exactly the remainder the joint `IP-1100`/`1102`/`1103` reserve
+(§7e above) left for `IP-1103`; the `0xC3F6`–`0xC418` run is now fully claimed. Both fields sit
+outside the `0xC000`–`0xC2FF` blanket boot clear and are explicitly boot-cleared (the same
+targeted-clear pattern `GAME_MODE` established, §7e), so a fresh cartridge never presents
+uninitialized bytes as standing high scores. `INF_TREASURE_HERE` (§7e) is now populated as its
+row anticipated: written from `INF_MZ_TREASURE` at `inf_ensure_window`'s center-cell
+materialization, cleared on collection, read by `setup_zone_collects`' infinite-mode spawn
+branch.
+
+| Address | Name | Size | Purpose |
+|---|---|---|---|
+| `C405`–`C406` | `RUNNING_TREASURE_COUNT` | 2 bytes | current run's treasure total, unsigned 16-bit, low byte first (`SEED`'s own byte-order convention); incremented by `check_collisions`' `GAME_MODE == 1` branch. When a *new* run resets it is `BL-0112`'s open question — deliberately undecided (`IP-1103` §13) |
+| `C407`–`C40C` | `TOP_SCORE_TABLE` | 6 bytes | 3 entries × 2 bytes (unsigned 16-bit, low byte first), stored descending — index 0 (`C407`) is the current high score. Written only by `inf_check_top_score` (which has **zero call sites**, deliberately — `BL-0112`) and, in the future, `IP-1104`'s save/load restore |
+
+Persistence of both fields is `IP-1104`'s scope (no SRAM impact in `IP-1103`).
+
+### 7g. Infinite Mode: visited-region ledger WRAM working copy — `IP-1104` (confirmed 2026-07-16)
+
+642 bytes, `0xC419`–`0xC69A` — first unclaimed bytes past `IP-1101`'s own `INF_MZ_TCOL` end
+(`0xC418`). Added by `IP-1104`'s own `BL-0119` amendment (filed during `IP-1103`'s
+implementation): the original plan kept the ledger SRAM-only, consulted only at the save/load
+boundary; that left `IP-1102`'s `inf_ensure_window` — which runs on every navigation step — with
+nothing cheap to consult, so a collected treasure would respawn on ordinary in-session re-entry.
+This WRAM copy is the live, authoritative working set during play; `SRAM_LEDGER*` (§7h below) is
+purely the save-time backing store. `LEDGER_COUNT`/`LEDGER_CURSOR` sit outside the
+`0xC000`–`0xC2FF` boot-clear range and are explicitly boot-cleared to 0 (the same targeted-clear
+pattern `GAME_MODE`/`RUNNING_TREASURE_COUNT` established, §7e/§7f); `LEDGER`'s own 640 bytes need
+no boot clear (`LEDGER_COUNT == 0` gates validity, the `COLL_COUNT`/`COLL_DATA` convention).
+
+| Address | Name | Size | Purpose |
+|---|---|---|---|
+| `C419` | `LEDGER_COUNT` | 1 byte | number of valid ledger entries, 0-128 |
+| `C41A` | `LEDGER_CURSOR` | 1 byte | FIFO write cursor, 0-127 |
+| `C41B`–`C69A` | `LEDGER` | 640 bytes | 128 entries × 5 bytes: row (signed 16-bit, low byte first), col (same), collected-flag (1 byte) |
+
+`inf_ledger_find` (shared search) and `inf_ledger_mark_collected` (`IP-1103`'s own forward call,
+now implemented) both operate on this WRAM block exclusively — no per-collection SRAM/MBC1
+access. `inf_ensure_window`'s existing `INF_TREASURE_HERE` write (§7e/§7f) is amended to
+cross-reference this ledger on every center-cell materialization, closing the respawn gap
+uniformly across new-game entry, ordinary navigation, and post-load restore alike. 642 bytes
+against the confirmed ~3.1 KiB bank-0 headroom (`R111`) — the largest single WRAM addition in
+this tranche, comfortably inside budget with prior additions (`IP-1101`/`1102`/`1103` combined,
+~23 bytes) accounted for.
+
+### 7h. Infinite Mode: SRAM save shape — `IP-1104` (confirmed 2026-07-16)
+
+Extends §3's base SRAM save format, `GAME_MODE`-gated (Workflow D). First unclaimed bytes past
+`SRAM_SCOREITEM`'s own end (`0xA0C0`).
+
+| Address | Name | Size | Purpose |
+|---|---|---|---|
+| `A0C1` | `SRAM_GAME_MODE` | 1 byte | mirrors `GAME_MODE`; always written on save, both modes |
+| `A0C2`–`A0C3` | `SRAM_INF_ROW` | 2 bytes | mirrors `INF_ROW`; `GAME_MODE == 1`-gated |
+| `A0C4`–`A0C5` | `SRAM_INF_COL` | 2 bytes | mirrors `INF_COL`; `GAME_MODE == 1`-gated |
+| `A0C6`–`A0C7` | `SRAM_RUNNING_TREASURE_COUNT` | 2 bytes | mirrors `RUNNING_TREASURE_COUNT`; `GAME_MODE == 1`-gated |
+| `A0C8`–`A0CD` | `SRAM_TOP_SCORE_TABLE` | 6 bytes | mirrors `TOP_SCORE_TABLE`; always written, both modes — the persistent high score, distinct from per-run state (`ADR-0017` point 4) |
+| `A0CE` | `SRAM_LEDGER_COUNT` | 1 byte | mirrors `LEDGER_COUNT` |
+| `A0CF` | `SRAM_LEDGER_CURSOR` | 1 byte | mirrors `LEDGER_CURSOR` |
+| `A0D0`–`A34F` | `SRAM_LEDGER` | 640 bytes | mirrors `LEDGER`, identical 5-byte-per-entry format |
+
+`SRAM_LEDGER_COUNT`/`SRAM_LEDGER_CURSOR`/`SRAM_LEDGER` form one contiguous 642-byte block
+(`A0CE`–`A34F`), the exact SRAM mirror of `LEDGER_COUNT`/`LEDGER_CURSOR`/`LEDGER` (§7g) — same
+field order, same sizes — so `save_to_sram`/`try_load_save` move the whole ledger in a single
+642-byte `memcpy`, not three separate transfers. `SAVE_VERSION_VAL` bumped `0x04`→`0x05` (the
+fifth bump since ship, extending `IP-9110`'s own strictly-monotonic sequence, §3). No region's
+biome or connectivity is ever persisted here — every field is position/collected-state/score
+data only, confirmed by direct byte audit (`T27.b`).
 
 ### 8. Tile index map implication (cross-reference only — GDS-08 decides the actual strategy)
 

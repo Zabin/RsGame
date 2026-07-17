@@ -10,9 +10,10 @@
 > and `VERIFIED`; rendering half not yet built, tracked as `BL-0075`); delta 2026-07-13
 > (edge-indicator legend screen, `FEAT-1200` joins Release 2 as a second addendum, `CR-06`/
 > `BL-0100`); delta 2026-07-14 (Infinite Mode, `FEAT-10000` joins Future, `ADS-001`/`ADR-0016`/
-> `ADR-0017`/`BL-0082`).** Owned by
+> `ADR-0017`/`BL-0082`); delta 2026-07-16 (Procedural Music Generation, `FEAT-7100` joins Future,
+> `ADR-0019`/`BL-0127`).** Owned by
 > `05-feature-decomposition`. Assigns every Feature
-> in [FP-03](03-feature-catalog.md) (now seventeen) to exactly one bucket, using
+> in [FP-03](03-feature-catalog.md) (now eighteen) to exactly one bucket, using
 > [FP-04](04-feature-dependency-graph.md)'s dependency analysis. **Bootstrap framing: seven of
 > eight bootstrap-baseline Features are already shipped** (FEAT-5100 shipped and verified
 > 2026-07-07, correcting this document's prior "no shipped implementation" framing — `BL-0036`).
@@ -152,6 +153,16 @@ inventing requirements:
   specification` can proceed against it in the meantime regardless of bucket, per this pipeline's
   own stage ordering (bucket assignment doesn't gate specification, only implementation
   authorization, G3).
+- **FEAT-7100 (Procedural Music Generation)** — added 2026-07-16, per `ADR-0019` (`BL-0127`,
+  project-owner-requested). Fully decomposed (see [FP-03](03-feature-catalog.md)) with a complete
+  FR/NFR baseline (`FR-7100`/`FR-7110`/`NFR-4400`). Placed in Future for the same reason
+  `FEAT-10000` is: exploratory, owner-initiated scope with no `MSTR-001` commitment and no G3
+  authorization on record — not a technical block on specification. Its own build-time generation
+  half has zero graph-blocking dependencies; its runtime selection half has a real (not merely
+  bucket-driven) blocker of its own — it cannot be fully verified against all nine biome-family
+  identities until `FR-4320`'s own four implementation packages ship, and, separately, until
+  `FEAT-10000` itself is scheduled if Infinite Mode's own playback is to be verified too (see
+  [FP-04](04-feature-dependency-graph.md)'s critical-path note on this Feature).
 
 ## Callouts
 
@@ -182,7 +193,11 @@ inventing requirements:
   bank-switched growth; the test-suite remediation item is resolved, kept only as a historical
   note). **`FEAT-10000` (Infinite Mode) is fully decomposed but also placed in Future** — not
   deferred for any technical reason (zero graph-blocking dependencies), but because no release
-  commitment has been made for it yet; see its own Future-bucket entry above.
+  commitment has been made for it yet; see its own Future-bucket entry above. **`FEAT-7100`
+  (Procedural Music Generation) is also fully decomposed and placed in Future** — unlike
+  `FEAT-10000`, its runtime selection half carries a real technical blocker in addition to the
+  no-release-commitment reason (see its own Future-bucket entry above); its build-time generation
+  half shares `FEAT-10000`'s own commitment-only framing.
 
 ## Sequencing note
 

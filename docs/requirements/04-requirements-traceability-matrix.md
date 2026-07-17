@@ -18,7 +18,18 @@
 > 2026-07-14 (cont'd) — FR-9170 added, `CR-05` closed and resolved to it; FR-10100 row refreshed
 > for `GDS-01` §4d/`IP-1100`; delta 2026-07-14 (cont'd) — FR-10200/NFR-4300 rows filled
 > (`IP-1102`, `T24`), NFR-1400 row filled with T24.e's own measured `NOT MET` result; delta
-> 2026-07-14 (cont'd) — FR-10100 row filled Implemented (`IP-1100`, `T25`)).**
+> 2026-07-14 (cont'd) — FR-10100 row filled Implemented (`IP-1100`, `T25`); delta 2026-07-16 —
+> FR-10300 row completed (collection half, `IP-1103`, `T26.a/b`), FR-10400 row filled **partial**
+> (state + comparison subroutine only, zero call sites — `BL-0112`'s trigger gap stated
+> explicitly, `T26.c/d/e`); delta 2026-07-16 (cont'd) — FR-10500/FR-10600/NFR-5400 rows filled
+> Implemented/Met (`IP-1104`, `T27`) — this closes the Infinite Mode tranche's own FR/NFR set in
+> full, `BL-0112` (run-end trigger) the sole standing gap); delta 2026-07-16 (cont'd) — FR-4320
+> added and CR-08 filed for the nine-biome-family-identity delta, `BL-0128`; FR-9170 row updated
+> for the widened `[0,8]` domain; delta 2026-07-16 (cont'd) — CR-08 resolved and closed, baselined
+> into FR-4310's own row (concrete nine-value adjacency ordering, `R212` v1.1); delta 2026-07-16
+> (cont'd) — FR-7100/FR-7110/NFR-4400 rows added for the new procedural-music-generation
+> capability (`ADR-0019`, `BL-0127`), this project's first use of the FR-7xxx audio range,
+> confirmed unused before this delta.**
 > Owned by `04-requirements-engineering`.
 > One row per [RQ-01](01-functional-requirements.md)/[RQ-02](02-non-functional-requirements.md)
 > requirement (Candidates marked). Populates the row-level matrix
@@ -61,6 +72,8 @@
 | FR-6200 | Persistent row-0 HUD | R204 | GDS-05 C6; GDS-08 §3 | — | `asm_game.py`/`tilemaps.py` | UNASSIGNED | UNASSIGNED | T5.4–T5.8 |
 | FR-6300 | Five non-zone UI screens | — | GDS-05 C6; GDS-04 | — | `tilemaps.py` | UNASSIGNED | UNASSIGNED | T5.1–T5.3, T4.4/T4.6/T4.8 (screens reached) |
 | FR-6400 | Player and collectible sprite rendering (added 2026-07-10, BL-0020) | — | GDS-08 §2 | ADR-0005, ADR-0007 | `asm_game.py` | UNASSIGNED | UNASSIGNED | T6.1–T6.10 — trustworthy, pre-existing evidence, formal requirement only |
+| FR-7100 | Procedural biome-family sub-theme generation from the main theme (Implemented, `IP-1110`, 2026-07-16) | R217 | — | ADR-0019 | `music.py`, `build_rom.py` | FS-111 | IP-1110 (COMPLETE) | `verify_music_generation.py` (build-time comparison check, all pass) |
+| FR-7110 | Biome-family-identity-keyed sub-theme playback selection (target, `BL-0127`) | — | — | ADR-0019 | `asm_game.py` (prospective) | UNASSIGNED | UNASSIGNED | UNASSIGNED |
 | CR-01 | Full save-field persistence — **RESOLVED/SPLIT 2026-07-07**: facing/frame half REJECTED (no row — see FR-5210); ScoreItem half APPROVED → see **FR-5220** row above | — | GDS-05 C5; BL-0018 (resolved) | — | `asm_game.py` | `RESOLVED — SEE FR-5220` | `RESOLVED — SEE FR-5220` | `RESOLVED — SEE FR-5220` |
 | CR-02 | Carrot-invariant enforcement | — | GDS-04; BL-0017 | — | `tilemaps.py` | `CANDIDATE — NOT BASELINED` | `CANDIDATE — NOT BASELINED` | `CANDIDATE — NOT BASELINED` |
 | CR-05 | Biome-blob clustering (`BL-0066`) — **RESOLVED and BASELINED 2026-07-14 as `FR-9170`**, per RQ-03 finding #19 | R114 | GDS-04; BL-0066 | ADR-0009, ADR-0018 | `worldgen.py` | `CLOSED — see FR-9170` | `CLOSED — see FR-9170` | `CLOSED — see FR-9170` |
@@ -72,7 +85,8 @@
 | FR-1210 | LEGEND state (Met, 2026-07-13) | — | GDS-08 §11 | — | `asm_game.py`, `tilemaps.py` | FS-109 | IP-1090 | **T21.e, T21.f1–f3 — 246/246 pass** |
 | FR-3220 | Item-agnostic KeyItem collection (generalizes FR-3210) | — | GDS-04 delta | ADR-0009 | `asm_game.py` | FS-102 | IP-1020 | T8.7, T8.8 (retargeted KEYITEM_FLAGS/KEYITEM_COUNT checks), T12.g (cross-reference) — 133/133 pass |
 | FR-4300 | One biome per screen (Met — code half `IP-1030`, content half `IP-1031`, both 2026-07-10/11) | R212 | GDS-08 delta §8 | ADR-0009 | `asm_game.py`, `tilemaps.py` | FS-103 | IP-1030 (code), IP-1031 (content) | T13.a (tile-family audit, exercises both halves) — 180/180 pass |
-| FR-4310 | Grammar-valid adjacency only | R212 | GDS-04 delta | ADR-0009 | `asm_game.py`, `worldgen.py` | FS-102 | IP-1020 | T12.d (15-entry seed/scale corpus, 0 illegal edges) |
+| FR-4310 | Grammar-valid adjacency only (**2026-07-16 delta**: baselined nine-value adjacency ordering, resolving `CR-08`, `R212` v1.1 — Water-Sand-Grass-Stone-Brick-Village-Cave-Desert-Plains) | R212 (v1.1) | GDS-04 delta | ADR-0009 | `asm_game.py`, `worldgen.py` | FS-102 | IP-1020 (5-identity case); the 9-identity dispatch bundle UNASSIGNED, deferred pending `07-implementation-planning` | T12.d (15-entry seed/scale corpus, 0 illegal edges) — 5-identity case only; 9-identity test coverage UNASSIGNED |
+| FR-4320 | Nine biome-family identities, mapped onto five terrain-palette groups (target, `BL-0128`) | R212 Implementation Guidance | `07-data-model.md` §5, `08-presentation-architecture.md` §8 | ADR-0009 | `tilemaps.py`, `worldgen.py`, `asm_game.py` (prospective) | UNASSIGNED | UNASSIGNED | UNASSIGNED |
 | FR-9100 | Deterministic world generation from (seed, scale) | R111, R213 | GDS-04 delta; ADR-0009 | ADR-0009, ADR-0014 | `asm_game.py`, `worldgen.py` | FS-102 | IP-1020, IP-9110 | T12.a (two-boot determinism), T12.b (oracle parity), T12.e (region count), T12.j (non-degeneracy statistical check), T12.k (BL-0074 direct reproduction re-check) |
 | FR-9110 | Seed/scale immutable per save, new-game-only (Met, 2026-07-10) | — | ADR-0010 | ADR-0010 | `asm_game.py` (only `sse_compose_seed`, reachable only via `st_seed_scale_entry`'s A-confirm, writes `SEED`/`WORLD_SCALE`) | FS-102, FS-104 | IP-1020, IP-1040 | T14.e1 (static write-site audit), T14.e2 (runtime sweep, PLAYING/SAVE/MAP) — 180/180 pass (T14 sub-total 20/20) |
 | FR-9120 | Full reachability of every generated region | — | GDS-04 delta; ADR-0009 | ADR-0009 | `worldgen.py` | FS-102 | IP-1020 | T12.c (BFS from region 0, 15-entry corpus, 0 unreachable) |
@@ -81,16 +95,17 @@
 | FR-9150 | Braid-fraction parameter (implemented — 2026-07-11) | R112 | — | ADR-0012 | `worldgen.py`, `asm_game.py` | FS-107 | IP-1070 | T19.e (braid-fraction statistical check) |
 | FR-9160 | Scale-relative, dead-end-prioritized KeyItem placement (implemented 2026-07-13, supersedes FR-9130) | R215 | GDS-04 delta (2026-07-12 correction); GDS-07 §7c | ADR-0015, ADR-0012, ADR-0009 | `asm_game.py`, `worldgen.py` | FS-102 | IP-1021 | T12.e (revised), T12.n |
 | FR-9161 | Scale-relative victory condition (implemented 2026-07-13, supersedes FR-3300) | R215 | — | ADR-0015 | `asm_game.py` | FS-102 | IP-1021 | T4.8 (corrected), T12.n |
-| FR-9170 | Finite-mode biome-blob clustering via per-super-cell positional hash (resolves CR-05/BL-0066) | R114 | GDS-04 (delta pending, per ADR-0018 Consequences) | ADR-0018, ADR-0009, ADR-0012 (unaffected) | `asm_game.py`, `worldgen.py` (prospective) | UNASSIGNED | UNASSIGNED | UNASSIGNED |
+| FR-9170 | Finite-mode biome-blob clustering via per-super-cell positional hash (resolves CR-05/BL-0066; **2026-07-16 delta**: biome-id domain widened `[0,4]`→`[0,8]` per FR-4320, mechanism unchanged) | R114 | GDS-04 (delta pending, per ADR-0018 Consequences) | ADR-0018, ADR-0009, ADR-0012 (unaffected) | `asm_game.py`, `worldgen.py` (prospective) | UNASSIGNED | UNASSIGNED | UNASSIGNED |
 | FR-9200 | Save-format extension: seed/scale/region-flags (Met, 2026-07-10) | R106 (ext.) | GDS-07 delta §7 | ADR-0010, ADR-0006 | `asm_game.py` | FS-105 | IP-1050 | T15.a1–a6, T15.c1–c6, T15.d — 180/180 pass |
 | FR-10100 | Infinite Mode new-game entry (seed-only, no world-scale) (Implemented, 2026-07-14) | — | ADS-001 §System Architecture; GDS-01 §4d | ADR-0016 | `asm_game.py` | FS-110 | IP-1100 | T25 |
 | FR-10200 | Streaming, positionally-deterministic region generation (Implemented, 2026-07-14) | R114 | ADS-001 §System Architecture | ADR-0016 | `asm_game.py`/`worldgen.py` | FS-110 | IP-1101 (generate half), IP-1102 (navigate/render half) | T22.a, T22.b, T24.a, T24.b |
 | FR-10210 | Revisit-consistent region materialization | R114 | ADS-001 §User Stories | ADR-0016 | `asm_game.py` | FS-110 | IP-1101 (partial — data layer; IP-1102/1104 own the window/ledger halves) | T22.c |
-| FR-10300 | Treasure placement decoupled from maze structure | R216 | ADS-001 §System Architecture | ADR-0017 | `asm_game.py`/`worldgen.py` | FS-110 | IP-1101 (partial — presence half; IP-1103 owns collection) | T22.d |
-| FR-10400 | Score-chasing win condition (running count + top-3, no name entry) | R216 | ADS-001 §Executive Design Overview | ADR-0017 | `asm_game.py` (prospective) | UNASSIGNED | UNASSIGNED | UNASSIGNED |
-| FR-10500 | Visited-region-ledger save/load (position + collected-state only) | R114 | ADS-001 §System Architecture | ADR-0016 | `asm_game.py` (prospective) | UNASSIGNED | UNASSIGNED | UNASSIGNED |
+| FR-10300 | Treasure placement decoupled from maze structure | R216 | ADS-001 §System Architecture | ADR-0017 | `asm_game.py`/`worldgen.py` | FS-110 | IP-1101 (presence half) + IP-1103 (collection half) | T22.d, T26.a/T26.b |
+| FR-10400 | Score-chasing win condition (running count + top-3, no name entry) | R216 | ADS-001 §Executive Design Overview | ADR-0017 | `asm_game.py` | FS-110 | IP-1103 (**partial** — state + `inf_check_top_score` subroutine only; **no automatic trigger calls it**, the run-end trigger is `BL-0112`'s open question, a follow-up package wires the call site) | T26.c (subroutine corpus), T26.d (zero-call-site state, explicit), T26.e (no name entry) |
+| FR-10500 | Visited-region-ledger save/load (position + collected-state only) | R114 | ADS-001 §System Architecture | ADR-0016 | `asm_game.py` | FS-110 | IP-1104 | T27.a, T27.c |
 | CR-07 | Infinite Mode run/session shape (`BL-0106`) — **RESOLVED 2026-07-13, baselined as FR-10600** once the project owner decided directly ("for now assume indefinitely resumable") | R216 | — | ADR-0017 | `asm_game.py` (prospective) | `CANDIDATE — NOT BASELINED` (see FR-10600) | `CANDIDATE — NOT BASELINED` | `CANDIDATE — NOT BASELINED` |
-| FR-10600 | Indefinitely resumable Infinite Mode run (no bounded end-condition mechanic) | R216 | ADS-001 §Open Questions (Q1) | ADR-0017 | `asm_game.py` (prospective) | UNASSIGNED | UNASSIGNED | UNASSIGNED |
+| CR-08 | Adjacency-grammar ordering position for the four newly-folded biome identities (`BL-0128`) — **RESOLVED and BASELINED 2026-07-16 as `FR-4310`'s own delta**, per RQ-03 finding #21 | R212 (v1.1) | GDS-04 delta | ADR-0009 | `worldgen.py` | `CLOSED — see FR-4310` | `CLOSED — see FR-4310` | `CLOSED — see FR-4310` |
+| FR-10600 | Indefinitely resumable Infinite Mode run (no bounded end-condition mechanic) | R216 | ADS-001 §Open Questions (Q1) | ADR-0017 | `asm_game.py` | FS-110 | IP-1104 | T27.f |
 
 ## Non-Functional Requirements
 
@@ -114,11 +129,12 @@
 | NFR-4200 | Generated-world WRAM/SRAM headroom (WRAM half Met, `IP-1020`; SRAM half awaits `IP-1050`; maze-pass delta Met, `IP-1070`) | R111 | GDS-07 delta §6/§7, §7b | ADR-0010 | `asm_game.py` | FS-102, FS-107 | IP-1020 (WRAM), IP-1050 (SRAM), IP-1070 (maze-pass WRAM) | T12.i (WRAM extent inside bank-0 + boot-clear range, confirmed at scale=9); T19.g (maze-pass WRAM extent, confirmed at scale=9) |
 | NFR-5300 | Save-format version bump for seed/scale/region-flags (Met, 2026-07-10) | R106 (ext.) | GDS-07 delta §7 | ADR-0010, ADR-0006 | `asm_game.py` | FS-105 | IP-1050 | T15.b1/b2/b3 — 180/180 pass |
 | NFR-6500 | Aesthetic craft and clean-screen standard compliance (Met, 2026-07-11) | R209 | GDS-08 delta §7 | — | `tiles.py`/`tilemaps.py` | FS-106 | *(no package — see FS-106 §8/§10)* | `content-review-IP-1031.md` — clean, no findings |
-| NFR-6510 | Biome-transition palette-stepping compliance (Met, 2026-07-11) | R212 | GDS-08 delta §8 | ADR-0009 | `build_rom.py`/`tiles.py` | FS-106 | *(no package — see FS-106 §8/§10)* | `content-review-IP-1031.md` — Met, 1 Low/informational note (Stone↔Brick pairing) |
+| NFR-6510 | Biome-transition palette-stepping compliance (Met, 2026-07-11, for the five-identity axis reviewed at the time; **2026-07-16 delta**: not yet re-exercised against FR-4320's nine-identity axis, pending CR-08) | R212 | GDS-08 delta §8 | ADR-0009 | `build_rom.py`/`tiles.py` | FS-106 | *(no package — see FS-106 §8/§10)* | `content-review-IP-1031.md` — Met, 1 Low/informational note (Stone↔Brick pairing) |
 | NFR-1400 | Infinite Mode region-materialization timing (status NOT MET, measured 2026-07-14) | R114 | ADS-001 §Non-functional Requirements | ADR-0016 | `asm_game.py` | FS-110 | IP-1102 | T24.e — measured 78,860–81,792 cycles vs. 70,224-cycle frame budget |
 | NFR-2300 | Positional determinism for Infinite Mode generation | R114 | ADS-001 §System Architecture | ADR-0016 | `asm_game.py` | FS-110 | IP-1101 | T22.e, T22.a, T22.b |
 | NFR-4300 | Infinite Mode materialized-window WRAM headroom (Met, 2026-07-14) | R114 | ADS-001 §System Architecture | ADR-0016 | `asm_game.py` | FS-110 | IP-1102 | GDS-07 §7e inspection — 15 bytes vs. ~3.1 KiB bank-0 headroom |
-| NFR-5400 | Infinite Mode visited-region-ledger integrity and bounded capacity (status NOT YET SIZED) | R114 | ADS-001 §System Architecture | ADR-0016 | `asm_game.py` (prospective) | UNASSIGNED | UNASSIGNED | UNASSIGNED |
+| NFR-4400 | Procedural music generation ROM budget (Met, `IP-1110`, 2026-07-16) | R217 | — | ADR-0019 | `music.py`, `build_rom.py` | FS-111 | IP-1110 (COMPLETE) | Inspection — direct build measurement (31362/32768 bytes used) |
+| NFR-5400 | Infinite Mode visited-region-ledger integrity and bounded capacity (Met, 128 entries FIFO-bounded) | R114 | ADS-001 §System Architecture | ADR-0016 | `asm_game.py` | FS-110 | IP-1104 | T27.a, T27.c |
 
 ## Notes on this matrix's honesty discipline
 

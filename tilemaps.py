@@ -490,3 +490,52 @@ ZONE_COLLECTS = [
      (28, 32, 1), (108, 96, 0),
      (84, 64, 2)],
 ]
+
+# ── IP-1033: staged content for the four newly-folded biome identities ────
+# Village/Cave/Desert/Plains — FR-4320 (BL-0128). NOT yet spliced into
+# ZONE_COLLECTS above; final array-index assignment (which of positions
+# 5-8 each list occupies) rides the deferred dispatch package (IP-1022),
+# entangled with CR-08's identity-to-position resolution. This block is
+# pure staged data, unreferenced by any code path until that package
+# splices it in. Same (pixel_x, pixel_y, type) format, same pixel space
+# (x∈[8,151], y∈[24,128]) and player-spawn exclusion (76, 72) as the
+# five lists above. Placement verified visually against each screen's
+# real, shipped landmark layout (village_screen/cave_screen/desert_
+# screen/plains_screen) via a temporary-force render, not committed here.
+
+VILLAGE_COLLECTS = [
+    # avoids the four top houses (cols 3/11/19), two lanterns (col 1),
+    # and four fence segments (cols 8/17) village_screen already places
+    (56, 48, 0), (112, 56, 1), (136, 40, 0),
+    (40, 96, 1), (104, 96, 0),
+    (136, 96, 2),
+]
+
+CAVE_COLLECTS = [
+    # avoids the seven crystals, three drips, two bats, and the top/
+    # bottom cave-wall rows cave_screen already places
+    (32, 80, 0), (80, 48, 1), (128, 88, 0),
+    (64, 120, 1), (112, 104, 0),
+    (136, 72, 2),
+]
+
+DESERT_COLLECTS = [
+    # avoids the four two-tile cacti (cols 4/12), four bone piles, and
+    # two pyramids desert_screen already places
+    (24, 40, 0), (80, 48, 1), (144, 64, 0),
+    (32, 96, 1), (56, 104, 0),
+    (128, 40, 2),
+]
+
+# Plains is the most landmark-dense of the four (19 hand-placed flowers,
+# 3 tall-grass tufts, 3 butterflies within the visible/placement window)
+# — open gaps are narrower here than the other three; spacing between
+# these six entries and the nearest flower/grass/butterfly runs as low
+# as ~1.5 tiles in a couple of spots (vs. ~2-3+ tiles elsewhere), named
+# explicitly per this package's own §6 instruction rather than silently
+# accepted as equivalent to the other three lists' own margins.
+PLAINS_COLLECTS = [
+    (24, 32, 1), (88, 40, 0), (128, 72, 1),
+    (24, 96, 0), (104, 96, 1),
+    (144, 88, 2),
+]

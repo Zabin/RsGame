@@ -15,6 +15,24 @@
 > verification pending `09-package-verification`. Jointly with IP-1030, this document's Open
 > Questions 1–2 are now both resolved (IP-1030 resolved the code-side implementation-detail
 > portion; IP-1031 resolves the content-sizing/registration portion).
+>
+> **Revision (2026-07-16, `FR-4320`/`BL-0128`):** the biome-family set this Feature dispatches
+> screens for widens from 5 to 9 identities (Village/Cave/Desert/Plains folded in). **Reopens
+> Open Question 1 for the 4 new identities only, but finds it nearly free to close**: their
+> screen-generator functions (`village_screen`/`cave_screen`/`desert_screen`/`plains_screen`) and
+> their tile-index budgets (`0x90`–`0x95`/`0x98`–`0x9D`/`0xA0`–`0xA5`/`0xA8`–`0xAC`, confirmed by
+> direct read of `tiles.py`) were never removed when `IP-1030`/`IP-1031` narrowed `ALL_SCREENS`'
+> own dispatch to 5 — both are already fully authored and already emitted into the ROM by
+> `build_tile_data()`. What remains is a dispatch-table rewire (§9), not new content authoring —
+> see §5/§19 below. §5, §6, §7, §10, §19 updated.
+>
+> **Planned 2026-07-16:** [IP-1033](../implementation/packages/IP-1033-nine-biome-family-collectible-spawn-content.md)
+> (`NOT STARTED`, not yet authorized) authors the four new identities' own collectible-spawn
+> content — the paired content half of the same completeness question this revision's own Open
+> Question 1 named — but only the *content*; final `ZONE_COLLECTS`/dispatch wiring rides
+> [IP-1022](../implementation/packages/IP-1022-finite-mode-nine-identity-generation-and-dispatch.md)
+> instead (`BLOCKED` on `IP-1033`'s own content existing first). **`CR-08` resolved 2026-07-16**
+> (baselined into `FR-4310`), unblocking `IP-1022`'s own planning the same day.
 
 [↑ Features index](INDEX.md) · [Feature Catalog](../feature-planning/03-feature-catalog.md) ·
 [Epic Catalog](../feature-planning/02-epic-catalog.md)
@@ -52,7 +70,14 @@ judging this Feature's output, this Feature owns only the hard structural constr
 
 FR-4300, NFR-1300 — the exact set FEAT-4100 owns, no more, no fewer (cross-checked against
 [03-feature-catalog.md](../feature-planning/03-feature-catalog.md#feat-4100--generated-region-screen-composition-new--not-yet-implemented)'s
-Included Requirements).
+Included Requirements). **(2026-07-16 delta) FR-4320** (nine biome-family identities) is this
+Feature's natural owner — its own count/identity/palette-mapping requirement is fundamentally
+about *which and how many* screens this Feature dispatches, the same territory `FR-4300` already
+covers — but, mirroring `FS-102` §19 Open Question 4's own already-established precedent for
+`FR-9160`/`FR-9161`/`FR-9170`, `FEAT-4100`'s own catalog Included Requirements list (`FR-4300;
+NFR-1300`, confirmed by direct read) does not yet name `FR-4320`. Not blocking this Feature's own
+implementation-readiness — flagged as Open Question 3 below for `05-feature-decomposition` to
+reconcile.
 
 ## 6. User Workflows
 
@@ -66,7 +91,11 @@ Included Requirements).
 3. The system renders that region's screen using the biome family's screen-generator function —
    structurally the same authoring pattern every existing zone screen already uses (GDS-08 §1: a
    base terrain fill via `_fill()`, then hand-placed/generated landmark elements), parameterized
-   by biome family rather than by a fixed per-zone identity.
+   by biome family rather than by a fixed per-zone identity. **(2026-07-16 delta, `FR-4320`):**
+   the biome-family set this step dispatches over is nine identities, not five —
+   `lake_screen`/`beach_screen`/`forest_screen`/`mountain_screen`/`castle_screen` (the current
+   dispatch set) plus `village_screen`/`cave_screen`/`desert_screen`/`plains_screen` (already
+   authored, currently orphaned — `tilemaps.py`'s own header comment).
 4. The render uses the existing `copy_screen`/`do_screen_redraw` LCD-off mechanism, unchanged —
    no new "safe window" convention is introduced (this Feature's own NFR-1300).
 
@@ -80,7 +109,13 @@ exactly one biome family — confirmed by a tile-family audit of the screen's co
 authored:** out of this Feature's own scope to resolve — this Feature's behavior contract assumes
 every biome family FEAT-9000 can assign has a corresponding rendering function; whether every
 possible biome family is actually content-authored is a content-package concern (see Open
-Questions).
+Questions). **(2026-07-16 delta, `FR-4320`):** for the screen-*rendering* half specifically, this
+edge case is now moot for all nine identities `FR-4320` names — every one already has an authored
+screen-generator function (confirmed by direct read of `tilemaps.py`, see header revision note
+above). It is **not** moot for the paired collectible-*content* half (`ZONE_COLLECTS`) — four of
+the nine identities have no spawn table today, a distinct gap this Feature's own Scope (§4)
+explicitly excludes (collectible placement is `FEAT-9000`/`FS-102`'s scope) — see `FS-102` §19
+Open Question 6 for that half.
 
 **Edge case — the row-0 HUD reservation:** unchanged — every existing zone screen reserves row 0
 for the HUD (GDS-08 §1/§3); a generated region's screen follows the identical convention, since
@@ -129,7 +164,15 @@ None beyond what FEAT-9000 already introduces (`Region`'s biome-identity field, 
 this Feature reads that field to select a rendering function; it adds no new WRAM/SRAM/ROM
 entity of its own. The tile-index-map budget consumed by biome-family tile sets is a content-
 authoring concern (GDS-07 §8's cross-reference / GDS-08 §9), not a new data-model entity this
-Feature's design introduces.
+Feature's design introduces. **(2026-07-16 delta, `FR-4320`):** the four newly-dispatched
+identities' tile-index budgets already exist and require no new allocation — `village_screen`
+(`0x90`–`0x95`), `cave_screen` (`0x98`–`0x9D`), `desert_screen` (`0xA0`–`0xA5`), `plains_screen`
+(`0xA8`–`0xAC`), all confirmed 8-tile-aligned per the existing convention, all already emitted by
+`build_tile_data()`. Palette assignment likewise introduces no new BG palette slot — `FR-4320`
+reuses the original nine-zone game's own established grouping (`village_screen`/`cave_screen`
+share palette 4 with `mountain_screen`; `desert_screen` shares palette 1 with `beach_screen`;
+`plains_screen` shares palette 0 with `forest_screen`), confirmed against `07-data-model.md` §5's
+own palette-reuse table.
 
 ## 11. State Changes
 
@@ -208,7 +251,11 @@ Carried forward from FEAT-4100's own Risk assessment (Low): reuses the existing,
 LCD-off transition mechanism unchanged; the new constraint (one biome per screen) is enforced by
 which tiles a screen generator uses, not new hardware-timing-sensitive code. The only risk this
 spec surfaces beyond the catalog entry's own assessment is content-completeness (Open Question 1
-below) — not a design or architecture risk.
+below) — not a design or architecture risk. **(2026-07-16 delta, `FR-4320`):** the nine-identity
+expansion's own risk is lower still than the original five-identity case — no new tile art, no
+new palette slot, no new tile-index allocation is needed for the screen-rendering half (§10), so
+implementation risk is confined to a dispatch-table rewire plus the separately-tracked
+collectible-content gap (`FS-102` §19 Open Question 6), not new rendering-mechanism work.
 
 ## 19. Open Questions
 
@@ -221,12 +268,27 @@ below) — not a design or architecture risk.
    grammar table — these are two views of the same underlying deferral). Resolves at:
    `07-implementation-planning`, in lockstep with FS-102's Open Question 1 (the grammar table and
    the biome-family set should be sized together, since the grammar table is defined *over*
-   whatever biome-family set is chosen).
+   whatever biome-family set is chosen). **(2026-07-16 delta, `FR-4320`/`BL-0128`) — RESOLVED for
+   the screen-rendering half.** `FR-4320` fixes the biome-family set at nine identities by name,
+   and all nine already have authored screen-generator functions (confirmed by direct read of
+   `tilemaps.py` — see header revision note). What remains for `07-implementation-planning` is a
+   mechanical dispatch-table rewire (`ALL_SCREENS`/`REGION_GRAPH` biome-id range), not new content
+   authoring. **Not resolved for the paired collectible-content half** — see `FS-102` §19 Open
+   Question 6.
 2. **The exact tile-index ranges/palette assignments for whatever biome-family set is eventually
    chosen** are, per GDS-07 §8/GDS-08 §9's own cross-references, deferred to the same future
    content-sizing package — this spec does not invent tile-index ranges beyond citing the
    existing 8-tile-aligned-block *convention* GDS-07/GDS-08 already establish. Resolves at:
    `07-implementation-planning`/`08-content-authoring`, once Open Question 1 is resolved.
+   **(2026-07-16 delta, `FR-4320`/`BL-0128`) — RESOLVED.** Both the tile-index ranges and the
+   palette-group assignments for all four newly-dispatched identities already exist (§10 above) —
+   no new allocation of either kind is needed; `07-implementation-planning` only needs to point
+   the dispatch table at what already exists.
+3. **(New, 2026-07-16, `FR-4320`/`BL-0128`) `FEAT-4100`'s own catalog Included Requirements list
+   does not yet name `FR-4320`**, mirroring the exact gap class `FS-102` §19 Open Question 4
+   already established for `FR-9160`/`FR-9161`/`FR-9170`. Not blocking this Feature's own
+   implementation-readiness. Resolves at: `05-feature-decomposition`, whenever it next touches
+   `FEAT-4100`'s own catalog entry.
 
 ## 20. Related ADRs
 

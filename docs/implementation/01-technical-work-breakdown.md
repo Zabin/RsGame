@@ -2,7 +2,8 @@
 
 > **Status: ✅ Authored (first planning pass, 2026-07-07); latest delta 2026-07-14 (Infinite
 > Mode, `FS-110`/`FEAT-10000`, 5 packages `IP-1100`–`IP-1104`, AUTHORIZED 2026-07-14, "Yes, build
-> all five").** Owned by
+> all five"); delta 2026-07-16 (Procedural Music Generation, `FS-111`/`FEAT-7100`, 2 packages
+> `IP-1110`/`IP-1111`, not yet authorized).** Owned by
 > `07-implementation-planning`. Records how approved work is cut into Implementation Packages —
 > the rationale for every split/no-split decision is the artifact. Package status lives in the
 > [Master Build Plan](00-master-build-plan.md), not here.
@@ -1146,3 +1147,192 @@ buildable without it.
 - **`BL-0114`** (materialized-window radius/byte cost) — resolved this pass, see "Per-region
   encoding, materialized-window, and ledger sizing decisions" above. `BL-0114` flips to `DONE`
   once `00-pipeline-manager` harvests this run.
+
+## Nine biome-family identities (`FS-102`/`FS-103` revision, `FR-4320`, `BL-0128`, planned 2026-07-16)
+
+Project-owner decision (`BL-0128`): merge the original Release-1 nine-zone art with the
+five-family procgen taxonomy so no shipped screen art stays permanently orphaned. Baselined as
+`FR-4320` (`04-requirements-engineering`, run #169); `FS-102`/`FS-103` both revised to cover it
+(`06-feature-specification`, run #170).
+
+### Verb inventory (mandatory — this capability spans generate/render/persist)
+
+| Verb | Owner | Notes |
+|---|---|---|
+| **Generate** (finite mode: which numeric biome-id a region draws) | [IP-1022](packages/IP-1022-finite-mode-nine-identity-generation-and-dispatch.md) | The clamp-bound widening itself (`4`→`8`) is mechanical; the *meaning* of positions 5-8 is now settled (`CR-08`, resolved 2026-07-16 into `FR-4310`) — inseparable from **Render**'s own dispatch assignment (same numeric ID drives both), so bundled into the same package, not split. |
+| **Generate** (Infinite Mode: `_materialize_region`'s own independent per-region hash draw, `%5`→`%9`) | [IP-1106](packages/IP-1106-infinite-mode-nine-identity-value-widening.md) | Confirmed independent of `CR-08` on its own terms (no neighbor-based grammar-adjacency clamp, `worldgen.py:284-285`) — but cannot ship ahead of **Render**'s own dispatch cascade (`IP-1022`) or `IP-1105`'s own bit-layout repack, both real prerequisites, not `CR-08` ones. |
+| **Represent** (Infinite Mode `region_byte`/`INF_MZ_RESULT`'s own bit-field layout — biome bits 0-2→0-3, connectivity nibble bits 3-6→4-7) | [IP-1105](packages/IP-1105-infinite-mode-biome-domain-widening.md) | **Genuinely independent, behavior-preserving infrastructure**: repacks *where* the same 0-4 biome value and the same connectivity nibble live within the byte, preparing bit headroom for the value-range widening above, without changing the draw's own value range (`%5`) or any rendered/observable behavior at the time it ships. |
+| **Render** (screen dispatch, `dsr_p`/`dsr_p_dispatch`, shared by both modes) | [IP-1022](packages/IP-1022-finite-mode-nine-identity-generation-and-dispatch.md) | Bundled with finite-mode **Generate** — the dispatch cascade assigns each of the four new identities its `CR-08`-resolved `CP_n` branch; `IP-1106`'s own Infinite Mode widening depends on this package shipping first (`dsr_p_inf` falls into the same shared cascade). |
+| **Persist** (`ZONE_COLLECTS` collectible-spawn content + array wiring) | [IP-1033](packages/IP-1033-nine-biome-family-collectible-spawn-content.md) (content) + [IP-1022](packages/IP-1022-finite-mode-nine-identity-generation-and-dispatch.md) (final array-index wiring) | Content authoring (`IP-1033`) needs no numeric-ID decision; final `ZONE_COLLECTS` array-index assignment does, so it rides `IP-1022` instead — `IP-1022` depends on `IP-1033`'s own staged content existing first (not necessarily `VERIFIED`, just present in the tree). |
+| **Persist** (`inf_treasure_pos`'s own matching table extension, `asm_game.py:1838`) | [IP-1106](packages/IP-1106-infinite-mode-nine-identity-value-widening.md) | Indexed by the same biome-id `IP-1022`/`CR-08` assign and consumes the same `(x,y)` values `IP-1033` authors for each identity's `ZONE_COLLECTS` type-2 entry — bundled with Infinite Mode's own value-widening package since both are Infinite-Mode-specific consumers of the same numeric assignment. |
+
+**Packaged this pass (2026-07-16, second half of the same day):** `CR-08` resolved into `FR-4310`
+(`04-requirements-engineering`, same session) supplied the single missing input the prior pass's
+own "Deferred" verdict was waiting on. Two packages authored: **`IP-1022`** (finite-mode
+generation + shared dispatch cascade + `ZONE_COLLECTS` wiring) and **`IP-1106`** (Infinite Mode's
+own value-range widening + `inf_treasure_pos` extension) — see Work units below for the full
+dependency chain, including each package's real dependency on `IP-1033`/`IP-1105` (both still
+`NOT STARTED`, neither authorized — this pass's own packages inherit that same gate, not a new
+one).
+
+### Supersession sweep
+
+This delta widens an existing domain (5→9 biome-family values); it does not retire or replace a
+model the way `IP-1030`'s `ALL_SCREENS` generalization did. Swept `asm_game.py`/`tilemaps.py`/
+`build_rom.py` for every other site encoding the old `0`–`4`/5-value assumption or the current
+bit-field layout beyond the ones already named above: **found the full consumer set of
+`INF_WINDOW`/`INF_MZ_RESULT`'s packed byte** — `dsr_p_inf` (`asm_game.py:1386`, biome mask),
+`czt_infinite` (`asm_game.py:1160,1171,1182,1193`, four connectivity-bit tests), `draw_region_
+arrows_inf` (`asm_game.py:1573,1576,1579,1582`, four more), `szc_infinite` (`asm_game.py:1936`,
+biome mask) — every one now named in `IP-1105`'s own Files to Modify, none missed. Also found:
+`dsr_p`'s own inline comment ("biome-id 4 (`generate_world`'s own invariant: axis-clamped to
+0..4)," `asm_game.py:1397`) is documentation only, not code; will need updating whenever the
+deferred dispatch package eventually lands, no package needed now. No other call site (searched
+for literal `% 5`, `CP_n(4)`, `0..4`/`0-4` range comments) found beyond the ones already named —
+confirmed clean.
+
+### Work units and package cut
+
+| Work unit | Package | Owner | Depends on |
+|---|---|---|---|
+| Infinite Mode `region_byte`/`INF_MZ_RESULT` bit-field repack (biome 0-2→0-3, connectivity 3-6→4-7) — behavior-preserving, value range unchanged (`%5`) | [IP-1105](packages/IP-1105-infinite-mode-biome-domain-widening.md) | `08-code-implementation` | `IP-1101`/`IP-1102` (`VERIFIED`, the shipped format this repacks) |
+| Collectible-spawn content for the four newly-folded identities (Village, Cave, Desert, Plains) | [IP-1033](packages/IP-1033-nine-biome-family-collectible-spawn-content.md) | `08-content-authoring` | `FR-4320` (baselined). Final array wiring rides `IP-1022`, not this package. |
+| Finite-mode `generate_world`/`worldgen.py` clamp widening (`[0,4]`→`[0,8]`) + `dsr_p`/`dsr_p_dispatch`'s cascade extension (4 new `_dsr_family` branches) + `tilemaps.py`'s `ALL_SCREENS`/`build_rom.py`'s patch wiring + `ZONE_COLLECTS`'s final 9-entry array assembly | [IP-1022](packages/IP-1022-finite-mode-nine-identity-generation-and-dispatch.md) | `08-code-implementation` | `FR-4310` (baselined, `CR-08` resolved); `IP-1033` (its staged spawn content must exist in the tree first) |
+| Infinite Mode `_materialize_region`/`inf_materialize_region`'s value-range widening (`%5`→`%9`) + `inf_treasure_pos`'s 4-entry table extension | [IP-1106](packages/IP-1106-infinite-mode-nine-identity-value-widening.md) | `08-code-implementation` | `IP-1105` (bit-layout repack must ship first); `IP-1022` (shares `dsr_p_dispatch`, must ship first); `IP-1033` (the `(x,y)` values `inf_treasure_pos` mirrors) |
+
+**Split rationale:** two new packages this pass (`IP-1022`, `IP-1106`), not one. The prior pass's
+own "Deferred (bundled)" verdict correctly grouped finite generation with dispatch (the numeric
+ID drives both, inseparable) — that coupling is preserved intact as `IP-1022`. **What's now split
+out as its own package (`IP-1106`) is Infinite Mode's own value-range widening**, which the prior
+pass's verb inventory had bundled into the same deferred lump only because it shared `CR-08` as a
+*blocking condition*, not because it shares files/concerns with finite-mode generation — now that
+`CR-08` is resolved, the real dependency structure is clearer: `IP-1106` depends on `IP-1022`
+(shared dispatch) and `IP-1105` (bit layout) as genuine prerequisites, but touches none of
+`IP-1022`'s own finite-mode files (`worldgen.py`'s `generate()`, `asm_game.py`'s `generate_world`,
+`tilemaps.py`'s `ALL_SCREENS`) — a real module-boundary seam, not an artificial one. Splitting
+avoids inflating `IP-1022`'s own Definition of Done with Infinite-Mode-specific concerns it has no
+natural authority over (mirroring the same code/content and mode-boundary discipline `IP-1030`/
+`IP-1101`/`IP-1105` themselves already established). Neither package is `READY` — both have real,
+unshipped dependencies (`IP-1033` for `IP-1022`; `IP-1033`/`IP-1105`/`IP-1022` for `IP-1106`) —
+correctly marked `BLOCKED`, not `NOT STARTED`, distinguishing "nothing stands in the way but
+authorization" (`IP-1033`/`IP-1105`'s own current state) from "a real unshipped prerequisite"
+(`IP-1022`/`IP-1106`'s own state, one level further downstream).
+
+### Sequencing summary
+
+**New critical-path chain within this delta: `IP-1033` → `IP-1022` → `IP-1106`, with `IP-1105`
+also feeding `IP-1106`.** `IP-1033`/`IP-1105` are the two roots (both `NOT STARTED`, parallel-
+eligible with each other, no shared files); `IP-1022` needs `IP-1033`'s content staged first;
+`IP-1106` needs both `IP-1022` (dispatch) and `IP-1105` (bit layout) complete first. This is a new,
+independent 4-package chain off already-`VERIFIED` roots (`IP-1101`/`IP-1102`/`IP-1103`/`IP-9070`)
+— it does not extend or block any other in-flight critical path in the tree (Infinite Mode's own
+tranche and the finite-mode procgen tranche are both already `VERIFIED` and closed independent of
+this delta, mirroring the prior pass's own confirmation).
+
+### Backlog riders honored in this pass
+
+- **`BL-0130`** (catalog Included-Requirements gap for `FR-4320`) — **not** riding this pass; it's
+  a `05-feature-decomposition` metadata fix, out of this skill's own write scope, confirmed
+  correctly excluded.
+- **`CR-08`'s own resolution** (`BL-0129`, closed by `04-requirements-engineering` earlier the
+  same session) is what unblocked this pass — the packages above are its direct, immediate
+  downstream consequence, not a separate rider.
+
+## Procedural Music Generation (`FS-111`/`FEAT-7100`/`EP-7000`, `ADR-0019`/`BL-0127`, planned 2026-07-16)
+
+New capability grounded in `ADR-0019`: build-time (Python) generation of nine biome-family
+sub-themes from the existing shipped main theme, plus a runtime selection mechanism keyed to the
+player's current region's biome-family identity. Baselined as `FR-7100`/`FR-7110`/`NFR-4400`
+(`04-requirements-engineering`, this session); specified in full as `FS-111`
+(`06-feature-specification`, this session), which carried forward five Open Questions rather than
+resolving them prematurely.
+
+### Verb inventory (mandatory — this capability spans generate/navigate)
+
+| Verb | Owner | Notes |
+|---|---|---|
+| **Generate** (build-time: nine sub-theme byte sequences via transposition/tempo-duration scaling of the main theme) | [IP-1110](packages/IP-1110-procedural-music-generation.md) | No runtime counterpart — `ADR-0019` point 3's own explicit decision (no `worldgen.py`-style oracle/lockstep need). Resolves `FS-111`'s Open Question 3 (which identity the main theme's own data represents) as part of this package's own Objective — see its own §2. |
+| **Navigate/select** (runtime: which of the nine tracks plays, keyed to `PLAYING`'s current region identity) | [IP-1111](packages/IP-1111-biome-family-sub-theme-playback-selection.md) | Resolves `FS-111`'s Open Question 1 (selection-mechanism shape) — hooks into `do_screen_redraw`'s existing per-`GAMESTATE` dispatch (default-reset-to-main-theme) plus `dsr_p_dispatch`'s existing per-identity biome cascade (override to the matching sub-theme), reusing two already-shipped trigger points rather than adding a new per-frame poll or new WRAM "last-known identity" state. |
+| **Persist** | None — no save-data footprint (`FS-111` §14, confirmed: the biome-family identity this capability reads is already persisted/re-derived by `FR-4310`/`FR-4320`'s own mechanisms, unchanged and un-owned here). Deliberate, not a silent gap. |
+| **Review** | Deferred to `09-content-review` once code ships (that skill's own Audio Correctness dimension already covers exactly this) — not this stage's own scope to package. |
+
+**A real technical finding this pass surfaced, not named anywhere upstream (`FS-111` included):**
+direct re-read of `music_tick` (`asm_game.py:1256`–`1270`) found its own loop-restart branch
+(`LD_A_HL(); CP_n(0xFF); JR_NZ('mt_play') / LD_HL_nn(0)` with `patches['mus_reset']` hardcoded to
+`music_addr` — the **main theme's own fixed ROM address**, patched once at build time) is **not
+track-agnostic**. If `IP-1111`'s own selection mechanism repoints `MUSIC_PTR_LO`/`MUSIC_PTR_HI`
+into a sub-theme's own data, that sub-theme plays correctly note-by-note — but the moment it hits
+its own terminal `0xFF` byte, `music_tick`'s hardcoded reset would snap `HL` back to the **main
+theme's** address, not the currently-playing sub-theme's own start, silently truncating every
+sub-theme to a single pass before falling back to the main theme. `FS-111`'s own §13 called
+`music_tick`'s cost "unaffected in structure" — true for cycle cost, not for correctness once a
+second track ever plays; this pass corrects that framing rather than carrying it forward
+uncorrected. **Fix (packaged into `IP-1111`, not split out — it has no value in isolation, since
+nothing else in the tree ever repoints `MUSIC_PTR`):** a new 2-byte WRAM field
+(`MUSIC_BASE_LO`/`MUSIC_BASE_HI`, prospective `0xC69B`–`0xC69C`, the next free bytes after
+`LEDGER`'s own `0xC69A` end per `GDS-07`) holding the currently-selected track's own base address;
+`music_tick`'s reset branch reads this field instead of the hardcoded `mus_reset` patch constant.
+See `IP-1111` §6/§7 for the full task.
+
+### Supersession sweep
+
+This capability does not retire or replace an existing model — `MUSIC_PTR_LO`/`MUSIC_PTR_HI`/
+`MUSIC_CTR` remain the same mechanism, `SONG`/`music_data()`'s byte format is unchanged, and the
+main theme itself is unmodified. Swept `asm_game.py`/`build_rom.py`/`music.py` for every site
+assuming "music is written exactly once, at boot": found none beyond `music_tick`'s own
+loop-restart branch (named above, not a call site elsewhere) and the boot-init block itself
+(`asm_game.py:390`–`394`, which stays correct as the pre-`do_screen_redraw` default and needs no
+change — `IP-1111`'s own default-reset-to-main-theme logic at `do_screen_redraw`'s entry
+super­sedes it functionally the moment the first screen draws, but leaving the boot-init block
+in place is harmless redundancy, not a defect). No other consumer of `MUSIC_PTR_LO`/`MUSIC_PTR_HI`/
+`MUSIC_CTR` exists in the tree (confirmed by grep — `music_tick` is the sole reader). Confirmed
+clean.
+
+### Work units and package cut
+
+| Work unit | Package | Owner | Depends on |
+|---|---|---|---|
+| Build-time generation of nine biome-family sub-themes (transposition/tempo-duration scaling of the main theme) + ROM emission + address-table patching | [IP-1110](packages/IP-1110-procedural-music-generation.md) | `08-code-implementation` | `FR-7100`/`FR-4320` (both baselined) |
+| Runtime selection (hook into `do_screen_redraw`/`dsr_p_dispatch`) + `music_tick`'s loop-restart correctness fix (new `MUSIC_BASE_LO`/`MUSIC_BASE_HI`) | [IP-1111](packages/IP-1111-biome-family-sub-theme-playback-selection.md) | `08-code-implementation` | `IP-1110` (the nine sub-theme addresses this package repoints to); [IP-1022](packages/IP-1022-finite-mode-nine-identity-generation-and-dispatch.md) (`dsr_p_dispatch`'s cascade must carry all nine identity branches before this package's own per-identity repoint code can be added to each — currently only 5 of 9 branches exist) |
+
+**Split rationale:** two packages, cut along the same generate/navigate seam the verb inventory
+names — `IP-1110`'s own build-time-only scope (`music.py`/`build_rom.py`, no runtime code) has no
+natural coupling to `IP-1111`'s own runtime dispatch-hook scope (`asm_game.py` only) beyond
+`IP-1111` consuming `IP-1110`'s own output addresses. **Considered and rejected: a third, partial
+package wiring `IP-1111`'s own selection logic only against the 5 identities `dsr_p_dispatch`
+already dispatches today**, deferring the remaining 4 branches to a follow-on once `IP-1022`
+ships — mirroring `IP-1105`/`IP-1106`'s own split precedent. Rejected because, unlike `IP-1105`
+(which touched a *disjoint* mechanism — `INF_MZ_RESULT`'s bit layout — from what `IP-1022` touches
+— `dsr_p_dispatch`'s branch content), a partial `IP-1111` would add music-repoint instructions
+**inside the same `_dsr_family` branches** `IP-1022`'s own planned diff is described as rewriting
+("extends `dsr_p_dispatch`'s shared cascade to all nine identities") — genuine file/region
+overlap, not a clean seam. Two packages independently editing the same lines in sequence is a
+merge-order hazard this session's own established discipline (`IP-1105`'s own scope boundary,
+`Files to Modify` accuracy rule) exists specifically to avoid; `IP-1111` is therefore kept as one
+package, `BLOCKED` on `IP-1022` shipping first, rather than split.
+
+**`IP-1110`'s own scope also resolves `FS-111`'s Open Question 3** (which of the nine identities
+the main theme's own data represents): `Grass` is assigned as the zero-transform anchor, matching
+`generate_world`'s own existing `(0,0) = Grass` precedent (`ADR-0009`) that `FS-111`'s own Open
+Question 3 already named as a reasoned candidate without deciding. This is a content-mapping
+choice with no downstream algorithm-validity or save-format consequence (unlike `CR-08`'s own
+grammar-legality stakes) — cheaply reversible if a future pass disagrees, stated explicitly here
+rather than silently invented, per this package's own §2.
+
+### Sequencing summary
+
+**New, independent chain: `IP-1110` (root, `NOT STARTED`) → `IP-1111` (`BLOCKED` on `IP-1110` and
+on `IP-1022`, itself part of arc (3)'s own still-unauthorized four-package chain).** `IP-1110` has
+no dependency on any in-flight or unauthorized package — it is buildable the moment G3 authorizes
+it. `IP-1111` cannot ship until **both** `IP-1110`'s own sub-theme addresses exist **and**
+`dsr_p_dispatch`'s cascade carries all nine identity branches (`IP-1022`, itself `BLOCKED` on
+`IP-1033`) — a genuine two-source dependency, not merely two authorizations, mirroring
+`FS-111`/[FP-04](../feature-planning/04-feature-dependency-graph.md)'s own already-named
+cross-arc sequencing risk. This chain does not extend or block arc (3)'s own critical path
+(`IP-1033`/`IP-1105` → `IP-1022` → `IP-1106`) — it merely joins it as a new downstream consumer at
+`IP-1022`'s own output, adding one more package to what `IP-1022` unblocks once it ships.
+
+### Backlog riders honored in this pass
+
+None — this pass carries no `SCHEDULED` backlog entry riding along; it is the direct, expected
+continuation of `BL-0127`'s own `05`→`06`→`07` chain, already tracked under that ID.

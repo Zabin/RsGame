@@ -11,8 +11,18 @@
 > (cont'd) — `IP-1101` partially implements FR-10200/10210/10300 (per-region materialization/
 > treasure-presence half; streaming window, render, and collection remain `IP-1102`/`1103`'s own
 > scope); delta 2026-07-14 (cont'd) — `CR-05` baselined as `FR-9170` (finite-mode biome-blob
-> clustering); `FR-10100`'s Notes/Acceptance Criteria refreshed against `GDS-01` §4d, now landed
-> — see Changelog).**
+> clustering); `FR-10100`'s Notes/Acceptance Criteria refreshed against `GDS-01` §4d, now landed;
+> delta 2026-07-16 — `IP-1103` fully implements FR-10300 (collection half lands) and partially
+> implements FR-10400 (state + comparison subroutine, no automatic trigger — `BL-0112`); delta
+> 2026-07-16 (cont'd) — `IP-1104` fully implements FR-10500/FR-10600, closing the Infinite Mode
+> tranche's own FR set; delta 2026-07-16 (cont'd) — new **FR-4320** (nine biome-family
+> identities, `BL-0128`), a requirements delta to `FR-9100`/`FR-10200`'s shared biome-family
+> axis, widening it from five to nine identities so every already-shipped zone screen becomes a
+> reachable generation target; `FR-9170`/`FR-4310` updated in place for the new domain; delta
+> 2026-07-16 (cont'd) — **`CR-08` resolved and baselined into `FR-4310`**, a concrete nine-value
+> adjacency-grammar ordering grounded in `R212` v1.1; delta 2026-07-16 (cont'd) — **new FR-7000
+> group (FR-7100/FR-7110), procedural music generation, `ADR-0019`/`BL-0127`** — this project's
+> first use of the FR-7xxx audio range — see Changelog).**
 > Owned by `04-requirements-engineering`.
 > Derives from [GDS-05](../architecture/05-functional-requirements.md)'s six capability groupings
 > (C1–C6) — this document formalizes each into numbered, testable `FR-xxxx` requirements per
@@ -25,6 +35,75 @@
 
 ## Changelog
 
+- **2026-07-16 — New FR-7000 group (FR-7100/FR-7110), procedural music generation** (`BL-0127`,
+  `ADR-0019`). This project's first use of the FR-7xxx audio range (confirmed unused before this
+  delta). `FR-7100`: build-time generation of nine biome-family sub-themes from the existing main
+  theme via transposition/tempo-scaling, no independent composition, no new sibling module
+  (`ADR-0019`'s own reasoning: no runtime/oracle-lockstep need, unlike `worldgen.py`). `FR-7110`:
+  identity-keyed playback selection, mirroring the existing HUD zone-label mechanism's own trigger
+  shape — decides the selection's *shape* only, leaves the exact `GAMESTATE`/WRAM mechanism to
+  `06`/`07` per this stage's own discipline. Both FRs name a real, non-blocking sequencing
+  dependency: their eventual implementation needs `FR-4320`'s own packages
+  (`IP-1105`/`IP-1033`/`IP-1022`/`IP-1106`, all unauthorized) shipped first, since `FR-7110` reads
+  the same widened biome-id domain those packages establish.
+- **2026-07-16 — `CR-08` resolved and baselined into `FR-4310`** (`BL-0128`/`BL-0129`,
+  `02-research-game-design`'s `R212` v1.1 delta). `FR-4310`'s own Description/Postconditions/
+  Acceptance Criteria now state a concrete nine-value adjacency-grammar ordering — `Water(0) –
+  Sand(1) – Grass(2) – Stone(3) – Brick(4) – Village(5) – Cave(6) – Desert(7) – Plains(8)` —
+  replacing the previous abstract "appears in R212's adjacency grammar table" phrasing with the
+  table's own actual contents, now that R212 states them. Grounded in three independent real-
+  world precedents, not invented: Cappadocia's Uçhisar (a real castle-fortress-plus-troglodyte-
+  village-plus-cave-city, grounding Castle↔Village↔Cave as one real place rather than three
+  separately-invented pairings), Petra (desert cave dwellings, a documented thermal-adaptation
+  motive grounding Cave↔Desert), and Minecraft's own real biome-generation rule (already `R212`'s
+  own cited precedent source, now reused to ground Desert↔Plains). Confirmed no architecture
+  conflict — `FR-4320`'s own palette-mapping decision (§10 there) is independent of this axis, per
+  direct cross-check. One honest, deliberately-kept trade-off restated in `FR-4310`'s own Notes
+  rather than hidden: the append-only ordering (preserving the shipped `0`-`4` range to avoid a
+  renumbering risk) decouples the four new identities' grammar-legality from their palette-group
+  siblings — not a defect, since this FR never required the two to coincide. `CR-08` is closed —
+  see its own entry for the full resolution trail (`02-research-game-design` → this delta).
+- **2026-07-16 — New FR-4320 (nine biome-family identities); FR-9170/FR-4310 updated for the new
+  domain** (`BL-0128`, direct project-owner decision: "merge the two sets keeping the art from
+  both... there should be no art content and area definitions unused"). Widens the biome-family
+  axis both `FR-9100` (finite mode) and `FR-10200` (Infinite Mode) generate over from five
+  identities to nine, folding in the four original zone identities (Village, Cave, Desert,
+  Plains) that `IP-1030`/`IP-1031`/`IP-9070` left orphaned when they consolidated to five. Grounds
+  the decision in `R212`'s own already-written allowance for "a refinement of" the five-way
+  palette-family vocabulary, and `08-presentation-architecture.md` §8's explicit deferral of
+  "exact biome-family count" to a future implementation package — **no new architecture/ADR pass
+  was needed**, this delta exercises a choice the architecture ladder already reserved.
+  `FR-9170`'s biome-id clamp widened `[0,4]`→`[0,8]`; `FR-4310`'s Notes flag that R212's own
+  adjacency-grammar table still needs to place the four new identities on its ordering axis (not
+  resolved here — routed to `02`/`03`, see `03-requirements-review.md`). Two gaps named but not
+  resolved by this delta, both flagged in the Review: (1) four of the nine identities
+  (Village/Cave/Desert/Plains) have no collectible-spawn table today — `IP-9070` deleted the
+  originals rather than orphaning them, so this needs fresh content-authoring, not a rewire; (2)
+  Infinite Mode's separate per-region streaming representation currently allocates only 3 bits to
+  biome-id (max 8 values) alongside a 4-bit connectivity field — reaching 9 values needs that
+  byte's field widths re-apportioned (fits without growing the byte; a real but self-contained
+  future `08-code-implementation` change).
+- **2026-07-16 — FR-10500/FR-10600 fully Implemented** (`IP-1104`, visited-region-ledger save
+  persistence; status updates only, no requirement text amended). FR-10500: position +
+  bounded-ledger save/load shipped, `SAVE_VERSION_VAL` bumped `0x04`→`0x05`, two-instance
+  round-trip verified (`T27.a`); FIFO eviction at the 128-entry capacity verified (`T27.c`), also
+  closing `NFR-5400`'s own sizing question. FR-10600: a systematic negative-test sweep across
+  every reachable input branch (movement, both SAVE round-trip paths, SELECT-menu round trip)
+  confirms no mechanic forcibly ends a loaded Infinite Mode run (`T27.f`). This closes the
+  Infinite Mode tranche's own FR set in full — `BL-0112` (the run-end trigger for `FR-10400`'s
+  top-3 comparison) remains the tranche's sole standing gap, per `IP-1103`'s own explicit
+  boundary.
+- **2026-07-16 — FR-10300 fully Implemented; FR-10400 Partially Implemented** (`IP-1103`,
+  treasure collection & win-condition state; status updates only, no requirement text amended).
+  FR-10300's collection half shipped: the current region's treasure spawns as the sole
+  `COLL_DATA` entry (per-biome position mirroring `ZONE_COLLECTS`' type-2 entry) and
+  `check_collisions`' new `GAME_MODE == 1` branch counts the pickup without touching any
+  finite-mode counter (`T26.a/b`). FR-10400's state (`RUNNING_TREASURE_COUNT`,
+  `TOP_SCORE_TABLE`) and comparison subroutine (`inf_check_top_score`) shipped and
+  corpus-verified (`T26.c`), **deliberately without any automatic call site** (`T26.d` asserts
+  the zero-call-site state) — the run-end trigger is `BL-0112`'s own open question, routed to
+  `04` or a direct user decision by `FS-110` itself, so FR-10400 is recorded **Partially
+  Implemented**, not rounded up.
 - **2026-07-14 — CR-05 baselined as FR-9170** (finite-mode biome-blob clustering, `BL-0066`).
   Derives the real requirement from `ADR-0018`'s per-super-cell `hash(SEED, supercell_row,
   supercell_col)` snap-to-blob mechanism, layered on `ADR-0009` point 2's existing draw as
@@ -908,18 +987,30 @@ FR-6000 for the presentation half)*
 - **Title:** The system shall only generate region adjacencies that appear in the biome-adjacency
   grammar.
 - **Description:** For every pair of adjacent generated regions, their biome families' pairing
-  shall appear in R212's adjacency grammar table (e.g. water may border beach; water shall never
-  border sky directly).
-- **Rationale:** MSTR-001 C9; R212; ADR-0009 (enforced by construction, not post-hoc validation).
+  shall appear in R212's adjacency grammar table — two identities are grammar-legal adjacent iff
+  they are the same or immediately adjacent on the ordered axis **(2026-07-16 delta, `BL-0128`,
+  resolves `CR-08`):** `Water(0) – Sand(1) – Grass(2) – Stone(3) – Brick(4) – Village(5) –
+  Cave(6) – Desert(7) – Plains(8)`, per R212 v1.1's own Delta section — e.g. water may border
+  beach but never sky; Brick(Castle) may border Village but never Desert directly.
+- **Rationale:** MSTR-001 C9; R212 (v1.1 delta, `CR-08`'s resolution); ADR-0009 (enforced by
+  construction, not post-hoc validation).
 - **Priority:** Must (target — not yet implemented)
 - **Inputs:** The candidate adjacency the generator is about to create.
 - **Outputs:** The adjacency is created only if grammar-legal; otherwise the generator selects a
   different candidate.
 - **Preconditions:** Generation is in progress (FR-9100).
-- **Postconditions:** Every edge in the generated region graph is grammar-legal.
-- **Acceptance Criteria:** For any generated world, every adjacent region pair's biome-family
-  combination appears in the grammar table; no illegal pairing exists anywhere in the graph.
-- **Dependencies:** FR-9100.
+- **Postconditions:** Every edge in the generated region graph is grammar-legal — for any two
+  adjacent regions' biome-id values `a`/`b` on the nine-value axis above, `|a - b| <= 1`.
+- **Acceptance Criteria:** For any generated world (finite or Infinite Mode, once `FR-4320`'s own
+  domain widening ships in each), every adjacent region pair's biome-family combination appears in
+  the nine-value grammar table above; no illegal pairing exists anywhere in the graph. Specifically:
+  `Stone(3)` may border `Brick(4)` but not `Village(5)`; `Village(5)` may border `Brick(4)` and
+  `Cave(6)` but not `Stone(3)` or `Desert(7)`; `Cave(6)` may border `Village(5)` and `Desert(7)`
+  but not `Brick(4)` or `Plains(8)`; `Desert(7)` may border `Cave(6)` and `Plains(8)` but not
+  `Village(5)`; `Plains(8)` may border only `Desert(7)` (the axis's far endpoint, symmetric with
+  `Water(0)`'s own single-neighbor status at the near endpoint).
+- **Dependencies:** FR-9100, FR-4320 (the nine-identity domain and palette mapping this
+  Acceptance Criteria's own axis operates over).
 - **Verification Method:** Test (property test across a (seed, scale) corpus, per R305's
   extension).
 - **Source Documents:** R212; ADR-0009; GDS-04 delta.
@@ -929,7 +1020,105 @@ FR-6000 for the presentation half)*
   still accurate, unchanged, once `FR-9140` (`ADR-0012`) ships — biome assignment remains a
   grid-wide pass, entirely independent of the maze's own connectivity (`ADR-0012` point 1), so
   every grid-adjacent pair's grammar-legality holds regardless of whether the maze ends up
-  connecting or blocking that specific edge.
+  connecting or blocking that specific edge. **2026-07-16 delta (`BL-0128`):** once `FR-4320`'s
+  nine-identity axis lands, this grammar table's own ordering (today defined only over the
+  5-value palette-family axis, per R212's worked example) needs to place the four newly-folded-in
+  identities (Village, Cave, Desert, Plains) somewhere on it — **R212 itself anticipates exactly
+  this** ("the adjacency grammar should be defined over these families **or a refinement of
+  them**," R212 Implementation Guidance) but does not say where the refinement sits. Not resolved
+  here — a requirements pass cannot invent an ordering a design document hasn't stated. Filed as
+  **CR-08** (Candidate Requirements, below), routed to `02-research-game-design` (extend R212's
+  grammar table) or `03-architecture-design-synthesis` (a GDS-08 §8 delta) — the same routing
+  `NFR-6510`'s own Stone↔Brick finding already used for a smaller version of this question.
+  **Resolved (`02-research-game-design`, 2026-07-16): `R212` v1.1 grounds a concrete ordering**
+  (Water–Sand–Grass–Stone–Brick–Village–Cave–Desert–Plains), real-precedented (Cappadocia's
+  Uçhisar castle-village-cave cluster, Petra's desert cave dwellings, Minecraft's own
+  desert-plains adjacency rule). **Baselined into this FR's own Description/Postconditions/
+  Acceptance Criteria above, same day.** One honest, deliberately-kept trade-off, stated by R212
+  itself and restated here rather than hidden: the append-only ordering (positions 5-8, preserving
+  the shipped `0`-`4` order intact) decouples the four new identities' grammar-legality from their
+  palette-group siblings — Village/Cave share Stone's palette (GDS-08 §4) but are not
+  grammar-adjacent to Stone(3) on this axis. Not a defect — this FR never required palette
+  grouping and adjacency-axis position to coincide, and R212 itself confirms `FR-4320`'s own
+  palette-mapping decision (§10 there) is independent of this FR's own axis. `CR-08` is closed —
+  see its own entry below for the resolution trail.
+
+### FR-4320 — Nine biome-family identities, mapped onto five terrain-palette groups (target — 2026-07-16)
+
+- **ID:** FR-4320
+- **Title:** The system's biome-family axis (consumed by both finite-mode `FR-9100` and Infinite
+  Mode `FR-10200` generation) shall comprise nine distinct content identities, each with its own
+  dedicated screen composition, reusing the game's existing five-way terrain-palette grouping
+  rather than requiring new palette budget.
+- **Description:** The generator's biome-family domain shall be nine identities — the five
+  already generated today (Water/Lake, Sand/Beach, Grass/Forest, Stone/Mountain, Brick/Castle)
+  plus four folded in from the original, pre-procedural-generation zone set (Village, Cave,
+  Desert, Plains) — so that every biome-identity screen this project has ever shipped art for is
+  a reachable generation target, and none stays permanently orphaned. Each identity shall map
+  onto one of the five existing terrain-palette groups (grass, sand/dirt, water, stone, brick/red
+  — `GDS-08` §4), reusing the exact grouping the original nine-zone game already established
+  (Forest+Plains→grass; Beach+Desert→sand/dirt; Lake→water; Mountain+Village+Cave→stone;
+  Castle→brick/red) — no new BG palette slot is required.
+- **Rationale:** Direct project-owner decision (`BL-0128`): "I'd like to merge the two sets
+  keeping the art from both for use in the current game, there should be no art content and area
+  definitions unused... the zone art should be added to the biome list, the biome list will
+  include more art and biome options." Grounded in `R212`'s own Implementation Guidance ("reuse
+  the existing terrain-family palette groups... as the biome-identity vocabulary... the adjacency
+  grammar should be defined over these families **or a refinement of them**") and
+  `08-presentation-architecture.md` §8's explicit deferral ("exact biome-family count and palette
+  assignment for a specific `WorldScale` is deferred to the implementation package that sizes
+  it") — this FR is the requirements-level exercise of a choice the architecture ladder already
+  reserved, not a new architecture decision.
+- **Priority:** Must (target — not yet implemented)
+- **Inputs:** None (a structural property of the generator's own domain, not a runtime input).
+- **Outputs:** A biome-id domain of nine values (today: five) available to both `FR-9100`
+  (finite-mode `REGION_GRAPH`) and `FR-10200` (Infinite Mode per-region materialization).
+- **Preconditions:** None (structural).
+- **Postconditions:** Every one of the nine biome identities (a) has a dedicated,
+  fully-distinguishable screen composition (confirmed today for all nine — Notes), and (b) is a
+  reachable generation target in both finite-mode and Infinite Mode worlds, replacing today's
+  five-value domain.
+- **Acceptance Criteria:** For any generated world (finite or Infinite Mode), a region's biome-id
+  may take any of nine values, each rendering its own dedicated screen; a tile-family audit
+  (mirroring `FR-4300`'s own T13.a-style method) confirms all nine identities are distinct and
+  none renders another's tiles. Every one of the nine identities' assigned BG palette is one of
+  the five existing terrain-palette groups — no BG palette index outside that existing five-slot
+  set is introduced.
+- **Dependencies:** FR-4300 (one biome per screen — extended, not superseded, to nine
+  identities); FR-9100 (finite-mode generation, whose biome draw's numeric range this FR widens);
+  FR-10200 (Infinite Mode generation, whose per-region biome-id representation this FR widens).
+- **Verification Method:** Test (tile-family audit across all nine identities, mirroring
+  `FR-4300`'s T13.a) / Inspection (palette-assignment audit against the five-group mapping named
+  above).
+- **Source Documents:** R212 Implementation Guidance; `08-presentation-architecture.md` §8;
+  `07-data-model.md` §5 (confirms the palette-reuse headroom this FR relies on); `BL-0128`.
+  Not yet implemented.
+- **Related ADRs:** ADR-0009 (the biome-family concept this FR extends the domain of). No new ADR
+  is needed for this specific count/mapping decision — see Rationale.
+- **Notes:** **Screen art for all nine identities already exists and is unmodified** — confirmed
+  by direct read of `tilemaps.py`: `beach_screen`/`forest_screen`/`mountain_screen`/
+  `lake_screen`/`castle_screen` are already wired (the current five); `village_screen`/
+  `cave_screen`/`desert_screen`/`plains_screen` are fully drawn but currently orphaned (defined,
+  unreferenced by `ALL_SCREENS`/`REGION_GRAPH`'s dispatch). **Collectible-spawn content is not
+  equally ready**: `IP-9070` deleted (not merely orphaned) the four unused `ZONE_COLLECTS` spawn
+  lists when it consolidated to five biome-family-representative lists — reaching this FR's own
+  Postcondition (b) for Village/Cave/Desert/Plains needs four freshly-authored spawn tables, a
+  content-authoring task this FR does not itself resolve (flagged in
+  `03-requirements-review.md`, routed to a future `07`/`08-content-authoring` package). **Two
+  representation-level facts, not restated as requirement text per this skill's own
+  implementation-independence rule, but worth a pointer for whichever package implements this
+  FR:** finite-mode's `REGION_GRAPH` biome-id is stored as a full, unpacked byte (trivially
+  widens from its current five-value range to nine); Infinite Mode's separate per-region
+  streaming/materialization representation currently allocates only 3 bits to biome-id (max eight
+  values) alongside a 4-bit connectivity field in the same byte — reaching nine values needs that
+  byte's field widths re-apportioned, a real but self-contained implementation change (the byte
+  does not need to grow) belonging to whichever `07`/`08-code-implementation` package implements
+  `FR-10200`'s side of this FR. **`IP-1105` implemented 2026-07-16**: Infinite Mode's own
+  `INF_MZ_RESULT`/`INF_WINDOW` byte format re-apportioned (biome bits 0-2→0-3, connectivity bits
+  3-6→4-7), freeing the fourth biome-id bit this FR's own nine-value domain needs — a
+  behavior-preserving repack only, the draw's own value range stays `%5` (not yet widened; that
+  and the finite-mode dispatch/identity-assignment work remain open, riding `IP-1022`/`IP-1106`).
+  This FR itself is **not** marked Implemented by this step alone.
 
 ## FR-5000 — Save / load (SRAM)
 
@@ -1145,6 +1334,111 @@ FR-6000 for the presentation half)*
 - **Related ADRs:** ADR-0005, ADR-0007.
 - **Notes:** A formal-requirement-only addition — no behavior change, no new test. Closes
   `BL-0020`.
+
+## FR-7000 — Audio (target — 2026-07-16, new capability, not yet shipped, `BL-0127`)
+
+*(formalizes `ADR-0019`; the first requirement group to use this capability's own FR-7xxx range —
+confirmed unused before this delta by direct grep of the existing document.)*
+
+### FR-7100 — Procedural biome-family sub-theme generation from the main theme
+
+- **ID:** FR-7100
+- **Title:** The system shall generate, at ROM-build time, one music sub-theme per biome-family
+  identity by transposing and/or tempo-scaling the game's existing main theme.
+- **Description:** For each of the nine biome-family identities `FR-4320` establishes, the build
+  pipeline shall derive a sub-theme from the existing shipped main theme (`music.py`'s `SONG`,
+  unchanged) by applying transposition (a shifted starting pitch) and/or uniform tempo/duration
+  scaling — not by independently composing new melodic material. The main theme's own identity
+  is one of the nine — either directly reused as its own biome-family's sub-theme, or the anchor
+  every other sub-theme derives from — this FR does not require nine independently-transformed
+  variations distinct from the main theme itself; it requires nine music selections total,
+  covering all nine identities, related by the theme-and-variation technique `ADR-0019` decides.
+- **Rationale:** `ADR-0019` points 1–4; `R217` (leitmotif/theme-and-variation precedent, the
+  concrete transform menu); `FR-4320` (the nine-identity axis this FR's own sub-theme count
+  targets).
+- **Priority:** Must (target — not yet implemented)
+- **Inputs:** The existing main theme's note sequence (`music.py`'s `SONG`); `FR-4320`'s
+  nine-identity set.
+- **Outputs:** Nine music data sequences (one per biome-family identity), compiled into ROM
+  exactly as the existing single track already is.
+- **Preconditions:** None (a build-time, not runtime, generation step — `ADR-0019` point 2).
+- **Postconditions:** Every one of the nine biome-family identities has an associated,
+  playable music sequence.
+- **Acceptance Criteria:** For each of the nine biome-family identities, the built ROM contains a
+  distinct, playable music data sequence; every non-main-theme sequence's note sequence is
+  derivable from the main theme's own via transposition and/or duration scaling alone (no
+  independently-composed melodic material) — checkable by direct comparison of the generated
+  sequence's own frequency/duration values against the main theme's, confirming a pure transform
+  relationship.
+- **Dependencies:** FR-4320 (the nine-identity set this FR's own generation target is sized
+  against).
+- **Verification Method:** Test (direct comparison of each generated sequence's data against the
+  main theme's own, confirming the transform relationship; a build-time unit-test-style check,
+  mirroring `worldgen.py`'s own oracle-comparison precedent in spirit, though this FR's own
+  generation has no separate runtime routine to compare against — see `ADR-0019` point 3).
+- **Source Documents:** `ADR-0019` points 1–4; `R217`.
+- **Related ADRs:** ADR-0019.
+- **Notes:** **Implemented (`IP-1110`, 2026-07-16).** `music.py`'s `generate_theme_variations()`
+  produces the eight non-Grass sub-themes via transposition (real semitone shifts, via each note's
+  own known hz, not an approximation) and/or duration scaling; Grass is the zero-transform anchor
+  (main theme's own unmodified `music_data()` output) — the concrete resolution of `FS-111`'s Open
+  Question 3, not decided by this FR's own text. Build-time comparison check
+  (`verify_music_generation.py`) confirms every generated sequence is a pure transform of `SONG`.
+  Nine tracks exposed via a flat, biome-id-indexed ROM address table (`music_table`, mirroring
+  `zc_table`'s own precedent) — not the per-identity named-patch-key scheme `IP-1110`'s own
+  planning text originally proposed, which turned out to require `asm_game.py` changes
+  contradicting that package's own scope boundary (a real planning inconsistency found and
+  resolved during implementation, using the plan's own already-named fallback option). **Explicitly
+  does not require a new build-side sibling module** (`ADR-0019` point 3's own reasoning: no
+  runtime/oracle lockstep discipline applies here, unlike `worldgen.py`'s) — the generation
+  function lives inside `music.py` itself, called from `build_rom.py`. **Explicitly excludes the
+  shared-ostinato/second-APU-channel transform option** (`ADR-0019` point 5) — a future revision
+  could extend this FR to cover it, not assumed here.
+
+### FR-7110 — Biome-family-identity-keyed sub-theme playback selection
+
+- **ID:** FR-7110
+- **Title:** During `PLAYING`, the system shall play the music sub-theme matching the current
+  region's biome-family identity; the main theme shall play outside gameplay.
+- **Description:** Mirroring the existing HUD zone-name-label mechanism's own trigger shape (which
+  already reads and displays the current region's identity every frame), the system shall select
+  which of `FR-7100`'s nine generated sub-themes plays based on the player's current region's
+  biome-family identity while in `PLAYING` (either mode — finite or Infinite, both of which share
+  the same biome-family identity axis per `FR-4320`); outside `PLAYING` (title, menus, and other
+  non-gameplay states), the main theme plays.
+- **Rationale:** `ADR-0019` point 6.
+- **Priority:** Must (target — not yet implemented)
+- **Inputs:** The current region's biome-family identity (finite mode: `REGION_GRAPH`'s biome-id
+  byte via `CUR_ZONE`; Infinite Mode: `INF_WINDOW`'s center-cell biome-id — both already read by
+  the existing screen-dispatch mechanism, `FR-4310`/`FR-4320`, this FR's own input is the
+  identical value, not a new read).
+- **Outputs:** The currently-playing music track switches to match the selected sub-theme (or the
+  main theme, outside `PLAYING`).
+- **Preconditions:** `FR-7100`'s nine sub-themes exist in the built ROM.
+- **Postconditions:** The music track playing at any given moment always matches the player's
+  current context (region identity during `PLAYING`, main theme otherwise) — never a stale or
+  mismatched track.
+- **Acceptance Criteria:** For each of the nine biome-family identities, entering a region of that
+  identity during `PLAYING` (either mode) results in that identity's own sub-theme playing, within
+  one frame of the region becoming current; entering any non-`PLAYING` state results in the main
+  theme playing.
+- **Dependencies:** FR-7100 (the sub-themes this FR selects between); FR-4310/FR-4320 (the
+  biome-family identity value this FR's own selection reads, unchanged, not redefined here).
+- **Verification Method:** Test (drive each of the nine identities via direct force or live
+  generation, mirroring this session's own established direct-force verification pattern for
+  biome-family dispatch, and confirm the correct track is selected).
+- **Source Documents:** `ADR-0019` point 6.
+- **Related ADRs:** ADR-0019.
+- **Notes:** Not yet implemented. **This FR decides the selection's *shape* (identity-keyed) only
+  — the exact `GAMESTATE`/WRAM mechanism (a new `CURRENT_THEME` pointer, a dispatch cascade
+  mirroring `dsr_p_dispatch`'s own shape, or another approach) is `06-feature-specification`'s/
+  `07-implementation-planning`'s own scope**, per this stage's own SHALL-NOT-invent-implementation
+  rule (mirroring `FR-1200`'s own precedent for leaving a comparable dispatch mechanism
+  undecided at this level). **Real sequencing dependency, not a blocker to this FR's own
+  baselining**: this FR's eventual implementation needs `FR-4320`'s own packages
+  (`IP-1105`/`IP-1033`/`IP-1022`/`IP-1106`, all unauthorized as of this delta) to have shipped
+  first, since it reads the same widened biome-id domain those packages establish — named here,
+  not resolved, per `ADR-0019`'s own identical note.
 
 ## FR-9000 — World generation (target — 2026-07-09, new capability, not yet shipped)
 
@@ -1442,11 +1736,12 @@ FR-6000 for the presentation half)*
   "blobs," using a deterministic per-super-cell positional hash layered on the existing
   grammar-constrained draw — never replacing it.
 - **Description:** The `scale`×`scale` grid shall be partitioned into fixed-size super-cells, each
-  with a target biome-id (`0`–`4`, the existing `Water`…`Brick` axis) derived once via
-  `hash(SEED, supercell_row, supercell_col)` — the same shift/XOR-only reseed construction
-  `FR-9100`'s own generation routine already uses. For each non-root region, the system shall
-  first compute its legal biome range `[lo, hi]` exactly as today (the intersection of its
-  already-placed top/left neighbors' biome-ids ±1, clamped to `[0, 4]` — unchanged by this FR).
+  with a target biome-id (`0`–`8` per `FR-4320`'s nine-identity axis — `0`–`4` prior to that FR)
+  derived once via `hash(SEED, supercell_row, supercell_col)` — the same shift/XOR-only reseed
+  construction `FR-9100`'s own generation routine already uses. For each non-root region, the
+  system shall first compute its legal biome range `[lo, hi]` exactly as today (the intersection
+  of its already-placed top/left neighbors' biome-ids ±1, clamped to `[0, 8]` per `FR-4320`'s
+  domain — unchanged in mechanism by this FR, only in the clamp's own upper bound).
   If the region's own super-cell target lies within `[lo, hi]`, the system shall set that region's
   biome-id directly to the target, consuming no PRNG draw for that region. If the target lies
   outside `[lo, hi]`, the system shall fall back to today's unbiased `anchor + delta` draw,
@@ -1478,7 +1773,9 @@ FR-6000 for the presentation half)*
   the oracle and the SM83 routine agree on the branch condition byte-for-byte, not merely the
   draw's outcome).
 - **Dependencies:** FR-9100 (the generation routine this bias layers onto), FR-4310 (the
-  grammar-validity invariant this FR must preserve, not merely avoid violating).
+  grammar-validity invariant this FR must preserve, not merely avoid violating), FR-4320
+  (**2026-07-16 delta, `BL-0128`:** the biome-id domain and clamp bound this FR's own snap/
+  fallback mechanism operates over is now defined by `FR-4320`, not restated independently here).
 - **Verification Method:** Test (property test across a `(seed, scale)` corpus, mirroring
   `FR-9100`'s own determinism-test shape, extended with the snap/fallback branch-condition
   comparison `ADR-0018` point 8 requires) / Inspection (static audit confirming the per-region
@@ -1498,7 +1795,10 @@ FR-6000 for the presentation half)*
   section notes the count is no longer fixed at exactly one draw per non-root region, and that no
   currently-baselined requirement assumes a fixed count (`T12`'s existing checks assert
   determinism/reachability/grammar-validity, not draw count) — flagged there, not restated as a
-  new constraint here.
+  new constraint here. **2026-07-16 delta (`BL-0128`):** Description/Dependencies updated for
+  `FR-4320`'s nine-value biome-id domain (widened from the prior `[0, 4]` clamp to `[0, 8]`) —
+  this FR's own snap/fallback *mechanism* is unaffected; only the numeric range it operates over
+  changed.
 
 ### FR-9200 — Save-format extension: seed, scale, and per-region flags
 
@@ -1702,9 +2002,10 @@ FR-9000's own leaves are amended or superseded by this group)*
   directions — a direct conflict with a literal dead-end-only rule). This is a deliberate,
   named departure from `BL-0094`'s original "at dead ends" wording, not a silent substitution —
   see Notes.
-- **Priority:** Must (**partially implemented, 2026-07-14, `IP-1101`** — the presence-predicate
-  half: `hash(SEED, row, col) mod K == 0`, `K=16` (`T22.d` measures 6.25%, matching target).
-  Collection (reusing `check_collisions`) is `IP-1103`'s own scope, not yet implemented.)
+- **Priority:** Must (**Implemented** — the presence-predicate half 2026-07-14, `IP-1101`
+  (`hash(SEED, row, col) mod K == 0`, `K=16`, `T22.d` measures 6.25%, matching target); the
+  collection half 2026-07-16, `IP-1103` (reusing `check_collisions`' existing collision-point
+  convention on a spawned type-2 item, `T26.a`/`T26.b`).)
 - **Inputs:** SEED; the region coordinate `(row, col)`; the tuned density constant `K`.
 - **Outputs:** A boolean treasure-presence value for that region.
 - **Preconditions:** The region has been materialized (FR-10200).
@@ -1727,7 +2028,13 @@ FR-9000's own leaves are amended or superseded by this group)*
   `BL-0094`'s literal "treasure only at dead ends" request — flagged explicitly per this
   document's own traceability discipline (a genuine design substitution, not an oversight);
   `FR-9160` (the finite mode's own dead-end-anchored placement) is entirely unaffected and
-  remains as shipped.
+  remains as shipped. **Collection implemented (`IP-1103`, 2026-07-16):** in Infinite Mode the
+  current region's treasure (when the presence predicate holds and it is uncollected this
+  materialization) spawns as the sole `COLL_DATA` entry at a per-biome position mirroring
+  `ZONE_COLLECTS`' own type-2 entry; `check_collisions`' new `GAME_MODE == 1` branch increments
+  `RUNNING_TREASURE_COUNT` and clears the `INF_TREASURE_HERE` cache on pickup, touching no
+  finite-mode counter (`T26.a6`/`a7`). Collected-state across window re-entry awaits `IP-1104`'s
+  ledger (FS-110 Workflow D).
 
 ### FR-10400 — Score-chasing win condition (running count + top-3 persisted, no name entry)
 
@@ -1744,7 +2051,10 @@ FR-9000's own leaves are amended or superseded by this group)*
 - **Rationale:** ADR-0017 points 2–3; R216 (the arcade high-score convention as the historically
   correct genre answer for non-terminating play; the name-entry UI's original social/cabinet
   purpose does not transfer to a single-player handheld cartridge with one save slot).
-- **Priority:** Must (target — not yet implemented)
+- **Priority:** Must (**Partially Implemented, 2026-07-16, `IP-1103`** — the win-condition
+  *state* (running count + top-3 table) and the comparison *subroutine* exist and are
+  corpus-verified (`T26.c`); **no automatic trigger calls the comparison** — the run-end trigger
+  is `BL-0112`'s own open question, deliberately not decided by implementation (see Notes).)
 - **Inputs:** Treasure-collection events (FR-10300) during the current run; the persisted top-3
   table.
 - **Outputs:** An updated running count; on run end, an updated top-3 table if the run's count
@@ -1762,7 +2072,17 @@ FR-9000's own leaves are amended or superseded by this group)*
   confirm correct insertion/non-insertion; confirm no name-entry state is reachable).
 - **Source Documents:** ADR-0017 points 2–3; R216 §Concepts.
 - **Related ADRs:** ADR-0017.
-- **Notes:** Not yet implemented. **This FR's Preconditions name "the run has ended" without
+- **Notes:** **Partially Implemented (`IP-1103`, 2026-07-16), stated precisely (mirroring
+  `IP-1080`'s own precedent for a requirement split across packages):** `RUNNING_TREASURE_COUNT`
+  (`0xC405`, 16-bit) and `TOP_SCORE_TABLE` (`0xC407`–`0xC40C`, 3 × 16-bit descending) exist,
+  boot-cleared, and the comparison subroutine `inf_check_top_score` implements the
+  strictly-exceeds/sorted-insertion/no-name-entry behavior exactly (corpus-verified, `T26.c`;
+  no name-entry state reachable, `T26.e`) — **but no in-game event calls it** (`T26.d` asserts
+  the zero-call-site state). The Acceptance Criteria's insertion half is therefore verified at
+  the subroutine level only; end-to-end ("a run's final count…") remains genuinely untestable
+  until `BL-0112` resolves the run-end trigger and a follow-up package wires the call site.
+  Persistence of both fields is `IP-1104`'s scope. **This FR's Preconditions name "the run has
+  ended" without
   defining what ends a run** — whether an Infinite Mode playthrough is indefinitely resumable
   (matching FR-5100/FR-1190's existing save/continue convention) or is its own bounded "run"
   needing a new end-condition mechanic (death/retreat/checkpoint) this game does not currently
@@ -1788,7 +2108,9 @@ FR-9000's own leaves are amended or superseded by this group)*
 - **Rationale:** ADR-0016 point 5; R114 (save/load needs "a bounded-by-SRAM-capacity
   visited-region ledger, not a flat whole-grid array, since an unbounded world cannot reserve
   SRAM for every region that could ever exist").
-- **Priority:** Must (target — not yet implemented)
+- **Priority:** Must (**Implemented, 2026-07-16, `IP-1104`** — position + bounded ledger save/load
+  shipped exactly as described; `SAVE_VERSION_VAL` bumped `0x04`→`0x05`; verified end-to-end via
+  a two-instance save/reload harness, `T27.a`.)
 - **Inputs:** Player position; visited-region treasure-collected state at save time; SRAM
   contents at load time.
 - **Outputs:** SRAM updated with position and ledger entries (save); in-memory position and
@@ -1807,11 +2129,13 @@ FR-9000's own leaves are amended or superseded by this group)*
   pattern, extended to the ledger's own bounded-capacity shape).
 - **Source Documents:** ADR-0016 point 5; R114 §Implementation Guidance.
 - **Related ADRs:** ADR-0016.
-- **Notes:** Not yet implemented. **The ledger's real SRAM capacity (how many distinct visited
-  regions a save can remember) is not sized by this FR** — tracked separately (`BL-0108`, routed
-  to `02-research-gbc-hardware`/`07-implementation-planning`). A save-format version bump is
-  implied (mirroring FR-9200's own precedent) but not itself specified here — an `07`-level
-  detail once packaged.
+- **Notes:** **Implemented (`IP-1104`, 2026-07-16).** The ledger's real SRAM capacity, `BL-0108`'s
+  own open sizing question, is resolved as-shipped: 128 entries × 5 bytes = 640 bytes SRAM (plus
+  a byte-identical 642-byte WRAM working copy, `BL-0119`'s own amendment — see `GDS-07`
+  §7f/§7g), against the confirmed ~8 KiB SRAM budget and ~3.1 KiB bank-0 WRAM headroom (`R111`)
+  respectively; FIFO eviction once full (`T27.c`). The save-format version bump `IP-1104` names is
+  `SAVE_VERSION_VAL` `0x04`→`0x05`, the fifth bump since ship, extending `IP-9110`'s own strictly-
+  monotonic sequence.
 
 ### FR-10600 — Indefinitely resumable Infinite Mode run (no bounded end-condition mechanic)
 
@@ -1828,7 +2152,9 @@ FR-9000's own leaves are amended or superseded by this group)*
 - **Rationale:** Project owner, direct decision, 2026-07-13 ("for now assume indefinitely
   resumable") — resolves `CR-07`, itself grounded in R216's own framing of this exact choice
   ("indefinitely resumable... matching this project's existing save/continue convention").
-- **Priority:** Must (target — not yet implemented)
+- **Priority:** Must (**Implemented, 2026-07-16, `IP-1104`** — no run-ending mechanic exists
+  anywhere in the shipped code; verified by a systematic negative-test sweep across every
+  reachable input branch from a loaded Infinite Mode save, `T27.f`.)
 - **Inputs:** A save-confirm or exit-to-main-menu action (mirroring FR-1190); a "continue" action
   from the MAIN MENU (mirroring FR-1170).
 - **Outputs:** None beyond FR-10500's own save/restore behavior — this FR adds no new state of
@@ -1844,7 +2170,10 @@ FR-9000's own leaves are amended or superseded by this group)*
   none forcibly ends a run; mirroring FR-9110's own negative-test shape).
 - **Source Documents:** Project owner decision, 2026-07-13; R216 §Concepts.
 - **Related ADRs:** ADR-0017 (point 4 — this FR is the decision that ADR point deferred).
-- **Notes:** Not yet implemented. **This is explicitly a "for now" decision, not a permanently
+- **Notes:** **Implemented (`IP-1104`, 2026-07-16).** `T27.f` drives movement, both SAVE
+  round-trip branches (B-cancel and A-save), and a full SELECT-menu round trip from a loaded
+  Infinite Mode save — none forcibly ends the run; `GAMESTATE`/`GAME_MODE` are unchanged
+  afterward. **This is explicitly a "for now" decision, not a permanently
   closed one** — the project owner's own wording leaves room to revisit if a bounded-run mechanic
   later proves desirable; any such change would be a new, dated RQ-01 delta at that time, not an
   amendment to this FR's own text. `FR-10400`'s own win-condition Preconditions field ("the run
@@ -1998,3 +2327,46 @@ excluded from the numbered baseline above; marked `CANDIDATE — NOT BASELINED` 
   Candidate is now closed; further tracking lives on `FR-10600` itself. The owner's own wording
   ("for now") is carried into `FR-10600`'s Notes verbatim — this is a revisitable decision, not a
   permanently closed one.
+
+### CR-08 — Adjacency-grammar ordering position for the four newly-folded biome identities (`BL-0128`) — RESOLVED, BASELINED 2026-07-16
+
+- **Description:** Once `FR-4320` ships, `FR-4310`'s adjacency grammar (today defined only over
+  the five-value palette-family axis — water/sand/grass/stone/brick, per R212's own worked
+  example) must say where the four newly-folded-in identities (Village, Cave, Desert, Plains)
+  sit on that ordering, so the generator can decide which of the nine identities are legal to
+  place next to which others.
+- **Why excluded:** **Genuine missing concept, not an ambiguity fixable by rewording, and not a
+  direct architecture conflict either — R212 explicitly anticipates this exact expansion without
+  deciding it.** R212's own Implementation Guidance states: "the adjacency grammar should be
+  defined over these families **or a refinement of them**" (emphasis in the original research
+  document) — naming the possibility of a finer-grained axis than the five palette groups, but
+  not saying where a refinement's new entries would sit. Two genuinely different answers exist,
+  neither decidable from the current inputs: (a) the four new identities could each inherit their
+  parent palette-group's position exactly (Village/Cave slot at Stone's position, Desert slots at
+  Sand's, Plains at Grass's — meaning multiple identities share one adjacency-legality slot, only
+  their *rendered* content differs) — the minimal-change reading; or (b) each could get its own
+  distinct position on a finer nine-point axis (e.g. water → beach → desert → grassland → plains
+  → hills → village → mountains → cave, an ordering `R212`/`GDS-08` §8 have never stated) — a
+  richer reading that would let e.g. Desert legally border Sand/Beach but not Grass/Forest
+  directly, distinguishing identities the palette axis alone cannot. This is the same class of
+  gap `CR-05`/`CR-06` (above) named for a conflicting mechanism and a missing screen concept
+  respectively, applied here to a missing *ordering*: inventing either answer here would be
+  originating a design decision, not deriving a requirement from one.
+- **Disposition:** Routed to `02-research-game-design` first (extend R212's own grammar-table
+  worked example to state where the four new identities sit — the same kind of grounding R212
+  already provides for the original five) or `03-architecture-design-synthesis` (a GDS-08 §8
+  delta, if the answer is judged more a presentation-layer palette-stepping question than a
+  narrative/environmental-storytelling one — R212's own scope). Not urgent: `FR-4320` itself
+  (the count/identity/palette-mapping requirement) is fully baselined and unblocked by this gap
+  — only `FR-4310`'s own extension to the nine-identity axis, and any future generator code that
+  consumes it, waits on this answer. `04-requirements-engineering` returns to derive the real
+  `FR-4310` delta once that lands, mirroring `CR-06`'s own `03→04` precedent exactly.
+  **Resolved (`02-research-game-design`, 2026-07-16): `R212` v1.1 grounds reading (b)** — a
+  distinct nine-point axis, not the minimal-change palette-inheritance reading (a) — with real,
+  independently-documented precedent for each new adjacency (Cappadocia's Uçhisar grounding
+  Castle-Village-Cave as one real place, not three invented pairings; Petra grounding Cave-Desert;
+  Minecraft's own real generation rule, already R212's own cited source, grounding Desert-Plains).
+  **Baselined (`04-requirements-engineering`, same day): `FR-4310`'s own Description/
+  Postconditions/Acceptance Criteria now state the concrete nine-value ordering** (`Water(0) –
+  Sand(1) – Grass(2) – Stone(3) – Brick(4) – Village(5) – Cave(6) – Desert(7) – Plains(8)`). This
+  Candidate is now closed; further tracking lives on `FR-4310` itself.

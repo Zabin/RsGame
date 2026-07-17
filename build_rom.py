@@ -14,7 +14,7 @@ import os, sys
 from gbc_lib import ROM, rgb15
 from tiles    import build_tile_data
 from tilemaps import ALL_SCREENS, ZONE_COLLECTS
-from music    import music_data
+from music    import music_data, generate_theme_variations
 from asm_game import build_game_asm
 
 def _c(r,g,b): return rgb15(r,g,b)
@@ -94,9 +94,49 @@ def build(out_path='BunnyQuest.gbc'):
     obj_pal_addr = rom.pos
     for b in _pal_bytes(OBJ_PALETTES): rom.emit(b)
 
-    # Music
-    music_addr = rom.pos
-    for b in music_data(): rom.emit(b)
+    # Music -- IP-1110: nine biome-family sub-themes, one per FR-4320's
+    # own biome-family identity, emitted in that FR's own biome-id order
+    # (0=Water..8=Plains) so the address table below is directly
+    # indexable by biome-id, mirroring ZONE_COLLECTS/zc_table's own
+    # established convention. Grass is the zero-transform anchor (IP-1110
+    # Objective) -- its own track *is* the main theme's existing
+    # music_data() output, unchanged; the other eight are generated via
+    # generate_theme_variations(). mus_lo/mus_hi/mus_reset below continue
+    # to point at Grass's own address exactly as they pointed at the
+    # single main theme before this package -- existing single-track
+    # playback is completely unaffected until a future package (IP-1111)
+    # adds runtime selection logic.
+    #
+    # Deviation from this package's own planning text: IP-1110's own
+    # scope explicitly excludes asm_game.py changes, but a named
+    # per-identity patch-key pair (the originally-planned interface,
+    # mirroring mus_lo/mus_hi) can only be created where the
+    # corresponding LD_A_n(0) placeholder is emitted -- i.e. in
+    # asm_game.py, contradicting that scope boundary. Uses this package's
+    # own already-named fallback instead (a flat ROM-resident address
+    # table, mirroring zc_table's own precedent) -- zero asm_game.py
+    # involvement, fully within this package's declared scope. See this
+    # package's own Master Build Plan entry for the full reasoning; a
+    # future 07-implementation-planning pass should update IP-1111's own
+    # §5/§6 text to consume this table by biome-id index rather than the
+    # originally-planned named-key scheme.
+    _MUSIC_IDENTITY_ORDER = ['water', 'sand', 'grass', 'stone', 'brick',
+                             'village', 'cave', 'desert', 'plains']
+    _music_sub_themes = generate_theme_variations()
+    music_addrs = {}
+    for _identity in _MUSIC_IDENTITY_ORDER:
+        _addr = rom.pos
+        _data = music_data() if _identity == 'grass' else _music_sub_themes[_identity]
+        for b in _data: rom.emit(b)
+        music_addrs[_identity] = _addr
+        print(f"  music/{_identity:8s}: 0x{_addr:04X} ({len(_data)} bytes)")
+    music_addr = music_addrs['grass']
+
+    music_table_addr = rom.pos
+    for _identity in _MUSIC_IDENTITY_ORDER:
+        _a = music_addrs[_identity]
+        rom.emit(_a & 0xFF, (_a >> 8) & 0xFF)
+    print(f"  music_table  : 0x{music_table_addr:04X} (18 bytes, biome-id order 0-8)")
 
     # Screens (5 biome-family representatives first, then UI) — IP-1030
     # generalizes this from a fixed 9-zone list to ALL_SCREENS's new shape.

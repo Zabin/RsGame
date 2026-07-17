@@ -13,7 +13,11 @@
 > generation-triggered Feature still living in EP-1000 rather than EP-5000). **2026-07-14: new
 > Epic `EP-6000`** holds **`FEAT-10000`** (Infinite Mode) — kept distinct from `EP-5000` rather
 > than folded in, since it is a second, independent generation architecture (`ADR-0016` point 7),
-> not an extension of `EP-5000`'s own finite-mode routine the way `FEAT-9100` was.
+> not an extension of `EP-5000`'s own finite-mode routine the way `FEAT-9100` was. **2026-07-16:
+> new Epic `EP-7000`** holds **`FEAT-7100`** (Procedural Music Generation) — kept distinct from
+> every existing Epic since it is this project's first audio-generation capability, with no
+> existing pattern (world content, save persistence, gameplay loop, engineering quality) it
+> naturally extends.
 
 ## EP-1000 — Core Gameplay Loop
 
@@ -167,6 +171,31 @@
   technique `ADR-0018` separately reuses for `EP-5000`'s own finite-mode blob clustering — a
   contribution flowing *from* this Epic *to* `EP-5000`, not a dependency *on* it).
 
+## EP-7000 — Procedural Music Generation
+
+- **ID:** EP-7000
+- **Title:** Procedural Music Generation
+- **Purpose:** Give each biome-family identity a distinct musical character, generated
+  algorithmically from the game's existing main theme, rather than hand-authored per identity or
+  left uniform.
+- **Features Included:** FEAT-7100 (Procedural Music Generation). One Feature, new — not yet
+  implemented.
+- **Modules:** `music.py` (new build-time generation function), `build_rom.py` (call site),
+  `asm_game.py` (prospective runtime selection mechanism, no code exists yet).
+- **Estimated Scope:** A single, unsplit Feature — the build-time generation half and the runtime
+  selection half are small enough, and coupled enough (the selection mechanism only has meaning
+  once the generated sub-themes exist), that no natural seam justifies a split yet, mirroring how
+  `FEAT-9000`/`FEAT-10000` each started as one Feature before any split was warranted.
+- **Risks:** Medium — the runtime selection half depends on `FR-4320`'s own nine-biome-family-
+  identity axis, which is requirements-baselined but not yet implemented (four packages, all gated
+  on G3, `BL-0128`) — this Epic's own full end-to-end verification is blocked on that separate
+  arc shipping, a real cross-Epic sequencing dependency named honestly rather than hidden. The
+  build-time generation half carries no comparable blocker.
+- **Dependencies:** EP-5000 (World Generation & Visual Narrative — `FEAT-9000` supplies the
+  finite-mode biome-family identity this Epic's selection mechanism reads); EP-6000 (Infinite
+  Mode — `FEAT-10000` supplies the same identity for a materialized region); EP-1000 (Core
+  Gameplay Loop — `FEAT-1000`'s game-state machine gates when sub-theme playback is active).
+
 ## Epic summary table
 
 | Epic | Title | Features | Primary Modules | Risk level |
@@ -177,6 +206,7 @@
 | EP-4000 | Engineering Quality & Verification | FEAT-7000 | all six + `test_rom.py` | Low (both tracked non-compliances resolved) |
 | EP-5000 | World Generation & Visual Narrative | FEAT-9000, FEAT-4100, FEAT-6100, FEAT-9100 | new `worldgen.py`, `tilemaps.py`, `tiles.py` | **Medium-High** (FEAT-9000: new algorithm, no shipped precedent); Low-Medium (FEAT-9100, new but algorithm choice already resolved) |
 | EP-6000 | Infinite Mode | FEAT-10000 | `asm_game.py`, `worldgen.py` (prospective) | **Medium-High** (new algorithm, no shipped precedent, two `UNCONFIRMED`/`NOT YET SIZED` NFRs) |
+| EP-7000 | Procedural Music Generation | FEAT-7100 | `music.py`, `build_rom.py`, `asm_game.py` (prospective) | Medium (build-time half unblocked; runtime selection half blocked on `FR-4320`'s own separate arc shipping) |
 
 Every Feature in [FP-03](03-feature-catalog.md) belongs to exactly one Epic above; no Feature
 required splitting across Epics.

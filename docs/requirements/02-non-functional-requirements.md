@@ -5,7 +5,11 @@
 > delta 2026-07-11 — NFR-4200 extended for ADR-0012's maze-generation WRAM cost; delta 2026-07-13
 > for the Infinite Mode epic, NFR-1400/2300/4300/5400; delta 2026-07-14 — NFR-2300 flipped to Met
 > (`IP-1101`); delta 2026-07-14 (cont'd) — NFR-2200 extended for `FR-9170`/`ADR-0018`'s
-> biome-blob-clustering pass, no new NFR needed — see Changelog).** Owned by
+> biome-blob-clustering pass, no new NFR needed; delta 2026-07-16 — NFR-5400 flipped to Met
+> (`IP-1104`, 128-entry FIFO-bounded ledger, `BL-0108` sized); delta 2026-07-16 (cont'd) —
+> NFR-6510 delta note for `FR-4320`'s nine-identity biome axis (`BL-0128`), no NFR text change;
+> delta 2026-07-16 (cont'd) — new NFR-4400, procedural music generation ROM budget, `ADR-0019`/
+> `BL-0127` — see Changelog).** Owned by
 > `04-requirements-engineering`. Derives from
 > [GDS-06](../architecture/06-non-functional-requirements.md)'s five NFRs (N1–N5) — formalized
 > into numbered `NFR-xxxx` requirements per
@@ -16,6 +20,26 @@
 
 ## Changelog
 
+- **2026-07-16 — New NFR-4400, procedural music generation ROM budget** (`BL-0127`, `ADR-0019`).
+  Sized against a direct measurement (`music_data()` = 181 bytes today), not assumed — nine
+  tracks at comparable size ≈ 1629 bytes fits the ~2872-byte headroom the last full build
+  measured, with the explicit caveat that this must be re-measured at implementation time since
+  other in-flight, unauthorized work (`FR-4320`'s own biome-widening packages) will also consume
+  some of the same headroom first.
+- **2026-07-16 — NFR-6510 delta note for `FR-4320`** (`BL-0128`, nine biome-family identities;
+  status/text otherwise unchanged). `NFR-6510`'s existing "Status: Met" line records what was
+  actually reviewed as of 2026-07-11 (`IP-1031`'s five-family set) and is left as an accurate
+  historical record, not rewritten. Once `FR-4320` ships, the expanded nine-identity axis will
+  introduce grammar-legal adjacent pairs beyond the four already reviewed — those are not yet
+  "Met" (they don't exist yet) and cannot be until (a) `FR-4310`'s own still-open grammar-ordering
+  gap for the four new identities is resolved (`02`/`03`) and (b) `09-content-review` re-exercises
+  this NFR against whatever new pairs that ordering creates. Flagged here, not resolved.
+- **2026-07-16 — NFR-5400 flipped to Met** (`IP-1104`, visited-region-ledger save persistence).
+  `BL-0108`'s own open sizing question resolved as-shipped: 128 entries × 5 bytes = 640 bytes
+  SRAM, FIFO eviction once full (Technical Work Breakdown's own resolution of `OQ5`). A matching
+  642-byte WRAM working copy (`BL-0119`'s own amendment, closing a mid-session ledger-consult gap
+  `IP-1103` left open) is additionally sized against the confirmed ~3.1 KiB bank-0 headroom
+  (`R111`) — a separate WRAM allocation from `NFR-4300`'s own materialized-window scope.
 - **2026-07-14 — NFR-2200 extended for `FR-9170`/`ADR-0018`** (finite-mode biome-blob
   clustering). The new super-cell-hash snap/fallback branch is confirmed determinism-preserving
   by construction (`ADR-0018` point 7) — no new NFR needed; `NFR-2200`'s existing guarantee
@@ -427,6 +451,38 @@
   untouched and available as a fallback (7 more 4 KiB banks) if a future window-radius increase
   ever needs it — not needed at the shipped 3×3 radius.
 
+### NFR-4400 — Procedural music generation ROM budget (target — 2026-07-16, `BL-0127`)
+
+- **ID:** NFR-4400
+- **Title:** The nine generated biome-family sub-themes shall fit within the ROM's confirmed
+  headroom without requiring a bank-switching change.
+- **Description:** `FR-7100`'s nine generated music sequences shall fit within the ROM's currently
+  confirmed free space (`NFR-4000`'s own budget), sized against a real measurement of the existing
+  main theme's own compiled size, not assumed free.
+- **Rationale:** `ADR-0019`'s own Consequences section (direct measurement: `music_data()` = 181
+  bytes today; nine tracks at comparable size ≈ 1629 bytes of new data).
+- **Priority:** Must — Implemented (`IP-1110`, 2026-07-16)
+- **Status: Met (`IP-1110`, 2026-07-16), confirmed by direct build measurement.** The nine tracks
+  (1629 bytes) plus a new 18-byte biome-id-indexed address table add 1466 net new bytes (the
+  pre-existing single track's own 181 bytes no longer counted separately). Built ROM: 31362 of
+  32768 bytes used (1406 bytes free), still exactly 32768 bytes total, no bank-switching change —
+  `ADR-0019`'s own ≈1629-byte estimate held almost exactly (measured delta 1466 net, or 1647 gross
+  including the table). **This headroom figure does not yet include arc (3)'s own still-landing
+  packages** (`IP-1022`/`IP-1106`, not yet implemented) — a future measurement once those ship is
+  still owed for the tree's own final combined state, per this NFR's own re-measurement discipline.
+- **Acceptance Criteria:** After `FR-7100`'s nine sub-themes are compiled into the ROM, the built
+  ROM remains exactly 32768 bytes (`NFR-4000`, unaffected — this is a data-budget question within
+  the existing single-bank limit, not a request to exceed it) with the new data fitting inside
+  whatever headroom remains at implementation time.
+- **Verification Method:** Inspection (ROM-byte-usage measurement at implementation, mirroring
+  `NFR-4200`/`NFR-4300`'s own precedent).
+- **Source Documents:** `ADR-0019` Consequences.
+- **Related ADRs:** ADR-0019.
+- **Notes:** Implemented, Met. If a future change's actual measured cost exceeds this figure (e.g.
+  the shared-ostinato transform option is later adopted, per `ADR-0019` point 5's own explicit
+  deferral, or arc (3)'s own `IP-1022`/`IP-1106` land and consume more headroom than expected),
+  this NFR's own Status must be re-measured, not assumed to still hold.
+
 ## Data Integrity
 
 ### NFR-5100 — MBC1 SRAM enable/disable bracketing
@@ -520,23 +576,29 @@
 - **Rationale:** ADR-0016 point 5; R114 ("Sizing that ledger's real capacity... is new
   SRAM-budget work this topic flags but does not size — R106's existing SRAM/battery-save
   grounding is the starting point").
-- **Priority:** Must (target — not yet implemented)
-- **Status: NOT YET SIZED.** No FR/NFR in this baseline fixes the ledger's actual entry-count
-  capacity — tracked separately as `BL-0108`, routed to `02-research-gbc-hardware`/
-  `07-implementation-planning`. A save-format version bump is implied (mirroring NFR-5300's own
-  precedent) but not itself specified here.
+- **Priority:** Must (**Met, 2026-07-16, `IP-1104`** — 128 entries × 5 bytes = 640 bytes SRAM
+  (`SRAM_LEDGER`) against the confirmed ~8 KiB SRAM budget, sized here as-shipped; FIFO eviction
+  once full, `T27.c`.)
+- **Status: SIZED AND MET.** `BL-0108`'s own open sizing question is resolved as-shipped: 128
+  entries, a fixed capacity chosen against real SRAM headroom (R106) — not an assumption of
+  unbounded capacity. The save-format version bump `SAVE_VERSION_VAL` `0x04`→`0x05` (the fifth
+  bump since ship, extending `IP-9110`'s own strictly-monotonic sequence) is `IP-1104`'s own.
 - **Acceptance Criteria:** Saving then loading an Infinite Mode game restores the exact
-  treasure-collected state for every ledger entry present at save time; the ledger's maximum
-  entry count is a documented, fixed constant against real SRAM headroom (R106), never an
-  assumption of unbounded capacity.
+  treasure-collected state for every ledger entry present at save time (`T27.a`, `T27.c4`); the
+  ledger's maximum entry count is a documented, fixed constant against real SRAM headroom (R106),
+  never an assumption of unbounded capacity (Met — 128 entries, `T27.c`).
 - **Verification Method:** Test (save/reload two-instance harness, mirroring NFR-5300's own
-  fixture pattern) — not yet possible; no implementation exists.
+  fixture pattern) — `T27.a` (single-entry round trip), `T27.c` (FIFO eviction at capacity +
+  round trip).
 - **Source Documents:** ADR-0016 point 5; R114 §Implementation Guidance.
 - **Related ADRs:** ADR-0016.
-- **Notes:** Not yet implemented. What happens when a player visits more distinct regions than
-  the ledger's capacity allows (oldest-entry eviction, a hard cap on further materialization, or
-  another policy) is not decided by this NFR — a real design question for whichever
-  `07-implementation-planning` pass sizes the capacity, not resolved here.
+- **Notes:** **Implemented (`IP-1104`, 2026-07-16).** The eviction policy this NFR's own Notes
+  left open is FIFO (oldest-visited entry overwritten first) — the Technical Work Breakdown's own
+  resolution of `OQ5`, named a deliberate, revisitable choice (not asserted as the only correct
+  one) rather than a distance-from-current-position rule or another alternative. A 642-byte WRAM
+  working copy (`BL-0119`'s own amendment) additionally exists alongside the 640-byte SRAM
+  backing store, sized against the confirmed ~3.1 KiB bank-0 headroom (`R111`) — a separate WRAM
+  allocation from `NFR-4300`'s own materialized-window scope.
 
 ## Portability
 
@@ -619,7 +681,12 @@
 - **Related ADRs:** ADR-0009.
 - **Notes:** Confirms explicitly (per GDS-08 delta §8): the 8-BG-palette ceiling binds
   biome-family *count*, not blending, since FR-4300 rules out intra-screen mixing. Not yet
-  implemented.
+  implemented. **2026-07-16 delta (`BL-0128`, `FR-4320`):** the ceiling continues to hold at nine
+  identities without new palette slots — `07-data-model.md` §5 and `08-presentation-architecture.md`
+  §8 both already confirm the original nine-zone game reused palette 4 across three zones
+  (Mountain/Village/Cave alone), palette 1 across two (Beach/Desert), palette 0 across two
+  (Forest/Plains) — the exact reuse pattern `FR-4320` readopts. This NFR's own "Status: Met" line
+  above is not extended to the new pairs the expanded axis will introduce — see Changelog.
 
 ## Testability
 

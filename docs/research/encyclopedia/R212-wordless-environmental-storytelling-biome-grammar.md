@@ -1,14 +1,15 @@
 # R212 — Wordless Environmental Storytelling & Biome-Adjacency Grammar
 
-- **Document ID:** R212 · **Version:** 1.0 · **Status:** ✅
+- **Document ID:** R212 · **Version:** 1.1 (delta 2026-07-16, `CR-08`/`FR-4320`) · **Status:** ✅
 - **Dependencies:** R203 (screen composition), R208 (palette design), R201 (goal/structure
   design), R211 (comparative case studies)
-- **Referenced By:** none yet
+- **Referenced By:** `CR-08` (`01-functional-requirements.md`, Candidate Requirements — the
+  adjacency-grammar ordering question this delta answers)
 - **Produces:** grounding for the biome-adjacency grammar `03-architecture-design-synthesis` and
   `07`/`08` must design/build against; grounding for how the collect-goal's item theming
-  reinforces narrative
+  reinforces narrative; **(delta) grounding for `CR-08`'s nine-identity axis extension**
 - **Feature Mapping:** *(none yet)*
-- **Related Topics:** R203, R208, R201, R213, R214
+- **Related Topics:** R203, R208, R201, R213, R214, R217 (delta)
 
 ## Purpose
 
@@ -131,9 +132,102 @@ adequate for directional design grounding, not as hardware-level or authoritativ
 citations — consistent with this project's existing precedent for citation confidence (R301,
 `BL-0011`).
 
+## Delta (2026-07-16) — Extending the grammar axis to nine identities (`FR-4320`/`BL-0128`, `CR-08`)
+
+Grounds `CR-08` (`docs/requirements/01-functional-requirements.md`, Candidate Requirements): where
+the four newly-folded biome identities (Village, Cave, Desert, Plains — `FR-4320`, a direct
+project-owner decision to fold the original Release-1 zone art back into the biome-family
+taxonomy) sit on `FR-4310`'s adjacency-grammar axis, today defined only over the five already-
+generated identities (Water, Sand, Grass, Stone, Brick).
+
+**Real-world grounding exists for placing all four — the same "concrete precedent, not a
+hand-wave" standard §Concepts already set for the original five.** Three real, independently
+documented settlement/environment pairings ground a coherent extension:
+
+- **Castle ↔ Village ↔ Cave is not an invented cluster — it is a real, named place.** Uçhisar in
+  Cappadocia, Turkey is "a troglodyte town that revolves around Uçhisar Castle, a large volcanic
+  outcrop that served as a fortress for centuries,"[^5] and the wider Cappadocia region — "over
+  200 underground villages and tunnel towns"[^6] carved into the same volcanic rock — is a living
+  precedent for exactly the Brick(Castle)→Village→Cave sequence this delta proposes: a fortress,
+  a troglodyte settlement built into the rock around it, and a cave-dwelling tradition at the same
+  site. This is a stronger match than an invented pairing would be — a single real location
+  instantiates all three identities' adjacency at once.
+- **Cave ↔ Desert has a real, causal (not merely coincidental) precedent.** Petra, Jordan's
+  rock-cut cave dwellings sit in a semi-arid desert climate specifically *because* "the natural
+  insulating effect of the sandstone cliffs' thermal mass" protects inhabitants "from the sun's
+  harsh heat and the desert's chill nights"[^7] — caves are a documented adaptive response to
+  desert conditions, not an arbitrary pairing.
+- **Desert ↔ Plains is Minecraft's own real generation rule** — the same source R212 already
+  cites for adjacency smoothing (§Concepts, [^2]): "savannas generate in moderately high
+  temperature zones at low humidity, meaning that they commonly border plains, forests, deserts...
+  desert and savanna can border plains in transition zones."[^8] Reusing this source keeps the
+  new extension grounded in the identical precedent class the original five-identity axis used,
+  rather than introducing a new authority.
+
+**Proposed axis extension (append-only — the shipped `0`–`4` order is unchanged, per `FR-4320`'s
+own implementation-readiness note that renumbering the existing five would be a real, avoidable
+risk to already-`VERIFIED` code/tests):**
+
+```
+0 Water — 1 Sand — 2 Grass — 3 Stone — 4 Brick(Castle) — 5 Village — 6 Cave — 7 Desert — 8 Plains
+```
+
+Read as a journey: the existing coastal-to-fortress arc (water → beach → grassland → hills →
+mountains → castle) continues past the castle into a settlement built into the rock around it
+(village), the cave-dwelling tradition at the same site (cave), the arid climate that historically
+motivates that adaptation (desert), and finally the open grassland a desert's edge transitions
+into (plains) — closing the extended journey on a second grassland-family endpoint, mirroring how
+the original axis opened on water and closed on a civilization identity.
+
+**One honest limitation, named rather than hidden.** The original five identities' adjacency-axis
+order happened to coincide with their palette-family grouping (GDS-08 §4: Water/Sand/Grass/Stone/
+Brick each its own palette) — an incidental nice property, not a stated requirement. **This
+extension cannot preserve that coincidence for all four new identities**: Village and Cave share
+Stone's own palette family (with Mountain, at position 3) but cannot sit adjacent to Stone(3) on
+this axis without renumbering the fixed 0-4 range — they land at 5-6 instead, adjacent to Brick(4)
+and each other, not to Mountain. This is the real, load-bearing trade-off of the append-only
+constraint: the new positions' *adjacency-grammar legality* is now decoupled from their *palette
+assignment*, unlike the original five. Not a defect — `FR-4310`/`FR-4320` never required the two
+to coincide — but worth stating plainly rather than leaving future readers to discover it by
+surprise. **This is also, independently, a plausible real-world reading**: Uçhisar's own
+troglodyte-village-around-a-castle precedent is a *stone-adjacent-to-fortress* pairing in its own
+right, just not literally adjacent to *this specific game's* Mountain identity.
+
+**Single axis, not multiple — a deliberate, mechanism-driven choice, not a design preference.**
+§Concepts already notes Minecraft's real system uses multiple simultaneous continuous parameters
+(temperature, humidity, continentalness, erosion, weirdness, depth)[^2] — a true multi-axis model
+would let Cave branch off Mountain *and* Desert simultaneously without forcing either connection
+through the other. **This project's actual generation mechanism (`FR-9170`'s `[lo,hi]`
+neighbor-clamp, a single-byte linear walk) cannot represent a branch** — every position has
+exactly two numeric neighbors (one at each axis endpoint). The proposed order above is the best
+single-axis approximation of a genuinely branching real-world precedent, not a claim that a
+single line is the *ideal* model — a future revision introducing true multi-axis biome placement
+(closer to Minecraft's own real system) would be a `03-architecture-design-synthesis`-level
+change to the generation mechanism itself, well beyond this delta's own scope.
+
+### Delta Sources
+[^5]: [Cave Dwellings, Cappadocia — Ephesus Tours](https://www.ephesustoursguide.com/cappadocia-turkey/cave-dwellings-cappadocia) (Uçhisar as a troglodyte town centered on Uçhisar Castle); accessed 2026-07-16 via WebSearch summary.
+[^6]: [Where People Live in Caves in Turkey: Guide to Cappadocia's Dwellings — Turkey Homes](https://www.turkeyhomes.com/blog/post/where-people-live-in-caves-in-turkey); corroborated by [Rock-cut architecture of Cappadocia — Wikipedia](https://en.wikipedia.org/wiki/Rock-cut_architecture_of_Cappadocia) and [The incredible rock houses and underground cities of Cappadocia — Ancient Origins](https://www.ancient-origins.net/ancient-places-europe/incredible-rock-houses-and-underground-cities-cappadocia-001394); accessed 2026-07-16 via WebSearch summary.
+[^7]: [Petra — Wikipedia](https://en.wikipedia.org/wiki/Petra) (rock-cut cave dwellings, semi-arid climate, thermal-mass cooling as the documented adaptive motivation); accessed 2026-07-16 via WebSearch summary.
+[^8]: [Savanna — Minecraft Wiki (Fandom)](https://minecraft.fandom.com/wiki/Savanna); corroborated by [Biome — Minecraft Wiki (Fandom)](https://minecraft.fandom.com/wiki/Biome); accessed 2026-07-16 via WebSearch summary. Same source class as [^2] above (the original axis's own Minecraft precedent).
+
+**Single-source flag:** the Castle-Village-Cave cluster rests on one real location (Cappadocia/
+Uçhisar) corroborated across three independent pages ([^5]/[^6]) — treated as adequate under this
+document's own established confidence standard (§Sources above). The Cave-Desert claim ([^7]) and
+the Desert-Plains claim ([^8]) each rest on their own independent source, consistent with the
+existing document's precedent for single-but-authoritative citations (Wikipedia for a
+well-documented historical site; the same Minecraft Wiki already trusted for [^2]). All four
+citations are WebSearch-summary-level, not directly-fetched primary pages, matching this
+document's own established citation-confidence discipline (§Sources above, `R301`/`BL-0011`
+precedent) — not a new or lower bar than the original five-identity axis used.
+
 ## Feature Mapping
 
-*(No `FS-xxx` authored yet — this grounds the increment's future stage 04/06 work.)*
+*(No `FS-xxx` authored yet — this grounds the increment's future stage 04/06 work.)* **Delta
+(2026-07-16):** grounds `CR-08`'s resolution, which a future `07-implementation-planning` package
+(the deferred finite-mode-generation-plus-dispatch bundle named in the Technical Work Breakdown's
+"Nine biome-family identities" section) will consume once `03-architecture-design-synthesis`
+confirms this ordering doesn't need a GDS-08 §8 palette-stepping delta first (see Related Topics).
 
 ## Related Topics
 
@@ -141,4 +235,8 @@ R203 (screen composition this grammar operates within) · R208 (palette design/t
 vocabulary this grammar's biome identities reuse) · R201 (goal-structure design the item-theming
 reinforces) · R211 (comparative case studies, esp. the Oracle of Seasons/Ages region-color-identity
 parallel) · R213 (the generation algorithm that must satisfy this grammar) · R214 (GBC-hardware
-case studies for feasibility).
+case studies for feasibility). **Delta (2026-07-16):** R217 (procedural/generative music,
+`BL-0127`) — a sibling extension riding the same `FR-4320` nine-identity axis this delta places,
+for the game's own sub-theme structure; the two deltas were researched together but ground
+independent downstream capabilities (visual adjacency vs. audio theming) and make no claim of
+needing to share a single ordering.

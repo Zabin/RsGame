@@ -1,19 +1,44 @@
 # Master Build Plan
 
-> **Status (updated 2026-07-14, `08-code-implementation` on `IP-1100`): 28 of 31 packages
-> VERIFIED; `IP-1100` (Infinite Mode, mode selection & new-game entry) implemented — `COMPLETE`,
-> 280/280 full suite (`T25`, 10 checks). `IP-1102` (Infinite Mode, streaming window/navigation/
-> render) independently verified —
-> `VERIFIED`, 260/260 full suite (`T24`, 7 checks; `NFR-4300` Met, `NFR-1400` honestly measured
-> `NOT MET`, independently re-confirmed by a standalone re-measurement — see
-> [VR-1102](verification/VR-1102-infinite-mode-streaming-window-and-render.md) and
-> `02-non-functional-requirements.md`). `IP-1101` (per-region
-> materialization) independently verified `VERIFIED` — 253/253 checks pass, fresh session, 0 open
-> findings ([VR-1101](verification/VR-1101-infinite-mode-region-materialization.md); three
-> Low-severity documentation findings noted, none blocking). `IP-1103` is `READY` (both its
-> dependencies, `IP-1101`/`IP-1102`, are `VERIFIED`); `IP-1104` remains `NOT STARTED` —
-> still depends on `IP-1100`/`1102`/`1103` reaching `VERIFIED` (`IP-1100` awaiting its own
-> `09-package-verification` pass; `IP-1102` cleared; `IP-1103` not yet built).**
+> **Status (updated 2026-07-16, `09-package-verification` on `IP-1104`): all 31 of 31 packages
+> now `VERIFIED` — the tree's full implementation set closes.** `IP-1104` (visited-region-ledger
+> save persistence) independently verified — `VERIFIED`
+> ([VR-1104](verification/VR-1104-infinite-mode-ledger-save-persistence.md), 309/309, fresh
+> session, independent of `IP-1104`'s own implementation and its `BL-0119` amendment). Position +
+> bounded-ledger (128 entries × 5 bytes) save/load confirmed shipped in full via
+> `save_to_sram`/`try_load_save` extensions (`SAVE_VERSION_VAL` `0x04`→`0x05`, the fifth bump since
+> ship, single MBC1 bracket confirmed preserved in both routines); FIFO eviction at capacity
+> confirmed (`T27.c`); a systematic negative-test sweep confirms no mechanic ends a loaded Infinite
+> Mode run (`T27.f`, FR-10600). This closes the Infinite Mode tranche's own five-package
+> implementation set — `BL-0112` (the run-end trigger for `FR-10400`'s top-3 comparison) is the
+> tranche's sole standing gap, explicitly out of this package's own scope. `BL-0119` amendment
+> confirmed shipped exactly as specified, independently: a 642-byte WRAM working copy of the
+> ledger (`LEDGER_COUNT`/`LEDGER_CURSOR`/`LEDGER`, `0xC419`–`0xC69A`, mirroring `SRAM_LEDGER`
+> byte-for-byte) so `IP-1102`'s `inf_ensure_window` cheaply consults collected-state on *every*
+> materialization — new-game entry, ordinary in-session navigation, and post-load restore alike —
+> not only at the save/load boundary the original plan covered; `inf_ledger_mark_collected`
+> confirmed to operate on WRAM only (no per-collection SRAM/MBC1 access anywhere in the source).
+> Independently live-driven at a non-fixture seed (9092) in two scenarios — a save/load round
+> trip, and a genuine two-region window-eviction in-session re-entry stronger than `T27.g`'s own
+> one-step move — both confirm the `BL-0119` core claim directly, not just via the suite. Two
+> Low-severity documentation findings (neither blocking): `T27`'s "7 checks" claim undercounts the
+> actual 13 `check()` calls (same pattern `VR-1100` found for `T25`); `IP-1104` §9's own text cites
+> the wrong requirements file for the `NFR-5400` status update (the implementation used the
+> correct file regardless). New suite `T26`→`T27` (the package's own planned suite collided with
+> `IP-1103`'s actual shipped `T26`, this tranche's fourth such renaming). `IP-1103` (Infinite Mode, treasure placement &
+> win-condition state) independently verified — `VERIFIED` ([VR-1103](verification/VR-1103-infinite-mode-treasure-and-win-condition.md),
+> 296/296, one Low documentation finding, not blocking). Deliberate scope boundary reconfirmed
+> (`IP-1103` §2/§7, `FS-110` OQ3/`BL-0112`): Workflow C steps 1–2 shipped in full (treasure
+> spawn/collection/running count) plus the top-3 comparison subroutine `inf_check_top_score` —
+> which has **zero call sites, by design**, independently confirmed by direct code read (source
+> grep + `T26.d`'s own ROM scan), not just trusted from the suite; the automatic run-end trigger
+> still awaits `BL-0112`'s resolution, so `FR-10400` remains recorded Partially Implemented, not
+> rounded up. `IP-1100` `VERIFIED` ([VR-1100](verification/VR-1100-infinite-mode-mode-selection.md),
+> 296/296, two Low documentation findings, neither blocking). `IP-1102` `VERIFIED`
+> ([VR-1102](verification/VR-1102-infinite-mode-streaming-window-and-render.md); `NFR-4300` Met,
+> `NFR-1400` honestly measured `NOT MET`, see `02-non-functional-requirements.md`). `IP-1101`
+> `VERIFIED` ([VR-1101](verification/VR-1101-infinite-mode-region-materialization.md), 0 open
+> findings).**
 > Every prior package remains `VERIFIED` —
 > nothing below this line is re-opened by the new tranche. **Prior status (corrected 2026-07-13, `09-package-verification` on `IP-1082`):
 > 26 of 26 packages VERIFIED.** `IP-1090` (SELECT Menu & Edge-Indicator Legend Screen, `BL-0100`)
@@ -313,14 +338,94 @@ by a fresh "finite" new-game would leave `GAME_MODE` stuck at 1). Implements FR-
 half, now fully Implemented alongside `IP-1101`'s generate half). `docs/architecture/01-concept-
 of-play.md` (§4d confirmed shipped), `docs/requirements/01`/`04`, `FS-110`'s own metadata + §19
 OQ6 marked Resolved, this Master Build Plan, `packages/INDEX.md` all updated in sync.
+**`IP-1103` implemented 2026-07-16 — `COMPLETE`, 296/296 checks pass** (new suite `T26`, 16
+checks — the package's own §8 names "T25", renamed since `IP-1100` claimed `T25` first, the
+tranche's third such renaming). **Deliberate scope boundary, stated exactly (§2/§7,
+`FS-110` OQ3/`BL-0112`):** Workflow C steps 1–2 shipped in full — `RUNNING_TREASURE_COUNT`/
+`TOP_SCORE_TABLE` WRAM (`0xC405`–`0xC40C`, `GDS-07` §7f, explicitly boot-cleared per
+`GAME_MODE`'s own §7e lesson), treasure spawn (`setup_zone_collects`' new `GAME_MODE == 1`
+branch: exactly one `COLL_DATA` item at a per-biome position mirroring `ZONE_COLLECTS`' type-2
+entry — values deliberately duplicated, `T26.a0` is the drift guard), collection
+(`check_collisions`' new `GAME_MODE == 1` branch: 16-bit count increment, `INF_TREASURE_HERE`
+cache clear, forward `CALL inf_ledger_mark_collected` — a `RET` stub until `IP-1104` implements
+the receiving end), and the corpus-verified comparison subroutine `inf_check_top_score`
+(`T26.c`) — **which has zero call sites, by design** (`T26.d` asserts the zero-call-site state;
+the automatic run-end trigger awaits `BL-0112`). `INF_TREASURE_HERE` is now populated (cached at
+`inf_ensure_window`'s center-cell materialization — the write `IP-1102` §7e reserved for this
+package). **Same-package hazard closed (named by `IP-1100` §6 for this package to confirm):**
+the `GAME_MODE` gates mean Infinite Mode no longer runs the finite spawn/collection paths
+against stale `CUR_ZONE`/`REGION_GRAPH` data — before this package, colliding with a stale
+type-2 item incremented `KEYITEM_COUNT` toward a reachable spurious finite victory; now no
+finite counter is touched (`T26.a7`) and `GAMESTATE` stays `PLAYING` (`T26.a8`). Re-entry
+re-collection after leaving the materialized window remains possible until `IP-1104`'s ledger
+ships — the sequenced gap `FS-110` Workflow C/D split across the two packages, not an oversight.
+Implements FR-10300 (collection half — now fully Implemented alongside `IP-1101`'s presence
+half); FR-10400 recorded **Partially Implemented**, not rounded up. `docs/requirements/01`/`04`,
+`GDS-07` §7f, `FS-110` metadata + §19 OQ3 cross-referenced (left open), this Master Build Plan,
+`packages/INDEX.md` all updated in sync. **`IP-1100` independently verified 2026-07-16 —
+`VERIFIED`** ([VR-1100](verification/VR-1100-infinite-mode-mode-selection.md)): 296/296
+re-confirmed from scratch, ROM byte-identical rebuild, all 19 `T25.a`–`f` checks confirmed
+passing, `SEED/SCALE ENTRY`'s unredirected B-cancel and `MODE SELECT`'s no-write B-cancel both
+confirmed by direct code read, independently live-driven at a non-fixture seed (`39482`) through
+the real UI path. Two Low documentation findings (package text never amended for the shipped
+`inf_ensure_window`-call deviation; the suite's "10 checks" claim undercounts the real 19),
+neither blocking. **`IP-1103` independently verified 2026-07-16 — `VERIFIED`**
+([VR-1103](verification/VR-1103-infinite-mode-treasure-and-win-condition.md)): 296/296
+re-confirmed from scratch (fresh session, independent of `IP-1103`'s own implementation), ROM
+byte-identical rebuild, all 16 `T26.*` checks confirmed passing (an explicit count-accuracy audit
+confirmed the claimed "16" is correct, unlike `T25`'s own stale "10" `VR-1100` caught),
+`check_collisions`'s new `GAME_MODE==1` branch confirmed by direct code read to leave the
+`KeyItem`/`ScoreItem` branches byte-for-byte unchanged, `inf_check_top_score` confirmed to have
+zero call sites anywhere in the source or assembled ROM (source grep + `T26.d`'s own ROM scan) —
+the package's own deliberate `BL-0112` deferral, confirmed as a pass condition, not flagged as a
+gap. Independently live-driven at a non-fixture seed (`53`, distinct from `T26`'s own
+oracle-searched `10`) through the real MAIN MENU → MODE SELECT → INFINITE SEED ENTRY → PLAYING
+path via a standalone script — treasure spawn, collection, count-increment, and no-double-
+collection all reproduced. One Low documentation finding (`FS-110`'s own header still says
+`IP-1100` is `COMPLETE` rather than `VERIFIED`, stale since `VR-1100`, not introduced by this
+run), not blocking. **`IP-1104` amended 2026-07-16 per `BL-0119`, `NOT STARTED` → `READY`:**
+`07-implementation-planning` resolved the named blocker — the package's ledger now maintains a
+642-byte WRAM working copy (`LEDGER_COUNT`/`LEDGER_CURSOR`/`LEDGER`, `0xC419`–`0xC69A`, mirroring
+`SRAM_LEDGER` byte-for-byte) so `IP-1102`'s `inf_ensure_window` can cheaply consult
+collected-state on *every* materialization, not only at the save/load boundary the original plan
+covered; `inf_ledger_mark_collected` now operates on WRAM (no per-collection SRAM access, a
+correctness *and* performance improvement over the original design). New suite renamed
+`T26`→`T27` (collided with `IP-1103`'s own shipped `T26`, the tranche's fourth such renaming),
+with a new check `T27.g` for the in-session case `BL-0119` named. All four dependencies
+(`IP-1100`/`1101`/`1102`/`1103`) `VERIFIED` — `IP-1104` is now genuinely `READY` for
+`08-code-implementation`, the tranche's last package. **Implemented same run — `COMPLETE`,
+309/309 pass** (new suite `T27`, 7 checks — `a`/`b`/`c`/`d`/`e`/`f`/`g`, several correctly split
+into multiple sub-assertions, e.g. `a`→`a1`/`a2`/`a3`, `c`→`c1`/`c2`/`c3`/`c4`). ROM 29896/32768
+bytes. `save_to_sram`/`try_load_save` both extended inside their existing single MBC1-enable
+bracket (`IP-1050`'s own precedent, no second bracket opened); one `JR`→`JP` conversion needed
+where the added restore logic pushed the version-mismatch skip target out of `JR`'s ±127-byte
+range (the same class of range issue `IP-9070` hit first). `T27.g` independently confirms the
+`BL-0119` fix works exactly as amended: a collected treasure does not respawn on ordinary
+in-session re-entry, not just across save/load. Implements FR-10500/FR-10600 (both fully
+Implemented) and closes `NFR-5400`'s own sizing question (Met). `docs/requirements/01`/`02`/`04`,
+`GDS-07` §7g/§7h, `FS-110` metadata + §19 OQ5/OQ7 marked Resolved, this Master Build Plan,
+`packages/INDEX.md` all updated in sync. Incidentally fixed while touching `FS-110`'s own header
+for this package's update: the stale `IP-1100` `COMPLETE`→`VERIFIED` line `VR-1103`'s Finding 1
+(`BL-0122`) had flagged. **`IP-1104` independently verified 2026-07-16** ([VR-1104](verification/VR-1104-infinite-mode-ledger-save-persistence.md),
+309/309, fresh session, independent of `IP-1104`'s own implementation and its `BL-0119`
+amendment) — single MBC1 bracket confirmed preserved in both `save_to_sram`/`try_load_save`; the
+`BL-0119` amendment confirmed shipped exactly as specified (`inf_ledger_find`/
+`inf_ledger_mark_collected`/`inf_ensure_window`'s cross-reference all WRAM-only, cross-reference
+unconditional on every call site); independently live-driven at a non-fixture seed (9092) in a
+save/load round trip and a genuine two-region window-eviction in-session re-entry (stronger than
+`T27.g`'s own one-step move), both confirming the `BL-0119` core claim directly. Two Low-severity
+documentation findings, neither blocking (`T27`'s "7 checks" undercounts the actual 13; `IP-1104`
+§9 cites the wrong requirements file for `NFR-5400`). **This closes the Infinite Mode tranche's
+own five-package set AND every implementation package in the tree — all 31 of 31 now `VERIFIED`.**
+`10-integration-review` on the `IP-1100`–`IP-1104` set is the natural next pipeline step.
 
 | Package | Title | Owner | Status | Depends on | Authorized? |
 |---|---|---|---|---|---|
-| [IP-1100](packages/IP-1100-infinite-mode-mode-selection.md) | Mode selection & new-game entry | `08-code-implementation` | **COMPLETE** (280/280, 2026-07-14) | IP-1101 (VERIFIED) | **YES — explicit user G3, 2026-07-14 ("Yes, build all five")** |
+| [IP-1100](packages/IP-1100-infinite-mode-mode-selection.md) | Mode selection & new-game entry | `08-code-implementation` | **VERIFIED** ([VR-1100](verification/VR-1100-infinite-mode-mode-selection.md), 2026-07-16) | IP-1101 (VERIFIED) | **YES — explicit user G3, 2026-07-14 ("Yes, build all five")** |
 | [IP-1101](packages/IP-1101-infinite-mode-region-materialization.md) | Per-region materialization | `08-code-implementation` | **VERIFIED** ([VR-1101](verification/VR-1101-infinite-mode-region-materialization.md), 2026-07-14) | — (tranche root) | **YES — explicit user G3, 2026-07-14 ("Yes, build all five")** |
 | [IP-1102](packages/IP-1102-infinite-mode-streaming-window-and-render.md) | Streaming window, navigation & render integration | `08-code-implementation` | **VERIFIED** ([VR-1102](verification/VR-1102-infinite-mode-streaming-window-and-render.md), 2026-07-14) | IP-1101 (VERIFIED) | **YES — explicit user G3, 2026-07-14 ("Yes, build all five")** |
-| [IP-1103](packages/IP-1103-infinite-mode-treasure-and-win-condition.md) | Treasure placement & win-condition state | `08-code-implementation` | **READY** | IP-1101 (VERIFIED), IP-1102 (VERIFIED) | **YES — explicit user G3, 2026-07-14 ("Yes, build all five")** |
-| [IP-1104](packages/IP-1104-infinite-mode-ledger-save-persistence.md) | Visited-region-ledger save persistence | `08-code-implementation` | **NOT STARTED** | IP-1100, IP-1101 (VERIFIED), IP-1102, IP-1103 | **YES — explicit user G3, 2026-07-14 ("Yes, build all five")** |
+| [IP-1103](packages/IP-1103-infinite-mode-treasure-and-win-condition.md) | Treasure placement & win-condition state | `08-code-implementation` | **VERIFIED** ([VR-1103](verification/VR-1103-infinite-mode-treasure-and-win-condition.md), 2026-07-16 — Workflow C steps 1–2 + comparison subroutine only; the automatic trigger is deliberately unwired, `BL-0112`) | IP-1101 (VERIFIED), IP-1102 (VERIFIED) | **YES — explicit user G3, 2026-07-14 ("Yes, build all five")** |
+| [IP-1104](packages/IP-1104-infinite-mode-ledger-save-persistence.md) | Visited-region-ledger save persistence | `09-package-verification` | **VERIFIED** ([VR-1104](verification/VR-1104-infinite-mode-ledger-save-persistence.md), 309/309, 2026-07-16 — closes the tranche's implementation set AND the tree's own 31-package set; `BL-0112` remains the sole standing tranche gap) | IP-1100 (VERIFIED), IP-1101 (VERIFIED), IP-1102 (VERIFIED), IP-1103 (VERIFIED) | **YES — explicit user G3, 2026-07-14 ("Yes, build all five")** |
 
 ## Dependency graph
 
@@ -416,11 +521,11 @@ graph TD
 
     style IP1090 fill:#cfc,stroke:#333,stroke-width:2px
 
-    IP1100["IP-1100 mode selection<br/>& new-game entry<br/>(COMPLETE)"]
+    IP1100["IP-1100 mode selection<br/>& new-game entry<br/>(VERIFIED)"]
     IP1101["IP-1101 per-region<br/>materialization<br/>(VERIFIED)"]
     IP1102["IP-1102 streaming window<br/>& render integration<br/>(VERIFIED)"]
-    IP1103["IP-1103 treasure &<br/>win-condition state<br/>(READY)"]
-    IP1104["IP-1104 ledger save<br/>persistence<br/>(NOT STARTED)"]
+    IP1103["IP-1103 treasure &<br/>win-condition state<br/>(VERIFIED)"]
+    IP1104["IP-1104 ledger save<br/>persistence<br/>(VERIFIED)"]
     IP1040 --> IP1100
     IP1101 --> IP1100
     IP1020 --> IP1101
@@ -436,8 +541,8 @@ graph TD
     style IP1101 fill:#cfc,stroke:#333,stroke-width:2px
     style IP1100 fill:#c9f,stroke:#333,stroke-width:2px
     style IP1102 fill:#cfc,stroke:#333,stroke-width:2px
-    style IP1103 fill:#c9f,stroke:#333,stroke-width:2px
-    style IP1104 fill:#c9f,stroke:#333,stroke-width:2px
+    style IP1103 fill:#cfc,stroke:#333,stroke-width:2px
+    style IP1104 fill:#cfc,stroke:#333,stroke-width:2px
 ```
 
 *(The dotted edge into `IP1020` represents the Master Build Plan's own package-status
@@ -706,3 +811,52 @@ first-in-critical-path package.)*
 - **Standing, deliberately unresolved by this tranche:** `FS-110` Open Question 3 (`BL-0112`,
   the top-3-comparison trigger timing) — `IP-1103` builds everything buildable without it and
   states the remaining gap precisely; a future package wires the trigger once `BL-0112` resolves.
+
+## Nine biome-family identities (`FS-102`/`FS-103` revision, `FR-4320`, `BL-0128`, planned 2026-07-16)
+
+Four packages implementing `FR-4320`'s biome-family widening in full — see the
+[TWBS](01-technical-work-breakdown.md#nine-biome-family-identities-fs-102fs-103-revision-fr-4320-bl-0128-planned-2026-07-16)
+for the full verb inventory. `CR-08` (the adjacency-grammar ordering for the four new identities)
+was resolved into `FR-4310` on 2026-07-16, unblocking the two packages below that were originally
+deferred pending it.
+
+| Package | Title | Owner (08 peer) | Status | Depends on | Authorized? | Notes |
+|---|---|---|---|---|---|---|
+| [IP-1105](packages/IP-1105-infinite-mode-biome-domain-widening.md) | Infinite Mode `region_byte` bit-field repack (biome-domain widening, phase 1) | `08-code-implementation` | **COMPLETE** | IP-1101 (VERIFIED), IP-1102 (VERIFIED), IP-1103 (VERIFIED) | **AUTHORIZED (G3, user "Build all six," 2026-07-16)** | Implemented 2026-07-16: repacked `region_byte`/`INF_MZ_RESULT`'s bit layout (biome 0-2→0-3, connectivity 3-6→4-7) across both producers (`worldgen.py`, `asm_game.py`) and all four consumer sites, value range unchanged (`%5`). **The package's own `test_rom.py` file list was incomplete** — its grep only covered the `0x07` biome mask, missing three hardcoded connectivity-bit sites (`T22.g`'s symmetry check, `T24`'s `_T24_DIR_BIT` table, `T24.b`'s south-bit seed search, `T27.a`'s east-open seed-search predicate) that also encoded the old bit positions; found via the full-suite run (7 failures), fixed in scope per this skill's own "fix defects this package introduced" rule. 309/309 passing, ROM byte-identical (29896/32768), zero expected-value changes. Own `09-package-verification` pass owed. |
+| [IP-1033](packages/IP-1033-nine-biome-family-collectible-spawn-content.md) | Collectible-spawn content for the four newly-folded biome identities | `08-content-authoring` | **COMPLETE** | FR-4320 (baselined), IP-9070 (VERIFIED) | **AUTHORIZED (G3, user "Build all six," 2026-07-16)** | Implemented 2026-07-16: four `ZONE_COLLECTS`-format lists (`VILLAGE_COLLECTS`/`CAVE_COLLECTS`/`DESERT_COLLECTS`/`PLAINS_COLLECTS`, `tilemaps.py`), staged as inert data — final wiring is `IP-1022`'s own job. 309/309 suite unchanged, ROM byte-identical (29896/32768), placement verified visually via a temporary-force render (all four screenshots, no overlap). Own `09-package-verification`/`09-content-review` passes owed. |
+| [IP-1022](packages/IP-1022-finite-mode-nine-identity-generation-and-dispatch.md) | Finite-mode nine-identity generation & screen dispatch | `08-code-implementation` | **BLOCKED** → eligible in principle now (`IP-1033` `COMPLETE`, own `09` pass still owed) | FR-4310/FR-4320 (baselined), IP-1033 (COMPLETE) | **AUTHORIZED (G3, user "Build all six," 2026-07-16)** | Widens `generate_world`'s clamp `[0,4]`→`[0,8]`, extends `dsr_p_dispatch`'s cascade to all nine identities, splices `IP-1033`'s staged content into `ZONE_COLLECTS`'s real array. `CR-08`'s resolution unblocked this package's own planning; `IP-1033`'s own shipping (2026-07-16) unblocks its *execution* — technically startable now, though `IP-1033`'s own `09` pass is still owed. |
+| [IP-1106](packages/IP-1106-infinite-mode-nine-identity-value-widening.md) | Infinite Mode nine-identity value-range widening | `08-code-implementation` | **BLOCKED** (one real prerequisite unshipped) | IP-1105 (COMPLETE), IP-1022 (BLOCKED), IP-1033 (COMPLETE) | **AUTHORIZED (G3, user "Build all six," 2026-07-16)** | Widens `materialize_region`'s draw `%5`→`%9`, extends `inf_treasure_pos` to nine entries. The deepest point in this delta's own dependency chain (`IP-1033`/`IP-1105` → `IP-1022` → `IP-1106`) — shipping ahead of its own prerequisites would reintroduce the exact live-regression risk `IP-1105`'s own TWBS entry first identified. `IP-1105`/`IP-1033` both now `COMPLETE` (own `09` passes owed) — only `IP-1022` remains a real blocker. |
+
+**Critical-path chain within this delta:** `IP-1033`/`IP-1105` (parallel-eligible roots) →
+`IP-1022` → `IP-1106`. Does not extend or block any other in-flight critical path — both
+Infinite Mode's own tranche and the finite-mode procgen tranche are already `VERIFIED` and closed
+independent of this delta.
+
+**Authorization state: none of the four packages authorized** — all are new, additive
+forward-design work, not covered by the `BL-0001`…`BL-0005` G3 bootstrap carve-out. `IP-1105`/
+`IP-1033` are `NOT STARTED` (gated only on G3); `IP-1022`/`IP-1106` are `BLOCKED` (gated on both
+G3 *and* their own unshipped prerequisites — a strictly later point in the chain than "just needs
+authorization").
+
+## Procedural Music Generation (`FS-111`/`FEAT-7100`/`EP-7000`, `ADR-0019`/`BL-0127`, planned 2026-07-16)
+
+Two packages implementing `FR-7100`/`FR-7110` in full — see the
+[TWBS](01-technical-work-breakdown.md#procedural-music-generation-fs-111feat-7100ep-7000-adr-0019bl-0127-planned-2026-07-16)
+for the full verb inventory, including a real technical finding this pass surfaced (`music_tick`'s
+loop-restart branch is hardcoded to the main theme's own address, not track-agnostic — fixed
+inside `IP-1111`, not split out).
+
+| Package | Title | Owner (08 peer) | Status | Depends on | Authorized? | Notes |
+|---|---|---|---|---|---|---|
+| [IP-1110](packages/IP-1110-procedural-music-generation.md) | Procedural Music Generation (build-time sub-theme generation) | `08-code-implementation` | **COMPLETE** | FR-7100 (baselined), FR-4320 (baselined, identity set only — no execution dependency) | **AUTHORIZED (G3, user "Build all six," 2026-07-16)** | Implemented 2026-07-16: nine biome-family sub-themes (`music.py`'s `generate_theme_variations()`) via transposition/tempo-duration scaling of the existing main theme (Grass = zero-transform anchor, resolving `FS-111`'s Open Question 3). **Deviation from planning**: exposed via a flat, biome-id-indexed ROM address table (`music_table`, mirroring `zc_table`) instead of the originally-planned per-identity named-patch-key scheme, which turned out to require `asm_game.py` changes contradicting this package's own scope boundary — a real planning inconsistency found and resolved in-scope. 309/309 suite unchanged, ROM 31362/32768 bytes (1466 net new, matching `ADR-0019`'s ≈1629-byte estimate almost exactly). Own `09-package-verification` pass owed. Flags an Outstanding Issue for a future `07-implementation-planning` touch: `IP-1111`'s own §5/§6 text needs updating to consume this table by biome-id index, not the original named-key scheme. |
+| [IP-1111](packages/IP-1111-biome-family-sub-theme-playback-selection.md) | Biome-Family Sub-Theme Playback Selection | `08-code-implementation` | **BLOCKED** (one real prerequisite unshipped) | IP-1110 (COMPLETE), IP-1022 (BLOCKED) | **AUTHORIZED (G3, user "Build all six," 2026-07-16)** | Hooks into `do_screen_redraw`'s per-state dispatch (default reset to main theme) and `dsr_p_dispatch`'s per-identity cascade (override to matching sub-theme) — resolves `FS-111`'s Open Question 1. Also fixes `music_tick`'s hardcoded loop-restart target (new `MUSIC_BASE_LO`/`MUSIC_BASE_HI`), a correctness gap this planning pass found, not named in `FS-111`. Cannot be fully authored at the line-number level until `IP-1022` ships all nine `dsr_p_dispatch` branches. **`IP-1110` shipped a real interface change from planning**: the nine sub-theme addresses live in a flat, biome-id-indexed `music_table` (mirroring `zc_table`), not the originally-planned per-identity named patch keys — this package's own §5/§6 need a `07-implementation-planning` touch before execution to consume the table correctly. |
+
+**Critical-path chain within this delta:** `IP-1110` (root, `NOT STARTED`) → `IP-1111` (`BLOCKED`
+on `IP-1110` and, two levels deep, on arc (3)'s own `IP-1033` → `IP-1022` chain). Does not extend
+or block arc (3)'s own critical path — `IP-1111` merely joins it as a new downstream consumer of
+`IP-1022`'s own output.
+
+**Authorization state: neither package authorized** — both new, additive forward-design work, not
+covered by the G3 bootstrap carve-out. `IP-1110` is `NOT STARTED` (gated only on G3); `IP-1111` is
+`BLOCKED` (gated on G3 *and* two real unshipped prerequisites, one of them — `IP-1022` — itself
+still `BLOCKED` on arc (3)'s own `IP-1033`).

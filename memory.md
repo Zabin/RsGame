@@ -83,6 +83,12 @@ biome-id (`0`=Water `1`=Sand `2`=Grass `3`=Stone `4`=Brick), not 9 zone-indexed 
 dispatch's own biome-id lookup (`IP-1030`). To find a biome family's layout: open `tilemaps.py`,
 search `ZONE_COLLECTS`.
 
+**`IP-1033` (2026-07-16, staged not wired):** four more lists exist in `tilemaps.py` —
+`VILLAGE_COLLECTS`/`CAVE_COLLECTS`/`DESERT_COLLECTS`/`PLAINS_COLLECTS` — for `FR-4320`'s four
+newly-folded identities. Same format, same craft conventions as the five `ZONE_COLLECTS` entries
+above. **Not yet part of `ZONE_COLLECTS`'s own array** — unreferenced by any code path until
+`IP-1022` splices them into the real index-5-8 positions.
+
 ## Emulator Test Command
 
 ```python
