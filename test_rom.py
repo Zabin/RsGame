@@ -266,6 +266,19 @@ check("T1.11 Exactly one carrot per list", all(c == 1 for c in carrots_per_zone)
 check("T1.12 No zone exceeds 8 collectibles (1-byte bitfield capacity)",
       all(len(z) <= 8 for z in ZONE_COLLECTS), f"{[len(z) for z in ZONE_COLLECTS]}")
 
+# T1.13 — tile-data bounds (IP-9150): the trimmed emission length matches
+# the shared constant exactly, and every TL_* index sits below the trim
+# boundary — the permanent guard against a future tile added at or beyond
+# the boundary without bumping TILE_DATA_TILES.
+import tiles as _tiles_mod
+_t113_len = len(_tiles_mod.build_tile_data())
+_t113_tl = [(n, getattr(_tiles_mod, n)) for n in dir(_tiles_mod)
+            if n.startswith('TL_') and isinstance(getattr(_tiles_mod, n), int)]
+_t113_over = [(n, v) for n, v in _t113_tl if v >= _tiles_mod.TILE_DATA_TILES]
+check("T1.13 Tile-data bounds: build_tile_data() length == TILE_DATA_TILES*16 and every TL_* index < TILE_DATA_TILES (IP-9150)",
+      _t113_len == _tiles_mod.TILE_DATA_TILES * 16 and _t113_over == [],
+      f"len={_t113_len} expected={_tiles_mod.TILE_DATA_TILES * 16} over={_t113_over}")
+
 # ══════════════════════════════════════════════════════
 # T2 — VRAM Tile Data
 # ══════════════════════════════════════════════════════

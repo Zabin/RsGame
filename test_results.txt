@@ -1,4 +1,4 @@
-BunnyQuest ROM Tests  PASS=320/320  FAIL=0
+BunnyQuest ROM Tests  PASS=321/321  FAIL=0
 ==================================================
 [PASS] T1.1 ROM size = 32768  (32768)
 [PASS] T1.2 Entry = NOP; JP
@@ -12,6 +12,7 @@ BunnyQuest ROM Tests  PASS=320/320  FAIL=0
 [PASS] T1.10 ZONE_COLLECTS has 9 biome-family lists (IP-1022)  (9)
 [PASS] T1.11 Exactly one carrot per list  ([1, 1, 1, 1, 1, 1, 1, 1, 1])
 [PASS] T1.12 No zone exceeds 8 collectibles (1-byte bitfield capacity)  ([7, 7, 7, 6, 6, 6, 6, 6, 6])
+[PASS] T1.13 Tile-data bounds: build_tile_data() length == TILE_DATA_TILES*16 and every TL_* index < TILE_DATA_TILES (IP-9150)  (len=2944 expected=2944 over=[])
 [PASS] T2.1 Tile 0x00 (bunny head) non-zero  ([[102, 102, 90, 126]])
 [PASS] T2.2 Tile 0x04 (carrot) non-zero  ([[24, 24, 60, 60]])
 [PASS] T2.3 Tile 0x06 (star) non-zero  ([[0, 24, 24, 60]])
@@ -314,9 +315,9 @@ BunnyQuest ROM Tests  PASS=320/320  FAIL=0
 [PASS] T27.e Regression: every existing T15 (generated-world save persistence) check still passes unmodified under the new SAVE_VERSION_VAL  (failed=[] total_checked=17)
 [PASS] T27.f Indefinite resumability: a loaded Infinite Mode run survives every reachable input branch (movement, SAVE round trips, SELECT-menu round trips) without ending -- lands back in PLAYING, GAME_MODE still 1  (gs_after_load=2 gs_final=2 game_mode=1)
 [PASS] T27.g In-session re-entry: collected treasure does not respawn on ordinary navigation back (no save/load boundary crossed) -- INF_TREASURE_HERE stays 0, RUNNING_TREASURE_COUNT does not double-increment  (rtc_pre=1 col=0 treasure_here=0 rtc_back=1)
-[PASS] T28.a0 Static: music_tbl patch resolves inside ROM and the nine table entries are distinct, ordered track addresses  (tbl=0x33DD entries=['0x2d80', '0x2e35', '0x2eea', '0x2f9f', '0x3054', '0x3109', '0x31be', '0x3273', '0x3328'])
+[PASS] T28.a0 Static: music_tbl patch resolves inside ROM and the nine table entries are distinct, ordered track addresses  (tbl=0x2F5D entries=['0x2900', '0x29b5', '0x2a6a', '0x2b1f', '0x2bd4', '0x2c89', '0x2d3e', '0x2df3', '0x2ea8'])
 [PASS] T28.a Selection: each of the nine biome-ids repoints MUSIC_BASE to its own music_table entry with MUSIC_PTR playing inside that track (finite path, FR-7110)  (bad=[])
-[PASS] T28.b Selection via Infinite Mode window path: biome 7 (Desert) repoints MUSIC_BASE to music_table[7], MUSIC_PTR playing inside that track  (ptr=0x3276 base=0x3273 expected=0x3273)
+[PASS] T28.b Selection via Infinite Mode window path: biome 7 (Desert) repoints MUSIC_BASE to music_table[7], MUSIC_PTR playing inside that track  (ptr=0x2DF6 base=0x2DF3 expected=0x2DF3)
 [PASS] T28.c Fallback: every one of the eleven non-PLAYING states resets MUSIC_BASE to music_table[2] (the main theme), MUSIC_PTR playing inside it  (bad=[])
-[PASS] T28.d Loop restart: a sub-theme reaching its terminal 0xFF restarts from its own MUSIC_BASE start (Village), never the main theme (the music_tick fix)  (ptr=0x310C base=0x3109 start=0x3109 ff=0x31BD)
+[PASS] T28.d Loop restart: a sub-theme reaching its terminal 0xFF restarts from its own MUSIC_BASE start (Village), never the main theme (the music_tick fix)  (ptr=0x2C8C base=0x2C89 start=0x2C89 ff=0x2D3D)
 [PASS] T28.e Timing: the sub-theme repoint lands with the redraw itself (within FR-7110's one-frame budget of the screen appearing)  (frames=2)

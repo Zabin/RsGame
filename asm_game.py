@@ -15,7 +15,7 @@ from tiles import (TL_CARROT, TL_STAR, TL_FLOWER_OBJ,
                    TL_HEART_FULL, TL_HEART_EMPTY, TL_DIGIT_0,
                    TL_ARROW_U, TL_ARROW_D, TL_ARROW_L, TL_ARROW_R,
                    TL_BLOCKED_U, TL_BLOCKED_D, TL_BLOCKED_L, TL_BLOCKED_R,
-                   TL_BG_BLANK)
+                   TL_BG_BLANK, TILE_DATA_TILES)
 
 # ── WRAM addresses ─────────────────────────────────────────
 GAMESTATE      = 0xC000
@@ -397,7 +397,7 @@ def build_game_asm(rom: ROM) -> dict:
 
     # Copy tile data → 0x8000
     rom.LD_DE_nn(0); patches['tile_src'] = rom.pos - 2
-    rom.LD_HL_nn(0x8000); rom.LD_BC_nn(256 * 16)
+    rom.LD_HL_nn(0x8000); rom.LD_BC_nn(TILE_DATA_TILES * 16)  # IP-9150 trim
     rom.CALL('memcpy')
 
     # BG palettes
