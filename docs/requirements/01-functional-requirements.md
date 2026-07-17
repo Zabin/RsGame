@@ -1460,7 +1460,13 @@ confirmed unused before this delta by direct grep of the existing document.)*
   baselining**: this FR's eventual implementation needs `FR-4320`'s own packages
   (`IP-1105`/`IP-1033`/`IP-1022`/`IP-1106`, all unauthorized as of this delta) to have shipped
   first, since it reads the same widened biome-id domain those packages establish — named here,
-  not resolved, per `ADR-0019`'s own identical note.
+  not resolved, per `ADR-0019`'s own identical note. **`IP-1111` implemented 2026-07-17**
+  (`COMPLETE`, own `09` pass owed; all four prerequisite packages shipped first): the mechanism
+  chosen is a shared `music_select` subroutine reading `IP-1110`'s biome-id-indexed
+  `music_table`, called (a) as an unconditional main-theme default on every screen redraw and
+  (b) once at `dsr_p_dispatch`'s entry during `PLAYING` (both mode paths); plus the `music_tick`
+  loop-restart fix (new `MUSIC_BASE_LO`/`MUSIC_BASE_HI`, `mus_reset` retired). `T28.a`–`T28.e`
+  verify all Acceptance Criteria; 319/319 suite.
 
 ## FR-9000 — World generation (target — 2026-07-09, new capability, not yet shipped)
 

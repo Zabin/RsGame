@@ -3502,6 +3502,137 @@ pb.stop()
 wipe_save()
 
 # ══════════════════════════════════════════════════════
+# T28 — Biome-Family Sub-Theme Playback Selection (IP-1111)
+# ══════════════════════════════════════════════════════
+print("\n=== T28: Biome-Family Sub-Theme Playback Selection ===")
+
+MUSIC_CTR = 0xC00F; MUSIC_PTR_LO = 0xC010; MUSIC_PTR_HI = 0xC011
+MUSIC_BASE_LO = 0xC6B3; MUSIC_BASE_HI = 0xC6B4
+
+# Expected per-biome track addresses: read straight from the built ROM's
+# own music_table via the music_tbl patch pointer (re-derive the patch
+# position with a fresh in-process assembly pass — deterministic, same
+# positions as the shipped build), not recomputed from music.py.
+_t28_patches = _build_game_asm(_ROM())
+with open(ROM_PATH, 'rb') as _f:
+    _t28_rom = _f.read()
+_t28_tbl_pos = _t28_patches['music_tbl']
+MUSIC_TBL_ADDR = _t28_rom[_t28_tbl_pos] | (_t28_rom[_t28_tbl_pos + 1] << 8)
+_t28_track = [_t28_rom[MUSIC_TBL_ADDR + 2*_b] | (_t28_rom[MUSIC_TBL_ADDR + 2*_b + 1] << 8)
+              for _b in range(9)]
+check("T28.a0 Static: music_tbl patch resolves inside ROM and the nine table entries are distinct, ordered track addresses",
+      0x150 <= MUSIC_TBL_ADDR < 0x8000 and len(set(_t28_track)) == 9,
+      f"tbl=0x{MUSIC_TBL_ADDR:04X} entries={[hex(a) for a in _t28_track]}")
+
+def read_music_ptr(pb):
+    return pb.memory[MUSIC_PTR_LO] | (pb.memory[MUSIC_PTR_HI] << 8)
+
+def read_music_base(pb):
+    return pb.memory[MUSIC_BASE_LO] | (pb.memory[MUSIC_BASE_HI] << 8)
+
+# T28.a — selection correctness, finite path: force each of the nine
+# biome-ids current during PLAYING (T13.a's REGION_GRAPH direct-force +
+# redraw pattern) and assert MUSIC_PTR/MUSIC_BASE == that identity's own
+# music_table entry.
+pb = fresh_boot(180)
+advance_to_playing(pb)
+# MUSIC_BASE is the stable selection record; MUSIC_PTR is a live playback
+# cursor that has already advanced past the first note(s) by read time —
+# assert BASE equals the entry exactly and PTR sits inside that track's
+# own byte range (start..next track's start), proving playback is running
+# the selected track, not merely that a value was written once.
+_t28_end = _t28_track + [MUSIC_TBL_ADDR]   # each track ends where the next begins
+def _t28_on_track(pb, biome):
+    return (read_music_base(pb) == _t28_track[biome]
+            and _t28_track[biome] <= read_music_ptr(pb) < _t28_end[biome + 1])
+_t28a_bad = []
+for _biome in range(9):
+    pb.memory[REGION_GRAPH] = _biome
+    for _k in range(4): pb.memory[REGION_GRAPH + 1 + _k] = 0xFF
+    force_region_redraw(pb, 0)
+    if not _t28_on_track(pb, _biome):
+        _t28a_bad.append((_biome, hex(read_music_ptr(pb)), hex(read_music_base(pb)), hex(_t28_track[_biome])))
+check("T28.a Selection: each of the nine biome-ids repoints MUSIC_BASE to its own music_table entry with MUSIC_PTR playing inside that track (finite path, FR-7110)",
+      _t28a_bad == [], f"bad={_t28a_bad}")
+
+# T28.b — selection correctness, Infinite Mode path: at least one identity
+# selected via the INF_WINDOW-center force (T26.i's pattern), proving the
+# shared dsr_p_dispatch entry point serves both modes. Biome 7 (Desert) --
+# arbitrary non-Grass pick among the newly-folded ids.
+pb.memory[INF_TREASURE_HERE] = 0
+force_infinite_redraw_with_center(pb, 7)
+check("T28.b Selection via Infinite Mode window path: biome 7 (Desert) repoints MUSIC_BASE to music_table[7], MUSIC_PTR playing inside that track",
+      _t28_on_track(pb, 7),
+      f"ptr=0x{read_music_ptr(pb):04X} base=0x{read_music_base(pb):04X} expected=0x{_t28_track[7]:04X}")
+pb.memory[GAME_MODE] = 0   # restore finite mode for the checks below
+
+# T28.c — main-theme fallback: force entry into each of the eleven
+# non-PLAYING states via TRANSITION_TO/NEED_REDRAW (the game's own
+# transition mechanism, exercised with a non-main-theme track selected
+# first) and assert the default reset repointed to music_table[2] (Grass =
+# the main theme).
+TRANSITION_TO = 0xC00B
+_t28c_bad = []
+for _gs in (0, 1, 3, 4, 5, 6, 7, 8, 9, 10, 11):
+    pb.memory[REGION_GRAPH] = 7
+    for _k in range(4): pb.memory[REGION_GRAPH + 1 + _k] = 0xFF
+    force_region_redraw(pb, 0)          # select Desert's sub-theme first
+    pb.memory[TRANSITION_TO] = _gs
+    pb.memory[NEED_REDRAW] = 1
+    [pb.tick() for _ in range(10)]
+    if not _t28_on_track(pb, 2):
+        _t28c_bad.append((_gs, hex(read_music_ptr(pb)), hex(read_music_base(pb))))
+    pb.memory[TRANSITION_TO] = 2        # back to PLAYING for the next round
+    pb.memory[NEED_REDRAW] = 1
+    [pb.tick() for _ in range(10)]
+check("T28.c Fallback: every one of the eleven non-PLAYING states resets MUSIC_BASE to music_table[2] (the main theme), MUSIC_PTR playing inside it",
+      _t28c_bad == [], f"bad={_t28c_bad}")
+
+# T28.d — loop-restart correctness (the music_tick fix): with a non-Grass
+# sub-theme selected, plant a terminal 0xFF at the playback cursor's
+# current position... impossible in ROM — instead point MUSIC_PTR at the
+# track's own real terminal 0xFF (scan the ROM from the track's start) and
+# force MUSIC_CTR to expire; music_tick must restart from MUSIC_BASE (the
+# sub-theme's own start), not the main theme's address.
+pb.memory[REGION_GRAPH] = 5             # Village's sub-theme
+for _k in range(4): pb.memory[REGION_GRAPH + 1 + _k] = 0xFF
+force_region_redraw(pb, 0)
+_t28d_start = _t28_track[5]
+_t28d_ff = _t28d_start
+while _t28_rom[_t28d_ff] != 0xFF:
+    _t28d_ff += 1
+pb.memory[MUSIC_PTR_LO] = _t28d_ff & 0xFF
+pb.memory[MUSIC_PTR_HI] = (_t28d_ff >> 8) & 0xFF
+pb.memory[MUSIC_CTR] = 1                # expires on the next music_tick
+[pb.tick() for _ in range(2)]           # music_tick runs once per frame
+_t28d_ptr = read_music_ptr(pb)
+check("T28.d Loop restart: a sub-theme reaching its terminal 0xFF restarts from its own MUSIC_BASE start (Village), never the main theme (the music_tick fix)",
+      _t28d_start < _t28d_ptr <= _t28d_start + 6 and read_music_base(pb) == _t28d_start,
+      f"ptr=0x{_t28d_ptr:04X} base=0x{read_music_base(pb):04X} start=0x{_t28d_start:04X} ff=0x{_t28d_ff:04X}")
+
+# T28.e — transition timing (FR-7110's "within one frame"): the redraw that
+# performs a state transition also performs the repoint — confirmed by
+# forcing a transition and checking the track after a single redraw
+# completes (the [10-tick settle above already proves ≤10 frames; this
+# check pins the mechanism: the repoint happens inside do_screen_redraw
+# itself, i.e. the same frame the new state's screen appears).
+pb.memory[REGION_GRAPH] = 8             # Plains current
+for _k in range(4): pb.memory[REGION_GRAPH + 1 + _k] = 0xFF
+pb.memory[TRANSITION_TO] = 2
+pb.memory[NEED_REDRAW] = 1
+_t28e_frames = None
+for _i in range(10):
+    pb.tick()
+    if read_music_ptr(pb) == _t28_track[8]:
+        _t28e_frames = _i + 1
+        break
+check("T28.e Timing: the sub-theme repoint lands with the redraw itself (within FR-7110's one-frame budget of the screen appearing)",
+      _t28e_frames is not None and _t28e_frames <= 2,
+      f"frames={_t28e_frames}")
+pb.stop()
+wipe_save()
+
+# ══════════════════════════════════════════════════════
 # SUMMARY
 # ══════════════════════════════════════════════════════
 total = PASS + FAIL

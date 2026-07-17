@@ -103,11 +103,11 @@ def build(out_path='BunnyQuest.gbc'):
     # established convention. Grass is the zero-transform anchor (IP-1110
     # Objective) -- its own track *is* the main theme's existing
     # music_data() output, unchanged; the other eight are generated via
-    # generate_theme_variations(). mus_lo/mus_hi/mus_reset below continue
-    # to point at Grass's own address exactly as they pointed at the
-    # single main theme before this package -- existing single-track
-    # playback is completely unaffected until a future package (IP-1111)
-    # adds runtime selection logic.
+    # generate_theme_variations(). mus_lo/mus_hi below continue to point
+    # at Grass's own address exactly as they pointed at the single main
+    # theme before this package (boot-init default; mus_reset was retired
+    # by IP-1111, whose music_select/music_table runtime selection now
+    # owns which track plays after every screen redraw).
     #
     # Deviation from this package's own planning text: IP-1110's own
     # scope explicitly excludes asm_game.py changes, but a named
@@ -204,7 +204,10 @@ def build(out_path='BunnyQuest.gbc'):
     p16(patches['obj_pal'],  obj_pal_addr)
     rom.data[patches['mus_lo']] = music_addr & 0xFF
     rom.data[patches['mus_hi']] = (music_addr >> 8) & 0xFF
-    p16(patches['mus_reset'],   music_addr)
+    # IP-1111: mus_reset retired -- music_tick's loop-restart target is now
+    # the MUSIC_BASE_* WRAM pair music_select maintains; the sub-theme
+    # address source is the biome-id-indexed music_table (zc_table pattern).
+    p16(patches['music_tbl'], music_table_addr)
 
     p16(patches['title_t'], screen_addrs['title'][0])
     p16(patches['title_a'], screen_addrs['title'][1])

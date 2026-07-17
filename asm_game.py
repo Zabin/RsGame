@@ -255,6 +255,15 @@ FPS_LM_ATTR    = 0xC6B1  # 1 byte -- current landmark entry's attr
 FPS_TEMP       = 0xC6B2  # 1 byte -- short-lived scratch (holds the just-read row_table
                           # byte across the HL-clobbering pointer-save shuffle)
 
+# IP-1111 (FR-7110): the currently-selected music track's own base (start)
+# address -- written by music_select at every repoint alongside
+# MUSIC_PTR_LO/HI, read by music_tick's loop-restart branch in place of the
+# retired hardcoded mus_reset patch constant (without this, any sub-theme
+# would silently truncate to a single pass and fall back to the main theme
+# the moment it loops). Transient, session-only -- never persisted to SRAM.
+MUSIC_BASE_LO  = 0xC6B3  # 1 byte
+MUSIC_BASE_HI  = 0xC6B4  # 1 byte
+
 SAVE_VERSION_ADDR = 0xA012   # save-format version guard (FR-5220 / Design Decision 2)
 SAVE_VERSION_VAL  = 0x05     # bumped 0x04->0x05 (IP-1104, fifth bump since ship — the
                               # value sequence is strictly monotonic, never reused). A single
@@ -421,8 +430,10 @@ def build_game_asm(rom: ROM) -> dict:
 
     rom.LD_A_n(0); patches['mus_lo'] = rom.pos - 1
     rom.LD_nn_A(MUSIC_PTR_LO)
+    rom.LD_nn_A(MUSIC_BASE_LO)         # IP-1111: defensive pre-first-redraw init
     rom.LD_A_n(0); patches['mus_hi'] = rom.pos - 1
     rom.LD_nn_A(MUSIC_PTR_HI)
+    rom.LD_nn_A(MUSIC_BASE_HI)         # IP-1111: defensive pre-first-redraw init
     rom.LD_A_n(1); rom.LD_nn_A(MUSIC_CTR)
 
     # IP-1040: the auto-load-on-boot bypass (unconditional try_load_save call)
@@ -1292,13 +1303,42 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_nn(MUSIC_PTR_LO); rom.LD_L_A()
     rom.LD_A_nn(MUSIC_PTR_HI); rom.LD_H_A()
     rom.LD_A_HL(); rom.CP_n(0xFF); rom.JR_NZ('mt_play')
-    rom.LD_HL_nn(0); patches['mus_reset'] = rom.pos - 2
+    # IP-1111: loop-restart target is the currently-selected track's own
+    # base address (MUSIC_BASE_*, written by music_select at every repoint),
+    # not the retired build-time mus_reset constant -- a sub-theme loops
+    # from its own start instead of silently falling back to the main theme.
+    rom.LD_A_nn(MUSIC_BASE_LO); rom.LD_L_A()
+    rom.LD_A_nn(MUSIC_BASE_HI); rom.LD_H_A()
     rom.label('mt_play')
     rom.LD_A_HLI(); rom.LDH_n_A(NR13)
     rom.LD_A_HLI(); rom.LDH_n_A(NR14)
     rom.LD_A_HLI(); rom.LD_nn_A(MUSIC_CTR)
     rom.LD_A_H(); rom.LD_nn_A(MUSIC_PTR_HI)
     rom.LD_A_L(); rom.LD_nn_A(MUSIC_PTR_LO)
+    rom.RET()
+
+    # ── music_select (IP-1111, FR-7110) ──────────────────
+    # On entry: A = biome-id (0-8). Repoints playback to that identity's
+    # own sub-theme: HL = music_table + 2*A (music_tbl resolved by
+    # build_rom.py exactly as zc_table is), reads the little-endian track
+    # address, writes it to both MUSIC_PTR_* (playback cursor) and
+    # MUSIC_BASE_* (music_tick's loop-restart target), resets MUSIC_CTR
+    # to 1 (the boot-init pattern) so the new track starts on the next
+    # tick. Preserves A -- both callers still need it (dsr_p_dispatch
+    # dispatches its CP_n cascade on it). Called only from inside
+    # do_screen_redraw's LCD-off bracket (NFR-1300: no VBlank exposure).
+    rom.label('music_select')
+    rom.PUSH_AF()
+    rom.ADD_A_A()                      # A = biome-id * 2 (table index)
+    rom.LD_E_A(); rom.LD_D_n(0)
+    rom.LD_HL_nn(0); patches['music_tbl'] = rom.pos - 2
+    rom.ADD_HL_DE()                    # HL -> music_table[biome-id]
+    rom.LD_A_HLI()
+    rom.LD_nn_A(MUSIC_PTR_LO); rom.LD_nn_A(MUSIC_BASE_LO)
+    rom.LD_A_HL()
+    rom.LD_nn_A(MUSIC_PTR_HI); rom.LD_nn_A(MUSIC_BASE_HI)
+    rom.LD_A_n(1); rom.LD_nn_A(MUSIC_CTR)
+    rom.POP_AF()
     rom.RET()
 
     # ── update_status_disp ───────────────────────────────
@@ -1343,6 +1383,13 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_nn(TRANSITION_TO); rom.LD_nn_A(GAMESTATE)
     rom.XOR_A(); rom.LD_nn_A(NEED_REDRAW)
     rom.LD_A_n(1); rom.LD_nn_A(SCORE_DIRTY)
+
+    # IP-1111 (FR-7110): default reset to the main theme on EVERY redraw,
+    # every state -- biome-id 2 (Grass) is the zero-transform anchor whose
+    # music_table entry IS the main theme (IP-1110). PLAYING's own region
+    # dispatch (dsr_p_dispatch, below) then overrides to the current
+    # region's sub-theme; every other state keeps this default.
+    rom.LD_A_n(2); rom.CALL('music_select')
 
     # When entering PLAYING, set up zone collectibles
     rom.LD_A_nn(GAMESTATE); rom.CP_n(GS_PLAYING); rom.JR_NZ('dsr_no_coll')
@@ -1422,6 +1469,13 @@ def build_game_asm(rom: ROM) -> dict:
                                         # ignores HL entirely (reads WRAM directly)
 
     rom.label('dsr_p_dispatch')
+    # IP-1111 (FR-7110): repoint music to this region's own sub-theme --
+    # A = biome-id here on both mode paths (finite REGION_GRAPH read /
+    # infinite INF_WINDOW center); music_select preserves A for the
+    # cascade below. One call site covers all nine identities (Grass's
+    # table entry is the main theme, so its override is a harmless
+    # rewrite of the default already set at redraw entry).
+    rom.CALL('music_select')
     rom.CP_n(0); rom.JR_Z('dsr_p_water')
     rom.CP_n(1); rom.JR_Z('dsr_p_sand')
     rom.CP_n(2); rom.JR_Z('dsr_p_grass')
