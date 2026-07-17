@@ -1,4 +1,4 @@
-BunnyQuest ROM Tests  PASS=324/324  FAIL=0
+BunnyQuest ROM Tests  PASS=326/326  FAIL=0
 ==================================================
 [PASS] T1.1 ROM size = 32768  (32768)
 [PASS] T1.2 Entry = NOP; JP
@@ -98,7 +98,9 @@ BunnyQuest ROM Tests  PASS=324/324  FAIL=0
 [PASS] T8.10b HUD carrot-count digit reflects forced CARROTS_COUNT=5 within 2 frames (IP-9020)  (digit=5)
 [PASS] T8.10c HUD carrot-target digit reflects forced WORLD_SCALE=5 within 2 frames (IP-9170)  (digit=5)
 [PASS] T8.10d HUD carrot-target digit reflects forced WORLD_SCALE=7 within 2 frames (IP-9170)  (digit=7)
-[PASS] T8.10e Infinite Mode non-regression: col 4 unaffected by WORLD_SCALE changes (GAME_MODE gate holds, IP-9170)  (tile=0x27 (expected unchanged from T8.10d's own last finite-mode write))
+[PASS] T8.10e Infinite Mode HUD digit reflects RUNNING_TREASURE_COUNT=7 within 2 frames (IP-9180)  (digit=7)
+[PASS] T8.10f Infinite Mode HUD digit wraps correctly for RUNNING_TREASURE_COUNT=13 -> 3 (IP-9180)  (digit=3)
+[PASS] T8.10g Finite mode non-regression: WORLD_SCALE digit unaffected by IP-9180's Infinite Mode branch  (digit=3 expected=3)
 [PASS] T8.11 SELECT -> MAP
 [PASS] T8.12 Map heart z0 = FULL (0x11)  (0x11)
 [PASS] T8.13 Map heart z1 = EMPTY (0x12)  (0x12)

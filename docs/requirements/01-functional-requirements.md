@@ -1759,8 +1759,10 @@ confirmed unused before this delta by direct grep of the existing document.)*
   (`IP-9170`, `BL-0139`):** the HUD's own target digit (row 0, col 4) was still baked to a
   literal `9` at build time and never reflected this FR's real runtime threshold — any world at
   a scale other than 9 showed a mismatched target. Fixed: `update_status_disp` now writes the
-  live `WORLD_SCALE` value there in finite mode (`test_rom.py` T8.10c/d). Infinite Mode's own
-  col-4 cell is untouched by this fix (no fixed ceiling exists there — `BL-0144`, open).
+  live `WORLD_SCALE` value there in finite mode (`test_rom.py` T8.10c/d). **2026-07-17 (`IP-9180`,
+  `BL-0144`):** Infinite Mode's own col-4 cell (left untouched by `IP-9170`) now shows
+  `RUNNING_TREASURE_COUNT`'s low byte reduced mod 10 (user decision) — an accepted single-digit
+  approximation, not the count's exact value once it exceeds 255 (`test_rom.py` T8.10e/f/g).
 
 ### FR-9170 — Finite-mode biome-blob clustering via per-super-cell positional hash
 

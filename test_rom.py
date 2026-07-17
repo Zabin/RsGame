@@ -777,14 +777,30 @@ pb.memory[WORLD_SCALE] = 7; pb.memory[SCORE_DIRTY] = 1
 td7 = pb.memory[0x9804] - TL_DIGIT_0
 check("T8.10d HUD carrot-target digit reflects forced WORLD_SCALE=7 within 2 frames (IP-9170)",
       td7 == 7, f"digit={td7}")
-pb.memory[GAME_MODE] = 1; pb.memory[WORLD_SCALE] = 6; pb.memory[SCORE_DIRTY] = 1
+# T8.10e/f (IP-9180, BL-0144): in Infinite Mode, col 4 shows
+# RUNNING_TREASURE_COUNT's low byte reduced mod 10 -- WORLD_SCALE changes
+# must NOT affect it once GAME_MODE=1 (the IP-9170/IP-9180 branch split),
+# and the digit must correctly wrap past 9 (a value >=10 proves the mod-10
+# reduction runs, not just a raw low-nibble read).
+rtc_pre = pb.memory[0xC405]
+pb.memory[GAME_MODE] = 1; pb.memory[WORLD_SCALE] = 6
+pb.memory[0xC405] = 7; pb.memory[SCORE_DIRTY] = 1
 [pb.tick() for _ in range(2)]
-td_inf = pb.memory[0x9804]
-check("T8.10e Infinite Mode non-regression: col 4 unaffected by WORLD_SCALE changes (GAME_MODE gate holds, IP-9170)",
-      td_inf == TL_DIGIT_0 + 7, f"tile={td_inf:#x} (expected unchanged from T8.10d's own last finite-mode write)")
+td_inf7 = pb.memory[0x9804] - TL_DIGIT_0
+check("T8.10e Infinite Mode HUD digit reflects RUNNING_TREASURE_COUNT=7 within 2 frames (IP-9180)",
+      td_inf7 == 7, f"digit={td_inf7}")
+pb.memory[0xC405] = 13; pb.memory[SCORE_DIRTY] = 1
+[pb.tick() for _ in range(2)]
+td_inf13 = pb.memory[0x9804] - TL_DIGIT_0
+check("T8.10f Infinite Mode HUD digit wraps correctly for RUNNING_TREASURE_COUNT=13 -> 3 (IP-9180)",
+      td_inf13 == 3, f"digit={td_inf13}")
 pb.memory[GAME_MODE] = 0
+pb.memory[0xC405] = rtc_pre
 pb.memory[WORLD_SCALE] = world_scale_pre; pb.memory[SCORE_DIRTY] = 1
 [pb.tick() for _ in range(2)]
+td_fin_regress = pb.memory[0x9804] - TL_DIGIT_0
+check("T8.10g Finite mode non-regression: WORLD_SCALE digit unaffected by IP-9180's Infinite Mode branch",
+      td_fin_regress == world_scale_pre, f"digit={td_fin_regress} expected={world_scale_pre}")
 
 # Map hearts (BL-0001 closure): z0 heart full, z1 heart empty.
 # update_map_hearts writes 0x9800 + {6,9,12}*32 + {6,11,16}, LCD off during redraw.
