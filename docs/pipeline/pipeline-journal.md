@@ -14,37 +14,35 @@
 
 ## Position
 
-- **Updated:** 2026-07-17 (run #188)
+- **Updated:** 2026-07-17 (run #189)
 - **Increment:** Four independent arcs. **(1)/(2)** unchanged, closed at runs #167/#168. **(3)
-  Nine biome-family identities** (`BL-0128`/`FR-4320`) — `IP-1105` now `VERIFIED` (run #187,
-  fresh-session independent verification, one Low finding). `IP-1033` **RETURNED** (run #186,
-  `VR-1033`): direct tile-grid arithmetic found 3 of its 4 staged collectible lists each place an
-  entry on the exact same tile as an existing landmark (Village's `KeyItem` on a fence tile,
-  Desert's star on a cactus tile, Plains' first two entries both on flowers) — contradicting the
-  package's own "no overlap" DoD/checklist claim. Back to `IN PROGRESS`; `IP-1022`/`IP-1106` (both
-  depend on it) fall back to `BLOCKED`. **(4) Procgen music** (`BL-0127`) — `IP-1110` now
-  `VERIFIED` (run #188, this run: build-time comparison check re-run, transposition math
-  independently re-derived by hand outside the module's own functions, RTM corrected). `IP-1111`
-  remains `BLOCKED` on `IP-1022` (itself blocked on `IP-1033`'s rework) and still needs its own
-  future `07` touch for the `music_table` interface change. Bootstrap baseline remains fully
+  Nine biome-family identities** (`BL-0128`/`FR-4320`) — `IP-1105` `VERIFIED` (run #187). `IP-1033`
+  returned (run #186, `VR-1033`: 3 of 4 staged collectible lists each placed an entry on an
+  existing landmark tile) then **reworked same session** (run #189, this run, `BL-0131`):
+  all four flawed entries repositioned and independently re-confirmed clear by direct
+  rendered-tile-value inspection — `IP-1033` back to `COMPLETE`, own `09` re-pass owed.
+  `IP-1022`/`IP-1106` remain `BLOCKED` on that re-pass landing. **(4) Procgen music** (`BL-0127`)
+  — `IP-1110` `VERIFIED` (run #188). `IP-1111` remains `BLOCKED` on `IP-1022` and still needs its
+  own future `07` touch for the `music_table` interface change. Bootstrap baseline remains fully
   closed (01–11 ✅, GO recorded); Release 2 remains baselined GO.
 - **Pipeline state:** Bootstrap stages 01–11 ✅; Release 2 GO. **33 of 35 implementation packages
-  now `VERIFIED`** (31 prior + `IP-1105`/`IP-1110` this session) — `IP-1033` `IN PROGRESS`
-  (returned for rework), `IP-1022`/`IP-1106`/`IP-1111` `BLOCKED` on it, directly or transitively.
-  This is the actual, full stopping point for automatic (non-gated) advance: the only remaining
-  mechanical step across the whole tree is `08-content-authoring` re-running `IP-1033` against
-  `VR-1033`'s Finding 1 (`BL-0131`) — already G3-authorized (the "Build all six" grant covers this
-  package's own correction cycle, not new scope), so no gate stands in front of it.
-  Standing, non-blocking work elsewhere, unchanged: `BL-0118`'s `NFR-1400` optimization package;
-  the `IP-110x` documentation-accuracy sweep (`BL-0115`/`117`/`120`/`121`/`124`/`125`/`132`, all
-  Low); `BL-0123` (Low, `DEFERRED`); `BL-0112` (the `FR-10400` run-end trigger — a standing user
-  decision); `BL-0097`'s own remediation (Medium, optional craft polish, no `07` package authored
-  yet); `BL-0130` (catalog gap, routed `05`).
-- **Backlog:** 132 entries. `BL-0131` (High, SCHEDULED — rides the next `08-content-authoring`
-  run) is the one due entry; `BL-0132` (Low, DEFERRED) rides a future `IP-1111` touch; `BL-0127`/
-  `BL-0128` both still `IN PIPELINE`.
-- **Next step:** `08-content-authoring` on `IP-1033` — reposition the four overlap-flawed
-  coordinates `VR-1033` named, then re-run `09-package-verification`.
+  `VERIFIED`**; `IP-1033` `COMPLETE` (reworked, own `09` re-pass owed); `IP-1022`/`IP-1106`/
+  `IP-1111` `BLOCKED` on it, directly or transitively. **Genuine full stop for this session**:
+  `09-package-verification` on the reworked `IP-1033` is the only remaining mechanical step in the
+  entire tree, and this session just implemented that rework (run #189) — the skill's own
+  same-session-independence rule blocks doing so now, the identical situation run #182 already
+  hit once this session for a different package. Standing, non-blocking work elsewhere, unchanged:
+  `BL-0118`'s `NFR-1400` optimization package; the `IP-110x` documentation-accuracy sweep
+  (`BL-0115`/`117`/`120`/`121`/`124`/`125`/`132`, all Low); `BL-0123` (Low, `DEFERRED`); `BL-0112`
+  (the `FR-10400` run-end trigger — a standing user decision); `BL-0097`'s own remediation
+  (Medium, optional craft polish, no `07` package authored yet); `BL-0130` (catalog gap, routed
+  `05`).
+- **Backlog:** 132 entries. `BL-0131` (High, SCHEDULED — own `09` re-pass owed, blocked this
+  session) is the one due entry; `BL-0132` (Low, DEFERRED) rides a future `IP-1111` touch;
+  `BL-0127`/`BL-0128` both still `IN PIPELINE`.
+- **Next step:** `09-package-verification` on the reworked `IP-1033` — **requires a fresh session**
+  for real independence (or explicit user override of the degraded-independence caveat). This is
+  the actual, full stopping point: nothing else in the tree is mechanically buildable without it.
 - **Open gates:** **one, unchanged.** Whether/when to run `11-release-readiness` on Infinite Mode
   remains the user's own call (G4) — informational only, not currently blocking anything.
 
@@ -244,3 +242,4 @@
 | 186 | 2026-07-17 | advance (fresh session — the same-session block from run #185 no longer applies; none of `IP-1033`/`IP-1105`/`IP-1110` were implemented in this session) | `09-package-verification` | IP-1033 (collectible-spawn content, Village/Cave/Desert/Plains) | ✅ **RETURNED** ([VR-1033](../implementation/verification/VR-1033-nine-biome-family-collectible-spawn-content.md)). Every DoD/checklist item confirmed except one: direct tile-grid arithmetic (`_put`'s tile-coordinate convention, cross-validated against the five already-shipped `ZONE_COLLECTS` entries showing zero such collisions) found **3 of the 4 staged lists place a collectible on the exact same tile as an existing landmark** — `VILLAGE_COLLECTS`'s `KeyItem` on a fence tile `(17,12)`, `DESERT_COLLECTS`'s star on a cactus tile `(4,12)`, `PLAINS_COLLECTS`'s first two entries both on hand-placed flowers `(3,4)`/`(3,12)` — contradicting the package's own "no overlap" DoD/checklist claim (only `CAVE_COLLECTS` is clean). 309/309 suite pass, ROM builds correctly, diff scope confirmed clean otherwise. `IP-1033` → `IN PROGRESS`; `IP-1022`/`IP-1106` (both depend on it) fall back to `BLOCKED`. Harvested: **BL-0131** (High, SCHEDULED — rides the next `08-content-authoring` pass on `IP-1033`, no new G3 gate needed). No drift. | `09-package-verification` on `IP-1105` — next package in this batch, disjoint files, independence clean |
 | 187 | 2026-07-17 | advance (same session as run #186) | `09-package-verification` | IP-1105 (Infinite Mode `region_byte` bit-field repack, biome-domain widening phase 1) | ✅ **VERIFIED** ([VR-1105](../implementation/verification/VR-1105-infinite-mode-biome-domain-widening.md)). All 5 DoD items and all 6 checklist items confirmed by direct code read — all four consumer sites (`dsr_p_inf`/`czt_infinite`/`draw_region_arrows_inf`/`szc_infinite`) correctly read the new bit positions, `worldgen.py`/SM83 producers confirmed in lockstep, the three connectivity-bit test sites the package's own planning grep missed (`T22.g`, `T24`'s `_T24_DIR_BIT` table, `T27.a`) confirmed fixed in the implementing commit. 309/309 pass, ROM builds correctly, diff scope confirmed disjoint from `IP-1033`. One Low finding (two stale "bits 3-6" docstring comments, pre-repack positions, in `czt_infinite`/`draw_region_arrows_inf` — the executable code is correct). Harvested: **BL-0132** (Low, DEFERRED — folds into `IP-1111`'s own future `07` touch). No drift. | `09-package-verification` on `IP-1110` — last package in this batch |
 | 188 | 2026-07-17 | advance (same session as run #187) | `09-package-verification` | IP-1110 (Procedural Music Generation, build-time sub-theme generation) | ✅ **VERIFIED** ([VR-1110](../implementation/verification/VR-1110-procedural-music-generation.md)). All 5 DoD items and all 6 checklist items confirmed. The package's own build-time comparison check (`verify_music_generation.py`) re-run and independently cross-checked by hand outside the module's own functions (Water/`C5`: `523.25 × 2^(-5/12) = 391.99 Hz` → `freq(391.99) = 1714`, matching `_transpose`'s own output exactly) — confirms the transform math itself, not merely the module's internal self-consistency. Grass confirmed byte-identical to `music_data()` by direct code read (same function call, not a copy). ROM-byte-usage (31362/32768) matches `NFR-4400`'s own recorded figure exactly. Diff scope confirmed `asm_game.py`-free. The package's own planning deviation (flat `music_table` instead of named patch keys) confirmed a legitimate, already-documented scope-driven correction, not a defect. RTM's `FR-7100`/`NFR-4400` rows corrected `IP-1110 (COMPLETE)`→`IP-1110 (VERIFIED)`. No findings. This closes the three-package verification batch in full: `IP-1033` `RETURNED`, `IP-1105`/`IP-1110` `VERIFIED`. No drift. | `08-content-authoring` on `IP-1033` against `VR-1033`'s Finding 1 (`BL-0131`) — no new G3 gate, the original "Build all six" authorization already covers this package's own correction cycle |
+| 189 | 2026-07-17 | advance (same session as run #188) | `08-content-authoring` | IP-1033 (rework per `VR-1033` Finding 1, `BL-0131`) | ✅ Repositioned the four overlap-flawed entries: `VILLAGE_COLLECTS`'s `KeyItem` `(136,96)`→`(48,64)`; `DESERT_COLLECTS`'s star `(32,96)`→`(64,96)`; `PLAINS_COLLECTS`'s first two entries `(24,32)`/`(24,96)`→`(40,40)`/`(48,112)`. Verified by direct rendered-tile-value inspection (rendered each screen, read the actual tile ID at every collectible's exact grid position, cross-checked against every landmark tile the screen generator itself places) rather than re-trusting the same visual-inspection convention that missed the original defect — all six entries in all four lists now confirmed landing on plain floor tiles, zero exceptions. 309/309 suite unchanged, ROM byte-identical (31362/32768) — the data remains inert. `IP-1033` → `COMPLETE` again. Harvested: none new (the fix directly closes `BL-0131`'s own disposition — re-dispositioned below, not yet `DONE` since its own re-verification is still owed). No drift. | `09-package-verification` on the reworked `IP-1033` — **blocked by the skill's own same-session-independence rule**, since this session just implemented the rework |
