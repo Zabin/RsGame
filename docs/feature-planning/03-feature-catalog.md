@@ -876,6 +876,14 @@
 
 ## FEAT-7100 — Procedural Music Generation (new — not yet implemented)
 
+> **Forward reference (metadata only):** specified by
+> [FS-111](../features/FS-111-procedural-music-generation.md) (2026-07-16). 5 Open Questions, all
+> routed to `07-implementation-planning` (selection-mechanism shape, the main theme's own identity
+> assignment, the ROM address-table shape) or carried forward informationally (the two-source
+> `FR-4320`/`FEAT-10000` sequencing dependency already tracked here; a citation-precision note on
+> `ADR-0019` point 6, not a change to its binding decision). None block authoring a package once
+> `07` picks this Feature up.
+
 - **Feature ID:** FEAT-7100
 - **Title:** Procedural Music Generation
 - **Purpose:** Give each biome-family identity its own musical character without hand-authoring
