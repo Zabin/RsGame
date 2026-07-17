@@ -479,7 +479,15 @@ ordinary implementation risk for `07`/`08`.
    defensively at runtime). Resolves at: `08-content-authoring` (author the four missing
    `ZONE_COLLECTS` lists, mirroring the five existing ones' own format), scheduled via a future
    `07-implementation-planning` package — see `FS-103`'s own Open Questions for the paired
-   screen-dispatch half of the same underlying content-completeness question.
+   screen-dispatch half of the same underlying content-completeness question. **Partially
+   resolved (`IP-1033`, 2026-07-16):** all four spawn lists (`VILLAGE_COLLECTS`/`CAVE_COLLECTS`/
+   `DESERT_COLLECTS`/`PLAINS_COLLECTS`, `tilemaps.py`) now exist, each format- and craft-matched
+   to the five existing lists, placement verified visually against each screen's real landmark
+   layout via a temporary-force render. **Still open:** the content is staged, not wired — it sits
+   outside `ZONE_COLLECTS`'s own array until `IP-1022` (the deferred dispatch package) splices it
+   into the real, index-5-8 positions once `CR-08`'s ordering is resolved (already the case as of
+   this same date). A region assigned Village/Cave/Desert/Plains still has no collectible until
+   that splice ships.
 
 ## 20. Related ADRs
 
