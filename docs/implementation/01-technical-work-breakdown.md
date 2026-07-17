@@ -1319,6 +1319,20 @@ choice with no downstream algorithm-validity or save-format consequence (unlike 
 grammar-legality stakes) — cheaply reversible if a future pass disagrees, stated explicitly here
 rather than silently invented, per this package's own §2.
 
+**Revision (2026-07-17, `07-implementation-planning` — the touch `IP-1110`'s Outstanding Issue
+requested):** `IP-1111`'s §5/§6 updated to consume the interface `IP-1110` actually shipped —
+the flat, biome-id-indexed `music_table` (18 ROM bytes, `zc_table`'s own precedent), which the
+implementation chose over the originally-planned per-identity `*_mus_lo`/`*_mus_hi` named
+patch-key pairs (those keys were never created; `IP-1110`'s in-scope deviation, recorded on its
+Build Plan row and confirmed by `VR-1110`). The table's indexability collapses the original
+eight per-branch override snippets into **one shared `music_select` subroutine + one `CALL` at
+`dsr_p_dispatch`'s entry** (where both mode paths already converge with A = biome-id) — a
+smaller `asm_game.py` footprint than originally planned, zero instructions inside any branch
+body. One new patch key (`music_tbl`) is added, resolved exactly as `zc_table` already is.
+`IP-1022` `VERIFIED` (2026-07-17) closed the original "cannot cite post-widening line numbers"
+caveat — all §6 citations are now against the live tree. `IP-1111` → `READY` (both code
+dependencies `VERIFIED`; authorization "Build all six," 2026-07-16, already on record).
+
 ### Sequencing summary
 
 **New, independent chain: `IP-1110` (root, `NOT STARTED`) → `IP-1111` (`BLOCKED` on `IP-1110` and
