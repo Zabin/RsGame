@@ -7,8 +7,9 @@
 > (`IP-1101`); delta 2026-07-14 (cont'd) — NFR-2200 extended for `FR-9170`/`ADR-0018`'s
 > biome-blob-clustering pass, no new NFR needed; delta 2026-07-16 — NFR-5400 flipped to Met
 > (`IP-1104`, 128-entry FIFO-bounded ledger, `BL-0108` sized); delta 2026-07-16 (cont'd) —
-> NFR-6510 delta note for `FR-4320`'s nine-identity biome axis (`BL-0128`), no NFR text change —
-> see Changelog).** Owned by
+> NFR-6510 delta note for `FR-4320`'s nine-identity biome axis (`BL-0128`), no NFR text change;
+> delta 2026-07-16 (cont'd) — new NFR-4400, procedural music generation ROM budget, `ADR-0019`/
+> `BL-0127` — see Changelog).** Owned by
 > `04-requirements-engineering`. Derives from
 > [GDS-06](../architecture/06-non-functional-requirements.md)'s five NFRs (N1–N5) — formalized
 > into numbered `NFR-xxxx` requirements per
@@ -19,6 +20,12 @@
 
 ## Changelog
 
+- **2026-07-16 — New NFR-4400, procedural music generation ROM budget** (`BL-0127`, `ADR-0019`).
+  Sized against a direct measurement (`music_data()` = 181 bytes today), not assumed — nine
+  tracks at comparable size ≈ 1629 bytes fits the ~2872-byte headroom the last full build
+  measured, with the explicit caveat that this must be re-measured at implementation time since
+  other in-flight, unauthorized work (`FR-4320`'s own biome-widening packages) will also consume
+  some of the same headroom first.
 - **2026-07-16 — NFR-6510 delta note for `FR-4320`** (`BL-0128`, nine biome-family identities;
   status/text otherwise unchanged). `NFR-6510`'s existing "Status: Met" line records what was
   actually reviewed as of 2026-07-11 (`IP-1031`'s five-family set) and is left as an accurate
@@ -443,6 +450,35 @@
 - **Notes:** Implemented, `IP-1102`, 2026-07-14. `SVBK` banked WRAM (R111) remains entirely
   untouched and available as a fallback (7 more 4 KiB banks) if a future window-radius increase
   ever needs it — not needed at the shipped 3×3 radius.
+
+### NFR-4400 — Procedural music generation ROM budget (target — 2026-07-16, `BL-0127`)
+
+- **ID:** NFR-4400
+- **Title:** The nine generated biome-family sub-themes shall fit within the ROM's confirmed
+  headroom without requiring a bank-switching change.
+- **Description:** `FR-7100`'s nine generated music sequences shall fit within the ROM's currently
+  confirmed free space (`NFR-4000`'s own budget), sized against a real measurement of the existing
+  main theme's own compiled size, not assumed free.
+- **Rationale:** `ADR-0019`'s own Consequences section (direct measurement: `music_data()` = 181
+  bytes today; nine tracks at comparable size ≈ 1629 bytes of new data).
+- **Priority:** Must (target — not yet implemented)
+- **Status: target, sizing estimated but not yet confirmed against the built ROM.** At the last
+  full build, 29896 of 32768 bytes were used (~2872 bytes free) — `ADR-0019`'s own ≈1629-byte
+  estimate fits with roughly 1200 bytes to spare, **but this figure must be re-measured against
+  the tree's actual state at implementation time**, since other in-flight, unauthorized work (the
+  nine-biome-family widening itself, `IP-1105`/`IP-1033`/`IP-1022`/`IP-1106`) will also consume
+  some of this same headroom before this capability ships.
+- **Acceptance Criteria:** After `FR-7100`'s nine sub-themes are compiled into the ROM, the built
+  ROM remains exactly 32768 bytes (`NFR-4000`, unaffected — this is a data-budget question within
+  the existing single-bank limit, not a request to exceed it) with the new data fitting inside
+  whatever headroom remains at implementation time.
+- **Verification Method:** Inspection (ROM-byte-usage measurement at implementation, mirroring
+  `NFR-4200`/`NFR-4300`'s own precedent).
+- **Source Documents:** `ADR-0019` Consequences.
+- **Related ADRs:** ADR-0019.
+- **Notes:** Not yet implemented. If a future implementation's actual measured cost exceeds this
+  estimate (e.g. the shared-ostinato transform option is later adopted, per `ADR-0019` point 5's
+  own explicit deferral), this NFR's own Status must be re-measured, not assumed to still hold.
 
 ## Data Integrity
 

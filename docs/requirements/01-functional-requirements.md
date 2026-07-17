@@ -20,7 +20,9 @@
 > axis, widening it from five to nine identities so every already-shipped zone screen becomes a
 > reachable generation target; `FR-9170`/`FR-4310` updated in place for the new domain; delta
 > 2026-07-16 (cont'd) — **`CR-08` resolved and baselined into `FR-4310`**, a concrete nine-value
-> adjacency-grammar ordering grounded in `R212` v1.1 — see Changelog).**
+> adjacency-grammar ordering grounded in `R212` v1.1; delta 2026-07-16 (cont'd) — **new FR-7000
+> group (FR-7100/FR-7110), procedural music generation, `ADR-0019`/`BL-0127`** — this project's
+> first use of the FR-7xxx audio range — see Changelog).**
 > Owned by `04-requirements-engineering`.
 > Derives from [GDS-05](../architecture/05-functional-requirements.md)'s six capability groupings
 > (C1–C6) — this document formalizes each into numbered, testable `FR-xxxx` requirements per
@@ -33,6 +35,17 @@
 
 ## Changelog
 
+- **2026-07-16 — New FR-7000 group (FR-7100/FR-7110), procedural music generation** (`BL-0127`,
+  `ADR-0019`). This project's first use of the FR-7xxx audio range (confirmed unused before this
+  delta). `FR-7100`: build-time generation of nine biome-family sub-themes from the existing main
+  theme via transposition/tempo-scaling, no independent composition, no new sibling module
+  (`ADR-0019`'s own reasoning: no runtime/oracle-lockstep need, unlike `worldgen.py`). `FR-7110`:
+  identity-keyed playback selection, mirroring the existing HUD zone-label mechanism's own trigger
+  shape — decides the selection's *shape* only, leaves the exact `GAMESTATE`/WRAM mechanism to
+  `06`/`07` per this stage's own discipline. Both FRs name a real, non-blocking sequencing
+  dependency: their eventual implementation needs `FR-4320`'s own packages
+  (`IP-1105`/`IP-1033`/`IP-1022`/`IP-1106`, all unauthorized) shipped first, since `FR-7110` reads
+  the same widened biome-id domain those packages establish.
 - **2026-07-16 — `CR-08` resolved and baselined into `FR-4310`** (`BL-0128`/`BL-0129`,
   `02-research-game-design`'s `R212` v1.1 delta). `FR-4310`'s own Description/Postconditions/
   Acceptance Criteria now state a concrete nine-value adjacency-grammar ordering — `Water(0) –
@@ -1316,6 +1329,100 @@ FR-6000 for the presentation half)*
 - **Related ADRs:** ADR-0005, ADR-0007.
 - **Notes:** A formal-requirement-only addition — no behavior change, no new test. Closes
   `BL-0020`.
+
+## FR-7000 — Audio (target — 2026-07-16, new capability, not yet shipped, `BL-0127`)
+
+*(formalizes `ADR-0019`; the first requirement group to use this capability's own FR-7xxx range —
+confirmed unused before this delta by direct grep of the existing document.)*
+
+### FR-7100 — Procedural biome-family sub-theme generation from the main theme
+
+- **ID:** FR-7100
+- **Title:** The system shall generate, at ROM-build time, one music sub-theme per biome-family
+  identity by transposing and/or tempo-scaling the game's existing main theme.
+- **Description:** For each of the nine biome-family identities `FR-4320` establishes, the build
+  pipeline shall derive a sub-theme from the existing shipped main theme (`music.py`'s `SONG`,
+  unchanged) by applying transposition (a shifted starting pitch) and/or uniform tempo/duration
+  scaling — not by independently composing new melodic material. The main theme's own identity
+  is one of the nine — either directly reused as its own biome-family's sub-theme, or the anchor
+  every other sub-theme derives from — this FR does not require nine independently-transformed
+  variations distinct from the main theme itself; it requires nine music selections total,
+  covering all nine identities, related by the theme-and-variation technique `ADR-0019` decides.
+- **Rationale:** `ADR-0019` points 1–4; `R217` (leitmotif/theme-and-variation precedent, the
+  concrete transform menu); `FR-4320` (the nine-identity axis this FR's own sub-theme count
+  targets).
+- **Priority:** Must (target — not yet implemented)
+- **Inputs:** The existing main theme's note sequence (`music.py`'s `SONG`); `FR-4320`'s
+  nine-identity set.
+- **Outputs:** Nine music data sequences (one per biome-family identity), compiled into ROM
+  exactly as the existing single track already is.
+- **Preconditions:** None (a build-time, not runtime, generation step — `ADR-0019` point 2).
+- **Postconditions:** Every one of the nine biome-family identities has an associated,
+  playable music sequence.
+- **Acceptance Criteria:** For each of the nine biome-family identities, the built ROM contains a
+  distinct, playable music data sequence; every non-main-theme sequence's note sequence is
+  derivable from the main theme's own via transposition and/or duration scaling alone (no
+  independently-composed melodic material) — checkable by direct comparison of the generated
+  sequence's own frequency/duration values against the main theme's, confirming a pure transform
+  relationship.
+- **Dependencies:** FR-4320 (the nine-identity set this FR's own generation target is sized
+  against).
+- **Verification Method:** Test (direct comparison of each generated sequence's data against the
+  main theme's own, confirming the transform relationship; a build-time unit-test-style check,
+  mirroring `worldgen.py`'s own oracle-comparison precedent in spirit, though this FR's own
+  generation has no separate runtime routine to compare against — see `ADR-0019` point 3).
+- **Source Documents:** `ADR-0019` points 1–4; `R217`.
+- **Related ADRs:** ADR-0019.
+- **Notes:** Not yet implemented. **Explicitly does not require a new build-side sibling module**
+  (`ADR-0019` point 3's own reasoning: no runtime/oracle lockstep discipline applies here, unlike
+  `worldgen.py`'s) — the generation function belongs inside `music.py` itself, called from
+  `build_rom.py`. **Explicitly excludes the shared-ostinato/second-APU-channel transform option**
+  (`ADR-0019` point 5) — a future revision could extend this FR to cover it, not assumed here.
+
+### FR-7110 — Biome-family-identity-keyed sub-theme playback selection
+
+- **ID:** FR-7110
+- **Title:** During `PLAYING`, the system shall play the music sub-theme matching the current
+  region's biome-family identity; the main theme shall play outside gameplay.
+- **Description:** Mirroring the existing HUD zone-name-label mechanism's own trigger shape (which
+  already reads and displays the current region's identity every frame), the system shall select
+  which of `FR-7100`'s nine generated sub-themes plays based on the player's current region's
+  biome-family identity while in `PLAYING` (either mode — finite or Infinite, both of which share
+  the same biome-family identity axis per `FR-4320`); outside `PLAYING` (title, menus, and other
+  non-gameplay states), the main theme plays.
+- **Rationale:** `ADR-0019` point 6.
+- **Priority:** Must (target — not yet implemented)
+- **Inputs:** The current region's biome-family identity (finite mode: `REGION_GRAPH`'s biome-id
+  byte via `CUR_ZONE`; Infinite Mode: `INF_WINDOW`'s center-cell biome-id — both already read by
+  the existing screen-dispatch mechanism, `FR-4310`/`FR-4320`, this FR's own input is the
+  identical value, not a new read).
+- **Outputs:** The currently-playing music track switches to match the selected sub-theme (or the
+  main theme, outside `PLAYING`).
+- **Preconditions:** `FR-7100`'s nine sub-themes exist in the built ROM.
+- **Postconditions:** The music track playing at any given moment always matches the player's
+  current context (region identity during `PLAYING`, main theme otherwise) — never a stale or
+  mismatched track.
+- **Acceptance Criteria:** For each of the nine biome-family identities, entering a region of that
+  identity during `PLAYING` (either mode) results in that identity's own sub-theme playing, within
+  one frame of the region becoming current; entering any non-`PLAYING` state results in the main
+  theme playing.
+- **Dependencies:** FR-7100 (the sub-themes this FR selects between); FR-4310/FR-4320 (the
+  biome-family identity value this FR's own selection reads, unchanged, not redefined here).
+- **Verification Method:** Test (drive each of the nine identities via direct force or live
+  generation, mirroring this session's own established direct-force verification pattern for
+  biome-family dispatch, and confirm the correct track is selected).
+- **Source Documents:** `ADR-0019` point 6.
+- **Related ADRs:** ADR-0019.
+- **Notes:** Not yet implemented. **This FR decides the selection's *shape* (identity-keyed) only
+  — the exact `GAMESTATE`/WRAM mechanism (a new `CURRENT_THEME` pointer, a dispatch cascade
+  mirroring `dsr_p_dispatch`'s own shape, or another approach) is `06-feature-specification`'s/
+  `07-implementation-planning`'s own scope**, per this stage's own SHALL-NOT-invent-implementation
+  rule (mirroring `FR-1200`'s own precedent for leaving a comparable dispatch mechanism
+  undecided at this level). **Real sequencing dependency, not a blocker to this FR's own
+  baselining**: this FR's eventual implementation needs `FR-4320`'s own packages
+  (`IP-1105`/`IP-1033`/`IP-1022`/`IP-1106`, all unauthorized as of this delta) to have shipped
+  first, since it reads the same widened biome-id domain those packages establish — named here,
+  not resolved, per `ADR-0019`'s own identical note.
 
 ## FR-9000 — World generation (target — 2026-07-09, new capability, not yet shipped)
 
