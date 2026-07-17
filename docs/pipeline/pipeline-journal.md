@@ -14,55 +14,52 @@
 
 ## Position
 
-- **Updated:** 2026-07-17 (run #194)
+- **Updated:** 2026-07-17 (run #196)
 - **Increment:** Four independent arcs. **(1)/(2)** unchanged, closed at runs #167/#168. **(3)
   Nine biome-family identities** (`BL-0128`/`FR-4320`) — `IP-1105`/`IP-1033` both `VERIFIED` (runs
-  #187, #191). `IP-1022` — the shared code package both `IP-1106` and `IP-1111` wait on — hit a
-  genuine ROM-budget overflow when attempted (run #192): ~4,764 bytes needed, only 1,406 available,
-  ~3,358-byte shortfall (re-derived precisely, run #193). One safe mechanical recovery found and
-  packaged (`IP-9150`, 1,152 bytes, not authorized) but insufficient alone (~2,200-byte residual).
-  **Drift found and corrected this run (#194):** `ADR-0001` (cited in run #193's own TWBS text as
-  "would need a new ADR to reverse") was already **superseded 2026-07-09 by `ADR-0011`**, which
-  already commits this project to MBC1 bank switching and names *this exact trigger* as its own
-  cutover condition — the architecture decision is already made, only its implementation is
-  missing (`gbc_lib.py` has zero bank support today; `CR-03` is still `CANDIDATE — NOT BASELINED`).
-  Reframes the real choice: implement the already-decided bank-switching infrastructure now (a
-  real multi-package effort), descope `IP-1022`, or pause. **`BL-0134` remains `NEEDS-USER`** —
-  asked twice via `AskUserQuestion`, not yet answered. **(4) Procgen music** (`BL-0127`) —
-  `IP-1110` `VERIFIED` (run #188). `IP-1111` remains `BLOCKED` on `IP-1022`, transitively on the
-  same `BL-0134` gate. Bootstrap baseline remains fully closed (01–11 ✅, GO recorded); Release 2
-  remains baselined GO.
+  #187, #191). `IP-1022` hit a genuine ROM-budget overflow when attempted (run #192): ~4,764 bytes
+  needed, only 1,406 available, ~3,358-byte shortfall (re-derived precisely, run #193). Drift
+  found and corrected (run #194): `ADR-0001` was already superseded by `ADR-0011` (accepted
+  2026-07-09, committing to MBC1 bank switching, unimplemented). **User decided (between runs
+  #194/#195): pursue ROM efficiency via compression first, implement without further gating;
+  pursue bank switching too only if genuinely still needed; use the pipeline process for both.**
+  **`03-architecture-design-synthesis` ran (#195)**: authored `ADR-0020` — the four new screens
+  render via a runtime procedural-fill routine (matching each screen's own Python modulo formula)
+  + a compact landmark-overlay list, grounded in a direct code read that `do_screen_redraw`'s
+  entire dispatch runs with the LCD off (cycle-unconstrained, unlike `NFR-1400`'s own concern, a
+  different routine) — estimated ~4,272-byte recovery, closing the gap **without** triggering
+  `ADR-0011`'s bank-switching cutover. **`07-implementation-planning` ran (#196, this run)**:
+  re-planned `IP-1022` in full against `ADR-0020` (new Interfaces/Files-to-Modify/Tasks/Tests,
+  oracle-parity verification obligation mirroring `T12.b`) — `IP-1022` → `READY`, within its
+  existing "Build all six" authorization. `IP-9150` remains packaged as independent hygiene, no
+  longer a prerequisite. `IP-1106` still `BLOCKED` on `IP-1022`, now simply "not yet implemented,"
+  not on any gate. **(4) Procgen music** (`BL-0127`) — `IP-1110` `VERIFIED` (run #188). `IP-1111`
+  remains `BLOCKED` on `IP-1022`, same reason. Bootstrap baseline remains fully closed (01–11 ✅,
+  GO recorded); Release 2 remains baselined GO.
 - **Pipeline state:** Bootstrap stages 01–11 ✅; Release 2 GO. **34 of 35 implementation packages
-  `VERIFIED`**; `IP-1022`/`IP-1106`/`IP-1111` all `BLOCKED`, transitively, on `BL-0134`'s
-  `NEEDS-USER` gate; `IP-9150` (`NOT STARTED`, not authorized) is a parallel, independent hygiene
-  win available regardless of that gate's outcome. Standing, non-blocking work elsewhere,
-  unchanged: `BL-0118`'s `NFR-1400` optimization package; the `IP-110x` documentation-accuracy
-  sweep (`BL-0115`/`117`/`120`/`121`/`124`/`125`/`132`, all Low); `BL-0123` (Low, `DEFERRED`);
-  `BL-0112` (the `FR-10400` run-end trigger — a standing user decision); `BL-0097`'s own
-  remediation (Medium, optional craft polish, no `07` package authored yet); `BL-0130` (catalog
-  gap, routed `05`); `BL-0133` (intake, "infinite-map mob mode + treasure-fed ranged weapon", filed
-  run #190-adjacent on this branch's own PR #26) — triaged `SCHEDULED`, queued behind this delta's
-  chain, entry stage `03`.
-- **Backlog:** 134 entries. `BL-0134` (High) — `IP-1022`'s ROM-budget overflow — corrected text
-  this run (`ADR-0011` drift), disposition unchanged, still `NEEDS-USER`. `BL-0131` closed `DONE`
-  (run #191). `BL-0133` `SCHEDULED`, not ripe. `BL-0132` (Low, `DEFERRED`) still rides a future
-  `IP-1111` touch; `BL-0127`/`BL-0128` both still `IN PIPELINE` (both now narrow to `BL-0134`'s
-  resolution as their sole remaining blocker, one level deeper than `IP-1022` itself).
-- **Next step:** Blocked on the user's decision (see Open gates) — this is the pipeline's genuine
-  full stop; nothing else advances `IP-1022`'s own chain without it. Once resolved: `IP-9150` (the
-  hygiene win) can proceed via `08-code-implementation` immediately if authorized, independent of
-  the larger question; if the user chooses to build bank-switching, the correct entry point is
-  `04-requirements-engineering` (baseline `CR-03`'s remaining build-pipeline-extensibility scope
-  against `ADR-0011`) before `07` can plan the `gbc_lib.py`/`build_rom.py` extensions — not a fresh
-  `03` pass, since the architecture decision already exists.
-- **Open gates:** **two.** (1, corrected this run) **`BL-0134`** — the user must choose among:
-  (a) descope `IP-1022` this pass (ship fewer than all four newly-folded identities now); (b)
-  commit to implementing `ADR-0011`'s already-decided bank-switching infrastructure now (`04`→`07`→
-  `08`, a real multi-package effort, then re-cut `IP-1022` to place the four screens in a `ROMX`
-  bank); or (c) pursue runtime tile-array compression instead (a genuinely new engine capability,
-  would need its own `03` ADR pass, carries `NFR-1400` cycle-budget risk — the least-aligned option
-  now that (b) is understood to already be the committed direction). Asked twice, not yet answered.
-  (2, unchanged) Whether/when to run `11-release-readiness` on Infinite Mode remains the
+  `VERIFIED`**; `IP-1022` `READY` (re-planned, not yet implemented); `IP-1106`/`IP-1111` `BLOCKED`
+  on it, no longer via any open gate — purely sequencing. `IP-9150` (`NOT STARTED`, not authorized)
+  remains a parallel, independent hygiene win. Standing, non-blocking work elsewhere, unchanged:
+  `BL-0118`'s `NFR-1400` optimization package; the `IP-110x` documentation-accuracy sweep
+  (`BL-0115`/`117`/`120`/`121`/`124`/`125`/`132`, all Low); `BL-0123` (Low, `DEFERRED`); `BL-0112`
+  (the `FR-10400` run-end trigger — a standing user decision); `BL-0097`'s own remediation (Medium,
+  optional craft polish, no `07` package authored yet); `BL-0130` (catalog gap, routed `05`);
+  `BL-0133` (intake, "infinite-map mob mode + treasure-fed ranged weapon", filed run #190-adjacent
+  on this branch's own PR #26) — triaged `SCHEDULED`, queued behind this delta's chain, entry
+  stage `03`.
+- **Backlog:** 134 entries. `BL-0134` (High) — `IP-1022`'s ROM-budget overflow — re-dispositioned
+  `NEEDS-USER`→`SCHEDULED` this run: `ADR-0020` + the `IP-1022` re-plan resolve it at the planning
+  level, next step `08-code-implementation`. `BL-0131` closed `DONE` (run #191). `BL-0133`
+  `SCHEDULED`, not ripe. `BL-0132` (Low, `DEFERRED`) still rides a future `IP-1111` touch;
+  `BL-0127`/`BL-0128` both still `IN PIPELINE` (both now narrow to `IP-1022`'s own implementation
+  as their sole remaining step).
+- **Next step:** `08-code-implementation` on `IP-1022` — `READY`, `AUTHORIZED` (G3, "Build all
+  six," re-plan within the same scope), no gate applies. Critical-path package: unblocks `IP-1106`
+  and, once that lands, `IP-1111` (pending its own still-owed `07` touch for the `music_table`
+  interface). `IP-9150` remains available in parallel if the user wants it authorized too, but is
+  no longer necessary to unblock anything.
+- **Open gates:** **one, unchanged.** Whether/when to run `11-release-readiness` on Infinite Mode
+  remains the
   user's own call (G4) — informational only, not currently blocking anything.
 
 ## Run log
@@ -267,3 +264,5 @@
 | 192 | 2026-07-17 | advance (same session as run #191, "iterate pipeline until fully blocked") | `08-code-implementation` | `IP-1022` (finite-mode nine-identity generation & screen dispatch) | ⛔ **BLOCKED — genuine ROM-budget overflow, not a code defect.** Package was `READY`/`AUTHORIZED` (G3, "Build all six"); implemented every code change exactly per spec (worldgen.py/asm_game.py clamp+dispatch widening 0-4→0-8, `ALL_SCREENS`/`ZONE_COLLECTS` extension, `build_rom.py` patch wiring) — confirmed structurally correct. But wiring `village`/`cave`/`desert`/`plains` into `ALL_SCREENS` makes `build_rom.py` emit their full tile+attr data for the first time (`IP-1033`'s own content stayed inert): 4,608 bytes needed, only 1,406 bytes of headroom exist — 3,202-byte shortfall, build crashes. The package's own §13 Risks never named ROM budget. Reverted all source edits; independently confirmed the tree back to last-known-good (rebuild 31362/32768, full suite 309/309). Filed `BL-0134` (High), triaged `SCHEDULED` — rides the very next `07-implementation-planning` pass (check for mechanical headroom/compression first; escalates to `NEEDS-USER` only if planning can't close the gap without an architecture-level bank-switching decision, per `ADR-0001`'s own named C7 trigger). Master Build Plan + packages `INDEX.md` updated (`IP-1022`→`BLOCKED`, `IP-1106`/`IP-1111` notes refreshed). No drift beyond this run's own finding. | `07-implementation-planning` on `BL-0134` — resolve the ROM-budget shortfall (or escalate to a `NEEDS-USER` gate if unresolvable within existing headroom) |
 | 193 | 2026-07-17 | advance (same session, "iterate pipeline until fully blocked") | `07-implementation-planning` | `BL-0134` (`IP-1022`'s ROM-budget overflow) | ✅ Re-derived the full byte math directly from source (~4,764 bytes needed vs. 1,406 available, ~3,358-byte shortfall — more complete than the crash-truncated original estimate). Found one safe, mechanical, architecture-neutral recovery: `tiles.py`'s `build_tile_data()` allocates a fixed 256-tile array, only 182 slots ever used (highest `TL_TORCH=0xB5`) — trimming to 184 recovers 1,152 bytes with zero behavior change. Packaged as **`IP-9150`** (not authorized). Confirmed — not assumed — that this alone leaves `IP-1022` ~2,200 bytes short; ruled out tile-variety reduction and palette trimming as insufficient/negligible. The two remaining paths (runtime tile-array compression, risking `NFR-1400`'s already-`NOT MET` cycle budget; or reversing `ADR-0001`'s single-bank decision per its own named `C7` trigger) are genuine architecture decisions this skill cannot make, as is simply descoping below "Build all six." TWBS entry added, Master Build Plan + packages `INDEX.md` updated, `BL-0134` re-dispositioned `SCHEDULED`→`NEEDS-USER`. | **GATE (`BL-0134`):** user decision needed among named options before `IP-1022` can be re-attempted — this is the genuine full stop for this iteration |
 | 194 | 2026-07-17 | advance (same session, "Iterate pipeline skill") | — (gate check; drift correction, no stage skill invoked) | `BL-0134`'s open gate | ⛔ **Reconciled first: found and corrected drift.** Direct exploration (at the user's request, "Explore bank switching") discovered `ADR-0001` — cited in run #193's own TWBS text as a reason `IP-1022`'s ROM shortfall "would need a new ADR" to resolve via bank-switching — was already superseded 2026-07-09 by `ADR-0011`, which already commits this project to MBC1 default-wiring bank switching and explicitly names this exact trigger condition. Corrected `BL-0134`'s backlog text to reflect this (the manager's own file); the TWBS's own stale ADR-0001 citation is left for a future `07-implementation-planning` touch to correct in place, per the "manager doesn't edit stage-owned ledgers" rule. Triaged: no other `NEW` entries since run #193. Re-checked the `BL-0134` gate with the corrected picture — still requires the user's decision (now better-informed: bank-switching is the already-committed direction, not a hypothetical one, but genuinely unimplemented and a real multi-package lift). Asked via `AskUserQuestion` a second time with the corrected framing; **still not answered** (rejected, no selection made). No skill invoked — this run is itself a reconciliation + repeated gate-check. | **GATE (`BL-0134`), unchanged, now better-informed:** user must choose (a) descope, (b) build the already-decided bank-switching infrastructure, or (c) pursue tile compression instead — genuine full stop until answered |
+| 195 | 2026-07-17 | advance (same session, user directed: "pursue efficient ROM use, implement compression without asking; bank switching too if genuinely needed; use the pipeline process on both") | `03-architecture-design-synthesis` | ROM-efficiency decision for `IP-1022`'s content | ✅ Authored **`ADR-0020`**: the four newly-folded biome screens (Village/Cave/Desert/Plains) render via a runtime procedural-fill routine — evaluating each screen's own small Python modulo formula on-device (e.g. cave's `(y*13+x*5+7)%18`) — plus a compact landmark-overlay list, instead of baking each screen's full 1,152-byte tile+attr array. Grounded in a direct code read: `do_screen_redraw`'s entire screen-composition dispatch runs with the LCD fully disabled, a structurally different, cycle-unconstrained context from `NFR-1400`'s own tight per-frame concern (Infinite Mode's separate `inf_ensure_window` routine) — so this carries none of that risk. Estimated recovery ~4,272 bytes (independently re-derived from each screen's own landmark counts: 24+12+22+25=83 entries × 4 bytes + 4 count-prefix bytes = 336 bytes of overlay data, vs. 4,608 bytes baked), comfortably closing `BL-0134`'s ~3,358-byte shortfall without triggering `ADR-0011`'s bank-switching cutover — its own trigger condition ("content genuinely cannot fit remaining bank-0 headroom" *after* available ROM-efficiency options are exhausted) is judged not met. Scope: these four screens only; the five original, already-`VERIFIED` screens keep their existing baked-array format, avoiding unnecessary regression risk. `ADR-0011` itself unaffected — remains the committed long-term direction, not implemented by this pass. Index + ROADMAP updated. No new findings beyond the decision itself. | `07-implementation-planning` to re-cut `IP-1022` against `ADR-0020` |
+| 196 | 2026-07-17 | advance (same session) | `07-implementation-planning` | `IP-1022` re-plan against `ADR-0020` | ✅ Rewrote `IP-1022`'s package doc in full (Interfaces/Files-to-Modify/Implementation Tasks/Tests-to-Add/Definition-of-Done/Verification-Checklist/Risks) — `ALL_SCREENS`/`build_rom.py` no longer gain baked entries for the four new screens; instead, four `*_LANDMARKS` lists + fill-formula constants land in `tilemaps.py`, a shared no-multiplication procedural-fill subroutine (incremental accumulator + repeated-subtraction modulo, mirroring `generate_world`'s own established technique — `NFR-2200`) plus a landmark-overlay applier land in `asm_game.py`, and a new oracle-parity check (mirroring `T12.b`'s own precedent) proves the on-device output is byte-for-byte identical to each Python `*_screen()` function for all four screens. Verb inventory + supersession sweep both re-run and recorded clean in the TWBS. `IP-9150` confirmed still independently useful, no longer a prerequisite. `IP-1022` → `READY`, `IP-1106`'s blocking note updated (blocked on implementation, not any gate). Master Build Plan + packages `INDEX.md` updated; `BL-0134` re-dispositioned `NEEDS-USER`→`SCHEDULED`. No drift. | `08-code-implementation` on `IP-1022` — `READY`, `AUTHORIZED`, no gate |

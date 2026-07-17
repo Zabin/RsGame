@@ -1439,3 +1439,56 @@ direct user answer alone suffices if the user instead chooses to descope this pa
 (`IP-9150`), and confirmed (not assumed) that no further mechanical trim closes the remaining gap.
 Disposition updated from `SCHEDULED` to `NEEDS-USER` — the residual ~2,200-byte shortfall needs the
 user's explicit direction among the options named above before `IP-1022` can be re-attempted.
+
+## `IP-1022` re-plan against `ADR-0020` (procedural screen fill)
+
+**Trigger:** `ADR-0020` (2026-07-17) decided the four newly-folded biome screens render via a
+runtime procedural-fill routine + landmark-overlay list rather than baked full arrays, closing
+`BL-0134`'s ROM shortfall without needing `ADR-0011`'s bank switching. This entry records the
+re-planning rationale; `IP-1022`'s own package doc carries the full technical detail.
+
+### What changed and why
+
+The prior TWBS entry (`BL-0134`'s mechanical-recovery pass, same day) found `IP-9150`'s tile-data
+padding trim insufficient alone and concluded the residual ~2,200-byte gap needed either
+descoping, tile compression, or bank switching — routing to `03-architecture-design-synthesis` to
+decide. `ADR-0020` chose compression, specifically via a technique this package's own content
+happens to make unusually cheap: all four new screens' background patterns are already expressed
+as small, closed-form Python modulo formulas (`tilemaps.py`'s own `*_screen()` functions), not
+arbitrary hand-authored pixel art — the same class of "computable, not merely storable" content
+`generate_world`'s own on-device generation (`ADR-0009`) already demonstrates is both feasible and
+this codebase's own established idiom.
+
+**Verb inventory re-check:** the four verbs this delta touches — *generate* (`generate_world`'s
+domain widening, unchanged), *render* (now split into two sub-verbs: procedural background fill +
+landmark overlay, both new), *navigate* (`dsr_p_dispatch`'s cascade, unchanged in shape, extended
+in reach), *persist* (`ZONE_COLLECTS`, unchanged) — each still has a named owner within this one
+package; the *render* verb's split is recorded explicitly here rather than left implicit.
+
+**Supersession sweep (re-run):** searched `asm_game.py`/`build_rom.py` for any other site assuming
+"every `ALL_SCREENS` entry has a baked ROM address" — found none: `screen_addrs`'s own dict-keyed
+lookup (`build_rom.py`'s `for name, fn in ALL_SCREENS` loop) naturally has no entry for
+`village`/`cave`/`desert`/`plains` once they are removed from `ALL_SCREENS`, and no other code
+path indexes `ALL_SCREENS` positionally or assumes it holds all nine identities — confirmed clean.
+
+### No split from `IP-9150`
+
+`IP-9150` (tile-data padding trim, 1,152 bytes) remains packaged and independently useful — it
+recovers real headroom regardless of how `IP-1022`'s own gap is closed, and this re-plan does not
+change its own scope. With `ADR-0020`'s ~4,272-byte estimated recovery alone comfortably exceeding
+the ~3,358-byte shortfall, `IP-9150` is no longer strictly required to unblock `IP-1022` — it
+remains a good-hygiene parallel package, not a prerequisite.
+
+### Bank switching (`ADR-0011`) not triggered
+
+`ADR-0020` explicitly recorded this: the narrower, already-precedented, lower-risk technique
+closes this specific gap, so `ADR-0011`'s own cutover trigger ("content genuinely cannot fit
+remaining bank-0 headroom" *after* available ROM-efficiency options are exhausted) is not met by
+this delta. `ADR-0011` remains the committed long-term direction for when ROM-cheap tricks are
+exhausted — unaffected, not implemented by this pass.
+
+### Backlog riders honored in this pass
+
+`BL-0134` — re-planned `IP-1022` against `ADR-0020`'s decision; the package's own Verification
+Checklist now carries the oracle-parity obligation `ADR-0020` requires. `BL-0134`'s own
+disposition is updated by the pipeline manager once this package ships and verifies.
