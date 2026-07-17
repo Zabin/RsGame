@@ -1113,7 +1113,12 @@ FR-6000 for the presentation half)*
   values) alongside a 4-bit connectivity field in the same byte — reaching nine values needs that
   byte's field widths re-apportioned, a real but self-contained implementation change (the byte
   does not need to grow) belonging to whichever `07`/`08-code-implementation` package implements
-  `FR-10200`'s side of this FR.
+  `FR-10200`'s side of this FR. **`IP-1105` implemented 2026-07-16**: Infinite Mode's own
+  `INF_MZ_RESULT`/`INF_WINDOW` byte format re-apportioned (biome bits 0-2→0-3, connectivity bits
+  3-6→4-7), freeing the fourth biome-id bit this FR's own nine-value domain needs — a
+  behavior-preserving repack only, the draw's own value range stays `%5` (not yet widened; that
+  and the finite-mode dispatch/identity-assignment work remain open, riding `IP-1022`/`IP-1106`).
+  This FR itself is **not** marked Implemented by this step alone.
 
 ## FR-5000 — Save / load (SRAM)
 

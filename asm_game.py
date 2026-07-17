@@ -1157,7 +1157,7 @@ def build_game_asm(rom: ROM) -> dict:
     rom.label('czt_infinite')
     rom.LD_A_nn(JOY_CUR); rom.BIT_b_A(J_RIGHT); rom.JR_Z('czti_left')
     rom.LD_A_nn(PLAYER_X); rom.CP_n(152); rom.JR_C('czti_left')
-    rom.LD_A_nn(INF_WINDOW + 4); rom.BIT_b_A(6); rom.JR_Z('czti_left')   # east
+    rom.LD_A_nn(INF_WINDOW + 4); rom.BIT_b_A(7); rom.JR_Z('czti_left')   # east
     rom.LD_A_nn(INF_COL); rom.LD_E_A(); rom.LD_A_nn(INF_COL + 1); rom.LD_D_A()
     rom.INC_DE()
     rom.LD_A_E(); rom.LD_nn_A(INF_COL); rom.LD_A_D(); rom.LD_nn_A(INF_COL + 1)
@@ -1168,7 +1168,7 @@ def build_game_asm(rom: ROM) -> dict:
     rom.label('czti_left')
     rom.LD_A_nn(JOY_CUR); rom.BIT_b_A(J_LEFT); rom.JR_Z('czti_top')
     rom.LD_A_nn(PLAYER_X); rom.OR_A(); rom.JR_NZ('czti_top')
-    rom.LD_A_nn(INF_WINDOW + 4); rom.BIT_b_A(5); rom.JR_Z('czti_top')    # west
+    rom.LD_A_nn(INF_WINDOW + 4); rom.BIT_b_A(6); rom.JR_Z('czti_top')    # west
     rom.LD_A_nn(INF_COL); rom.LD_E_A(); rom.LD_A_nn(INF_COL + 1); rom.LD_D_A()
     rom.DEC_DE()
     rom.LD_A_E(); rom.LD_nn_A(INF_COL); rom.LD_A_D(); rom.LD_nn_A(INF_COL + 1)
@@ -1179,7 +1179,7 @@ def build_game_asm(rom: ROM) -> dict:
     rom.label('czti_top')
     rom.LD_A_nn(JOY_CUR); rom.BIT_b_A(J_UP); rom.JR_Z('czti_bot')
     rom.LD_A_nn(PLAYER_Y); rom.CP_n(18); rom.JR_NC('czti_bot')
-    rom.LD_A_nn(INF_WINDOW + 4); rom.BIT_b_A(3); rom.JR_Z('czti_bot')    # north
+    rom.LD_A_nn(INF_WINDOW + 4); rom.BIT_b_A(4); rom.JR_Z('czti_bot')    # north
     rom.LD_A_nn(INF_ROW); rom.LD_E_A(); rom.LD_A_nn(INF_ROW + 1); rom.LD_D_A()
     rom.DEC_DE()
     rom.LD_A_E(); rom.LD_nn_A(INF_ROW); rom.LD_A_D(); rom.LD_nn_A(INF_ROW + 1)
@@ -1190,7 +1190,7 @@ def build_game_asm(rom: ROM) -> dict:
     rom.label('czti_bot')
     rom.LD_A_nn(JOY_CUR); rom.BIT_b_A(J_DOWN); rom.RET_Z()
     rom.LD_A_nn(PLAYER_Y); rom.CP_n(128); rom.RET_C()
-    rom.LD_A_nn(INF_WINDOW + 4); rom.BIT_b_A(4); rom.RET_Z()             # south
+    rom.LD_A_nn(INF_WINDOW + 4); rom.BIT_b_A(5); rom.RET_Z()             # south
     rom.LD_A_nn(INF_ROW); rom.LD_E_A(); rom.LD_A_nn(INF_ROW + 1); rom.LD_D_A()
     rom.INC_DE()
     rom.LD_A_E(); rom.LD_nn_A(INF_ROW); rom.LD_A_D(); rom.LD_nn_A(INF_ROW + 1)
@@ -1383,7 +1383,7 @@ def build_game_asm(rom: ROM) -> dict:
 
     rom.label('dsr_p_inf')
     rom.LD_A_nn(INF_WINDOW + 4)        # center cell of the 3x3 window
-    rom.AND_n(0x07)                    # A = biome-id (bits 0-2)
+    rom.AND_n(0x0F)                    # A = biome-id (bits 0-3)
     rom.PUSH_HL()                      # stack-balance only -- dsr_p_copy's own
                                         # POP_HL() must see something pushed on
                                         # both paths; draw_region_arrows_inf
@@ -1570,16 +1570,16 @@ def build_game_asm(rom: ROM) -> dict:
     # the bit is set, nothing wherever it is clear. Never writes
     # TL_BLOCKED_U/D/L/R (T24.d's own static-audit claim).
     rom.label('draw_region_arrows_inf')
-    rom.LD_A_nn(INF_WINDOW + 4); rom.BIT_b_A(3); rom.JR_Z('drai_no_up')
+    rom.LD_A_nn(INF_WINDOW + 4); rom.BIT_b_A(4); rom.JR_Z('drai_no_up')
     _arrow_write(ARROW_ADDR_U, TL_ARROW_U)
     rom.label('drai_no_up')
-    rom.LD_A_nn(INF_WINDOW + 4); rom.BIT_b_A(4); rom.JR_Z('drai_no_down')
+    rom.LD_A_nn(INF_WINDOW + 4); rom.BIT_b_A(5); rom.JR_Z('drai_no_down')
     _arrow_write(ARROW_ADDR_D, TL_ARROW_D)
     rom.label('drai_no_down')
-    rom.LD_A_nn(INF_WINDOW + 4); rom.BIT_b_A(5); rom.JR_Z('drai_no_left')
+    rom.LD_A_nn(INF_WINDOW + 4); rom.BIT_b_A(6); rom.JR_Z('drai_no_left')
     _arrow_write(ARROW_ADDR_L, TL_ARROW_L)
     rom.label('drai_no_left')
-    rom.LD_A_nn(INF_WINDOW + 4); rom.BIT_b_A(6); rom.JR_Z('drai_no_right')
+    rom.LD_A_nn(INF_WINDOW + 4); rom.BIT_b_A(7); rom.JR_Z('drai_no_right')
     _arrow_write(ARROW_ADDR_R, TL_ARROW_R)
     rom.label('drai_no_right')
     rom.RET()
@@ -1933,7 +1933,7 @@ def build_game_asm(rom: ROM) -> dict:
     rom.label('szc_infinite')
     rom.XOR_A(); rom.LD_nn_A(COLL_COUNT)
     rom.LD_A_nn(INF_TREASURE_HERE); rom.OR_A(); rom.RET_Z()
-    rom.LD_A_nn(INF_WINDOW + 4); rom.AND_n(0x07)   # biome-id (0..4)
+    rom.LD_A_nn(INF_WINDOW + 4); rom.AND_n(0x0F)   # biome-id (0..4)
     rom.ADD_A_A()                                   # * 2 ((x,y) pairs)
     rom.LD_E_A(); rom.LD_D_n(0)
     rom.LD_HL_nn(rom.addr('inf_treasure_pos')); rom.ADD_HL_DE()
@@ -2637,16 +2637,16 @@ def build_game_asm(rom: ROM) -> dict:
     # bit5=left/west, bit6=right/east, 1=open) and pack with the biome-id.
     rom.LD_E_n(0)
     rom.LD_A_nn(INF_MZ_BIAS); rom.CP_n(0); rom.JR_NZ('imr_no_north')
-    rom.LD_A_E(); rom.OR_n(0x08); rom.LD_E_A()
+    rom.LD_A_E(); rom.OR_n(0x10); rom.LD_E_A()
     rom.label('imr_no_north')
     rom.LD_A_nn(INF_MZ_BIAS); rom.CP_n(1); rom.JR_NZ('imr_no_west')
-    rom.LD_A_E(); rom.OR_n(0x20); rom.LD_E_A()
+    rom.LD_A_E(); rom.OR_n(0x40); rom.LD_E_A()
     rom.label('imr_no_west')
     rom.LD_A_C(); rom.CP_n(0); rom.JR_NZ('imr_no_south')
-    rom.LD_A_E(); rom.OR_n(0x10); rom.LD_E_A()
+    rom.LD_A_E(); rom.OR_n(0x20); rom.LD_E_A()
     rom.label('imr_no_south')
     rom.LD_A_D(); rom.CP_n(1); rom.JR_NZ('imr_no_east')
-    rom.LD_A_E(); rom.OR_n(0x40); rom.LD_E_A()
+    rom.LD_A_E(); rom.OR_n(0x80); rom.LD_E_A()
     rom.label('imr_no_east')
     rom.LD_A_nn(INF_MZ_BIOME); rom.OR_E()
     rom.LD_nn_A(INF_MZ_RESULT)

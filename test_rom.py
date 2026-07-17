@@ -2438,14 +2438,14 @@ for seed in (0, 42, 65535):
     for row in range(-3, 4):
         for col in range(-3, 4):
             rb, _ = worldgen.materialize_region(seed, row, col)
-            south_open_here = bool(rb & 0x10)
+            south_open_here = bool(rb & 0x20)
             nrb, _ = worldgen.materialize_region(seed, row + 1, col)
-            north_open_neighbor = bool(nrb & 0x08)
+            north_open_neighbor = bool(nrb & 0x10)
             if south_open_here != north_open_neighbor:
                 _t22g_bad.append((seed, row, col, "south/north"))
-            east_open_here = bool(rb & 0x40)
+            east_open_here = bool(rb & 0x80)
             erb, _ = worldgen.materialize_region(seed, row, col + 1)
-            west_open_neighbor = bool(erb & 0x20)
+            west_open_neighbor = bool(erb & 0x40)
             if east_open_here != west_open_neighbor:
                 _t22g_bad.append((seed, row, col, "east/west"))
 check("T22.g Neighbor-consulting symmetry: south/east openness matches the neighbor's own north/west bit, every corpus entry (ADR-0016 pt.5)",
@@ -2501,7 +2501,7 @@ def read_inf_pos(pb):
     return row, col
 
 _T24_DIR_BTN  = {'north': 'up', 'south': 'down', 'west': 'left', 'east': 'right'}
-_T24_DIR_BIT  = {'north': 3, 'south': 4, 'west': 5, 'east': 6}
+_T24_DIR_BIT  = {'north': 4, 'south': 5, 'west': 6, 'east': 7}
 _T24_DIR_DELTA = {'north': (-1, 0), 'south': (1, 0), 'west': (0, -1), 'east': (0, 1)}
 
 def t24_do_move(pb, direction):
@@ -2560,7 +2560,7 @@ for seed in T24_NAV_SEEDS:
             nav_bad.append((seed, direction, 'position-mismatch', (end_row, end_col), (dr, dc)))
             continue
         new_center_byte, _ = worldgen.materialize_region(seed, dr, dc)
-        biome_id = new_center_byte & 0x07
+        biome_id = new_center_byte & 0x0F
         lo, hi = FAMILY_RANGES[biome_id]
         field = field_tiles(pb)
         in_family = sum(1 for b in field if lo <= b <= hi)
@@ -2583,7 +2583,7 @@ T24B_ROW = T24B_COL = None
 for _r in range(20):
     for _c in range(20):
         _byte, _ = worldgen.materialize_region(T24B_SEED, _r, _c)
-        if _byte & 0x10:   # south bit
+        if _byte & 0x20:   # south bit
             T24B_ROW, T24B_COL = _r, _c
             break
     if T24B_ROW is not None:
@@ -2918,7 +2918,7 @@ check("T26.a2 Reached PLAYING in Infinite Mode (GS=2, GAME_MODE=1)",
       f"GS={pb.memory[GAMESTATE]} mode={pb.memory[GAME_MODE]} seed={t26_seed}")
 check("T26.a3 INF_TREASURE_HERE cached == 1 at the region's own materialization (IP-1101's predicate via inf_ensure_window's center cell)",
       pb.memory[INF_TREASURE_HERE] == 1, f"cache={pb.memory[INF_TREASURE_HERE]}")
-_t26_biome = pb.memory[INF_WINDOW + 4] & 0x07
+_t26_biome = pb.memory[INF_WINDOW + 4] & 0x0F
 _t26_pos = _t26_expected_pos[_t26_biome]
 _t26_cd = tuple(pb.memory[COLL_DATA + i] for i in range(4))
 check("T26.a4 Spawn: COLL_COUNT == 1 and COLL_DATA[0] == (biome's table x, y, type 2, active 1) — exactly one item, the treasure",
@@ -3124,14 +3124,14 @@ def invoke_ilmc(pb, row, col):
 t27_seed = None
 for _s in range(1, 65536):
     _center, _treasure = worldgen.materialize_region(_s, 0, 0)
-    if _treasure and (_center >> 6) & 1:
+    if _treasure and (_center >> 7) & 1:
         t27_seed = _s
         break
 
 wipe_save()
 pb = fresh_boot(200)
 enter_infinite_mode(pb, t27_seed)
-_t27a_biome = pb.memory[INF_WINDOW + 4] & 0x07
+_t27a_biome = pb.memory[INF_WINDOW + 4] & 0x0F
 _t27a_pos = None
 for (_x, _y, _t) in ZONE_COLLECTS[_t27a_biome]:
     if _t == 2:
@@ -3329,7 +3329,7 @@ wipe_save()
 # this is what closes the gap between them.
 pb = fresh_boot(200)
 enter_infinite_mode(pb, t27_seed)   # same seed as T27.a: (0,0) treasure, east open
-_t27g_biome = pb.memory[INF_WINDOW + 4] & 0x07
+_t27g_biome = pb.memory[INF_WINDOW + 4] & 0x0F
 _t27g_pos = None
 for (_x, _y, _t) in ZONE_COLLECTS[_t27g_biome]:
     if _t == 2:

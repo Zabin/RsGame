@@ -341,7 +341,7 @@ reserve (`GAME_MODE`/`INF_ROW`/`INF_COL`/`INF_WINDOW`/`INF_TREASURE_HERE`/
 |---|---|---|---|
 | `C40D`–`C40E` | `INF_MZ_ROW` | 2 bytes | `inf_materialize_region`'s own row input (signed 16-bit, low byte first, mirrors `SEED`'s own byte order) |
 | `C40F`–`C410` | `INF_MZ_COL` | 2 bytes | column input, same convention |
-| `C411` | `INF_MZ_RESULT` | 1 byte | output: packed biome (bits 0-2) + connectivity nibble (bits 3-6: up/down/left/right, 1=open) |
+| `C411` | `INF_MZ_RESULT` | 1 byte | output: packed biome (bits 0-3) + connectivity nibble (bits 4-7: up/down/left/right, 1=open). **Repacked `IP-1105`, 2026-07-16** (was biome bits 0-2/connectivity bits 3-6) — frees a fourth biome-id bit for `FR-4320`'s widened domain; the draw's own value range is unchanged (`%5`) by this repack alone. |
 | `C412` | `INF_MZ_TREASURE` | 1 byte | output: 0 or 1, `hash(SEED,row,col) mod 16 == 0` (`K=16`) |
 | `C413` | `INF_MZ_BIOME` | 1 byte | transient scratch: own biome value, held while the south/east neighbor consultations run |
 | `C414` | `INF_MZ_BIAS` | 1 byte | transient scratch: own carve-bias (0=carve north, 1=carve west) |
@@ -368,7 +368,7 @@ documents already agreed on `0xC3F6`).
 | `C3F6` | `GAME_MODE` | 1 byte | `0`=finite (default — boot-cleared explicitly, since it sits outside the `0xC000`–`0xC2FF` boot-clear range, §2), `1`=infinite |
 | `C3F7`–`C3F8` | `INF_ROW` | 2 bytes | player's current region row (signed 16-bit, low byte first, mirrors `SEED`'s own byte order), Infinite Mode only |
 | `C3F9`–`C3FA` | `INF_COL` | 2 bytes | player's current region col, same convention |
-| `C3FB`–`C403` | `INF_WINDOW` | 9 bytes | 3×3 materialized window, row-major (index = `(dr+1)*3+(dc+1)`, `dr,dc` in `{-1,0,1}`); center cell (index 4, `C3FF`) = current region. 1 byte/region, `IP-1101`'s own output format (bits 0-2 biome-id, bits 3-6 connectivity: up/down/left/right, 1=open) |
+| `C3FB`–`C403` | `INF_WINDOW` | 9 bytes | 3×3 materialized window, row-major (index = `(dr+1)*3+(dc+1)`, `dr,dc` in `{-1,0,1}`); center cell (index 4, `C3FF`) = current region. 1 byte/region, `IP-1101`'s own output format, repacked `IP-1105` (2026-07-16): bits 0-3 biome-id, bits 4-7 connectivity: up/down/left/right, 1=open |
 | `C404` | `INF_TREASURE_HERE` | 1 byte | transient cache: current region's own treasure-presence-and-uncollected flag for this materialization — reserved here, populated by `IP-1103` |
 
 Fifteen bytes total against `IP-1101`'s block (`0xC3F6`–`0xC418`), trivial against the confirmed
