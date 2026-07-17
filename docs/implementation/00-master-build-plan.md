@@ -881,6 +881,6 @@ separate, unresolved design question, deliberately not folded in).
 
 | Package | Title | Owner (08 peer) | Status | Depends on | Authorized? | Notes |
 |---|---|---|---|---|---|---|
-| [IP-9170](packages/IP-9170-hud-carrot-target-digit-fix.md) | HUD carrot-target digit fix | `08-code-implementation` | **NOT STARTED** | None | **Not authorized** | `update_status_disp` gains a `GAME_MODE`-gated write of `WORLD_SCALE` to the HUD's row-0/col-4 target digit (finite mode only, col 4 = `0x9804`). Infinite Mode's own col-4 cell deliberately untouched. Awaits explicit G3. |
+| [IP-9170](packages/IP-9170-hud-carrot-target-digit-fix.md) | HUD carrot-target digit fix | `08-code-implementation` | **READY** | None | **AUTHORIZED (G3, user explicit go-ahead, 2026-07-17)** | `update_status_disp` gains a `GAME_MODE`-gated write of `WORLD_SCALE` to the HUD's row-0/col-4 target digit (finite mode only, col 4 = `0x9804`). Infinite Mode's own col-4 cell deliberately untouched. |
 
 No critical-path interaction — independent of every other package in the tree.
