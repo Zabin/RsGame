@@ -14,52 +14,46 @@
 
 ## Position
 
-- **Updated:** 2026-07-17 (run #214)
-- **Increment:** Four independent arcs, all closed. **(1)/(2)** unchanged, closed at runs
-  #167/#168. **(3) Nine biome-family identities** (`BL-0128`/`FR-4320`) — all four packages
-  `VERIFIED`. **(4) Procgen music** (`BL-0127`) — both packages `VERIFIED`. **Both remediations**
-  (`IP-9160`/`BL-0138`, `IP-9150`/`BL-0134`) `VERIFIED`. **Run #212: `10-integration-review`** on
-  the full eight-package set — **clean, no Critical/High findings** (4 Low/Medium doc-coherence
-  findings harvested as `BL-0140`–`BL-0143`, none blocking). **Run #213: `07-implementation-
-  planning`** packaged `BL-0139`'s finite-mode half as **`IP-9170`** (`NOT STARTED`, not
-  authorized) and split off its Infinite-Mode-HUD design question as **`BL-0144`**
-  (`NEEDS-USER`). **Run #214: gate stop** — every remaining unblocked mechanical step now needs
-  either G3 (`IP-9170`) or a user scoping decision (`BL-0133`, a brand-new gameplay pillar) before
-  more pipeline work should be invested. Bootstrap baseline remains fully closed (01–11 ✅, GO
-  recorded); Release 2 remains baselined GO.
-- **Pipeline state:** Bootstrap stages 01–11 ✅; Release 2 GO. **39 packages `VERIFIED`**, one
-  `NOT STARTED` (`IP-9170`, awaiting G3) — every *implemented* package in the tree is `VERIFIED`,
-  and the eight-package delta has a clean integration review. `BL-0133` (project-owner-filed
-  feature: an infinite-map combat sub-mode with mobs + a treasure-fed ranged weapon) is
-  technically unGated (G3 only applies at implementation, not architecture/requirements
-  drafting) but represents a brand-new gameplay pillar (combat/mobs/weapons/economy) with no
-  home anywhere in the current baseline — a substantial new increment, not a small rider; flagged
-  for the user's confirmation before committing a `03-architecture-design-synthesis` pass to it,
-  per the gate-check's own "spending judgment the user reserved" clause. Standing, non-blocking
-  doc/design work: the doc-accuracy sweep family (`BL-0136`/`BL-0137`/`BL-0140`/`BL-0141`/
-  `BL-0142`/`BL-0143`); `BL-0118` (Infinite Mode `NFR-1400` cycle-budget gap, accepted/named,
-  needs an architecture-level decision if ever addressed); `BL-0123` (`try_load_save` doing
-  unneeded finite-mode work on Infinite Mode loads — a real but non-symptomatic inefficiency,
-  needs its own `07` package); `BL-0112` (Infinite Mode run-end trigger, a design question needing
-  user input once ripe); `BL-0144` (Infinite-Mode-HUD display convention, `NEEDS-USER`); `BL-0097`
-  (Medium, `IP-1081` direction-pair tile pairs pixel-identical, routed to `09-content-review`
-  already, non-blocking); `BL-0130` (`FEAT-9000`/`FEAT-4100` catalog text missing `FR-4320`).
-- **Backlog:** 145 entries. New since run #212: `BL-0140` (Low, RTM cell staleness,
-  `SCHEDULED`), `BL-0141` (Medium, `memory.md` stale quick-ref, `SCHEDULED`), `BL-0142` (Low,
-  `ROADMAP.md` reconfirmed stale, `DEFERRED` into the `BL-0136` family), `BL-0143` (Low,
-  `Claude.md` completeness gap, `SCHEDULED`), `BL-0144` (`NEEDS-USER`, Infinite-Mode-HUD
-  convention, split off `BL-0139` at run #213). `BL-0127`/`BL-0128` `DONE`. `BL-0139` → `IN
-  PIPELINE` (its finite-mode half is now `IP-9170`, `NOT STARTED`).
-- **Next step:** **Gated.** `IP-9170` (`08-code-implementation`) is fully planned and `READY` in
-  every sense except authorization — needs explicit G3 before it can be implemented. `BL-0133`
-  (combat sub-mode) is technically unGated but is a whole new gameplay pillar with no home in the
-  baseline — the manager is asking the user to confirm scope/priority before committing a
-  `03-architecture-design-synthesis` pass to it, rather than assuming. Both questions were put to
-  the user in this run's closing summary.
-- **Open gates:** **three.** (1) G3 on `IP-9170` (HUD digit fix) — blocking that one package only.
-  (2) Scope confirmation on `BL-0133` (combat sub-mode) — blocking that increment only, not the
-  rest of the tree. (3) The standing G4 question (release-readiness timing) — informational,
-  blocking nothing. Nothing else in the tree is gated.
+- **Updated:** 2026-07-17 (run #218)
+- **Increment:** Four independent arcs, all closed, plus one new increment opened and immediately
+  gated. **(1)/(2)** unchanged, closed at runs #167/#168. **(3) Nine biome-family identities**
+  (`BL-0128`/`FR-4320`) — all four packages `VERIFIED`. **(4) Procgen music** (`BL-0127`) — both
+  packages `VERIFIED`. **Both remediations** (`IP-9160`/`BL-0138`, `IP-9150`/`BL-0134`)
+  `VERIFIED`. **Run #212: `10-integration-review`** on the full eight-package set — clean, no
+  Critical/High (4 Low/Medium doc-coherence findings, `BL-0140`–`BL-0143`). **Run #213:
+  `07-implementation-planning`** packaged `BL-0139`'s finite-mode half as **`IP-9170`**, split
+  off `BL-0144` (Infinite-Mode-HUD convention, `NEEDS-USER`). **User authorized `IP-9170`'s G3 and
+  confirmed `BL-0133`'s scope (run #215).** **Run #216: `IP-9170` implemented — `COMPLETE`**,
+  324/324 (self-caught and fixed one regression its own change exposed in `T13.e`). **Run #217:
+  `03-architecture-design-synthesis`** authored `ADS-002` for `BL-0133` (combat sub-mode) —
+  surfaced a genuine Vision-level tension (`MSTR-001`'s C9 "child-friendly collect-goal" vs.
+  combat) this skill cannot resolve on its own authority; produces no `FS`/`FR` yet. **Run #218:
+  gate stop** — every remaining step now needs either a fresh session (`IP-9170`'s own `09` pass)
+  or a user decision (`01-vision` on `ADS-002`'s Open Question 1). Bootstrap baseline remains
+  fully closed (01–11 ✅, GO recorded); Release 2 remains baselined GO.
+- **Pipeline state:** Bootstrap stages 01–11 ✅; Release 2 GO. **39 packages `VERIFIED`, one
+  `COMPLETE`** (`IP-9170`, own `09-package-verification` pass owed in a fresh session — this
+  session implemented it). The eight-package biome/music delta has a clean integration review.
+  `BL-0133`'s combat sub-mode now has an authored `ADS-002` but is blocked on a Vision-level
+  decision before any `FS`/`FR` can be written. Standing, non-blocking doc/design work: the
+  doc-accuracy sweep family (`BL-0136`/`BL-0137`/`BL-0140`–`BL-0143`); `BL-0118` (Infinite Mode
+  `NFR-1400` cycle-budget gap, accepted/named); `BL-0123` (`try_load_save` doing unneeded
+  finite-mode work on Infinite Mode loads); `BL-0112` (Infinite Mode run-end trigger, a design
+  question needing user input once ripe); `BL-0144` (Infinite-Mode-HUD display convention,
+  `NEEDS-USER`); `BL-0097` (Medium, `IP-1081` direction-pair tile pairs pixel-identical, routed to
+  `09-content-review` already); `BL-0130` (`FEAT-9000`/`FEAT-4100` catalog text missing
+  `FR-4320`).
+- **Backlog:** 146 entries. `BL-0139` → `IN PIPELINE` (finite-mode half `IP-9170` `COMPLETE`).
+  `BL-0133` → `NEEDS-USER` (the Vision-tone question `ADS-002` names). `BL-0140`–`BL-0143`
+  `SCHEDULED`/`DEFERRED` as before. `BL-0127`/`BL-0128` `DONE`.
+- **Next step:** **Fully blocked for this session.** A fresh session runs
+  `09-package-verification` on `IP-9170`. The user's own answer to `ADS-002`'s Open Question 1
+  (does `MSTR-001`'s C9 tolerate combat, and in what tone?) is what unblocks `01-vision` →
+  `04-requirements-engineering` on the combat increment.
+- **Open gates:** **two.** (1) The Vision-tone question for `BL-0133`/`ADS-002` — blocks that
+  increment only. (2) The standing G4 question (release-readiness timing) — informational,
+  blocking nothing. `IP-9170`'s own verification isn't a "gate" in the authorization sense — it's
+  a same-session-independence constraint, cleared by simply running in a fresh session next.
 
 ## Run log
 
@@ -285,3 +279,5 @@
 | 214 | 2026-07-17 | advance → gate stop (same session) | — (gate check) | Remaining step inventory | ⛔ **GATE: two open questions, both put to the user this run.** (1) **G3 on `IP-9170`** — fully planned, `READY` in every sense but authorization; a small, low-risk, independent fix. (2) **Scope confirmation on `BL-0133`** — the combat sub-mode is technically unGated (G3 only applies at implementation, and `03-architecture-design-synthesis` needs no authorization to draft), but it is a brand-new gameplay pillar (mobs/projectiles/weapon-economy/player-health) with zero precedent anywhere in the current baseline — a full new increment, not a small rider. Per the gate-check's own "spending judgment the user reserved" clause, the manager is asking rather than assuming a multi-stage architecture investment is wanted right now. Every other backlog entry is either `DONE`, `DEFERRED` (folded into a standing sweep), or genuinely non-blocking (`SCHEDULED` behind one of these two questions, or `NEEDS-USER` but not ripe/blocking anything else, e.g. `BL-0144`/`BL-0112`). **The pipeline is therefore fully blocked for this session**, per the user's own framing ("iterate until all open and backlogged items are blocked") — every executable, unGated step has been taken. Position block rewritten to the fully-blocked state; both questions batched into this run's closing summary. | User: G3 on `IP-9170` (yes/no); scope confirmation on `BL-0133` (proceed with `03-architecture-design-synthesis` now, defer, or descope) |
 | 215 | 2026-07-17 | advance → gate resolved (same session) | — (gate check) | G3 decision on `IP-9170`; scope confirmation on `BL-0133` | ✅ **Both questions answered by the user (batched `AskUserQuestion`): `IP-9170` AUTHORIZED ("Yes, build it"); `BL-0133` scope confirmed ("Yes, start `03-architecture-design-synthesis`").** Master Build Plan + `packages/INDEX.md` updated (`IP-9170` → `READY`/`AUTHORIZED`). | `08-code-implementation` on `IP-9170` (small, authorized, no dependencies); `03-architecture-design-synthesis` on `BL-0133` once `IP-9170` clears |
 | 216 | 2026-07-17 | advance (same session) | `08-code-implementation` | `IP-9170` (HUD carrot-target digit fix) | ✅ **COMPLETE — 324/324 suite passes.** Re-confirmed no drift (`WORLD_SCALE`/`GAME_MODE` addresses, `update_status_disp`'s cited lines) before the first edit. Implemented exactly per the package: one `GAME_MODE`-gated conditional write inserted immediately after the existing carrot-count write in `update_status_disp` (reads `WORLD_SCALE`, adds `TL_DIGIT_0`, writes `0x9804`; skips entirely when `GAME_MODE != 0`). **Own-defect fix required**: the first full-suite run surfaced a real regression this package's change exposed — `T13.e`'s row-0 dynamic-cell exclusion set (`_ROW0_DYNAMIC_RC`) didn't yet know col 4 was now live in finite mode, so the suite's own finite-mode fixture (which doesn't run at `WORLD_SCALE=9`) failed oracle-parity against the four procedural screens' baked "9"; extended the exclusion set to `(0,4)`, per this skill's own "fix defects this package introduced" rule (not a pre-existing failure — introduced by this run's own change). New tests: `T8.10c`/`T8.10d` (target digit tracks forced `WORLD_SCALE=5`/`7` within 2 frames), `T8.10e` (Infinite Mode's own col-4 cell confirmed unaffected once `GAME_MODE=1`, the direct regression guard against the gate ever being dropped). ROM 31390/32768 (unchanged — fit inside existing alignment slack, matching the package's own risk note). Docs: `FR-9161` Notes extended (HUD now tracks the real win-condition threshold), RTM row updated. Ledgers → `COMPLETE`; `BL-0139` → `IN PIPELINE`. No drift beyond the one self-caught regression, fixed in scope. | `09-package-verification` on `IP-9170` — needs a fresh session for genuine independence (this session implemented it); `03-architecture-design-synthesis` on `BL-0133` is runnable in parallel/next, user-confirmed |
+| 217 | 2026-07-17 | advance (same session, user-confirmed scope) | `03-architecture-design-synthesis` | `BL-0133` (Infinite Mode combat sub-mode) | ✅ Authored **[ADS-002](../architecture/ADS-002-infinite-mode-combat-sub-mode.md)** — sketched candidate architecture shapes (mob/projectile WRAM entities mirroring `IP-1104`'s own ledger-table precedent, a spawn draw hooked into `inf_ensure_window` mirroring treasure-presence's own independent-reseed discipline, sprite/ROM-budget headroom checked against the current tree: 40-entry shadow OAM, 1,378 bytes free post-`IP-9170`) without committing to any of them. **Surfaced one blocking Vision-level tension**: `MSTR-001`'s **C9** ("item-agnostic and child-friendly collect-goal") was written for a pure collect-a-thon with no adversarial mechanic; whether/how combat (mobs, a ranged weapon, player damage) fits that framing — and in what tone — is a Vision-altitude decision this skill's own charter says it cannot make unilaterally. Seven Open Questions named (Vision tension; treasure-spend-vs-trigger economy; weapon ammo/durability; fail-state/health model; finite-vs-infinite-mode scope; concurrent-mob-count budget; save-persistence). Index (`docs/architecture/INDEX.md` §2) + `ROADMAP.md` updated. `BL-0133` re-dispositioned `SCHEDULED`→`NEEDS-USER`. No new research claims originated (per this skill's own scope rule). | `01-vision` — the one open question that must be answered before `04-requirements-engineering` (or any further design work) can proceed on this capability |
+| 218 | 2026-07-17 | advance → gate stop (same session) | — (gate check) | Remaining step inventory | ⛔ **GATE: fully blocked for this session.** `IP-9170`'s own `09-package-verification` pass needs a fresh session (this session implemented it). `BL-0133`'s combat sub-mode is blocked on a Vision-level decision (`01-vision`, the exact question `ADS-002` names) — a genuine user call, not an executable pipeline step at this session's disposal without more direction. Every other backlog entry is `DONE`, `DEFERRED` into a standing sweep, or non-blocking/`SCHEDULED` behind one of these two items. **The pipeline is fully blocked for this session**, matching the user's own framing ("iterate until all open and backlogged items are blocked"). Position block rewritten to the fully-blocked state. | Fresh session: `09-package-verification` on `IP-9170`. User: the Vision-level combat-tone question (`ADS-002`'s Open Question 1) whenever ready to continue that increment. |
