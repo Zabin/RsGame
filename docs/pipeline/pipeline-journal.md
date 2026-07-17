@@ -14,36 +14,31 @@
 
 ## Position
 
-- **Updated:** 2026-07-17 (run #209)
+- **Updated:** 2026-07-17 (run #211)
 - **Increment:** Four independent arcs. **(1)/(2)** unchanged, closed at runs #167/#168.
   **(3) Nine biome-family identities** (`BL-0128`/`FR-4320`) — `IP-1105`/`IP-1033`/`IP-1022`/
-  `IP-1106` all `VERIFIED` (runs #187, #191, #198, #208). This arc's critical path is fully
-  `VERIFIED` end to end. **(4) Procgen music** (`BL-0127`) — `IP-1110`/`IP-1111` both `VERIFIED`
-  (runs #188, **#209**). This arc's critical path is also fully `VERIFIED` end to end.
-  **Run #202: `09-content-review`** — 1 Medium found (`BL-0138`, zone-name display bug),
-  remediated as **`IP-9160`** (authored run #203, authorized + implemented runs #205/#206,
-  `COMPLETE`, own `09` pass owed). **`IP-9150`** (ROM hygiene) also user-authorized + implemented
-  run #207, `COMPLETE`, own `09` pass owed. Bootstrap baseline remains fully closed (01–11 ✅, GO
-  recorded); Release 2 remains baselined GO.
-- **Pipeline state:** Bootstrap stages 01–11 ✅; Release 2 GO. 37 packages `VERIFIED`
-  (`IP-1106`/`IP-1111` both closed this session); **two packages `COMPLETE`, each still owed its
-  own `09-package-verification` pass in a fresh session** (neither implemented by this session):
-  `IP-9160` (zone-name restoration, `BL-0138` fix, 320/320), `IP-9150` (tile-data trim, 321/321,
-  ROM 31390/32768 with 1,378 headroom). After both verify: `10-integration-review` on the delta
-  tranche, then the standing G4 question. Standing, non-blocking work unchanged: `BL-0118`; the
-  doc-accuracy sweep family (incl. `BL-0136`); `BL-0123`; `BL-0112`; `BL-0097`; `BL-0130`;
-  `BL-0133` (`SCHEDULED`, queued behind this delta's verification chain); `BL-0139` (Medium,
-  `SCHEDULED`, HUD carrot-target digit).
-- **Backlog:** 139 entries, none new since run #207 (`IP-1106`/`IP-1111`'s verifications found no
-  findings). `BL-0127` now closes once `IP-9150`/`IP-9160` (not on its own critical path but part
-  of the same delta window) and the tranche `10-integration-review` land; `BL-0128` narrows to
-  `IP-9160`/`IP-9150`'s own VRs plus that same `10-integration-review`.
-- **Next step:** `09-package-verification` on `IP-9160` (critical-path order: next after
-  `IP-1111`), independence intact — this session has not implemented `IP-9160`. Then `IP-9150` →
-  `10-integration-review` on the full eight-package tranche.
+  `IP-1106` all `VERIFIED` (runs #187, #191, #198, #208). **(4) Procgen music** (`BL-0127`) —
+  `IP-1110`/`IP-1111` both `VERIFIED` (runs #188, #209). **Run #202: `09-content-review`** — 1
+  Medium found (`BL-0138`), remediated as **`IP-9160`**, now `VERIFIED` (run #210). **`IP-9150`**
+  (ROM hygiene) now `VERIFIED` (run #211). **This delta's full eight-package set — every package
+  across both arcs plus both remediations — is now `VERIFIED` end to end.** Bootstrap baseline
+  remains fully closed (01–11 ✅, GO recorded); Release 2 remains baselined GO.
+- **Pipeline state:** Bootstrap stages 01–11 ✅; Release 2 GO. **39 packages `VERIFIED`, zero
+  `COMPLETE`/`IN PROGRESS`/`READY` — every implemented package in the tree is now `VERIFIED`.**
+  The nine-biome-family-identities + procgen-music delta (`IP-1105`/`IP-1033`/`IP-1022`/`IP-1106`/
+  `IP-1110`/`IP-1111`/`IP-9160`/`IP-9150`) is fully `VERIFIED` but has never had its own
+  `10-integration-review` pass — the natural next step, unGated (all inputs already `VERIFIED`).
+  Standing, non-blocking work unchanged: `BL-0118`; the doc-accuracy sweep family (incl.
+  `BL-0136`/`BL-0137`); `BL-0123`; `BL-0112`; `BL-0097`; `BL-0130`; `BL-0133` (`SCHEDULED`, was
+  queued behind this delta's verification chain — now unblocked, needs its own triage); `BL-0139`
+  (Medium, `SCHEDULED`, HUD carrot-target digit, needs its own `07` packaging).
+- **Backlog:** 139 entries, none new since run #207. `BL-0127`/`BL-0128` narrow to just this
+  `10-integration-review` pass — nothing else stands between them and `DONE`.
+- **Next step:** `10-integration-review` on the full eight-package delta tranche — no gate
+  required (every input package `VERIFIED`, no release bucket mid-close overlapping it).
 - **Open gates:** **one.** The standing G4 question (whether/when to run `11-release-readiness`
   on Infinite Mode) — informational, blocking nothing. Both G3 gates were resolved run #205
-  (user authorized `IP-9160` and `IP-9150`; both now implemented).
+  (user authorized `IP-9160` and `IP-9150`; both now implemented and `VERIFIED`).
 
 ## Run log
 
@@ -263,3 +258,4 @@
 | 208 | 2026-07-17 | advance (fresh session — user: "Iterate pipeline skill until all open and backlogged items are blocked") | `09-package-verification` | `IP-1106` (Infinite Mode nine-identity value-range widening) | ✅ **VERIFIED** ([VR-1106](../implementation/verification/VR-1106-infinite-mode-nine-identity-value-widening.md)). Genuine independence: fresh session/container, PyBoy 2.7.0 installed clean, every claim re-derived from the tree. Installed PyBoy; rebuilt ROM (32768 bytes, valid header, 31390/32768 used — matches `IP-9150`'s post-trim baseline since all four `COMPLETE` packages are layered on the same tree); ran full suite (**321/321**). Every DoD/checklist item evidenced from source: `worldgen.py:287` `%9`; `asm_game.py`'s `inf_mod9` confirmed the sole surviving mod-N routine (zero `inf_mod5` references anywhere); `inf_treasure_pos`'s four new entries re-derived against `tilemaps.py`'s `VILLAGE_COLLECTS`/`CAVE_COLLECTS`/`DESERT_COLLECTS`/`PLAINS_COLLECTS` type-2 entries — exact match on all four; `IP-1105`'s bit-layout and `IP-1022`'s dispatch cascade confirmed byte-for-byte unchanged by direct diff of commit `0557922`; diff scope (`git show --stat`) confirmed exactly within §6's declared file set. `T26.h`/`T26.i` (this package's own value-range-coverage and dispatch-integration checks) both independently confirmed passing with the corpus-driven coverage the DoD requires — no separate live-drive needed since the shipped tests already vary `(seed,row,col)` across a corpus rather than defaulting a single tunable. No findings. Ledgers updated: Master Build Plan (`IP-1106` → `VERIFIED`, critical-path chain note closed), packages `INDEX.md`, verification `INDEX.md`, RTM (`FR-4320` row cell `COMPLETE`→`VERIFIED`). No drift beyond the expected post-run-#207 state. | `09-package-verification` on `IP-1111` — next in the recorded critical-path order, same fresh-session independence still holds (this session has not touched `IP-1111`'s implementation) |
 | 209 | 2026-07-17 | advance (same session, "iterate pipeline until all open and backlogged items are blocked") | `09-package-verification` | `IP-1111` (biome-family sub-theme playback selection) | ✅ **VERIFIED** ([VR-1111](../implementation/verification/VR-1111-biome-family-sub-theme-playback-selection.md)). Independence intact — this session has never touched `IP-1111`'s own implementation (run #201, a prior session). 321/321 suite (unchanged tree since run #208's own rebuild), ROM 32768/32768 valid build. `music_select` confirmed by direct code read to open with `PUSH_AF` and close with `POP_AF` immediately before `RET` — A-preservation confirmed, not merely assumed from the package's own claim. `grep -n "mus_reset"` across `asm_game.py`/`build_rom.py`/`test_rom.py`: only comments, zero live references. `dsr_p_dispatch` confirmed unchanged beyond the single inserted `CALL music_select` at the label (direct read of the cascade below it, matching `IP-1022`'s own shipped structure exactly). Diff scope (`git show c3f6ba2 --stat`) confirmed exactly within §6 — no `worldgen.py`, no generation code. `T28.a`–`T28.e` all reconfirmed. No findings. Ledgers updated: Master Build Plan (`IP-1111` → `VERIFIED`, both critical-path-chain notes for arcs 3/4 now read fully-`VERIFIED`), packages `INDEX.md` (also corrected a stale `READY` cell the implementing run had left uncorrected), verification `INDEX.md`, RTM (`FR-7110` row cell `COMPLETE`→`VERIFIED`, `IP-1111` cite). No drift beyond the expected post-run-#208 state. | `09-package-verification` on `IP-9160` — next in the recorded critical-path order; independence intact (implemented run #206, a prior session) |
 | 210 | 2026-07-17 | advance (same session, "iterate pipeline until all open and backlogged items are blocked") | `09-package-verification` | `IP-9160` (procedural-screen zone-name restoration, `BL-0138`) | ✅ **VERIFIED** ([VR-9160](../implementation/verification/VR-9160-procedural-screen-zone-name-restoration.md)). Independence intact — implemented run #206, a prior session. 321/321 suite, ROM 32768/32768 valid build. `T13.e`/`T13.g` reconfirmed passing. Installed Pillow fresh (not present in this container); wrote an **own standalone script** (not reused from the implementing commit) that independently fresh-boots, forces Forest (baked, name "FOREST") then Village (procedural, biome-id 5), reads the row-0 name-region VRAM bytes directly, and compares them byte-for-byte against `village_screen()`'s own oracle — exact match; own screenshot captured (`shots/village_indep.png`) visually confirming "VILLAGE" renders correctly in the HUD, satisfying the package's own Verification-Checklist live-evidence item independently rather than trusting the implementing commit's own `fix_village.png`. Diff scope (`git show db6c848 --stat`) confirmed `tilemaps.py`+`test_rom.py` only. No findings. Ledgers updated: Master Build Plan (`IP-9160` → `VERIFIED`), packages `INDEX.md`, verification `INDEX.md`, backlog (`BL-0138` → `DONE`). No drift beyond the expected post-run-#209 state. | `09-package-verification` on `IP-9150` — last package in the tranche; independence intact (implemented run #207, a prior session) |
+| 211 | 2026-07-17 | advance (same session, "iterate pipeline until all open and backlogged items are blocked") | `09-package-verification` | `IP-9150` (tile-data padding trim) | ✅ **VERIFIED** ([VR-9150](../implementation/verification/VR-9150-tile-data-padding-trim.md)). Independence intact — implemented run #207, a prior session. 321/321 suite, ROM 32768/32768 valid build (31390 used). `TILE_DATA_TILES` confirmed shared by both `tiles.py`'s allocation and `asm_game.py`'s boot-init copy count via direct code read (not merely matching literals — `asm_game.py`'s own explicit import list names the constant); independently re-derived the highest-used `TL_*` constant as 181 (`TL_TORCH`), matching the package's own claim; exact 1,152-byte recovery confirmed against the pre-package (post-`IP-9160`) baseline of 32542/32768. `T1.13` reconfirmed. No findings. **This closes every package in the eight-package delta (nine-biome-family identities + procgen music, incl. both remediations) to `VERIFIED`.** Ledgers updated: Master Build Plan (`IP-9150` → `VERIFIED`, tranche-wide authorization note now reads "all `VERIFIED`"), packages `INDEX.md`, verification `INDEX.md`. No drift beyond the expected post-run-#210 state. | `10-integration-review` on the full eight-package delta tranche (`IP-1105`/`IP-1033`/`IP-1022`/`IP-1106`/`IP-1110`/`IP-1111`/`IP-9160`/`IP-9150`) — every package now `VERIFIED`, no gate needed to run a review |
