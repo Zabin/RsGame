@@ -760,6 +760,32 @@ check("T8.10b HUD carrot-count digit reflects forced CARROTS_COUNT=5 within 2 fr
 pb.memory[CARROTS_COUNT] = carrots_pre; pb.memory[SCORE_DIRTY] = 1
 [pb.tick() for _ in range(2)]
 
+# T8.10c/d/e (IP-9170, BL-0139): HUD carrot-target digit (row 0, col 4,
+# 0x9804) must track WORLD_SCALE at runtime in finite mode -- previously
+# baked to a literal "9" regardless of the real win condition
+# (CARROTS_COUNT == WORLD_SCALE, IP-1021). Two non-default, non-corpus-
+# default scale values (this suite's own default fixture scale is 3) so
+# the check can't pass vacuously against the pre-existing bug.
+world_scale_pre = pb.memory[WORLD_SCALE]
+pb.memory[WORLD_SCALE] = 5; pb.memory[SCORE_DIRTY] = 1
+[pb.tick() for _ in range(2)]
+td5 = pb.memory[0x9804] - TL_DIGIT_0
+check("T8.10c HUD carrot-target digit reflects forced WORLD_SCALE=5 within 2 frames (IP-9170)",
+      td5 == 5, f"digit={td5}")
+pb.memory[WORLD_SCALE] = 7; pb.memory[SCORE_DIRTY] = 1
+[pb.tick() for _ in range(2)]
+td7 = pb.memory[0x9804] - TL_DIGIT_0
+check("T8.10d HUD carrot-target digit reflects forced WORLD_SCALE=7 within 2 frames (IP-9170)",
+      td7 == 7, f"digit={td7}")
+pb.memory[GAME_MODE] = 1; pb.memory[WORLD_SCALE] = 6; pb.memory[SCORE_DIRTY] = 1
+[pb.tick() for _ in range(2)]
+td_inf = pb.memory[0x9804]
+check("T8.10e Infinite Mode non-regression: col 4 unaffected by WORLD_SCALE changes (GAME_MODE gate holds, IP-9170)",
+      td_inf == TL_DIGIT_0 + 7, f"tile={td_inf:#x} (expected unchanged from T8.10d's own last finite-mode write)")
+pb.memory[GAME_MODE] = 0
+pb.memory[WORLD_SCALE] = world_scale_pre; pb.memory[SCORE_DIRTY] = 1
+[pb.tick() for _ in range(2)]
+
 # Map hearts (BL-0001 closure): z0 heart full, z1 heart empty.
 # update_map_hearts writes 0x9800 + {6,9,12}*32 + {6,11,16}, LCD off during redraw.
 pb.button('select'); [pb.tick() for _ in range(40)]
@@ -1225,11 +1251,13 @@ _ARROW_EXCLUDE_RC = {(1, 15), (16, 15), (9, 1), (9, 18)}   # up/down/left/right
 # IP-9160: row 0 is now compared too (the zone-name region is real
 # per-screen oracle content — its wholesale exclusion masked BL-0138's
 # stale-name defect). Only the live digit cells update_status_disp
-# rewrites at runtime are excluded: col 2 (carrot count), cols 8-10
-# (score) — inventoried by direct read of every row-0 writer
-# (_score_bar's own placeholders are static; update_status_disp is the
-# sole runtime row-0 writer, tile plane only).
-_ROW0_DYNAMIC_RC = {(0, 2), (0, 8), (0, 9), (0, 10)}
+# rewrites at runtime are excluded: col 2 (carrot count), col 4
+# (carrot-target, IP-9170 -- finite mode only, but this suite always
+# advances via advance_to_playing's finite path), cols 8-10 (score) —
+# inventoried by direct read of every row-0 writer (_score_bar's own
+# placeholders are static; update_status_disp is the sole runtime row-0
+# writer, tile plane only).
+_ROW0_DYNAMIC_RC = {(0, 2), (0, 4), (0, 8), (0, 9), (0, 10)}
 def full_screen_tiles_attrs(pb):
     tiles = [pb.memory[0x9800 + r*32 + c] for r in range(0, 18) for c in range(32)]
     pb.memory[0xFF4F] = 1

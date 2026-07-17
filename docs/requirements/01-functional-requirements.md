@@ -1755,7 +1755,12 @@ confirmed unused before this delta by direct grep of the existing document.)*
   achievable by construction: `FR-9160` guarantees exactly `WORLD_SCALE` `KeyItem`s exist, and
   `FR-9120`'s full-reachability guarantee (unaffected by this decision) ensures every one of them
   is reachable. Implemented 2026-07-13 (`IP-1021`): `check_complete` reads `WORLD_SCALE` at
-  runtime in place of the old hardcoded `9`; `test_rom.py` T4.8 (corrected)/T12.n.
+  runtime in place of the old hardcoded `9`; `test_rom.py` T4.8 (corrected)/T12.n. **2026-07-17
+  (`IP-9170`, `BL-0139`):** the HUD's own target digit (row 0, col 4) was still baked to a
+  literal `9` at build time and never reflected this FR's real runtime threshold — any world at
+  a scale other than 9 showed a mismatched target. Fixed: `update_status_disp` now writes the
+  live `WORLD_SCALE` value there in finite mode (`test_rom.py` T8.10c/d). Infinite Mode's own
+  col-4 cell is untouched by this fix (no fixed ceiling exists there — `BL-0144`, open).
 
 ### FR-9170 — Finite-mode biome-blob clustering via per-super-cell positional hash
 
