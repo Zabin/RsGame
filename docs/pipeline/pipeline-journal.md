@@ -14,37 +14,38 @@
 
 ## Position
 
-- **Updated:** 2026-07-17 (run #191)
+- **Updated:** 2026-07-17 (run #192)
 - **Increment:** Four independent arcs. **(1)/(2)** unchanged, closed at runs #167/#168. **(3)
-  Nine biome-family identities** (`BL-0128`/`FR-4320`) — `IP-1105` `VERIFIED` (run #187). `IP-1033`
-  returned (run #186, `VR-1033` Pass 1: 3 of 4 staged collectible lists each placed an entry on an
-  existing landmark tile), reworked (run #189, `BL-0131`), then **independently re-verified this
-  run (#191, fresh session)**: all 24 staged entries' tile positions re-derived from source, zero
-  exact-tile overlaps remain — `IP-1033` now `VERIFIED`. `IP-1022` unblocked to `READY` (already
-  G3-authorized); `IP-1106` still `BLOCKED` on `IP-1022` alone. **(4) Procgen music** (`BL-0127`)
-  — `IP-1110` `VERIFIED` (run #188). `IP-1111` remains `BLOCKED` on `IP-1022` and still needs its
-  own future `07` touch for the `music_table` interface change. Bootstrap baseline remains fully
-  closed (01–11 ✅, GO recorded); Release 2 remains baselined GO.
+  Nine biome-family identities** (`BL-0128`/`FR-4320`) — `IP-1105`/`IP-1033` both `VERIFIED` (runs
+  #187, #191). `IP-1022` — the shared code package both `IP-1106` and `IP-1111` wait on —
+  **attempted this run (#192) and hit a genuine ROM-budget overflow**: wiring the four new
+  screens into `ALL_SCREENS` costs 4,608 bytes against 1,406 bytes of headroom, a 3,202-byte
+  shortfall. Not a code defect — every change matched the package's own spec exactly; the package
+  itself never tallied this cost. Reverted, tree confirmed back to last-known-good. `IP-1022` now
+  `BLOCKED` (ROM budget, `BL-0134`), same as `IP-1106`/`IP-1111` transitively. **(4) Procgen music**
+  (`BL-0127`) — `IP-1110` `VERIFIED` (run #188). `IP-1111` remains `BLOCKED` on `IP-1022` (now for
+  the ROM-budget reason) and still needs its own future `07` touch for the `music_table` interface
+  change. Bootstrap baseline remains fully closed (01–11 ✅, GO recorded); Release 2 remains
+  baselined GO.
 - **Pipeline state:** Bootstrap stages 01–11 ✅; Release 2 GO. **34 of 35 implementation packages
-  `VERIFIED`**; `IP-1022` `READY` (G3-authorized, next critical-path implementation); `IP-1106`/
-  `IP-1111` `BLOCKED` on it, directly or transitively. Standing, non-blocking work elsewhere,
-  unchanged: `BL-0118`'s `NFR-1400` optimization package; the `IP-110x` documentation-accuracy
-  sweep (`BL-0115`/`117`/`120`/`121`/`124`/`125`/`132`, all Low); `BL-0123` (Low, `DEFERRED`);
-  `BL-0112` (the `FR-10400` run-end trigger — a standing user decision); `BL-0097`'s own
-  remediation (Medium, optional craft polish, no `07` package authored yet); `BL-0130` (catalog
-  gap, routed `05`). **New this run:** `BL-0133` (intake, "infinite-map mob mode + treasure-fed
-  ranged weapon") filed by `00-intake` on a different branch/PR (#26) before this session's
-  pipeline work began — triaged `SCHEDULED`, queued behind this delta's remaining chain, entry
-  stage `03-architecture-design-synthesis` as a new increment once this chain closes.
-- **Backlog:** 132 entries (net 133 filed, 1 net-new + 1 disposition change this run). `BL-0131`
-  flipped `SCHEDULED`→`DONE` (this run's `IP-1033` re-verification closed it). `BL-0133` (new,
-  intake) triaged `SCHEDULED`, not ripe/blocking. `BL-0132` (Low, `DEFERRED`) still rides a future
-  `IP-1111` touch; `BL-0127`/`BL-0128` both still `IN PIPELINE` (both narrow to `IP-1022` as their
-  sole remaining blocker).
-- **Next step:** `08-code-implementation` on `IP-1022` (finite-mode nine-identity generation &
-  screen dispatch) — `READY`, already `AUTHORIZED` (G3, "Build all six," 2026-07-16), no fresh gate
-  needed. Critical-path package: unblocks `IP-1106` and, once that lands, `IP-1111`
-  (pending its own still-owed `07` touch for the `music_table` interface).
+  `VERIFIED`**; `IP-1022`/`IP-1106`/`IP-1111` all `BLOCKED` on a single root cause — `IP-1022`'s
+  ROM-budget shortfall (`BL-0134`). Standing, non-blocking work elsewhere, unchanged: `BL-0118`'s
+  `NFR-1400` optimization package; the `IP-110x` documentation-accuracy sweep (`BL-0115`/`117`/
+  `120`/`121`/`124`/`125`/`132`, all Low); `BL-0123` (Low, `DEFERRED`); `BL-0112` (the `FR-10400`
+  run-end trigger — a standing user decision); `BL-0097`'s own remediation (Medium, optional craft
+  polish, no `07` package authored yet); `BL-0130` (catalog gap, routed `05`); `BL-0133` (intake,
+  "infinite-map mob mode + treasure-fed ranged weapon", filed run #190-adjacent on this branch's
+  own PR #26) — triaged `SCHEDULED`, queued behind this delta's chain, entry stage `03`.
+- **Backlog:** 134 entries. `BL-0134` (new, High) — `IP-1022`'s ROM-budget overflow — triaged
+  `SCHEDULED`, rides the very next `07-implementation-planning` pass. `BL-0131` closed `DONE` (run
+  #191). `BL-0133` `SCHEDULED`, not ripe. `BL-0132` (Low, `DEFERRED`) still rides a future
+  `IP-1111` touch; `BL-0127`/`BL-0128` both still `IN PIPELINE` (both now narrow to `BL-0134`'s
+  resolution as their sole remaining blocker, one level deeper than `IP-1022` itself).
+- **Next step:** `07-implementation-planning` on `BL-0134` — determine whether the 3,202-byte
+  ROM-budget shortfall can close within the existing single-bank budget (trim/compress other data)
+  or genuinely requires an architecture-level decision (multi-bank ROM, `ADR-0001`'s own named C7
+  trigger) that would need a fresh `NEEDS-USER` gate beyond the existing "Build all six"
+  authorization.
 - **Open gates:** **one, unchanged.** Whether/when to run `11-release-readiness` on Infinite Mode
   remains the user's own call (G4) — informational only, not currently blocking anything.
 
@@ -247,3 +248,4 @@
 | 189 | 2026-07-17 | advance (same session as run #188) | `08-content-authoring` | IP-1033 (rework per `VR-1033` Finding 1, `BL-0131`) | ✅ Repositioned the four overlap-flawed entries: `VILLAGE_COLLECTS`'s `KeyItem` `(136,96)`→`(48,64)`; `DESERT_COLLECTS`'s star `(32,96)`→`(64,96)`; `PLAINS_COLLECTS`'s first two entries `(24,32)`/`(24,96)`→`(40,40)`/`(48,112)`. Verified by direct rendered-tile-value inspection (rendered each screen, read the actual tile ID at every collectible's exact grid position, cross-checked against every landmark tile the screen generator itself places) rather than re-trusting the same visual-inspection convention that missed the original defect — all six entries in all four lists now confirmed landing on plain floor tiles, zero exceptions. 309/309 suite unchanged, ROM byte-identical (31362/32768) — the data remains inert. `IP-1033` → `COMPLETE` again. Harvested: none new (the fix directly closes `BL-0131`'s own disposition — re-dispositioned below, not yet `DONE` since its own re-verification is still owed). No drift. Pushed and opened [PR #25](https://github.com/Zabin/RsGame/pull/25) (draft) covering runs #186-189; subscribed to its activity. | `09-package-verification` on the reworked `IP-1033` — **blocked by the skill's own same-session-independence rule**, since this session just implemented the rework |
 | 190 | 2026-07-17 | advance (same session as run #189) | — (gate check) | Same-session-independence block on `09-package-verification`/`IP-1033` | ✅ Stopped at the skill's own explicit rule, identical situation to run #182 (different package that time). Asked the user via `AskUserQuestion` how to proceed (stop and wait for a fresh session / accept degraded independence and verify now / delegate to a background subagent for genuine independence). **User chose: stop and wait for a fresh session.** No drift. | **Full stop, by explicit user decision.** A future session should run `09-package-verification` on `IP-1033` (the reworked collectible placements, `BL-0131`) — the sole remaining mechanical step blocking `IP-1022`/`IP-1106`/`IP-1111` and, transitively, `10-integration-review`/`11-release-readiness` on this delta. |
 | 191 | 2026-07-17 | advance (fresh session — user asked to "iterate pipeline until fully blocked") | `09-package-verification` | `IP-1033` (reworked collectible-spawn content, `BL-0131`), Pass 2 | ✅ **VERIFIED.** Reconciled position against ledgers (Master Build Plan, backlog) first; triaged one `NEW` backlog entry from outside this session's pipeline work (`BL-0133`, an intake filing on a different branch — dispositioned `SCHEDULED`, entry stage `03`, queued behind this delta's chain). Genuine independence confirmed: fresh session, no memory of the rework commit `fc3c181`. Installed PyBoy 2.7.0/Pillow/numpy fresh; rebuilt ROM (32768 bytes, 31362 used, matching claim); ran full suite (309/309); independently re-derived all 24 staged entries' tile-grid positions from `village_screen`/`cave_screen`/`desert_screen`/`plains_screen`'s own source (own script, not trusting the rework commit's stated positions) — zero exact-tile overlaps, nearest-landmark distances 1.0–4.12 tiles; confirmed scope (`git show --stat` on both `IP-1033` commits) never touches `asm_game.py`/`build_rom.py`. Wrote `VR-1033` Pass 2 section (kept Pass 1's `RETURNED` history intact). Ledgers updated: Master Build Plan (`IP-1033`→`VERIFIED`, `IP-1022`→`READY`), verification `INDEX.md`, backlog (`BL-0131`→`DONE`, `BL-0128`/`BL-0127` trailing notes updated). No drift found beyond the expected post-run-#190 state. | `08-code-implementation` on `IP-1022` — already `READY` and `AUTHORIZED`, no gate |
+| 192 | 2026-07-17 | advance (same session as run #191, "iterate pipeline until fully blocked") | `08-code-implementation` | `IP-1022` (finite-mode nine-identity generation & screen dispatch) | ⛔ **BLOCKED — genuine ROM-budget overflow, not a code defect.** Package was `READY`/`AUTHORIZED` (G3, "Build all six"); implemented every code change exactly per spec (worldgen.py/asm_game.py clamp+dispatch widening 0-4→0-8, `ALL_SCREENS`/`ZONE_COLLECTS` extension, `build_rom.py` patch wiring) — confirmed structurally correct. But wiring `village`/`cave`/`desert`/`plains` into `ALL_SCREENS` makes `build_rom.py` emit their full tile+attr data for the first time (`IP-1033`'s own content stayed inert): 4,608 bytes needed, only 1,406 bytes of headroom exist — 3,202-byte shortfall, build crashes. The package's own §13 Risks never named ROM budget. Reverted all source edits; independently confirmed the tree back to last-known-good (rebuild 31362/32768, full suite 309/309). Filed `BL-0134` (High), triaged `SCHEDULED` — rides the very next `07-implementation-planning` pass (check for mechanical headroom/compression first; escalates to `NEEDS-USER` only if planning can't close the gap without an architecture-level bank-switching decision, per `ADR-0001`'s own named C7 trigger). Master Build Plan + packages `INDEX.md` updated (`IP-1022`→`BLOCKED`, `IP-1106`/`IP-1111` notes refreshed). No drift beyond this run's own finding. | `07-implementation-planning` on `BL-0134` — resolve the ROM-budget shortfall (or escalate to a `NEEDS-USER` gate if unresolvable within existing headroom) |
