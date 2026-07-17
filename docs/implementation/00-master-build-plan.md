@@ -837,3 +837,26 @@ forward-design work, not covered by the `BL-0001`…`BL-0005` G3 bootstrap carve
 `IP-1033` are `NOT STARTED` (gated only on G3); `IP-1022`/`IP-1106` are `BLOCKED` (gated on both
 G3 *and* their own unshipped prerequisites — a strictly later point in the chain than "just needs
 authorization").
+
+## Procedural Music Generation (`FS-111`/`FEAT-7100`/`EP-7000`, `ADR-0019`/`BL-0127`, planned 2026-07-16)
+
+Two packages implementing `FR-7100`/`FR-7110` in full — see the
+[TWBS](01-technical-work-breakdown.md#procedural-music-generation-fs-111feat-7100ep-7000-adr-0019bl-0127-planned-2026-07-16)
+for the full verb inventory, including a real technical finding this pass surfaced (`music_tick`'s
+loop-restart branch is hardcoded to the main theme's own address, not track-agnostic — fixed
+inside `IP-1111`, not split out).
+
+| Package | Title | Owner (08 peer) | Status | Depends on | Authorized? | Notes |
+|---|---|---|---|---|---|---|
+| [IP-1110](packages/IP-1110-procedural-music-generation.md) | Procedural Music Generation (build-time sub-theme generation) | `08-code-implementation` | **NOT STARTED** | FR-7100 (baselined), FR-4320 (baselined, identity set only — no execution dependency) | **NOT YET — no G3 on record** | Generates nine biome-family sub-themes via transposition/tempo-duration scaling of the existing main theme. Resolves `FS-111`'s Open Question 3: Grass assigned as the zero-transform anchor, matching `generate_world`'s own `(0,0)=Grass` precedent. No runtime code, no WRAM change. |
+| [IP-1111](packages/IP-1111-biome-family-sub-theme-playback-selection.md) | Biome-Family Sub-Theme Playback Selection | `08-code-implementation` | **BLOCKED** (two real prerequisites unshipped) | IP-1110 (NOT STARTED), IP-1022 (BLOCKED) | **NOT YET — no G3 on record** | Hooks into `do_screen_redraw`'s per-state dispatch (default reset to main theme) and `dsr_p_dispatch`'s per-identity cascade (override to matching sub-theme) — resolves `FS-111`'s Open Question 1. Also fixes `music_tick`'s hardcoded loop-restart target (new `MUSIC_BASE_LO`/`MUSIC_BASE_HI`), a correctness gap this planning pass found, not named in `FS-111`. Cannot be fully authored at the line-number level until `IP-1022` ships all nine `dsr_p_dispatch` branches. |
+
+**Critical-path chain within this delta:** `IP-1110` (root, `NOT STARTED`) → `IP-1111` (`BLOCKED`
+on `IP-1110` and, two levels deep, on arc (3)'s own `IP-1033` → `IP-1022` chain). Does not extend
+or block arc (3)'s own critical path — `IP-1111` merely joins it as a new downstream consumer of
+`IP-1022`'s own output.
+
+**Authorization state: neither package authorized** — both new, additive forward-design work, not
+covered by the G3 bootstrap carve-out. `IP-1110` is `NOT STARTED` (gated only on G3); `IP-1111` is
+`BLOCKED` (gated on G3 *and* two real unshipped prerequisites, one of them — `IP-1022` — itself
+still `BLOCKED` on arc (3)'s own `IP-1033`).
