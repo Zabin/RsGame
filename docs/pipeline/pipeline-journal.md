@@ -14,42 +14,42 @@
 
 ## Position
 
-- **Updated:** 2026-07-17 (run #198)
-- **Increment:** Four independent arcs. **(1)/(2)** unchanged, closed at runs #167/#168. **(3)
-  Nine biome-family identities** (`BL-0128`/`FR-4320`) — `IP-1105`/`IP-1033`/`IP-1022` all
-  `VERIFIED` (runs #187, #191, **#198 this run**). **`VR-1022` (fresh session, genuine
-  independence): 311/311 suite, byte-identical ROM rebuild (32158/32768, 610 headroom), every
-  DoD/checklist item re-derived from the tree, plus an independent live drive at non-default
-  parameters (seed=50, scale=9 — real menu entry, real held-button edge-crossing navigation into
-  regions of all four new identities): 81/81 live `REGION_GRAPH` records oracle-matched, 0/544
-  tile + 0/544 attr parity mismatches on all four screens.** `IP-1106` → `READY` (all deps
-  `VERIFIED`, G3 already on record) — the arc's last package. **(4) Procgen music** (`BL-0127`) —
-  `IP-1110` `VERIFIED` (run #188). `IP-1111`'s sole remaining blocker is now its own `07` §5/§6
-  touch (consume `IP-1110`'s shipped `music_table` interface); both code deps `VERIFIED`.
-  Bootstrap baseline remains fully closed (01–11 ✅, GO recorded); Release 2 remains baselined GO.
-- **Pipeline state:** Bootstrap stages 01–11 ✅; Release 2 GO. **All 35 previously-implemented
-  packages `VERIFIED`.** `IP-1106` `READY` (authorized, eligible for `08-code-implementation`
-  pickup now); `IP-1111` `BLOCKED` on its own `07` planning touch only. `IP-9150` (`NOT STARTED`,
-  not authorized) remains a parallel, independent hygiene win, no longer necessary for anything.
-  Standing, non-blocking work elsewhere, unchanged: `BL-0118`'s `NFR-1400` optimization package;
-  the `IP-110x` documentation-accuracy sweep (`BL-0115`/`117`/`120`/`121`/`124`/`125`/`132`, all
-  Low, joined this run by `BL-0136`); `BL-0123` (Low, `DEFERRED`); `BL-0112` (the `FR-10400`
-  run-end trigger — a standing user decision); `BL-0097`'s own remediation (Medium, optional craft
-  polish, no `07` package authored yet); `BL-0130` (catalog gap, routed `05`); `BL-0133` (intake,
-  "infinite-map mob mode + treasure-fed ranged weapon") — `SCHEDULED`, queued behind this delta's
-  chain, entry stage `03`.
-- **Backlog:** 137 entries. **New this run (VR-1022 harvest): `BL-0136`** (Low, `DEFERRED` — stale
-  "5 UI entries" `ALL_SCREENS` wording, `tilemaps.py` docstring + package text, rides the
-  doc-accuracy sweep) **and `BL-0137`** (Low, `DEFERRED` — `IP-1022` §5/§6 never amended for the
-  shipped parameter-block/row-table fill design; as-built record lives in the Build Plan + VR).
-  `BL-0127`/`BL-0128` both still `IN PIPELINE` — `BL-0128` narrows to `IP-1106`'s implementation,
-  `BL-0127` to `IP-1111`'s `07` touch + implementation. `BL-0133` `SCHEDULED`, not ripe.
-- **Next step:** `08-code-implementation` on `IP-1106` (Infinite Mode nine-identity value-range
-  widening — `READY`, authorized, the arc's last code package). After it: a fresh session's
-  `09-package-verification` pass on it, then `07-implementation-planning`'s `IP-1111` §5/§6 touch.
-  `IP-9150` remains available in parallel if the user wants it authorized.
-- **Open gates:** **one, unchanged.** Whether/when to run `11-release-readiness` on Infinite Mode
-  remains the user's own call (G4) — informational only, not currently blocking anything.
+- **Updated:** 2026-07-17 (run #204)
+- **Increment:** Four independent arcs. **(1)/(2)** unchanged, closed at runs #167/#168.
+  **(3) Nine biome-family identities** (`BL-0128`/`FR-4320`) — `IP-1105`/`IP-1033`/`IP-1022` all
+  `VERIFIED` (runs #187, #191, #198 — VR-1022 included an independent live drive at seed=50/
+  scale=9 into all four new identities, zero parity mismatches). **`IP-1106` implemented run #199**
+  (`COMPLETE`, 313/313, new `T26.h`/`T26.i`) — the arc's last code package. **(4) Procgen music**
+  (`BL-0127`) — `IP-1110` `VERIFIED` (run #188); `IP-1111` re-planned run #200 (consumes the
+  shipped `music_table` via one shared `music_select` + a single dispatch-entry `CALL`) and
+  **implemented run #201** (`COMPLETE`, 319/319, new `T28` suite incl. the `music_tick`
+  loop-restart fix). **Run #202: `09-content-review`** on the delta's rendered/audible content —
+  art/spawns/music clean, **1 Medium found** (`BL-0138`: the four procedural screens show the
+  *previous* screen's zone name — the on-device fill never writes row 0's name; masked by
+  `T13.e`'s overbroad row-0 exclusion). **Run #203: `07-implementation-planning`** authored the
+  remediation **`IP-9160`** (pure-data fix via the existing landmark-overlay mechanism, owner
+  `08-content-authoring`, ≈128 bytes — not authorized). Bootstrap baseline remains fully closed
+  (01–11 ✅, GO recorded); Release 2 remains baselined GO.
+- **Pipeline state:** Bootstrap stages 01–11 ✅; Release 2 GO. 35 packages `VERIFIED`;
+  **`IP-1106`/`IP-1111` both `COMPLETE`, each owed its own `09-package-verification` pass — both
+  require a fresh session** (this session implemented both). `IP-9160` (`NOT STARTED`, G3 gate)
+  and `IP-9150` (`NOT STARTED`, G3 gate) await user authorization. After both `09` passes land:
+  `10-integration-review` on the six-package delta tranche, then the standing G4 question.
+  Standing, non-blocking work unchanged: `BL-0118`; the doc-accuracy sweep family (now incl.
+  `BL-0136`); `BL-0123`; `BL-0112`; `BL-0097`; `BL-0130`; `BL-0133` (`SCHEDULED`, queued behind
+  this delta's chain — the chain still owes its verifications).
+- **Backlog:** 138 entries. New this session: `BL-0136`/`BL-0137` (Low, `DEFERRED`, run #198
+  harvest) and **`BL-0138`** (Medium, run #202 harvest, `SCHEDULED` — rides `IP-9160`, planning
+  done, implementation G3-gated). `BL-0134` `DONE` (run #197). `BL-0127`/`BL-0128` `IN PIPELINE`
+  — each narrows to its own package's fresh-session verification (+ `BL-0138`'s fix for the
+  screens' presentation polish).
+- **Next step:** **Fully blocked for this session.** A fresh session runs
+  `09-package-verification` on `IP-1106`, then `IP-1111` (one per invocation). In parallel, two
+  G3 decisions are with the user: authorize `IP-9160` (the Medium zone-name fix) and/or `IP-9150`
+  (optional hygiene). After both verifications: `10-integration-review` on the delta tranche.
+- **Open gates:** **three.** (a) G3 on `IP-9160` — the `BL-0138` Medium fix, recommended;
+  (b) G3 on `IP-9150` — optional ROM hygiene, no longer needed by anything; (c) the standing G4
+  question (whether/when to run `11-release-readiness` on Infinite Mode) — informational.
 
 ## Run log
 
@@ -261,3 +261,5 @@
 | 200 | 2026-07-17 | advance (same session, "Iterate pipeline skill until fully blocked") | `07-implementation-planning` | `IP-1111` §5/§6 touch (consume `IP-1110`'s shipped `music_table` interface) | ✅ Package fully revised (revision-history header added): §5/§6 now consume the flat, biome-id-indexed `music_table` `IP-1110` actually shipped (the per-identity `*_mus_lo`/`*_mus_hi` named patch keys were never created — `IP-1110`'s recorded in-scope deviation). The table's indexability collapses the original eight per-branch override snippets into **one shared `music_select` subroutine + a single `CALL` at `dsr_p_dispatch`'s entry** (both mode paths converge there with A = biome-id) — smaller footprint than originally planned, zero instructions inside any branch body; new `music_tbl` patch key mirrors `zc_table`'s resolution pattern; `music_tick` loop-restart fix (`MUSIC_BASE_LO`/`MUSIC_BASE_HI`, `mus_reset` retired) unchanged. Discovered while re-deriving: `build_rom.py` emits `music_table` but no patch key exposes its address to `asm_game.py` — the revised §6 adds one (a planning-level gap in the original §6, now closed). All line citations re-derived against the live tree; `MUSIC_BASE_*` prospective address moved `0xC69B`→`0xC6B3` (IP-1022's `FPS_*` block claimed the original). TWBS revision note appended. **`IP-1111` → `READY`** (deps `IP-1110`/`IP-1022` both `VERIFIED`; G3 "Build all six" on record). Harvested: none (the revision itself was the standing obligation, tracked on `IP-1110`'s row). | `08-code-implementation` on `IP-1111` (`READY`, authorized — the delta's last unimplemented package) |
 | 201 | 2026-07-17 | advance (same session, "Iterate pipeline skill until fully blocked") | `08-code-implementation` | `IP-1111` (biome-family sub-theme playback selection) | ✅ **COMPLETE — 319/319 suite passes.** Implemented exactly per the run-#200 revision: `music_select` subroutine (A-preserving, reads `IP-1110`'s `music_table` via the new `music_tbl` patch key — `zc_table` resolution pattern), unconditional main-theme default at every `do_screen_redraw` entry (Grass anchor, biome-id 2), a single `CALL` at `dsr_p_dispatch`'s entry covering all nine identities on both mode paths, `music_tick` loop-restart retargeted to the new `MUSIC_BASE_LO`/`MUSIC_BASE_HI` (`0xC6B3`/`0xC6B4` — confirmed free, GDS-07 updated), `mus_reset` fully retired (grep-confirmed), boot-init extended defensively. New `T28` suite: static table audit; selection correctness for all nine ids (finite `REGION_GRAPH` path) + Desert via the Infinite Mode `INF_WINDOW` path; eleven-state main-theme fallback; loop-restart from the sub-theme's own start (the silent-truncation regression the fix prevents); one-frame repoint timing. Initial `T28.a`–`c` drafts asserted exact `MUSIC_PTR` equality and failed — diagnosis: `MUSIC_PTR` is a live cursor advancing 3 bytes as the first note plays; corrected to pin `MUSIC_BASE` + in-track `PTR` range (a stronger check: proves playback is actually running the selected track). ROM 32414/32768 (total unchanged — code fit in alignment slack). Docs: FR-7110 Notes + RTM row, FS-111 header (both packages now implemented; OQ1/OQ4 resolved as implemented), GDS-07 `MUSIC_BASE_*` entry, Build Plan + INDEX → `COMPLETE`. Harvested: none new (the `MUSIC_PTR` lesson is recorded in the Build Plan row). `BL-0127` updated. | `09-content-review` on the nine-biome-family delta's rendered/audible content (four newly-reachable screens + procgen music) — the last step runnable this session; `IP-1106`/`IP-1111` verification needs a fresh session |
 | 202 | 2026-07-17 | advance (same session, "Iterate pipeline skill until fully blocked") | `09-content-review` | Nine-biome-family delta (IP-1022/IP-1033 screens + IP-1110/IP-1111 music) | ✅ Review written ([content-review-nine-biome-family-delta.md](../reviews/content-review-nine-biome-family-delta.md)), ROM rebuilt from head `4c4051f`, all four newly-reachable screens force-rendered + screenshotted (finite mode with all six spawned collectibles each, plus one Infinite Mode render — 5 screenshots under `docs/reviews/screenshots/`), `verify_music_generation.py` re-run (all pass), palette-group/spawn-fairness/doc-coherence audits all clean. **1 Medium finding, no Critical/High**: all four procedurally-filled screens display the *previous* screen's zone name in the row-0 HUD — the Python `*_screen()` oracles each write their own name ("VILLAGE" etc.), but `ADR-0020`'s on-device fill starts at row 1 and never writes it; every screenshot shows stale "FOREST". Masked by `T13.e`'s wholesale row-0 exclusion (`VR-1022` inherited the same blind spot — the parity check was exactly as specified by the package, and the package's spec was the gap). Harvested → **`BL-0138`** (Medium, `SCHEDULED`: `07` authors the remediation package next; its implementation will need a fresh G3 ask). | `07-implementation-planning` on `BL-0138` (author the zone-name remediation package — the last unGated step this session) |
+| 203 | 2026-07-17 | advance (same session, "Iterate pipeline skill until fully blocked") | `07-implementation-planning` | `BL-0138` remediation (zone-name restoration) | ✅ Authored **[IP-9160](../implementation/packages/IP-9160-procedural-screen-zone-name-restoration.md)** (all 14 fields) + TWBS section. Key planning finding by direct read: `apply_landmark_overlay` writes arbitrary `(x,y)` including row 0 (no row filter) and `build_rom.py`'s landmark emission is generic over list length — so the entire production fix is **data**: append each screen's name-region row-0 cells (mechanically derived from its own `*_screen()` oracle) to the four existing `*_LANDMARKS` lists. Owner therefore `08-content-authoring` (pure data-half + verifying tests), unlike `IP-1022`'s `BL-0135` seam case. Tests planned: `T13.e` row-0 exclusion narrowed to the live digit cells (inventoried at implementation time from every row-0 writer, not assumed) so parity finally covers the name region; new `T13.g` stale-name regression both directions. ≈128 data bytes vs. 354 headroom. **`NOT STARTED`, not authorized** — a post-bootstrap remediation, needs a fresh explicit G3. Ledgers: Build Plan + `packages/INDEX.md` rows added. Harvested: none new. | Gate check — G3 on `IP-9160` (and the standing `IP-9150` question); `09-package-verification` on `IP-1106`/`IP-1111` needs a fresh session |
+| 204 | 2026-07-17 | advance → gate stop (same session) | — (gate check) | Remaining step inventory | ⛔ **GATE: fully blocked for this session.** Every remaining unblocked step needs either (a) a **fresh session** — `09-package-verification` on `IP-1106` and on `IP-1111` (this session implemented both; the skill's same-session independence rule applies, and the user's standing precedent from run #190 is "stop and wait for a fresh session") — or (b) a **user decision**: G3 on `IP-9160` (Medium `BL-0138` fix, recommended), G3 on `IP-9150` (optional hygiene), and the standing informational G4 (Infinite Mode release-readiness timing). `BL-0133` stays queued behind this delta's verification chain by its own recorded disposition. Position block rewritten; batched gate questions put to the user in the session's closing summary. | Fresh session: `09-package-verification` on `IP-1106` (then `IP-1111`); user: the two G3 decisions |
