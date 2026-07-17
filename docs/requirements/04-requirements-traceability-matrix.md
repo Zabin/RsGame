@@ -72,7 +72,7 @@
 | FR-6200 | Persistent row-0 HUD | R204 | GDS-05 C6; GDS-08 §3 | — | `asm_game.py`/`tilemaps.py` | UNASSIGNED | UNASSIGNED | T5.4–T5.8 |
 | FR-6300 | Five non-zone UI screens | — | GDS-05 C6; GDS-04 | — | `tilemaps.py` | UNASSIGNED | UNASSIGNED | T5.1–T5.3, T4.4/T4.6/T4.8 (screens reached) |
 | FR-6400 | Player and collectible sprite rendering (added 2026-07-10, BL-0020) | — | GDS-08 §2 | ADR-0005, ADR-0007 | `asm_game.py` | UNASSIGNED | UNASSIGNED | T6.1–T6.10 — trustworthy, pre-existing evidence, formal requirement only |
-| FR-7100 | Procedural biome-family sub-theme generation from the main theme (Implemented, `IP-1110`, 2026-07-16) | R217 | — | ADR-0019 | `music.py`, `build_rom.py` | FS-111 | IP-1110 (COMPLETE) | `verify_music_generation.py` (build-time comparison check, all pass) |
+| FR-7100 | Procedural biome-family sub-theme generation from the main theme (Implemented, `IP-1110`, 2026-07-16) | R217 | — | ADR-0019 | `music.py`, `build_rom.py` | FS-111 | IP-1110 (VERIFIED) | `verify_music_generation.py` (build-time comparison check, all pass) |
 | FR-7110 | Biome-family-identity-keyed sub-theme playback selection (target, `BL-0127`) | — | — | ADR-0019 | `asm_game.py` (prospective) | UNASSIGNED | UNASSIGNED | UNASSIGNED |
 | CR-01 | Full save-field persistence — **RESOLVED/SPLIT 2026-07-07**: facing/frame half REJECTED (no row — see FR-5210); ScoreItem half APPROVED → see **FR-5220** row above | — | GDS-05 C5; BL-0018 (resolved) | — | `asm_game.py` | `RESOLVED — SEE FR-5220` | `RESOLVED — SEE FR-5220` | `RESOLVED — SEE FR-5220` |
 | CR-02 | Carrot-invariant enforcement | — | GDS-04; BL-0017 | — | `tilemaps.py` | `CANDIDATE — NOT BASELINED` | `CANDIDATE — NOT BASELINED` | `CANDIDATE — NOT BASELINED` |
@@ -133,7 +133,7 @@
 | NFR-1400 | Infinite Mode region-materialization timing (status NOT MET, measured 2026-07-14) | R114 | ADS-001 §Non-functional Requirements | ADR-0016 | `asm_game.py` | FS-110 | IP-1102 | T24.e — measured 78,860–81,792 cycles vs. 70,224-cycle frame budget |
 | NFR-2300 | Positional determinism for Infinite Mode generation | R114 | ADS-001 §System Architecture | ADR-0016 | `asm_game.py` | FS-110 | IP-1101 | T22.e, T22.a, T22.b |
 | NFR-4300 | Infinite Mode materialized-window WRAM headroom (Met, 2026-07-14) | R114 | ADS-001 §System Architecture | ADR-0016 | `asm_game.py` | FS-110 | IP-1102 | GDS-07 §7e inspection — 15 bytes vs. ~3.1 KiB bank-0 headroom |
-| NFR-4400 | Procedural music generation ROM budget (Met, `IP-1110`, 2026-07-16) | R217 | — | ADR-0019 | `music.py`, `build_rom.py` | FS-111 | IP-1110 (COMPLETE) | Inspection — direct build measurement (31362/32768 bytes used) |
+| NFR-4400 | Procedural music generation ROM budget (Met, `IP-1110`, 2026-07-16) | R217 | — | ADR-0019 | `music.py`, `build_rom.py` | FS-111 | IP-1110 (VERIFIED) | Inspection — direct build measurement (31362/32768 bytes used) |
 | NFR-5400 | Infinite Mode visited-region-ledger integrity and bounded capacity (Met, 128 entries FIFO-bounded) | R114 | ADS-001 §System Architecture | ADR-0016 | `asm_game.py` | FS-110 | IP-1104 | T27.a, T27.c |
 
 ## Notes on this matrix's honesty discipline
