@@ -11,7 +11,11 @@
 > (edge-indicator legend screen, `FEAT-1200` joins Release 2 as a second addendum, `CR-06`/
 > `BL-0100`); delta 2026-07-14 (Infinite Mode, `FEAT-10000` joins Future, `ADS-001`/`ADR-0016`/
 > `ADR-0017`/`BL-0082`); delta 2026-07-16 (Procedural Music Generation, `FEAT-7100` joins Future,
-> `ADR-0019`/`BL-0127`).** Owned by
+> `ADR-0019`/`BL-0127`); **delta 2026-07-17 — `FEAT-10000` + `FEAT-7100` + the `FR-4320`
+> nine-biome-family-identity delta move Future → Release 2 as a third addendum, assessed **GO**,
+> user-confirmed
+> ([release-assessment-infinite-mode-and-nine-biome-family-delta.md](../reviews/release-assessment-infinite-mode-and-nine-biome-family-delta.md))**.**
+> Owned by
 > `05-feature-decomposition`. Assigns every Feature
 > in [FP-03](03-feature-catalog.md) (now eighteen) to exactly one bucket, using
 > [FP-04](04-feature-dependency-graph.md)'s dependency analysis. **Bootstrap framing: seven of
@@ -109,6 +113,25 @@ Step 4 already established: the fixed bucket vocabulary has no "Release 3."
 Independent of the `ADR-0012` addendum's own ordering constraint (`FEAT-9100` before `FEAT-2100`)
 — `FEAT-1200` can proceed in parallel with either, per FP-04's own dependency analysis.
 
+### Release 2 addendum — Infinite Mode, nine biome-family identities, procedural music (added 2026-07-17, GO)
+
+Three streams of Future-bucket scope, all fully implemented, `VERIFIED`, and integration-reviewed
+clean by 2026-07-17, moved here on the project owner's explicit GO
+([release-assessment-infinite-mode-and-nine-biome-family-delta.md](../reviews/release-assessment-infinite-mode-and-nine-biome-family-delta.md)) —
+mirroring the identical "no Release 3" reasoning `FEAT-1200`'s own addendum above already
+established.
+
+| Feature/Delta | Why here |
+|---|---|
+| FEAT-10000 (Infinite Mode) | Fully shipped: all five packages (`IP-1100`–`IP-1104`) `VERIFIED`, integration-reviewed clean ([integration-review-infinite-mode-tranche.md](../reviews/integration-review-infinite-mode-tranche.md)). |
+| `FR-4320` delta (nine biome-family identities, folding into `FEAT-9000`/`FEAT-4100`'s existing scope, not a new Feature) | Fully shipped: `IP-1105`/`IP-1033`/`IP-1022`/`IP-1106`, all `VERIFIED`. |
+| FEAT-7100 (Procedural Music Generation) | Fully shipped: `IP-1110`/`IP-1111`, both `VERIFIED`. Its own prior blocker (verification against all nine biome-family identities) is resolved now that the `FR-4320` delta above has shipped. |
+| Remediations `BL-0138` (`IP-9160`)/`BL-0134` (`IP-9150`) | Riding the same window — both `VERIFIED`. |
+
+All twelve packages across this addendum, both integration reviews (this one plus the earlier
+Infinite Mode tranche review), and the Release Assessment above are the evidence base for this
+GO. See that assessment for the full scope audit, deviations, and residual risks.
+
 ## Bucket: Future
 
 Two kinds of item live here: program-level concerns not yet decomposed into a Feature at all, and
@@ -142,27 +165,8 @@ inventing requirements:
 
 ### Decomposed, not yet scheduled
 
-- **FEAT-10000 (Infinite Mode)** — added 2026-07-14, per `ADS-001`/`ADR-0016`/`ADR-0017`
-  (`BL-0082`, user-directed adoption). Fully decomposed (see [FP-03](03-feature-catalog.md)) with
-  a complete FR/NFR baseline and zero graph-blocking dependencies (all five of its own
-  dependencies are already shipped/`VERIFIED`, per [FP-04](04-feature-dependency-graph.md)) — it
-  is placed in Future rather than a numbered Release **not because anything blocks it technically,
-  but because no release commitment has been made**: this is exploratory, owner-initiated scope
-  with no MSTR-001 commitment driving it and no G3 authorization on record. Ready to move to a
-  real Release bucket the moment the project owner decides to schedule it — `06-feature-
-  specification` can proceed against it in the meantime regardless of bucket, per this pipeline's
-  own stage ordering (bucket assignment doesn't gate specification, only implementation
-  authorization, G3).
-- **FEAT-7100 (Procedural Music Generation)** — added 2026-07-16, per `ADR-0019` (`BL-0127`,
-  project-owner-requested). Fully decomposed (see [FP-03](03-feature-catalog.md)) with a complete
-  FR/NFR baseline (`FR-7100`/`FR-7110`/`NFR-4400`). Placed in Future for the same reason
-  `FEAT-10000` is: exploratory, owner-initiated scope with no `MSTR-001` commitment and no G3
-  authorization on record — not a technical block on specification. Its own build-time generation
-  half has zero graph-blocking dependencies; its runtime selection half has a real (not merely
-  bucket-driven) blocker of its own — it cannot be fully verified against all nine biome-family
-  identities until `FR-4320`'s own four implementation packages ship, and, separately, until
-  `FEAT-10000` itself is scheduled if Infinite Mode's own playback is to be verified too (see
-  [FP-04](04-feature-dependency-graph.md)'s critical-path note on this Feature).
+Both `FEAT-10000` and `FEAT-7100` (below) moved out of this section 2026-07-17 — see the new
+Release 2 addendum. Nothing remains in this subsection at present.
 
 ## Callouts
 
