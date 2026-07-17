@@ -505,10 +505,14 @@ ZONE_COLLECTS = [
 
 VILLAGE_COLLECTS = [
     # avoids the four top houses (cols 3/11/19), two lanterns (col 1),
-    # and four fence segments (cols 8/17) village_screen already places
+    # and four fence segments (cols 8/17) village_screen already places.
+    # IP-1033 rework (VR-1033 Finding 1, BL-0131): the type-2 entry
+    # originally at (136, 96) sat exactly on the (17, 12) fence tile --
+    # moved to (48, 64), tile (6, 8), confirmed clear of every house/
+    # lantern/fence tile village_screen places.
     (56, 48, 0), (112, 56, 1), (136, 40, 0),
     (40, 96, 1), (104, 96, 0),
-    (136, 96, 2),
+    (48, 64, 2),
 ]
 
 CAVE_COLLECTS = [
@@ -521,9 +525,13 @@ CAVE_COLLECTS = [
 
 DESERT_COLLECTS = [
     # avoids the four two-tile cacti (cols 4/12), four bone piles, and
-    # two pyramids desert_screen already places
+    # two pyramids desert_screen already places.
+    # IP-1033 rework (VR-1033 Finding 1, BL-0131): the entry originally
+    # at (32, 96) sat exactly on the (4, 12) cactus-top tile -- moved to
+    # (64, 96), tile (8, 12), confirmed clear of every cactus/bone/
+    # pyramid tile desert_screen places.
     (24, 40, 0), (80, 48, 1), (144, 64, 0),
-    (32, 96, 1), (56, 104, 0),
+    (64, 96, 1), (56, 104, 0),
     (128, 40, 2),
 ]
 
@@ -534,8 +542,15 @@ DESERT_COLLECTS = [
 # as ~1.5 tiles in a couple of spots (vs. ~2-3+ tiles elsewhere), named
 # explicitly per this package's own §6 instruction rather than silently
 # accepted as equivalent to the other three lists' own margins.
+# IP-1033 rework (VR-1033 Finding 1, BL-0131): the first two entries,
+# originally (24, 32) and (24, 96), sat exactly on the (3, 4) and
+# (3, 12) hand-placed flower tiles -- moved to (40, 40)/tile (5, 5) and
+# (48, 112)/tile (6, 14), both confirmed clear of every flower/tall-
+# grass/butterfly tile plains_screen places (nearest neighbor at ~1
+# tile, consistent with this screen's own already-documented tighter
+# margins, never landing on the same tile).
 PLAINS_COLLECTS = [
-    (24, 32, 1), (88, 40, 0), (128, 72, 1),
-    (24, 96, 0), (104, 96, 1),
+    (40, 40, 1), (88, 40, 0), (128, 72, 1),
+    (48, 112, 0), (104, 96, 1),
     (144, 88, 2),
 ]
