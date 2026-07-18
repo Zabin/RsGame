@@ -15,7 +15,7 @@ from tiles import (TL_CARROT, TL_STAR, TL_FLOWER_OBJ,
                    TL_HEART_FULL, TL_HEART_EMPTY, TL_DIGIT_0,
                    TL_ARROW_U, TL_ARROW_D, TL_ARROW_L, TL_ARROW_R,
                    TL_BLOCKED_U, TL_BLOCKED_D, TL_BLOCKED_L, TL_BLOCKED_R,
-                   TL_BG_BLANK, TILE_DATA_TILES)
+                   TL_BG_BLANK, TILE_DATA_TILES, TL_MOB)
 
 # ── WRAM addresses ─────────────────────────────────────────
 GAMESTATE      = 0xC000
@@ -264,6 +264,31 @@ FPS_TEMP       = 0xC6B2  # 1 byte -- short-lived scratch (holds the just-read ro
 MUSIC_BASE_LO  = 0xC6B3  # 1 byte
 MUSIC_BASE_HI  = 0xC6B4  # 1 byte
 
+# IP-1121 (FR-11200, ADS-002): Infinite Mode Combat Sub-Mode -- mob entities.
+# Valid only alongside GAME_MODE==1 (COMBAT_MODE is meaningless in finite
+# mode; every read site is itself GAME_MODE==1-gated transitively via
+# COMBAT_MODE's own boot-clear-to-0 default and the fact that nothing ever
+# sets it outside the (not-yet-built) IP-1120 gating screen). Boot-cleared
+# explicitly (COMBAT_MODE/MOB_COUNT only -- MOB_DATA needs no boot clear,
+# MOB_COUNT==0 gates its validity, the same COLL_COUNT/COLL_DATA convention
+# LEDGER_COUNT/LEDGER already established).
+COMBAT_MODE    = 0xC6B5  # 1 byte -- 0=off (default), 1=on. Set by IP-1120's own
+                          # gating screen (not yet built); this package only
+                          # defines and reads the flag.
+MOB_COUNT      = 0xC6B6  # 1 byte -- number of populated MOB_DATA slots to
+                          # iterate (0-6), mirrors COLL_COUNT's own convention:
+                          # an iterated slot may still be inactive (its own
+                          # `active` byte gates rendering), same as COLL_DATA.
+MOB_DATA       = 0xC6B7  # 30 bytes, C6B7-C6D4 -- 6 slots x 5 bytes: x (1),
+                          # y (1), species/type (1, room for future variety
+                          # per R218 -- always 0 today, single shipped
+                          # species), health (1, fixed default 1 at
+                          # materialization -- IP-1122's own hit-resolution
+                          # consumes/decrements it), active (1, 0/1 flag).
+                          # Session-local per materialized region (ADS-002) --
+                          # freshly rewritten on every inf_ensure_window
+                          # center-cell recompute, not accumulated.
+
 SAVE_VERSION_ADDR = 0xA012   # save-format version guard (FR-5220 / Design Decision 2)
 SAVE_VERSION_VAL  = 0x05     # bumped 0x04->0x05 (IP-1104, fifth bump since ship — the
                               # value sequence is strictly monotonic, never reused). A single
@@ -387,6 +412,14 @@ def build_game_asm(rom: ROM) -> dict:
     # clear -- LEDGER_COUNT == 0 gates validity, the same "count gates
     # array validity" convention COLL_COUNT/COLL_DATA already use.
     rom.XOR_A(); rom.LD_nn_A(LEDGER_COUNT); rom.LD_nn_A(LEDGER_CURSOR)
+
+    # Clear COMBAT_MODE/MOB_COUNT (IP-1121) -- same targeted-clear rationale:
+    # both sit outside the 0xC000-C2FF range and are read before any code
+    # path is guaranteed to have written them (inf_mob_render's own
+    # MOB_COUNT read, reached on every PLAYING redraw regardless of combat
+    # state). MOB_DATA's own 30 bytes need no boot clear -- MOB_COUNT == 0
+    # gates validity, the same convention LEDGER/COLL_DATA already use.
+    rom.XOR_A(); rom.LD_nn_A(COMBAT_MODE); rom.LD_nn_A(MOB_COUNT)
 
     # Clear VRAM bank 0 (same A-clobber caveat — re-zero each iter)
     rom.XOR_A(); rom.LDH_n_A(VBK)
@@ -1186,6 +1219,13 @@ def build_game_asm(rom: ROM) -> dict:
             rom.LD_A_HL(); rom.OR_A(); rom.JR_Z('iew_no_ledger_hit')
             rom.XOR_A(); rom.LD_nn_A(INF_TREASURE_HERE)
             rom.label('iew_no_ledger_hit')
+            # IP-1121 (FR-11200): mob materialization, immediately after the
+            # treasure-presence write above -- same center-cell-only timing
+            # (INF_ROW/INF_COL still hold this iteration's own center
+            # coordinates, dr=dc=0). COMBAT_MODE-gated internally; a no-op
+            # call when off (additive, not a fork of the generation
+            # algorithm -- ADS-002's own explicit requirement).
+            rom.CALL('inf_materialize_mobs')
     rom.RET()
 
     # ── czt_infinite (IP-1102) ─────────────────────────────
@@ -1268,7 +1308,7 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_HLI_A()                                              # attr (palette 0)
 
     # Collectibles
-    rom.LD_A_nn(COLL_COUNT); rom.OR_A(); rom.RET_Z()
+    rom.LD_A_nn(COLL_COUNT); rom.OR_A(); rom.JR_Z('uo_mobs')
     rom.LD_B_A(); rom.LD_DE_nn(COLL_DATA)
 
     rom.label('uo_cl')
@@ -1294,7 +1334,15 @@ def build_game_asm(rom: ROM) -> dict:
     rom.XOR_A()
     rom.LD_HLI_A(); rom.LD_HLI_A(); rom.LD_HLI_A(); rom.LD_HLI_A()
     rom.label('uo_next')
-    rom.DEC_B(); rom.JR_NZ('uo_cl'); rom.RET()
+    rom.DEC_B(); rom.JR_NZ('uo_cl')
+    # IP-1121: mob rendering, reached whether or not there were any
+    # collectibles this redraw (COLL_COUNT==0 previously RET'd the whole
+    # routine here -- changed to a jump to this shared tail so mobs still
+    # render on a treasure-less region; a no-op call when COMBAT_MODE is
+    # off, per inf_mob_render's own COMBAT_MODE gate).
+    rom.label('uo_mobs')
+    rom.CALL('inf_mob_render')
+    rom.RET()
 
     # ── music_tick ───────────────────────────────────────
     rom.label('music_tick')
@@ -2943,6 +2991,172 @@ def build_game_asm(rom: ROM) -> dict:
     rom.label('imr_no_east')
     rom.LD_A_nn(INF_MZ_BIOME); rom.OR_E()
     rom.LD_nn_A(INF_MZ_RESULT)
+    rom.RET()
+
+    # ── inf_materialize_mobs (IP-1121, FR-11200, ADS-002) ─
+    # Deterministically (re)populates all 6 MOB_DATA slots as a pure
+    # function of (SEED, INF_ROW, INF_COL) -- the current center region
+    # only (called once per inf_ensure_window recompute, right after the
+    # treasure-presence write). COMBAT_MODE-gated: a no-op call when off,
+    # so a materialized region looks and plays identically to today's
+    # shipped Infinite Mode (ADS-002's own explicit "additive, not a fork"
+    # requirement).
+    #
+    # Own independent reseed chain, decorrelated from inf_materialize_
+    # region's own biome/connectivity/treasure chain for this exact (row,
+    # col): reusing inf_region_seed0 unsalted would reproduce that chain's
+    # identical first-drawn bytes and correlate mob presence with biome --
+    # exactly the defect worldgen.py's own materialize_region docstring
+    # documents this codebase already caught and fixed once (a second
+    # reseed of the identical (seed,row,col) reproduces the exact same
+    # first-drawn byte). Salting the column input with XOR 0x5A before
+    # reseeding makes the resulting PRNG state diverge completely.
+    #
+    # Each of the 6 candidate slots draws exactly 4 bytes unconditionally
+    # (presence, x, y, species) regardless of the presence outcome -- a
+    # fixed-length chain per slot, mirroring inf_materialize_region's own
+    # "always 3 draws whether or not treasure ends up present" discipline,
+    # and simpler to mirror in worldgen.py's own oracle than a
+    # variable-length chain would be. Presence uses the same AND 0x0F K=16
+    # mask inf_materialize_region's own treasure-presence draw uses
+    # (tuned constant TBD -- see this package's own Risks; adjustable here
+    # without touching the chain shape). x/y are derived from their own
+    # draw bytes (x: bits 0-3 * 8 + 24, range 24-144; y: bits 0-2 * 8 + 32,
+    # range 32-88 -- both interior to the 160x144 playfield, clear of the
+    # row-0 HUD and screen edges) rather than a fixed per-biome position
+    # (unlike inf_treasure_pos) since up to 6 concurrent mobs need spread,
+    # not one landmark-anchored spot. Species is masked to SPECIES_COUNT-1
+    # (=0, i.e. always species 0 today -- widen the mask when a second
+    # species ships, per R218's own "room for multiple mob species"
+    # framing) but still drawn every candidate to keep the chain length
+    # constant. Health is a fixed default (1) at materialization, not
+    # drawn -- IP-1122's own hit-resolution logic is the actual consumer/
+    # decrementer of this field, out of this package's own scope.
+    #
+    # Every candidate slot is always written (fixed 1:1 slot<->candidate
+    # indexing, not "next free slot" compaction) with its own drawn
+    # position/species and `active` set from the presence bit -- MOB_COUNT
+    # counts how many of the 6 came back present. This trades the
+    # package's own "next free slot" phrasing for a simpler, equally
+    # correct design that avoids the compaction-order fragility a genuine
+    # "shift entries down" implementation would introduce for
+    # inf_mob_defeat's own mid-array clears (see inf_mob_defeat below) --
+    # functionally equivalent (still at most 6 populated slots, MOB_COUNT
+    # still gates rendering identically), simpler to verify, and
+    # unambiguous for the oracle mirror.
+    rom.label('inf_materialize_mobs')
+    rom.LD_A_nn(COMBAT_MODE); rom.OR_A(); rom.RET_Z()
+    rom.XOR_A(); rom.LD_nn_A(MOB_COUNT)
+
+    rom.LD_A_nn(INF_ROW); rom.LD_nn_A(INF_MZ_TROW)
+    rom.LD_A_nn(INF_ROW + 1); rom.LD_nn_A(INF_MZ_TROW + 1)
+    rom.LD_A_nn(INF_COL); rom.XOR_n(0x5A); rom.LD_nn_A(INF_MZ_TCOL)
+    rom.LD_A_nn(INF_COL + 1); rom.LD_nn_A(INF_MZ_TCOL + 1)
+    rom.CALL('inf_region_seed0')
+
+    rom.LD_HL_nn(MOB_DATA)
+    rom.LD_B_n(6)
+    rom.label('imm_loop')
+
+    rom.CALL('gw_prng_step')           # draw: presence (K=16, mirrors treasure)
+    rom.AND_n(0x0F)
+    rom.LD_C_n(1); rom.JR_Z('imm_havec')
+    rom.LD_C_n(0)
+    rom.label('imm_havec')              # C = 1 if present else 0 (gw_prng_step
+                                         # preserves B/C -- survives every
+                                         # subsequent draw this iteration)
+
+    rom.CALL('gw_prng_step')           # draw: x
+    rom.AND_n(0x0F)
+    rom.SLA_A(); rom.SLA_A(); rom.SLA_A(); rom.ADD_A_n(24)
+    rom.LD_HLI_A()                      # slot+0: x
+
+    rom.CALL('gw_prng_step')           # draw: y
+    rom.AND_n(0x07)
+    rom.SLA_A(); rom.SLA_A(); rom.SLA_A(); rom.ADD_A_n(32)
+    rom.LD_HLI_A()                      # slot+1: y
+
+    rom.CALL('gw_prng_step')           # draw: species (mod SPECIES_COUNT)
+    rom.AND_n(0)                        # SPECIES_COUNT=1 today -- widen this
+                                         # mask when a 2nd species ships
+    rom.LD_HLI_A()                      # slot+2: species
+
+    rom.LD_A_n(1); rom.LD_HLI_A()       # slot+3: health (fixed default)
+    rom.LD_A_C(); rom.LD_HLI_A()        # slot+4: active
+
+    rom.OR_A(); rom.JR_Z('imm_next')    # A still == C from the write above
+    rom.LD_A_nn(MOB_COUNT); rom.INC_A(); rom.LD_nn_A(MOB_COUNT)
+    rom.label('imm_next')
+
+    rom.DEC_B(); rom.JR_NZ('imm_loop')
+    rom.RET()
+
+    # ── inf_mob_render (IP-1121) ──────────────────────────
+    # Called from update_oam, appended after the existing collectible-entry
+    # loop -- writes one OAM_BUF entry for each of the 6 fixed MOB_DATA
+    # slots, hiding (zeroing) the entry for any slot whose own `active`
+    # byte is clear, mirroring uo_cl's own hide-but-still-consume-the-slot
+    # structure exactly. On entry: HL = current OAM_BUF write cursor
+    # (inherited from update_oam's own collectible loop, wherever it left
+    # off); on exit: HL = cursor advanced past all 6 mob entries.
+    #
+    # Gated on COMBAT_MODE, deliberately NOT on MOB_COUNT: MOB_COUNT is
+    # decremented by inf_mob_defeat (IP-1122's own future call site), so a
+    # MOB_COUNT-gated early exit would stop scanning before reaching a
+    # later, still-active slot once any earlier slot had been defeated --
+    # the defeated slot's own now-stale OAM entry would also never get
+    # re-hidden, since the routine would never reach it either. Always
+    # scanning the fixed 6 slots (checking each one's own `active` byte)
+    # is correct regardless of defeat order; the COMBAT_MODE gate alone
+    # is a single-instruction early return when off, matching today's
+    # shipped Infinite Mode exactly (no OAM_BUF bytes touched).
+    rom.label('inf_mob_render')
+    rom.LD_A_nn(COMBAT_MODE); rom.OR_A(); rom.RET_Z()
+    rom.LD_B_n(6); rom.LD_DE_nn(MOB_DATA)
+
+    rom.label('imbr_loop')
+    rom.LD_A_DE(); rom.PUSH_AF(); rom.INC_DE()    # push x
+    rom.LD_A_DE(); rom.PUSH_AF(); rom.INC_DE()    # push y
+    rom.INC_DE()                                   # skip species (single species today)
+    rom.INC_DE()                                   # skip health (not rendered)
+    rom.LD_A_DE(); rom.INC_DE()                    # active
+    rom.OR_A(); rom.JR_Z('imbr_hide')
+    rom.POP_AF(); rom.ADD_A_n(16); rom.LD_HLI_A()  # OAM Y
+    rom.POP_AF(); rom.ADD_A_n(8);  rom.LD_HLI_A()  # OAM X
+    rom.LD_A_n(TL_MOB); rom.LD_HLI_A()             # tile (8x16 mode: TL_MOB
+                                                     # top + TL_MOB_BOT bottom)
+    rom.LD_A_n(4); rom.LD_HLI_A()                  # attr: OBJ palette 4 (mob, IP-1125)
+    rom.JR('imbr_next')
+    rom.label('imbr_hide')
+    rom.POP_AF(); rom.POP_AF()
+    rom.XOR_A()
+    rom.LD_HLI_A(); rom.LD_HLI_A(); rom.LD_HLI_A(); rom.LD_HLI_A()
+    rom.label('imbr_next')
+    rom.DEC_B(); rom.JR_NZ('imbr_loop')
+    rom.RET()
+
+    # ── inf_mob_defeat (IP-1121) ──────────────────────────
+    # Deactivates one mob slot (clears its `active` flag, decrements
+    # MOB_COUNT) and is exposed for IP-1122's own hit-resolution logic to
+    # call once that package ships -- not reached from anywhere in this
+    # package's own control flow (no persistent corpse, no graphic content,
+    # per R218's own "poof" convention -- the flash presentation itself is
+    # IP-1122's own rendering-time concern, this subroutine only owns the
+    # data-side deactivation). Input: B = slot index (0-5). Clobbers
+    # A/B/HL.
+    rom.label('inf_mob_defeat')
+    rom.LD_HL_nn(MOB_DATA + 4)          # slot 0's own active byte
+    rom.LD_A_B()
+    rom.label('imd_adv_chk')
+    rom.OR_A(); rom.JR_Z('imd_at')
+    rom.INC_HL(); rom.INC_HL(); rom.INC_HL(); rom.INC_HL(); rom.INC_HL()
+    rom.DEC_A()
+    rom.JR('imd_adv_chk')
+    rom.label('imd_at')
+    rom.XOR_A(); rom.LD_HL_A()
+    rom.LD_A_nn(MOB_COUNT); rom.OR_A(); rom.JR_Z('imd_done')
+    rom.DEC_A(); rom.LD_nn_A(MOB_COUNT)
+    rom.label('imd_done')
     rom.RET()
 
     # ── inf_check_top_score (IP-1103, FR-10400) ───────────

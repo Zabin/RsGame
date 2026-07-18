@@ -32,6 +32,12 @@
 > unilaterally: `WEAPON_TIER`'s own treasure-funded upgrade mechanism has no baselined FR
 > (`IP-1122` §9); the heal-spend action's own input binding has no free button named upstream
 > (`IP-1123` §9) — both routed to `04-requirements-engineering`/`06-feature-specification`.
+>
+> **`IP-1121` implemented 2026-07-18** — Workflow B (mob materialization, rendering, defeat)
+> is built: `COMBAT_MODE`/`MOB_COUNT`/`MOB_DATA` (`asm_game.py`), `inf_materialize_mobs`
+> (hooked into `inf_ensure_window`'s existing center-cell recompute), `inf_mob_render` (hooked
+> into `update_oam`), `inf_mob_defeat` (defined/exposed, no call site yet — `IP-1122`'s own
+> scope). `COMPLETE`, own `09-package-verification` pass owed.
 
 [↑ Features index](INDEX.md) · [Feature Catalog](../feature-planning/03-feature-catalog.md) ·
 [Epic Catalog](../feature-planning/02-epic-catalog.md)

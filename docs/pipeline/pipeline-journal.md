@@ -14,49 +14,40 @@
 
 ## Position
 
-- **Updated:** 2026-07-17 (run #234)
-- **Increment:** Four independent arcs closed; a fifth (dual-audience combat) advanced all the
-  way from Vision through research, architecture, a full requirements baseline, feature
-  decomposition, specification, and implementation planning — **now fully planned, gated only on
-  G3**; two small HUD remediations shipped; the biome/music delta assessed and baselined GO.
-  **(1)/(2)** unchanged (runs #167/#168). **(3)/(4)** — all six packages plus two remediations
-  `VERIFIED`, clean integration review, **GO'd** (run #221). **`IP-9170`/`IP-9180`** implemented,
-  `COMPLETE`. **`ADS-002`** cleared its Vision blocker (`MSTR-001` C11, run #219), its research
-  blocker (`R218`/`R115`, runs #224/#225), committed to concrete architecture (run #226), then the
-  user batch-answered its remaining four Open Questions (run #227) — all eight now
-  closed/committed. **Run #228: `04-requirements-engineering`** baselined **FR-11100**–
-  **FR-11600** + **NFR-1500**/**NFR-4500** against it. **Run #229: `05-feature-decomposition`**
-  catalogued **`FEAT-11000`**, joining `EP-6000`. **Run #230: `06-feature-specification`**
-  authored **FS-112** (all 20 fields, 3 Open Questions, all routed to `07`). **Run #231:
-  `07-implementation-planning`** cut **six packages** (`IP-1120`–`IP-1125`) — found a genuine
-  architecture gap (`IP-1120` needs a `GDS-01` §4d amendment, `BL-0146`) and two further
-  requirements gaps (`WEAPON_TIER` funding `BL-0147`; heal-spend input binding `BL-0148`), all
-  harvested. **Run #232: `03-architecture-design-synthesis`** authored **GDS-01 §4e** — a new
-  `COMBAT MODE CONFIRM` state, closing `BL-0146`. **Run #233: `07-implementation-planning`**
-  re-planned **`IP-1120`** in full against `GDS-01` §4e — **all six combat sub-mode packages are
-  now fully planned, none authorized.** Bootstrap baseline remains fully closed (01–11 ✅);
-  Release 2 GO.
-- **Pipeline state:** Bootstrap stages 01–11 ✅; Release 2 GO. **39 packages `VERIFIED`, two
-  `COMPLETE`** (`IP-9170`/`IP-9180`, both own `09-package-verification` passes owed in a fresh
-  session). The combat sub-mode has reached the end of what this pipeline can do without the
-  user: every research, architecture, requirements, decomposition, specification, and planning
-  step is done — six fully-specified Implementation Packages (`IP-1120`–`1125`) sit ready for a
-  G3 decision. This is, concretely, the real production-code commitment run #228's checkpoint
-  anticipated. Standing, non-blocking doc/design work unchanged: the doc-accuracy sweep family
-  (`BL-0136`/`BL-0137`/`BL-0140`–`BL-0143`); `BL-0118` (`NFR-1400` cycle-budget gap); `BL-0123`
-  (`try_load_save` unneeded finite-mode work); `BL-0112` (Infinite Mode run-end trigger);
-  `BL-0097` (Medium, routed already); `BL-0130` (catalog text gap).
-- **Backlog:** 150 entries. `BL-0133` → `IN PIPELINE` (**G3 GRANTED**, "Yes, build all six,"
-  run #234). `BL-0146` `DONE`. `BL-0147`/`BL-0148` `SCHEDULED` (ride a future `04`/`06` touch,
-  non-blocking). `BL-0145` `DONE`. `BL-0144`/`BL-0139` → `IN PIPELINE`. `BL-0127`/`BL-0128`
-  `DONE`.
-- **Next step:** `08-content-authoring` on `IP-1125` (sprite content, the delta's dependency
-  root, no dependencies) — then `08-code-implementation` on `IP-1121` (mob materialization/
-  rendering/defeat), `IP-1122`/`IP-1123` (weapon fire, player health/economy — parallel-eligible),
-  `IP-1124` (save persistence, last), and `IP-1120` (mode gating, parallel once `IP-1121` lands).
-  A fresh session can independently run `09-package-verification` on `IP-9170` then `IP-9180`.
-- **Open gates:** **none.** G3 granted for all six combat sub-mode packages. This run resolved the
-  gate the previous run stopped at — the pipeline now proceeds into real production code.
+- **Updated:** 2026-07-18 (run #239)
+- **Increment:** Same as run #238, plus: **`09-content-review` on `IP-1125`'s sprite art** —
+  clean, one Low finding (`BL-0150`: mob placement has no minimum-separation guarantee, ~3% of
+  multi-mob regions stack two mobs at the same cell, measured across a 9,800-region sample) and
+  one non-blocking observation (the projectile's palette shares its two brightest colors with
+  the existing star collectible's, but the two are never co-reachable in any real game state —
+  finite-mode-only vs. combat-mode-only — so no real readability risk). Report:
+  [content-review-ip-1125-combat-sprites.md](../reviews/content-review-ip-1125-combat-sprites.md).
+- **Pipeline state:** Bootstrap stages 01–11 ✅; Release 2 GO. 42 packages `VERIFIED`. **One
+  `COMPLETE`, verification owed (needs fresh session):** `IP-1121`. `IP-1122`/`IP-1123`/`IP-1120`
+  all still correctly `NOT STARTED` — each depends on `IP-1121` being `VERIFIED` (not merely
+  `COMPLETE`), so none are eligible yet; the combat critical path is now blocked on that one
+  verification pass, the sole remaining step this session cannot itself execute (independence
+  requires a fresh session). `IP-1124` (last in critical path) also still blocked, transitively.
+  `IP-1125`'s own `09-content-review` is now done (clean, one Low finding). Standing,
+  non-blocking doc/design work unchanged: the doc-accuracy sweep family (`BL-0136`/`BL-0137`/
+  `BL-0140`–`BL-0143`); `BL-0118` (`NFR-1400` cycle-budget gap); `BL-0123` (`try_load_save`
+  unneeded finite-mode work); `BL-0112` (Infinite Mode run-end trigger); `BL-0097` (Medium,
+  routed already); `BL-0130` (catalog text gap); `BL-0149`/`BL-0150` (both Low, both `SCHEDULED`
+  riding future `07` touches on `IP-1125`/`IP-1121`).
+- **Backlog:** 150 entries. `BL-0139`/`BL-0144` → `DONE`. `BL-0149`/`BL-0150` (both Low) →
+  `SCHEDULED`. `BL-0133` still `IN PIPELINE` (G3 granted, build in progress). `BL-0146`/`BL-0145`/
+  `BL-0127`/`BL-0128` `DONE`. `BL-0147`/`BL-0148` `SCHEDULED` (ride a future `04`/`06` touch,
+  non-blocking).
+- **Next step:** A fresh session's `09-package-verification` on `IP-1121` is the sole remaining
+  step before `IP-1122`/`IP-1123`/`IP-1120`/`IP-1124` can build — this session has exhausted
+  every step it can run without that independence boundary. The backlog's other open entries
+  (`BL-0118`/`BL-0123`/`BL-0130`/`BL-0136`/`BL-0137`/`BL-0140`–`BL-0143`/`BL-0147`–`BL-0150`) are
+  all `SCHEDULED`/`DEFERRED`, non-blocking, riding named future touches — none ripe to act on
+  standalone this run.
+- **Open gates:** **none.** G3 granted for all six combat sub-mode packages (run #234). This
+  session's queue is now genuinely empty of unblocked work — the fresh-session requirement on
+  `IP-1121`'s own verification is a session-boundary constraint, not a human decision gate, but
+  it is the reason this run stops here.
 
 ## Run log
 
@@ -300,3 +291,8 @@
 | 232 | 2026-07-17 | advance (same session, "Iterate pipeline skill until all items are blocked") | `03-architecture-design-synthesis` | `BL-0146` — GDS-01 §4d amendment (combat sub-mode gating) | ✅ Authored **GDS-01 §4e**: a new `COMBAT MODE CONFIRM` state (binary Y/N, defaults to N, never enabled by default per `FR-11100`) inserted between `MODE SELECT`'s "infinite" confirm and `INFINITE SEED ENTRY` — keeps "which world" and "combat on/off" on separate axes rather than widening `MODE SELECT` to a three-state cursor, mirroring the same reasoning that already made `MODE SELECT` its own state rather than an extension of an existing screen. `MODE SELECT`'s own two options and the finite path both completely unaffected — delta, not re-authoring. `docs/architecture/INDEX.md` + `ROADMAP.md` flipped together. Closes `BL-0146`. | `07-implementation-planning` — re-plan `IP-1120` in full against `GDS-01` §4e (Files to Modify/Tasks/Tests/DoD), completing all six combat-sub-mode packages. Once that lands, the sole remaining step is a G3 decision from the user on `IP-1120`–`1125` — the real production-code commitment this increment has now fully surfaced. |
 | 233 | 2026-07-17 | advance → gate stop (same session, "Iterate pipeline skill until all items are blocked") | `07-implementation-planning` | Re-plan `IP-1120` in full against `GDS-01` §4e | ✅ Completed `IP-1120`'s remaining fields: new `GS_COMBAT_MODE_CONFIRM=12` state, `CMC_CURSOR` WRAM byte (`0xC6DD`), a font-only confirmation screen (zero new tile art), `ms_infinite`'s existing transition retargeted (one constant). New suite `T33` (6 checks) named. **This completes planning for all six combat sub-mode packages (`IP-1120`–`1125`)** — none authorized. Master Build Plan/`packages/INDEX.md`/TWBS/`FS-112` metadata/`ROADMAP.md` all updated in sync. **GATE: G3 authorization** — five/six real production-code packages (mob AI, projectile physics, health/damage, a treasure economy, a save-format bump, a new gating screen) require the user's explicit go-ahead before `08-code-implementation`/`08-content-authoring` can build any of them. This is the first genuine stop this "iterate until blocked" run has reached — every step before it (research, architecture, requirements, decomposition, specification, planning) needed no user input per each stage's own charter. | GATE: G3 authorization on `IP-1120`–`1125` (all six, or a named subset) — the user's explicit go-ahead, per this pipeline's own G3 rule (a package being fully planned is never itself authorization to build it) |
 | 234 | 2026-07-17 | advance → gate resolved (same session) | — (gate check) | G3 authorization for `IP-1120`–`1125` | ✅ **User answered: "Yes, build all six."** All six combat sub-mode packages authorized. Master Build Plan, `packages/INDEX.md`, TWBS all updated to `AUTHORIZED`. `BL-0133` → `IN PIPELINE` (authorized). | `08-content-authoring` on `IP-1125` (dependency root, no dependencies) — then `08-code-implementation` on `IP-1121`, `IP-1122`/`IP-1123` (parallel), `IP-1124`, `IP-1120`, in that order |
+| 235 | 2026-07-18 | advance (fresh session, "Run pipeline skill") | `09-package-verification` | `IP-9170` (HUD carrot-target digit fix) | ✅ **Drift found and corrected during reconciliation**: `IP-1125` (combat sprite content) was implemented (commit `74d53c4`) between run #234 and this run but never journaled — noted here rather than re-run or silently trusted. **`IP-9170` → VERIFIED** ([VR-9170](../implementation/verification/VR-9170-hud-carrot-target-digit-fix.md)): rebuilt ROM (32768 bytes, valid header), full suite 330/330, every DoD/checklist item re-derived from the tree by direct code read (`asm_game.py:1355`-`1366`), diff scope confirmed `asm_game.py`-only. Per this skill's own tunable-parameter rule, independently drove the built ROM live via a standalone PyBoy script (not the suite's own fixture) at non-default `WORLD_SCALE=6` and `8` — HUD digit tracked both exactly; confirmed the `GAME_MODE=1` branch is `IP-9180`'s own independent code, not a finite-mode leak. No findings. `BL-0139` → `DONE`. Master Build Plan, `packages/INDEX.md`, verification `INDEX.md` updated. | `09-package-verification` on `IP-9180` (same fresh session, independent of its own implementation) |
+| 236 | 2026-07-18 | advance (same fresh session) | `09-package-verification` | `IP-9180` (Infinite Mode HUD treasure-count digit) | ✅ **`IP-9180` → VERIFIED** ([VR-9180](../implementation/verification/VR-9180-infinite-mode-hud-treasure-count-digit.md)): rebuilt ROM (32768 bytes, valid header), full suite 330/330, every DoD/checklist item re-derived from the tree by direct code read (`asm_game.py:1368`-`1382`, `usd_infinite_target`'s mod-10 loop confirmed `DIV`/`MUL`-free), diff scope confirmed `asm_game.py`-only. Independently drove the built ROM live via a standalone PyBoy script at `RUNNING_TREASURE_COUNT=9` and `21` (disjoint from the suite's own fixture 7/13) — digit read 9 and correctly wrapped to 1; finite-mode non-regression independently reproduced (switched back to `GAME_MODE=0`, `WORLD_SCALE=4` → digit 4). No findings. `BL-0144` → `DONE`. Master Build Plan, `packages/INDEX.md`, verification `INDEX.md` updated. | `09-package-verification` + `09-content-review` on `IP-1125` (same fresh session, independent of its own implementation) |
+| 237 | 2026-07-18 | advance (same fresh session) | `09-package-verification` | `IP-1125` (Combat Sub-Mode: Mob & Projectile Sprite Content) | ✅ **`IP-1125` → VERIFIED** ([VR-1125](../implementation/verification/VR-1125-combat-sprite-content.md)): rebuilt ROM (32768 bytes, valid header), full suite 330/330, `T34.a`-`d` reconfirmed. Independently drove the built ROM live via a standalone PyBoy script — forced OAM entries to render `TL_MOB`/`TL_PROJECTILE`, read tile bytes back from VRAM (distinct), captured a fresh screenshot confirming both sprites render and are visually distinct from the player and every existing collectible tile. **One Low finding, harvested as `BL-0149`**: `IP-1125` §6 omitted `build_rom.py` from its declared file set despite a necessary, correctly-scoped, safe `OBJ_PALETTES` touch (slots 4/5, zero new slots) — did not block `VERIFIED`. `IP-1121` unblocked to `READY` (both dependencies now `VERIFIED`). `09-content-review` on the sprite art remains owed, non-blocking. Master Build Plan, `packages/INDEX.md`, verification `INDEX.md`, backlog updated. | `08-code-implementation` on `IP-1121` (mob materialization/rendering/defeat, critical-path root, `READY`, `AUTHORIZED`) |
+| 238 | 2026-07-18 | advance (same session) | `08-code-implementation` | `IP-1121` (Infinite Mode Combat: Mob Materialization, Rendering & Defeat) | ✅ **`COMPLETE`.** `COMBAT_MODE`/`MOB_COUNT`/`MOB_DATA` (`0xC6B5`–`0xC6D4`) defined; `inf_materialize_mobs` hooked into `inf_ensure_window`'s existing center-cell recompute (own decorrelated reseed, XOR-salted column input, avoiding the exact biome-correlation defect `worldgen.py`'s own `materialize_region` docstring already documents catching once); `inf_mob_render` hooked into `update_oam` (required changing `COLL_COUNT==0`'s early `RET_Z` to a `JR_Z` past the collectible loop so mobs still render on a treasure-less region — necessary, not scope creep); `inf_mob_defeat` defined/exposed for `IP-1122`. **Own defect caught and fixed during implementation** (not routed around): `inf_mob_render` was originally gated on `MOB_COUNT` (mirroring `COLL_COUNT`), but `MOB_COUNT` is decremented by `inf_mob_defeat` — a `MOB_COUNT`-gated render would stop scanning before a later still-active slot and never re-hide a defeated slot's own stale OAM entry; caught by the new `T29.e`, fixed by gating on `COMBAT_MODE` instead and always scanning all 6 fixed slots. Design deviation from the package's own "next free slot" phrasing, named explicitly in the ledger: writes all 6 candidates at fixed 1:1 indices (not front-compaction) — functionally equivalent, avoids compaction-order fragility. **336/336 suite passes** (new suite `T29`, 6 checks: determinism, oracle/SM83 lockstep against new `worldgen.materialize_mobs`, `COMBAT_MODE`-off no-op, mob-count ceiling, defeat/no-stale-OAM, OAM budget static audit). ROM 31646/32768 (+256 bytes, within the 1,378-byte headroom). Live-driven via PyBoy: forced `COMBAT_MODE`/`MOB_DATA` state during real `PLAYING`, confirmed mobs render through the real per-frame `update_oam` call path — screenshot confirms three distinct purple mob sprites on-screen. `FR-11200` → Implemented; RTM row filled; `FS-112`/`GDS-07` §7i documentation updated. Own `09-package-verification` pass needs a fresh session (implemented this session). | `09-content-review` on `IP-1125`'s sprite art (independent of the fresh-session constraint) — then a fresh session's `09-package-verification` on `IP-1121` is the sole remaining step before `IP-1122`/`IP-1123`/`IP-1120`/`IP-1124` can build |
+| 239 | 2026-07-18 | advance → queue empty (same session) | `09-content-review` | `IP-1125` (Combat Sub-Mode sprite art) | ✅ **Clean**, one Low finding (`BL-0150`: mob placement has no minimum-separation guarantee — sampled `worldgen.materialize_mobs` across 9,800 `(seed, row, col)` combinations, 547 regions drew 2+ active mobs, 17 (≈3%) placed two at the exact same cell) and one non-blocking observation (projectile/star palette overlap — checked and confirmed the two sprites are never co-reachable in any real game state, so no actual readability risk; noted, not filed). Screenshots captured: mob+projectile side by side, three mobs simultaneously rendered. `ROADMAP.md` RV-CONTENT row updated. **This exhausts every step this session can run without a fresh-session independence boundary** — `IP-1121`'s own `09-package-verification` is the sole remaining step, and it cannot be done with genuine independence in the same session that implemented it (run #238). Every other open backlog entry is `SCHEDULED`/`DEFERRED`, non-blocking, riding a named future touch — none ripe to act on standalone. | Fresh session: `09-package-verification` on `IP-1121` — the sole step that unblocks `IP-1122`/`IP-1123`/`IP-1120`/`IP-1124` |

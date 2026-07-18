@@ -2291,7 +2291,7 @@ none of FR-10000's own leaves are amended by this group. `FR-9000`'s finite mode
   content, per `R218`'s own established convention.
 - **Rationale:** `ADS-002` §System Architecture (mob spawning, defeat presentation); `R218`
   (poof-defeat convention); `R115` (OAM headroom, independent-reseed discipline).
-- **Priority:** Must (target — not yet implemented)
+- **Priority:** Must (Implemented — 2026-07-18, `IP-1121`)
 - **Inputs:** `(seed, row, col)` for the region being materialized; the combat sub-mode's own
   active state.
 - **Outputs:** Zero or more active mob entities per materialized region.
@@ -2313,7 +2313,16 @@ none of FR-10000's own leaves are amended by this group. `FR-9000`'s finite mode
   from).
 - **Related ADRs:** `ADR-0007` (8×16 OBJ mode governs any new mob sprite).
 - **Notes:** The exact mob species/count-per-region distribution and any difficulty-scaling rule
-  are `06`/`08-content-authoring` decisions, not fixed here.
+  are `06`/`08-content-authoring` decisions, not fixed here. **2026-07-18 (`IP-1121`):**
+  implemented as `inf_materialize_mobs`/`asm_game.py`, called once per `inf_ensure_window`
+  center-cell recompute (immediately after the treasure-presence write), gated on `COMBAT_MODE`.
+  Six fixed candidate slots per materialization (not "next free slot" compaction — a simpler,
+  equally-correct design named explicitly in the package's own Implementation Summary), each
+  drawing presence (K=16, mirrors treasure)/x/y/species unconditionally to keep the PRNG chain
+  length constant. Own independent reseed, decorrelated from the biome/treasure chain via an
+  XOR salt on the column input. `worldgen.py`'s `materialize_mobs` is the oracle mirror
+  (`test_rom.py` `T29.a`/`b`). Defeat (`inf_mob_defeat`) is defined and exposed here but has no
+  call site yet — `FR-11300`/`IP-1122`'s own scope.
 
 ### FR-11300 — Ranged weapon fire and hit resolution
 

@@ -111,7 +111,7 @@
 | CR-08 | Adjacency-grammar ordering position for the four newly-folded biome identities (`BL-0128`) — **RESOLVED and BASELINED 2026-07-16 as `FR-4310`'s own delta**, per RQ-03 finding #21 | R212 (v1.1) | GDS-04 delta | ADR-0009 | `worldgen.py` | `CLOSED — see FR-4310` | `CLOSED — see FR-4310` | `CLOSED — see FR-4310` |
 | FR-10600 | Indefinitely resumable Infinite Mode run (no bounded end-condition mechanic) | R216 | ADS-001 §Open Questions (Q1) | ADR-0017 | `asm_game.py` | FS-110 | IP-1104 | T27.f |
 | FR-11100 | Combat sub-mode entry (explicit, gated MODE SELECT choice) | R218 | ADS-002 §System Architecture (Gating Mechanism) | ADR-0007 | `asm_game.py` (prospective) | UNASSIGNED | UNASSIGNED | UNASSIGNED |
-| FR-11200 | Mob presence, materialization, and non-graphic defeat | R218, R115 | ADS-002 §System Architecture, §Domain Model | ADR-0007 | `asm_game.py`/`worldgen.py` (prospective) | UNASSIGNED | UNASSIGNED | UNASSIGNED |
+| FR-11200 | Mob presence, materialization, and non-graphic defeat (Implemented — 2026-07-18) | R218, R115 | ADS-002 §System Architecture, §Domain Model | ADR-0007 | `asm_game.py`, `worldgen.py` | FS-112 | IP-1121 | T29.a-f |
 | FR-11300 | Ranged weapon fire and hit resolution | R115 | ADS-002 §System Architecture | — | `asm_game.py` (prospective) | UNASSIGNED | UNASSIGNED | UNASSIGNED |
 | FR-11400 | Player health and non-lethal setback | R218 | ADS-002 §Domain Model | — | `asm_game.py` (prospective) | UNASSIGNED | UNASSIGNED | UNASSIGNED |
 | FR-11500 | Treasure-spent healing economy | — | ADS-002 §Domain Model | — | `asm_game.py` (prospective) | UNASSIGNED | UNASSIGNED | UNASSIGNED |
