@@ -14,33 +14,36 @@
 
 ## Position
 
-- **Updated:** 2026-07-18 (run #236)
+- **Updated:** 2026-07-18 (run #237)
 - **Increment:** Same as run #234, plus: **drift found and corrected** (run #235) — `IP-1125`
   (combat sub-mode sprite content) was implemented (commit `74d53c4`) after run #234 but never
   journaled; noted and logged rather than re-done or silently trusted. This fresh session then
-  cleared both owed HUD-remediation verifications: **`IP-9170` → `VERIFIED`** (`VR-9170`, run
-  #235) and **`IP-9180` → `VERIFIED`** (`VR-9180`, run #236) — both 330/330 suite, ROM
-  byte-identical rebuilds, each independently live-driven via a standalone PyBoy script at
-  non-default tunable values (not just the suite's own fixtures), no findings either time.
-  `IP-1125` (own `09`/`09-content-review` passes) remains owed, independently verifiable in this
-  same fresh session.
-- **Pipeline state:** Bootstrap stages 01–11 ✅; Release 2 GO. **41 packages `VERIFIED`**
-  (`IP-9170`/`IP-9180` newly closed). **One `COMPLETE`, verification owed:** `IP-1125` (`09` +
-  `09-content-review`) — eligible now, same fresh session. Five combat sub-mode packages
-  (`IP-1120`–`1124`) remain `NOT STARTED`, `AUTHORIZED` (G3 granted run #234), ready for
-  `08-code-implementation` per the critical path (`IP-1121` first). Standing, non-blocking
-  doc/design work unchanged: the doc-accuracy sweep family (`BL-0136`/`BL-0137`/`BL-0140`–
-  `BL-0143`); `BL-0118` (`NFR-1400` cycle-budget gap); `BL-0123` (`try_load_save` unneeded
-  finite-mode work); `BL-0112` (Infinite Mode run-end trigger); `BL-0097` (Medium, routed
-  already); `BL-0130` (catalog text gap).
-- **Backlog:** 148 entries. `BL-0139`/`BL-0144` → `DONE` (`IP-9170`/`IP-9180` both `VERIFIED`).
-  `BL-0133` still `IN PIPELINE` (G3 granted, build in progress). `BL-0146`/`BL-0145`/`BL-0127`/
-  `BL-0128` `DONE`. `BL-0147`/`BL-0148` `SCHEDULED` (ride a future `04`/`06` touch, non-blocking).
-- **Next step:** `09-package-verification` + `09-content-review` on `IP-1125` (same fresh session,
-  independent of its own implementation) — then `08-code-implementation` on `IP-1121` (mob
-  materialization/rendering/defeat, critical-path root), `IP-1122`/`IP-1123` (parallel-eligible),
-  `IP-1124` (last), `IP-1120` (parallel once `IP-1121` lands).
-- **Open gates:** **none.** G3 granted for all six combat sub-mode packages (run #234). Both
+  cleared all three owed verification passes: **`IP-9170` → `VERIFIED`** (`VR-9170`, run #235),
+  **`IP-9180` → `VERIFIED`** (`VR-9180`, run #236), **`IP-1125` → `VERIFIED`** (`VR-1125`, run
+  #237) — each 330/330 suite, ROM byte-identical rebuilds, each independently live-driven via a
+  standalone PyBoy script/screenshot at non-default or self-forced values (not just the suite's
+  own fixtures). One Low finding (`BL-0149`): `IP-1125` §6 omitted `build_rom.py` from its
+  declared file set despite a necessary, correctly-scoped, safe touch there — did not block
+  `VERIFIED`. `IP-1125`'s own `09-content-review` (qualitative art judgment) remains owed,
+  non-blocking.
+- **Pipeline state:** Bootstrap stages 01–11 ✅; Release 2 GO. **42 packages `VERIFIED`**
+  (`IP-9170`/`IP-9180`/`IP-1125` newly closed). `IP-1121` (mob materialization/rendering/defeat,
+  critical-path root) now **`READY`** — both its dependencies (`IP-1101`/`IP-1102`, `IP-1125`)
+  are `VERIFIED`. Four further combat sub-mode packages (`IP-1120`, `1122`–`1124`) remain
+  `NOT STARTED`, `AUTHORIZED` (G3 granted run #234), each still blocked on `IP-1121` per the
+  critical path. Standing, non-blocking doc/design work unchanged: the doc-accuracy sweep family
+  (`BL-0136`/`BL-0137`/`BL-0140`–`BL-0143`); `BL-0118` (`NFR-1400` cycle-budget gap); `BL-0123`
+  (`try_load_save` unneeded finite-mode work); `BL-0112` (Infinite Mode run-end trigger);
+  `BL-0097` (Medium, routed already); `BL-0130` (catalog text gap); `BL-0149` (new, Low).
+- **Backlog:** 149 entries. `BL-0139`/`BL-0144` → `DONE` (`IP-9170`/`IP-9180` both `VERIFIED`).
+  `BL-0149` (new, Low) → `SCHEDULED`, rides a future `07` touch on `IP-1125`. `BL-0133` still
+  `IN PIPELINE` (G3 granted, build in progress). `BL-0146`/`BL-0145`/`BL-0127`/`BL-0128` `DONE`.
+  `BL-0147`/`BL-0148` `SCHEDULED` (ride a future `04`/`06` touch, non-blocking).
+- **Next step:** `08-code-implementation` on `IP-1121` (mob materialization/rendering/defeat,
+  critical-path root, `READY`, `AUTHORIZED`) — then `IP-1122`/`IP-1123` (parallel-eligible),
+  `IP-1124` (last), `IP-1120` (parallel once `IP-1121` lands). `09-content-review` on `IP-1125`'s
+  sprite art is independently runnable any time, non-blocking.
+- **Open gates:** **none.** G3 granted for all six combat sub-mode packages (run #234). All three
   verification passes this run proceeded without needing the user.
 
 ## Run log
@@ -287,3 +290,4 @@
 | 234 | 2026-07-17 | advance → gate resolved (same session) | — (gate check) | G3 authorization for `IP-1120`–`1125` | ✅ **User answered: "Yes, build all six."** All six combat sub-mode packages authorized. Master Build Plan, `packages/INDEX.md`, TWBS all updated to `AUTHORIZED`. `BL-0133` → `IN PIPELINE` (authorized). | `08-content-authoring` on `IP-1125` (dependency root, no dependencies) — then `08-code-implementation` on `IP-1121`, `IP-1122`/`IP-1123` (parallel), `IP-1124`, `IP-1120`, in that order |
 | 235 | 2026-07-18 | advance (fresh session, "Run pipeline skill") | `09-package-verification` | `IP-9170` (HUD carrot-target digit fix) | ✅ **Drift found and corrected during reconciliation**: `IP-1125` (combat sprite content) was implemented (commit `74d53c4`) between run #234 and this run but never journaled — noted here rather than re-run or silently trusted. **`IP-9170` → VERIFIED** ([VR-9170](../implementation/verification/VR-9170-hud-carrot-target-digit-fix.md)): rebuilt ROM (32768 bytes, valid header), full suite 330/330, every DoD/checklist item re-derived from the tree by direct code read (`asm_game.py:1355`-`1366`), diff scope confirmed `asm_game.py`-only. Per this skill's own tunable-parameter rule, independently drove the built ROM live via a standalone PyBoy script (not the suite's own fixture) at non-default `WORLD_SCALE=6` and `8` — HUD digit tracked both exactly; confirmed the `GAME_MODE=1` branch is `IP-9180`'s own independent code, not a finite-mode leak. No findings. `BL-0139` → `DONE`. Master Build Plan, `packages/INDEX.md`, verification `INDEX.md` updated. | `09-package-verification` on `IP-9180` (same fresh session, independent of its own implementation) |
 | 236 | 2026-07-18 | advance (same fresh session) | `09-package-verification` | `IP-9180` (Infinite Mode HUD treasure-count digit) | ✅ **`IP-9180` → VERIFIED** ([VR-9180](../implementation/verification/VR-9180-infinite-mode-hud-treasure-count-digit.md)): rebuilt ROM (32768 bytes, valid header), full suite 330/330, every DoD/checklist item re-derived from the tree by direct code read (`asm_game.py:1368`-`1382`, `usd_infinite_target`'s mod-10 loop confirmed `DIV`/`MUL`-free), diff scope confirmed `asm_game.py`-only. Independently drove the built ROM live via a standalone PyBoy script at `RUNNING_TREASURE_COUNT=9` and `21` (disjoint from the suite's own fixture 7/13) — digit read 9 and correctly wrapped to 1; finite-mode non-regression independently reproduced (switched back to `GAME_MODE=0`, `WORLD_SCALE=4` → digit 4). No findings. `BL-0144` → `DONE`. Master Build Plan, `packages/INDEX.md`, verification `INDEX.md` updated. | `09-package-verification` + `09-content-review` on `IP-1125` (same fresh session, independent of its own implementation) |
+| 237 | 2026-07-18 | advance (same fresh session) | `09-package-verification` | `IP-1125` (Combat Sub-Mode: Mob & Projectile Sprite Content) | ✅ **`IP-1125` → VERIFIED** ([VR-1125](../implementation/verification/VR-1125-combat-sprite-content.md)): rebuilt ROM (32768 bytes, valid header), full suite 330/330, `T34.a`-`d` reconfirmed. Independently drove the built ROM live via a standalone PyBoy script — forced OAM entries to render `TL_MOB`/`TL_PROJECTILE`, read tile bytes back from VRAM (distinct), captured a fresh screenshot confirming both sprites render and are visually distinct from the player and every existing collectible tile. **One Low finding, harvested as `BL-0149`**: `IP-1125` §6 omitted `build_rom.py` from its declared file set despite a necessary, correctly-scoped, safe `OBJ_PALETTES` touch (slots 4/5, zero new slots) — did not block `VERIFIED`. `IP-1121` unblocked to `READY` (both dependencies now `VERIFIED`). `09-content-review` on the sprite art remains owed, non-blocking. Master Build Plan, `packages/INDEX.md`, verification `INDEX.md`, backlog updated. | `08-code-implementation` on `IP-1121` (mob materialization/rendering/defeat, critical-path root, `READY`, `AUTHORIZED`) |
