@@ -112,17 +112,62 @@ This step is **mandatory before Step 3**:
 3. **Re-check standing entries.** Any `DEFERRED` trigger now fired → back to `NEW` for a fresh
    disposition. Any `SCHEDULED` entry whose ride is this run's likely next step → tag it so Step 4
    passes it into the invoked skill's target. Any entry the tree shows resolved → `DONE`.
-4. **Batch the user questions.** Collect all `NEEDS-USER` entries that are ripe into Step 4's gate
-   check so the user answers once, not five times.
+4. **Batch the user questions — but only within the same tier.** Collect all ripe `NEEDS-USER`
+   entries, sort them by **tier precedence** (below), and surface only the entries at the
+   *highest* tier present. Before batching, check each lower-tier ripe entry for **tier
+   dependency**: would a plausible answer to a higher-tier open question change, narrow, or
+   moot this question? (E.g. a Vision-level tension about tone reframes what a Requirements-level
+   economy question is even asking.) If yes, hold the lower-tier entry back this run — do not ask
+   it alongside the higher-tier one — and re-derive whether it's still live once the higher-tier
+   answer lands. If a lower-tier entry is genuinely independent of every open higher-tier question
+   (touches a different, unrelated part of the tree), it may still batch into the same
+   `AskUserQuestion` call rather than costing the user a second round-trip.
+
+### Tier precedence for open threads
+
+Open questions and gates form an altitude order — a decision at one tier can reshape or eliminate
+a question at every tier below it, but never the reverse. When more than one tier has a ripe
+`NEEDS-USER` entry or ungated question, address them **highest tier first, one tier per run**,
+rather than surfacing all of them at once:
+
+`01 Vision` > `03 Architecture (GDS ladder / ADS / ADR)` > `04 Requirements` >
+`05 Feature Decomposition` > `06 Feature Specification` > `07 Implementation Planning` >
+`08 Implementation` > `09 Verification` / `10 Integration` / `11 Release` (peers, gated by what
+they review, not by further precedence among themselves). `02 Research` grounds `01`/`03` and is
+asked only if the *specific* higher-tier question in front of it needs a domain fact — it does
+not get its own precedence slot.
+
+Applying this:
+
+- **Don't ask a lower-tier question the tree hasn't earned yet.** If a Vision-level tension is
+  still open (e.g. an unresolved Open Question in `00-vision.md`/`MSTR-001` bearing on the same
+  feature), route there first — a downstream Architecture/Requirements-level question that
+  depends on the answer is premature, not merely optional.
+- **Re-check, don't re-ask, after a higher tier resolves.** Once a higher-tier answer lands, the
+  triage step re-derives the lower-tier entry fresh (per Step 2.3) rather than replaying a
+  question drafted before the higher-tier context existed — the answer may have already resolved
+  it, changed its shape, or made it moot entirely.
+- **Independent threads don't wait on each other.** Tier precedence governs questions that
+  actually depend on one another (same feature/cluster, a plausible higher answer would change
+  the lower question's premise) — it is not a rule that only one open thread in the whole tree
+  may be asked about at a time. Unrelated threads at different tiers (e.g. a Release GO call for
+  a shipped feature and a Vision question about an unrelated future one) can proceed in parallel.
+- **Record the hold, not just the ask.** When a lower-tier entry is held back for this reason,
+  note it in the entry's disposition (still `NEEDS-USER`, but annotate "held pending <higher-tier
+  ID/question>") and in the run's journal row, so the next run knows to re-check it rather than
+  treating it as forgotten.
 
 ### Step 3 — Determine the single next step
 
 From the reconciled position **and the triaged backlog**, pick the highest-leverage unblocked
-step, using the pipeline's ordering rules (see `README.md`): upstream findings before downstream
-work; a due backlog item outranks new scope at the same stage; within a stage, critical-path
-first; the per-feature loop (06→07→08→09) drains before the per-release stages (10→11) run. If
-the journal's recorded next step is still valid and no due backlog entry outranks it, that's the
-default. If several steps are genuinely parallel, pick one and name the others in the report.
+step, using the pipeline's ordering rules (see `README.md`) and the **tier precedence** above:
+upstream findings before downstream work; a due backlog item outranks new scope at the same
+stage; within a stage, critical-path first; the per-feature loop (06→07→08→09) drains before the
+per-release stages (10→11) run. A ripe higher-tier open question (Vision/Architecture) always
+outranks proceeding into a dependent lower-tier step, even one already `SCHEDULED`. If the
+journal's recorded next step is still valid and no due backlog entry or higher-tier open question
+outranks it, that's the default. If several steps are genuinely parallel (see above), pick one and
+name the others in the report.
 
 **During the bootstrap increment** (see `docs/pipeline/BOOTSTRAP.md`), the ordering is simply the
 first stage whose baseline artifacts don't exist yet, 01 upward.
@@ -138,7 +183,9 @@ Before invoking anything, stop and ask the user (via `AskUserQuestion`) if the s
   per-package user go-ahead;
 - **a release GO** — the step would flip baseline records;
 - **adjudication** — the step builds on a review with unadjudicated Critical/High findings;
-- **a ripe `NEEDS-USER` backlog entry** — the decision the entry is waiting on is needed now;
+- **a ripe `NEEDS-USER` backlog entry** — the decision the entry is waiting on is needed now, and
+  per tier precedence, only the highest-tier ripe entry (plus any tier-independent ones) is put
+  to the user this run — lower-tier entries that depend on it are held, not asked;
 - **spending judgment the user reserved** — anything a stage skill's own rules say needs the user.
 
 A gate stop is a complete, successful run: journal it (`GATE: …`), record the user's answers in
@@ -212,6 +259,9 @@ re-checks the equivalence evidence) before anything downstream builds on the mov
 ## Guardrails
 
 - **One step per advance.** No chaining "while I'm here." The journal makes stopping cheap.
+- **Higher tier first.** Never put a lower-tier open question to the user while a higher-tier
+  one it depends on (per tier precedence) is still ripe and unasked — resolve altitude before
+  detail, so the user is never asked a question a Vision/Architecture answer would have changed.
 - **No finding left in chat.** If a stage skill said it, the backlog holds it — harvest is part
   of the run, not an optional courtesy.
 - **Never bypass a gate**, even in `run <skill>` override mode. Overrides change *which* step
@@ -229,6 +279,9 @@ re-checks the equivalence evidence) before anything downstream builds on the mov
       real ledgers — not trusted blind.
 - [ ] Every `NEW` backlog entry left this run with a recorded disposition, and no Critical/High
       entry was deferred without the user's explicit agreement.
+- [ ] If more than one tier had a ripe open question, only the highest tier (plus genuinely
+      tier-independent ones) was put to the user this run — no lower-tier question was asked
+      while a higher-tier one it depends on was still unresolved.
 - [ ] The invoked skill's findings were harvested into the backlog before the run ended.
 - [ ] Exactly one skill was invoked (or zero, for status/log/sync/triage/gate runs).
 - [ ] Every gate the step touched was stopped at and asked about — none assumed.
