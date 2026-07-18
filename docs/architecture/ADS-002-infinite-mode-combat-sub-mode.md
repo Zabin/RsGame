@@ -1,12 +1,15 @@
 # ADS-002 — Infinite Mode Combat Sub-Mode (Mobs + Treasure-Fed Ranged Weapon)
 
 **Dependencies:** `BL-0133` (project-owner intake filing); `FEAT-9000`/`FS-110` (the shipped
-Infinite Mode this sub-mode builds on); `ADR-0007` (8×16 OBJ sprite mode — any mob/projectile
-sprite must fit its tile-pair convention); `GDS-01` (Concept of Play) and `MSTR-001`'s own
-Commitment **C9** (item-agnostic, **child-friendly** collect-goal) — the one real tension this
-document exists to surface, not resolve.
-**Produces:** nothing yet — this document does not produce an `FS-xxx`. See §"What this ADS does
-NOT do" below.
+Infinite Mode this sub-mode builds on); `ADR-0007` (8×16 OBJ sprite mode); `MSTR-001`'s **C11**
+(the dual-audience carve-out that unblocked this pass, 2026-07-17); **R218** (combat/enemy design
+conventions — poof-defeat, heart-container HUD, difficulty-gating precedent); **R115** (hardware
+feasibility — OAM/APU headroom, no-hardware-collision-detection).
+**Produces:** still nothing yet — this document does not produce an `FS-xxx`. This revision
+commits to concrete candidate architecture (System Architecture/Domain Model below are no longer
+sketches-only) but the remaining economy/persistence Open Questions (2, 3, 4, 7) are genuine
+requirements-level decisions this skill does not have standing to make; `04-requirements-
+engineering` still cannot proceed until those are resolved. See §"What this ADS does NOT do."
 
 ## Executive Design Overview
 
@@ -39,57 +42,90 @@ from a real list instead of a blank page.
 
 ## System Architecture
 
-Sketched, not committed — every element here is a candidate shape to ground the Open Questions
-below, not a decision:
+Committed candidate architecture (this revision), grounded in `R218`/`R115`. Still not an
+`FS-xxx` — `04`/`06` may adjust any numeric default named here, but the *shape* is now a real
+recommendation, not a placeholder:
 
-- **Mob entities** would need a new WRAM table (parallel structure to how `REGION_GRAPH`/
-  `INF_WINDOW` already represent per-region state) — candidate: a fixed-size mob-slot array
-  (position, type, health, alive-flag), sized to whatever concurrent-mob-count the design settles
-  on. Existing precedent for fixed-size WRAM tables with a cursor/eviction scheme:
-  `IP-1104`'s own `LEDGER`/`LEDGER_COUNT`/`LEDGER_CURSOR` (128-entry FIFO). A mob table would be
-  smaller (concurrent on-screen mobs, not an ever-growing visited history) but could mirror the
-  same shape.
-- **Mob spawning** would need to hook into `inf_ensure_window`'s existing per-region
-  materialization (`IP-1101`/`IP-1102`) — the natural point where a region's content is already
-  decided deterministically from `(seed, row, col)`, mirroring how treasure-presence is drawn
-  today (`hash(seed,row,col) mod 16 == 0`). A mob-presence draw would need its own independent
-  `gw_prng_step` call in the same sequential-reseed chain, following the established
-  no-correlation discipline `worldgen.py`'s own docstring already documents.
-- **The ranged weapon** would need: a fire-input binding (no spare button exists today — every
-  D-pad direction plus A/B/START/SELECT are already assigned; a weapon-fire input needs either a
-  context-sensitive reuse of an existing button during `PLAYING`, or a genuinely new control
-  scheme decision), a projectile entity (transient, not persisted — mirrors `INF_MZ_RESULT`'s own
-  "transient, generation-time-only" precedent), and a hit-test against mob positions (the existing
-  `check_collisions` routine's asymmetric point-in-box technique, `BL-0053`'s own fix, is a
-  plausible reusable pattern).
-- **Sprite budget**: shadow OAM (`OAM_BUF`, 160 bytes = 40 entries) currently covers the player
-  (in 8×16 mode, 1 entry) plus up to 8 on-screen collectibles per screen (`ZONE_COLLECTS`'s own
-  per-family cap). Mobs + a projectile sprite would compete for the same 40-entry budget — real
-  headroom exists, but "how many concurrent mobs" is a first-order design question, not a detail.
-- **ROM budget**: 1,378 bytes of headroom remain post-`IP-9170` (31390/32768). Mob AI, a
-  weapon-fire state machine, and new tile/palette art for mobs/projectiles/health-HUD will
-  compete for this — a combat sub-mode of any real depth will likely need either further
-  ROM-efficiency work (mirroring `ADR-0020`'s procedural-fill precedent) or `ADR-0011`'s
-  already-committed-but-unimplemented bank-switching cutover. This should be named explicitly in
-  whatever `07-implementation-planning` pass eventually plans this, not discovered mid-implementation
-  (`BL-0134`'s own lesson).
+- **Mob entities**: a fixed-size WRAM table mirroring `COLL_DATA`/`COLL_COUNT`'s own established
+  shape (position + type + a per-slot active flag), sized to **6 concurrent slots** — a concrete
+  default derived from `R115`'s own measured headroom (31 of 40 OAM entries free today; 6 mobs +
+  1 projectile = 7 new entries, leaving 24 free for future growth, comfortably inside budget
+  without assuming it). Each mob slot also carries a health field (see Domain Model). No
+  eviction/FIFO scheme needed (unlike `IP-1104`'s `LEDGER`) — mobs are session-local per
+  materialized region, not an ever-growing history.
+- **Mob spawning**: hooks into `inf_ensure_window`'s existing per-region materialization
+  (`IP-1101`/`IP-1102`), mirroring treasure-presence's own independent-reseed draw
+  (`hash(seed,row,col) mod 16 == 0`) — a mob-presence draw takes its own sequential
+  `gw_prng_step` call in the same reseed chain, per `worldgen.py`'s own no-correlation
+  discipline. **Only fires when `COMBAT_MODE` is active** (new WRAM flag, see Gating Mechanism
+  below) — a materialized region looks and plays identically to today's Infinite Mode when
+  `COMBAT_MODE` is off, so this is additive, not a fork of the generation algorithm.
+- **The ranged weapon**: fire input reuses the **A button during `PLAYING`** — today `A` has no
+  binding during gameplay (confirmed by direct code read of `handle_play_input`; A is only bound
+  during menu/dialog states) — no new control-scheme invention needed, an existing free input.
+  Projectile: a single-slot transient WRAM record (position, direction, active flag) — mirrors
+  `INF_MZ_RESULT`'s own "transient, generation-time-only, never persisted" precedent (§14
+  Rollback Considerations' own established pattern for this codebase's transient state). Hit-test
+  against mob positions reuses `check_collisions`' own asymmetric point-in-box technique
+  (`IP-9100`/`BL-0053`), per `R115`'s own explicit recommendation — no new hitbox model.
+- **Enemy defeat presentation**: per `R218`'s own grounded convention, a mob's defeat is a brief
+  flash-then-deactivate sequence (mirroring how a collected `ScoreItem` already deactivates today)
+  — no persistent corpse sprite, no graphic content, consistent with the base game's own existing
+  content discipline and `C11`'s own "can be grimmer, not necessarily graphic" framing.
+- **Health HUD**: reuses `tiles.py`'s already-shipped `TL_HEART_FULL`/`TL_HEART_EMPTY` tiles
+  (zero new tile-art budget spent), per `R218`'s own heart-container convention. Exact screen
+  placement (a second HUD row visible only during `COMBAT_MODE`, vs. a repurposed region of the
+  existing row-0 bar) is a `06-feature-specification`-level layout decision, not fixed here.
+- **Gating mechanism (Open Question 1's own follow-on, now committed)**: a new **third option on
+  the MODE SELECT screen** (`GS_MODE_SELECT`, alongside today's finite/Infinite toggle) —
+  labeled distinctly (e.g. "COMBAT MODE") so it reads as an explicit, clearly-signposted choice,
+  per `R218`'s own difficulty-gated-optional-content precedent (Double Dragon II/TimeSplitters 2
+  — never a hidden toggle a child could stumble into). Selecting it sets the new `COMBAT_MODE`
+  WRAM flag (alongside the existing `GAME_MODE=1` Infinite Mode flag — `BL-0133`'s own filing
+  scopes this to Infinite Mode only, confirmed by its own text: "on the infinite map"). A
+  first-time-entry confirmation screen (mirroring `IP-1090`'s own SELECT-menu-confirmation
+  precedent) can additionally state the mode's own nature before the player commits, if `06`
+  judges that necessary — not fixed here, a presentation-layer detail.
+- **Sprite budget**: confirmed by `R115` at 31 of 40 OAM entries free today (1 player + up to 8
+  collectibles = 9 used). The 6-mob-slot default above (7 new entries incl. the projectile)
+  leaves 24 entries of margin.
+- **Cycle budget**: per `R115`'s own explicit constraint, any new per-frame combat logic (mob
+  AI tick, projectile update, hit-test) must be measured separately against `inf_ensure_window`'s
+  own already-`NOT MET` `NFR-1400` overage — not assumed safe because "headroom exists" on paper.
+  A concrete measurement is `07-implementation-planning`'s/`08`'s own obligation once a real FR
+  exists, not resolved here.
+- **ROM budget**: 1,378 bytes of headroom remain post-`IP-9170`/`IP-9180` (31390/32768). Mob AI,
+  the weapon-fire state machine, and new tile/palette art (mob sprites, projectile, any new HUD
+  cells beyond the reused heart tiles) will compete for this — likely needs either further
+  ROM-efficiency work (mirroring `ADR-0020`) or `ADR-0011`'s committed-but-unimplemented
+  bank-switching cutover. Named explicitly for whatever `07-implementation-planning` pass
+  eventually plans this, not discovered mid-implementation (`BL-0134`'s own lesson).
 
 ## Domain Model
 
-Candidate new entities (none yet formalized as `FR-xxxx`/GDS-04 additions):
+Committed candidate entities (not yet formalized as `FR-xxxx`/GDS-04 additions — that is `04`'s
+own job once the remaining economy Open Questions below are answered):
 
-- **Mob**: position, type/species, health, alive/dead state, (optionally) an AI behavior tag.
-- **Projectile**: origin, direction/velocity, transient lifetime, damage value.
+- **Mob**: position (x, y), type/species (1 byte, room for multiple mob "species" per `R218`'s
+  own variety-within-tone framing), health (1 byte), active flag. Six concurrent slots (System
+  Architecture above).
+- **Projectile**: origin, direction, active flag — a single transient slot (System Architecture
+  above); a design needing more than one in-flight projectile is a future extension, not this
+  pass's own default.
 - **PlayerHealth**: a new player-state field (today the player has no health/damage concept at
   all — `check_collisions` only ever *adds* to score/treasure counts, never subtracts or ends a
-  run on damage).
+  run on damage). Presented via the reused heart-tile HUD (System Architecture above).
 - **Weapon**: a stat model — "upgraded... by the treasure" implies at least one upgrade tier axis;
   whether it also has ammo/durability is explicitly named as unresolved by the owner's own
-  2026-07-17 clarification.
+  2026-07-17 clarification (Open Question 3, still open).
 - **Treasure's widened role**: today `RUNNING_TREASURE_COUNT` is a pure win/high-score input
   (`IP-1103`, `FR-10300`/`FR-10400`). This request adds a second consumption path (player-health
   restoration) — whether treasure is *spent* (reducing the win-condition count) or merely
-  *triggers* healing without being consumed is a first-order, unresolved economy question.
+  *triggers* healing without being consumed is a first-order, unresolved economy question (Open
+  Question 2, still open) — this ADS commits to entity shapes, not to this economy decision,
+  which is a real requirements-level choice `04`/the user must make.
+- **`COMBAT_MODE`** (new): a 1-byte WRAM flag, valid only alongside `GAME_MODE=1` (Infinite Mode)
+  — the gating mechanism's own state, set via the new MODE SELECT option above.
 
 ## User Stories
 
