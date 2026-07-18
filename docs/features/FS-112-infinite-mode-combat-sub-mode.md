@@ -5,10 +5,32 @@
 > elaborates FEAT-11000, it does not modify its catalog entry, the requirements it implements, or
 > any architecture document.
 >
-> **Specified 2026-07-17.** Not yet planned — `07-implementation-planning` has not run. This
-> Feature sits in the `Future` release bucket (no release commitment made); planning does not
-> require or imply scheduling, per `05-feature-decomposition`'s own established precedent
-> (`FEAT-10000`/`FEAT-7100`).
+> **Specified 2026-07-17.** This Feature sits in the `Future` release bucket (no release
+> commitment made); planning does not require or imply scheduling, per
+> `05-feature-decomposition`'s own established precedent (`FEAT-10000`/`FEAT-7100`).
+>
+> **Planned 2026-07-17** (`07-implementation-planning`) — six packages,
+> [IP-1120](../implementation/packages/IP-1120-infinite-mode-combat-mode-gating.md)–[IP-1125](../implementation/packages/IP-1125-combat-sprite-content.md),
+> **none authorized.** [IP-1120](../implementation/packages/IP-1120-infinite-mode-combat-mode-gating.md)
+> (mode gating & UI, resolving Open Question 1) is additionally **`BLOCKED`** on a `GDS-01` §4d
+> amendment (a genuine architecture gap this planning pass found — `MODE SELECT`'s own
+> architecture text states a closed two-option fact a third option would falsify, mirroring
+> `BL-0113`'s own precedent for `MODE SELECT`'s original existence) — routed to
+> `03-architecture-design-synthesis`, not resolved here. The other five packages
+> ([IP-1121](../implementation/packages/IP-1121-infinite-mode-combat-mob-materialization-and-rendering.md)
+> mob materialization/rendering/defeat,
+> [IP-1122](../implementation/packages/IP-1122-infinite-mode-combat-weapon-fire-and-hit-resolution.md)
+> weapon fire/hit resolution,
+> [IP-1123](../implementation/packages/IP-1123-infinite-mode-combat-player-health-and-economy.md)
+> player health/setback/healing economy,
+> [IP-1124](../implementation/packages/IP-1124-infinite-mode-combat-save-persistence.md) save
+> persistence,
+> [IP-1125](../implementation/packages/IP-1125-combat-sprite-content.md) sprite content) do not
+> depend on the gating mechanism's exact shape and are independently plannable/buildable. Planning
+> also surfaced two genuine requirements gaps, harvested to the backlog rather than resolved
+> unilaterally: `WEAPON_TIER`'s own treasure-funded upgrade mechanism has no baselined FR
+> (`IP-1122` §9); the heal-spend action's own input binding has no free button named upstream
+> (`IP-1123` §9) — both routed to `04-requirements-engineering`/`06-feature-specification`.
 
 [↑ Features index](INDEX.md) · [Feature Catalog](../feature-planning/03-feature-catalog.md) ·
 [Epic Catalog](../feature-planning/02-epic-catalog.md)

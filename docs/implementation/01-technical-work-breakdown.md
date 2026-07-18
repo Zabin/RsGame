@@ -3,7 +3,10 @@
 > **Status: ✅ Authored (first planning pass, 2026-07-07); latest delta 2026-07-14 (Infinite
 > Mode, `FS-110`/`FEAT-10000`, 5 packages `IP-1100`–`IP-1104`, AUTHORIZED 2026-07-14, "Yes, build
 > all five"); delta 2026-07-16 (Procedural Music Generation, `FS-111`/`FEAT-7100`, 2 packages
-> `IP-1110`/`IP-1111`, not yet authorized).** Owned by
+> `IP-1110`/`IP-1111`, not yet authorized); delta 2026-07-17 (Infinite Mode Combat Sub-Mode,
+> `FS-112`/`FEAT-11000`, 6 packages `IP-1120`–`IP-1125`, none authorized — `IP-1120` additionally
+> `BLOCKED` on a `GDS-01` §4d amendment, a genuine architecture gap this pass found and routed
+> upstream rather than planned around).** Owned by
 > `07-implementation-planning`. Records how approved work is cut into Implementation Packages —
 > the rationale for every split/no-split decision is the artifact. Package status lives in the
 > [Master Build Plan](00-master-build-plan.md), not here.
@@ -1613,3 +1616,99 @@ on SM83), mirroring `inf_mod9`'s own established technique (`asm_game.py`, `IP-1
 
 **Authorization:** **not authorized** — new remediation package resolving `BL-0144`, not covered
 by any standing go-ahead; awaits an explicit G3 user decision.
+
+## Infinite Mode Combat Sub-Mode (`FS-112`/`FEAT-11000`/`EP-6000`, `ADS-002`/`MSTR-001` C11/`BL-0133`, planned 2026-07-17)
+
+New capability grounded in `ADS-002`: an explicitly opt-in combat layer inside Infinite Mode —
+mob materialization/defeat, ranged weapon fire/hit resolution, player health with a non-lethal
+setback, a treasure-spent healing economy, and combat-state save persistence. Baselined as
+`FR-11100`–`FR-11600`/`NFR-1500`/`NFR-4500` (`04-requirements-engineering`); catalogued as
+`FEAT-11000` (`05-feature-decomposition`); specified in full as `FS-112`
+(`06-feature-specification`), which carried forward 3 Open Questions rather than resolving them
+prematurely.
+
+### Verb inventory (mandatory — this capability spans generate/render/act/persist/gate)
+
+| Verb | Owner | Notes |
+|---|---|---|
+| **Generate** (per-region mob presence/type/position draw, hooked into `inf_ensure_window`) | [IP-1121](packages/IP-1121-infinite-mode-combat-mob-materialization-and-rendering.md) | Mirrors `IP-1101`'s own per-region reseed-chain discipline — a new sequential `gw_prng_step` draw in the same chain treasure-presence already uses, independent of biome/treasure. |
+| **Render** (mob sprite OAM writes, per-frame; defeat presentation) | [IP-1121](packages/IP-1121-infinite-mode-combat-mob-materialization-and-rendering.md) | Folded into the same package as *generate* — mob presence and its per-frame visual instantiation are tightly coupled (an active mob with no OAM write is not observably different from an inactive one), unlike `FS-110`'s own generate/render split, which existed because *terrain* materialization and *window/render* management were genuinely separable concerns with their own distinct WRAM state. No equivalent separable seam exists here. |
+| **Render** (new mob/projectile tile art) | [IP-1125](packages/IP-1125-combat-sprite-content.md) | Content-scoped (pixel art + `build_tile_data()` registration), owned by `08-content-authoring` per this project's established code/content split (mirrors `IP-1030`/`IP-1031`). |
+| **Render** (player-health HUD, reusing existing heart tiles) | [IP-1123](packages/IP-1123-infinite-mode-combat-player-health-and-economy.md) | Zero new tile-art cost (`R218`/`ADS-002`) — folded into the health/economy package, not split out, since the HUD write and the health value it displays are one coherent concern. |
+| **Act** (fire input, projectile update, hit resolution against mobs) | [IP-1122](packages/IP-1122-infinite-mode-combat-weapon-fire-and-hit-resolution.md) | Reuses `check_collisions`' own asymmetric point-in-box technique (`R115`) — no new hitbox model. |
+| **Act** (mob contact damage, non-lethal setback trigger) | [IP-1123](packages/IP-1123-infinite-mode-combat-player-health-and-economy.md) | Folded with the health/economy package — damage-taking and the health value it decrements are the same concern; the setback is health reaching zero, not a separable mechanic. |
+| **Persist** (combat state: mob table, weapon tier, player health) | [IP-1124](packages/IP-1124-infinite-mode-combat-save-persistence.md) | Mirrors `IP-1104`'s own version-byte-bump pattern exactly. **Projectile state is explicitly not persisted** (`ADS-002`: "transient, generation-time-only, never persisted," mirroring `INF_MZ_RESULT`'s own precedent) — a deliberate exclusion, not an oversight. |
+| **Gate** (the third MODE SELECT option, `COMBAT_MODE` flag) | [IP-1120](packages/IP-1120-infinite-mode-combat-mode-gating.md) | **`BLOCKED`** — see the architecture-gap finding below. Sets a flag `IP-1121` already defines and consumes; does not itself need to exist before `IP-1121`–`IP-1125` can be built and tested (tests force `COMBAT_MODE` directly, mirroring how `GAME_MODE`/`INF_WINDOW` are already force-set in `test_rom.py` today). |
+| **Review** | Deferred to `09-content-review` once `IP-1125`'s sprite art ships — not this stage's own scope to package. |
+
+### A genuine architecture gap found during planning, not named by `FS-112` as blocking
+
+`FS-112`'s own Open Question 1 named the gating UI's exact mechanism as undecided (a three-state
+`MM_CURSOR` cycle vs. a new confirmation screen) and routed it to this stage. Direct re-read of
+[GDS-01 §4d](../architecture/01-concept-of-play.md#4d-new-game-mode-choice-finite--infinite--delta-for-bl-0113-decided-2026-07-14)
+finds it states, as a load-bearing fact, that `MODE SELECT` "presents **finite** and **infinite**"
+— a closed, two-option description. Adding a third, real option is not merely an implementation-level
+byte-encoding choice this stage is free to make (the class `ADR-0015`'s own precedent reserves for
+`07`/`08`) — it changes what `GDS-01` itself asserts the screen offers, the same class of
+"architecture document states a fact this pass would falsify" gap `BL-0113` itself was originally
+filed to close for `MODE SELECT`'s own existence. Per this skill's own charter ("An unimplementable
+spec or a conflict found while planning routes upstream — never planned around quietly"), this
+pass does **not** decide the mechanism itself and does **not** silently extend `MM_CURSOR`'s range
+without an architecture-level record of it. **Routed to `03-architecture-design-synthesis`** for a
+light `GDS-01` §4d amendment (naming the third option and, if chosen, the extended cursor range or
+new state) before `IP-1120` can be planned in full and marked `READY`. This does **not** block the
+other five packages — none of them read or depend on the exact gating mechanism, only on the
+`COMBAT_MODE` flag `IP-1121` defines directly.
+
+### Supersession sweep
+
+This capability does not retire or replace an existing model — it is purely additive, gated
+entirely behind a new `COMBAT_MODE` flag that defaults to 0 (mirrors `GAME_MODE`'s own
+boot-cleared convention). Swept `asm_game.py` for every site that could be affected by a new mob
+table, projectile record, or player-health field colliding with existing WRAM/OAM usage: no
+existing routine reads or writes the WRAM range this delta claims (`0xC6B5`–`0xC6DA`, immediately
+following `MUSIC_BASE_HI`'s own end at `0xC6B4`); no existing OAM-write routine iterates past
+`COLL_COUNT`'s own entries plus the player, confirmed by direct read of `update_oam`'s own loop
+bounds — mobs/projectile need their own new OAM-write loop, not an extension of an existing one
+that could silently overrun. Confirmed clean.
+
+### Work units and package cut
+
+| Work unit | Package | Owner | Depends on |
+|---|---|---|---|
+| Mob presence/type/position draw (per-region, hooked into `inf_ensure_window`) + per-frame mob OAM rendering + non-graphic defeat presentation | [IP-1121](packages/IP-1121-infinite-mode-combat-mob-materialization-and-rendering.md) | `08-code-implementation` | `IP-1101`/`IP-1102` (both `VERIFIED`); `IP-1125` (mob sprite tile index) |
+| Mob/projectile sprite pixel art + `build_tile_data()` registration | [IP-1125](packages/IP-1125-combat-sprite-content.md) | `08-content-authoring` | None (new tile indices only, no dependency on any combat logic package) |
+| Fire input (A button), projectile spawn/update, hit-test against the mob table | [IP-1122](packages/IP-1122-infinite-mode-combat-weapon-fire-and-hit-resolution.md) | `08-code-implementation` | `IP-1121` (the mob table this resolves hits against); `IP-1125` (projectile sprite tile index) |
+| Player health field, HUD write (reused heart tiles), mob-contact damage, non-lethal setback, treasure-spend healing economy | [IP-1123](packages/IP-1123-infinite-mode-combat-player-health-and-economy.md) | `08-code-implementation` | `IP-1121` (mob contact as a damage source) |
+| Combat state save persistence (`SAVE_VERSION_VAL` bump `0x05`→`0x06`) | [IP-1124](packages/IP-1124-infinite-mode-combat-save-persistence.md) | `08-code-implementation` | `IP-1121`/`IP-1122`/`IP-1123` (persists their combined state) |
+| Third MODE SELECT option, `COMBAT_MODE` gating UI | [IP-1120](packages/IP-1120-infinite-mode-combat-mode-gating.md) | `08-code-implementation` | `IP-1121` (the flag it sets); **`BLOCKED`** on a `GDS-01` §4d amendment (`03-architecture-design-synthesis`) |
+
+**Split rationale:** six packages, cut along the verb-inventory seams above, deliberately
+*not* mirroring `FS-110`'s own five-package generate/render/persist/gate split one-for-one —
+this capability's own generate/render coupling for mobs is tighter (folded into one package,
+`IP-1121`) while its act/persist/gate seams are looser (three separate packages) because mob
+contact-damage and the healing economy share one state field (`IP-1123`) that fire/hit-resolution
+does not touch (`IP-1122`), and the gating UI is genuinely blocked on an upstream question the
+other five are not. **Considered and rejected:** folding `IP-1122` (weapon fire) into `IP-1121`
+(mob materialization/rendering) — rejected because a projectile's own update/hit-test loop is a
+per-frame *player-action* concern, structurally distinct from a per-region *generation* concern,
+and keeping them separate lets `IP-1122` be independently tested against a fixture mob table
+without re-deriving materialization determinism in the same test. **Considered and rejected:**
+splitting content (`IP-1125`) further into mob-only and projectile-only packages — rejected as
+needless fragmentation; both are small, single-purpose tile additions with no independent value
+apart from the code that consumes them.
+
+**Critical path:** `IP-1125` → `IP-1121` → `IP-1122` → `IP-1124` (4 nodes) — the longest chain;
+`IP-1123` branches off `IP-1121` in parallel with `IP-1122`, both feeding into `IP-1124`;
+`IP-1120` is a fifth, parallel branch off `IP-1121`, currently `BLOCKED` independent of the
+critical path's own progress.
+
+**ROM/OAM budget (per `NFR-4500`, `R115`):** 1,378 bytes of ROM headroom and 31 of 40 shadow-OAM
+entries free before this delta (post-`IP-9170`/`IP-9180`). The 6-mob-slot default (7 new OAM
+entries incl. the projectile) leaves 24 free — real headroom, not asserted safe until each
+package's own build confirms it (see each package's own Risks field).
+
+**Authorization:** **none of the six packages are authorized.** `IP-1120` additionally cannot
+reach `READY` until the `GDS-01` §4d amendment lands — recommend `03-architecture-design-synthesis`
+runs next for that narrow amendment, in parallel with (not blocking) a G3 decision on the other
+five.
