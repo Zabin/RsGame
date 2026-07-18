@@ -1,4 +1,4 @@
-BunnyQuest ROM Tests  PASS=342/342  FAIL=0
+BunnyQuest ROM Tests  PASS=349/349  FAIL=0
 ==================================================
 [PASS] T1.1 ROM size = 32768  (32768)
 [PASS] T1.2 Entry = NOP; JP
@@ -320,11 +320,11 @@ BunnyQuest ROM Tests  PASS=342/342  FAIL=0
 [PASS] T27.e Regression: every existing T15 (generated-world save persistence) check still passes unmodified under the new SAVE_VERSION_VAL  (failed=[] total_checked=17)
 [PASS] T27.f Indefinite resumability: a loaded Infinite Mode run survives every reachable input branch (movement, SAVE round trips, SELECT-menu round trips) without ending -- lands back in PLAYING, GAME_MODE still 1  (gs_after_load=2 gs_final=2 game_mode=1)
 [PASS] T27.g In-session re-entry: collected treasure does not respawn on ordinary navigation back (no save/load boundary crossed) -- INF_TREASURE_HERE stays 0, RUNNING_TREASURE_COUNT does not double-increment  (rtc_pre=1 col=0 treasure_here=0 rtc_back=1)
-[PASS] T28.a0 Static: music_tbl patch resolves inside ROM and the nine table entries are distinct, ordered track addresses  (tbl=0x305D entries=['0x2a00', '0x2ab5', '0x2b6a', '0x2c1f', '0x2cd4', '0x2d89', '0x2e3e', '0x2ef3', '0x2fa8'])
+[PASS] T28.a0 Static: music_tbl patch resolves inside ROM and the nine table entries are distinct, ordered track addresses  (tbl=0x315D entries=['0x2b00', '0x2bb5', '0x2c6a', '0x2d1f', '0x2dd4', '0x2e89', '0x2f3e', '0x2ff3', '0x30a8'])
 [PASS] T28.a Selection: each of the nine biome-ids repoints MUSIC_BASE to its own music_table entry with MUSIC_PTR playing inside that track (finite path, FR-7110)  (bad=[])
-[PASS] T28.b Selection via Infinite Mode window path: biome 7 (Desert) repoints MUSIC_BASE to music_table[7], MUSIC_PTR playing inside that track  (ptr=0x2EF6 base=0x2EF3 expected=0x2EF3)
+[PASS] T28.b Selection via Infinite Mode window path: biome 7 (Desert) repoints MUSIC_BASE to music_table[7], MUSIC_PTR playing inside that track  (ptr=0x2FF6 base=0x2FF3 expected=0x2FF3)
 [PASS] T28.c Fallback: every one of the eleven non-PLAYING states resets MUSIC_BASE to music_table[2] (the main theme), MUSIC_PTR playing inside it  (bad=[])
-[PASS] T28.d Loop restart: a sub-theme reaching its terminal 0xFF restarts from its own MUSIC_BASE start (Village), never the main theme (the music_tick fix)  (ptr=0x2D8C base=0x2D89 start=0x2D89 ff=0x2E3D)
+[PASS] T28.d Loop restart: a sub-theme reaching its terminal 0xFF restarts from its own MUSIC_BASE start (Village), never the main theme (the music_tick fix)  (ptr=0x2E8C base=0x2E89 start=0x2E89 ff=0x2F3D)
 [PASS] T28.e Timing: the sub-theme repoint lands with the redraw itself (within FR-7110's one-frame budget of the screen appearing)  (frames=2)
 [PASS] T29.a Determinism: materializing the same region twice produces byte-identical mob slots  (r1=(0, [(48, 72, 0, 1, 0), (24, 56, 0, 1, 0), (56, 88, 0, 1, 0), (32, 72, 0, 1, 0), (72, 64, 0, 1, 0), (128, 88, 0, 1, 0)]) r2=(0, [(48, 72, 0, 1, 0), (24, 56, 0, 1, 0), (56, 88, 0, 1, 0), (32, 72, 0, 1, 0), (72, 64, 0, 1, 0), (128, 88, 0, 1, 0)]))
 [PASS] T29.b Oracle-vs-SM83 lockstep: worldgen.materialize_mobs matches inf_materialize_mobs exactly  (mismatches=[])
@@ -338,6 +338,13 @@ BunnyQuest ROM Tests  PASS=342/342  FAIL=0
 [PASS] T30.c2 Spot: a non-lethal hit reduces health by WEAPON_TIER without defeating the mob  (ok=True health=3 active=1 count=1 proj_active=0)
 [PASS] T30.d Miss/terminal boundary: projectile deactivates cleanly on exiting the window  (proj_active=0 steps=3)
 [PASS] T30.e COMBAT_MODE off: A button remains a no-op during PLAYING (PROJ_ACTIVE stays 0)  (ok=True proj_active=0)
+[PASS] T31.a Mob contact reduces health by exactly 1  (ok=True health=2)
+[PASS] T31.b HUD reflects health: row-1 heart cells render the matching full/empty pattern for health 0-3  (bad=[])
+[PASS] T31.c Zero-health setback: health resets to max, position returns to region-entry point, GAMESTATE unchanged  (ok=True health=3 x=40 y=90 gs_before=2 gs_after=2)
+[PASS] T31.d Heal-spend decrements RUNNING_TREASURE_COUNT by 1 and increases PLAYER_HEALTH by 1  (ok=True rtc=4 health=2)
+[PASS] T31.d2 Spot: heal-spend at max health still spends treasure but does not exceed the health cap  (ok=True rtc=4 health=3)
+[PASS] T31.e Heal-spend at zero treasure is a no-op (no change to RUNNING_TREASURE_COUNT or PLAYER_HEALTH)  (ok=True rtc=0 health=1)
+[PASS] T31.f COMBAT_MODE off: no row-1 HUD write, mob-contact/heal-spend logic never executes  (health=3 rtc=5 row1=[170, 170, 170])
 [PASS] T34.a Tile indices: TL_MOB/TL_MOB_BOT/TL_PROJECTILE/TL_PROJECTILE_BOT sit at 0x0A-0x0D exactly  (got=(10, 11, 12, 13))
 [PASS] T34.b Registered: TL_MOB/TL_PROJECTILE tile data matches mob_obj()/projectile_obj() exactly; both bottom halves are blank  (mismatch against tiles.py's own generator functions)
 [PASS] T34.c Distinctness: mob/projectile art is visually distinct (byte-for-byte) from every existing OBJ tile and from each other  (dupes=[] mob==proj:False)

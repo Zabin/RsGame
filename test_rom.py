@@ -4022,6 +4022,125 @@ check("T30.e COMBAT_MODE off: A button remains a no-op during PLAYING (PROJ_ACTI
 pb.stop()
 wipe_save()
 
+print("\n=== T31: Combat Sub-Mode — Player Health & Economy (IP-1123) ===")
+
+PLAYER_HEALTH_ADDR = 0xC6DA; COMBAT_ENTRY_X_ADDR = 0xC6DB; COMBAT_ENTRY_Y_ADDR = 0xC6DC
+IMCC_ADDR = _gw_rom.labels['inf_mob_contact_check']
+IHSB_ADDR = _gw_rom.labels['inf_health_setback']
+IHEAL_ADDR = _gw_rom.labels['inf_heal_spend']
+IHHD_ADDR = _gw_rom.labels['inf_health_hud_draw']
+
+def t31_reset(pb, combat_mode=1, player_health=3):
+    pb.memory[GAME_MODE] = 1
+    pb.memory[COMBAT_MODE_ADDR] = combat_mode
+    pb.memory[MOB_COUNT_ADDR] = 0
+    for i in range(6):
+        base = MOB_DATA_ADDR + i * 5
+        for k in range(5): pb.memory[base + k] = 0
+    pb.memory[PLAYER_HEALTH_ADDR] = player_health
+    pb.memory[COMBAT_ENTRY_X_ADDR] = 0; pb.memory[COMBAT_ENTRY_Y_ADDR] = 0
+    pb.memory[RUNNING_TREASURE_COUNT] = 0; pb.memory[RUNNING_TREASURE_COUNT + 1] = 0
+
+pb = fresh_boot(180)
+advance_to_playing(pb)
+
+# T31.a — mob contact reduces health: force the player onto an active mob's
+# position, step one frame (invoke_no_arg on inf_mob_contact_check),
+# confirm PLAYER_HEALTH decreases by exactly 1.
+t31_reset(pb, player_health=3)
+pb.memory[PLAYER_X] = 100; pb.memory[PLAYER_Y] = 50
+pb.memory[MOB_COUNT_ADDR] = 1
+_t31a_mob = MOB_DATA_ADDR
+pb.memory[_t31a_mob + 0] = 100; pb.memory[_t31a_mob + 1] = 50
+pb.memory[_t31a_mob + 2] = 0; pb.memory[_t31a_mob + 3] = 1; pb.memory[_t31a_mob + 4] = 1
+_t31a_ok = invoke_no_arg(pb, IMCC_ADDR)
+check("T31.a Mob contact reduces health by exactly 1",
+      _t31a_ok and pb.memory[PLAYER_HEALTH_ADDR] == 2,
+      f"ok={_t31a_ok} health={pb.memory[PLAYER_HEALTH_ADDR]}")
+
+# T31.b — HUD reflects health: force PLAYER_HEALTH to each of 0-3, confirm
+# the row-1 heart cells render the matching full/empty pattern.
+_t31b_bad = []
+for _h in range(4):
+    t31_reset(pb, player_health=_h)
+    invoke_no_arg(pb, IHHD_ADDR)
+    _row1 = [pb.memory[0x9820 + k] for k in range(3)]
+    _expected = [TL_HEART_FULL if k < _h else TL_HEART_EMPTY for k in range(3)]
+    if _row1 != _expected: _t31b_bad.append((_h, _row1, _expected))
+check("T31.b HUD reflects health: row-1 heart cells render the matching full/empty pattern for health 0-3",
+      len(_t31b_bad) == 0, f"bad={_t31b_bad}")
+
+# T31.c — zero-health setback: force PLAYER_HEALTH to 0, a known
+# COMBAT_ENTRY_X/Y, and the player elsewhere; confirm PLAYER_HEALTH resets
+# to max, position returns to the recorded region-entry point, and
+# GAMESTATE remains PLAYING (never transitions to any other state).
+t31_reset(pb, player_health=0)
+pb.memory[COMBAT_ENTRY_X_ADDR] = 40; pb.memory[COMBAT_ENTRY_Y_ADDR] = 90
+pb.memory[PLAYER_X] = 120; pb.memory[PLAYER_Y] = 20
+_t31c_gs_before = pb.memory[GAMESTATE]
+_t31c_ok = invoke_no_arg(pb, IHSB_ADDR)
+_t31c_gs_after = pb.memory[GAMESTATE]
+check("T31.c Zero-health setback: health resets to max, position returns to region-entry point, GAMESTATE unchanged",
+      _t31c_ok and pb.memory[PLAYER_HEALTH_ADDR] == 3 and pb.memory[PLAYER_X] == 40 and
+      pb.memory[PLAYER_Y] == 90 and _t31c_gs_after == _t31c_gs_before,
+      f"ok={_t31c_ok} health={pb.memory[PLAYER_HEALTH_ADDR]} x={pb.memory[PLAYER_X]} "
+      f"y={pb.memory[PLAYER_Y]} gs_before={_t31c_gs_before} gs_after={_t31c_gs_after}")
+
+# T31.d — heal-spend decrements the shared count: force a known
+# RUNNING_TREASURE_COUNT, trigger inf_heal_spend, confirm the exact
+# decrement and the corresponding PLAYER_HEALTH increase.
+t31_reset(pb, player_health=1)
+pb.memory[RUNNING_TREASURE_COUNT] = 5; pb.memory[RUNNING_TREASURE_COUNT + 1] = 0
+_t31d_ok = invoke_no_arg(pb, IHEAL_ADDR)
+_t31d_rtc = pb.memory[RUNNING_TREASURE_COUNT] | (pb.memory[RUNNING_TREASURE_COUNT + 1] << 8)
+check("T31.d Heal-spend decrements RUNNING_TREASURE_COUNT by 1 and increases PLAYER_HEALTH by 1",
+      _t31d_ok and _t31d_rtc == 4 and pb.memory[PLAYER_HEALTH_ADDR] == 2,
+      f"ok={_t31d_ok} rtc={_t31d_rtc} health={pb.memory[PLAYER_HEALTH_ADDR]}")
+
+# T31.d2 — spot check: heal-spend still spends treasure even when already
+# at max health, but does not push health past the cap (3).
+t31_reset(pb, player_health=3)
+pb.memory[RUNNING_TREASURE_COUNT] = 5; pb.memory[RUNNING_TREASURE_COUNT + 1] = 0
+_t31d2_ok = invoke_no_arg(pb, IHEAL_ADDR)
+_t31d2_rtc = pb.memory[RUNNING_TREASURE_COUNT] | (pb.memory[RUNNING_TREASURE_COUNT + 1] << 8)
+check("T31.d2 Spot: heal-spend at max health still spends treasure but does not exceed the health cap",
+      _t31d2_ok and _t31d2_rtc == 4 and pb.memory[PLAYER_HEALTH_ADDR] == 3,
+      f"ok={_t31d2_ok} rtc={_t31d2_rtc} health={pb.memory[PLAYER_HEALTH_ADDR]}")
+
+# T31.e — heal-spend at zero treasure is a no-op: force
+# RUNNING_TREASURE_COUNT=0, trigger inf_heal_spend, confirm no change to
+# either field.
+t31_reset(pb, player_health=1)
+pb.memory[RUNNING_TREASURE_COUNT] = 0; pb.memory[RUNNING_TREASURE_COUNT + 1] = 0
+_t31e_ok = invoke_no_arg(pb, IHEAL_ADDR)
+_t31e_rtc = pb.memory[RUNNING_TREASURE_COUNT] | (pb.memory[RUNNING_TREASURE_COUNT + 1] << 8)
+check("T31.e Heal-spend at zero treasure is a no-op (no change to RUNNING_TREASURE_COUNT or PLAYER_HEALTH)",
+      _t31e_ok and _t31e_rtc == 0 and pb.memory[PLAYER_HEALTH_ADDR] == 1,
+      f"ok={_t31e_ok} rtc={_t31e_rtc} health={pb.memory[PLAYER_HEALTH_ADDR]}")
+
+# T31.f — COMBAT_MODE off: no row-1 HUD write occurs, and mob-contact/
+# heal-spend logic never executes (non-regression against the base game's
+# own row-0-only HUD).
+t31_reset(pb, combat_mode=0, player_health=3)
+pb.memory[PLAYER_X] = 100; pb.memory[PLAYER_Y] = 50
+pb.memory[MOB_COUNT_ADDR] = 1
+_t31f_mob = MOB_DATA_ADDR
+pb.memory[_t31f_mob + 0] = 100; pb.memory[_t31f_mob + 1] = 50
+pb.memory[_t31f_mob + 2] = 0; pb.memory[_t31f_mob + 3] = 1; pb.memory[_t31f_mob + 4] = 1
+pb.memory[RUNNING_TREASURE_COUNT] = 5; pb.memory[RUNNING_TREASURE_COUNT + 1] = 0
+for _k in range(3): pb.memory[0x9820 + _k] = 0xAA   # poison row-1 first
+invoke_no_arg(pb, IMCC_ADDR)
+invoke_no_arg(pb, IHEAL_ADDR)
+invoke_no_arg(pb, IHHD_ADDR)
+_t31f_row1 = [pb.memory[0x9820 + k] for k in range(3)]
+_t31f_rtc = pb.memory[RUNNING_TREASURE_COUNT] | (pb.memory[RUNNING_TREASURE_COUNT + 1] << 8)
+check("T31.f COMBAT_MODE off: no row-1 HUD write, mob-contact/heal-spend logic never executes",
+      pb.memory[PLAYER_HEALTH_ADDR] == 3 and _t31f_rtc == 5 and _t31f_row1 == [0xAA, 0xAA, 0xAA],
+      f"health={pb.memory[PLAYER_HEALTH_ADDR]} rtc={_t31f_rtc} row1={_t31f_row1}")
+
+pb.stop()
+wipe_save()
+
 print("\n=== T34: Combat Sub-Mode — Sprite Content (IP-1125) ===")
 
 import build_rom as _build_rom_mod

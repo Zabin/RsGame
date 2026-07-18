@@ -45,6 +45,15 @@
 > `st_playing`'s per-frame chain), `inf_projectile_hittest` (reuses `check_collisions`' own
 > asymmetric point-in-box technique verbatim, unmodified). `COMPLETE`, own
 > `09-package-verification` pass owed.
+>
+> **`IP-1123` implemented 2026-07-18** — Workflow D (player health, non-lethal setback, treasure-
+> spent healing economy) is built: `PLAYER_HEALTH`/`COMBAT_ENTRY_X`/`COMBAT_ENTRY_Y`
+> (`asm_game.py`), `inf_mob_contact_check` (per-frame, reuses `check_collisions`' own technique
+> against `PLAYER_X`/`Y`), `inf_health_setback` (restore-and-reposition, never writes
+> `GAMESTATE`), `inf_record_combat_entry` (hooked into every `inf_ensure_window` call site),
+> `inf_heal_spend` (defined/exposed, no real input binding yet — `BL-0148`, unresolved),
+> `inf_health_hud_draw` (row-1 heart cells, hooked into `update_status_disp`). `COMPLETE`, own
+> `09-package-verification` pass owed.
 
 [↑ Features index](INDEX.md) · [Feature Catalog](../feature-planning/03-feature-catalog.md) ·
 [Epic Catalog](../feature-planning/02-epic-catalog.md)
@@ -419,11 +428,12 @@ implementation-level choices, mirroring `FS-110`'s own precedent for exactly thi
    player/enemy-initiated discrete events, not continuous per-frame effects), but not asserted
    safe either. Resolves at: `07-implementation-planning`, as an implementation-level sequencing
    choice — does not require a requirements or architecture change either way.
-3. **The exact player-visible feedback for a no-op heal-spend attempt (zero treasure available)
-   is not decided.** A silent no-op versus a disabled-option/audio cue is a presentation-layer
-   choice `FR-11500` does not fix. Resolves at: `07-implementation-planning`/`08-code-
-   implementation`, mirroring how `FS-110` left comparable presentation-only choices (e.g. the
-   first-time-entry confirmation screen's exact wording) to implementation.
+3. **Resolved (`IP-1123`, 2026-07-18): shipped as a silent no-op.** `inf_heal_spend` at zero
+   treasure changes neither `RUNNING_TREASURE_COUNT` nor `PLAYER_HEALTH` and produces no other
+   observable effect (`T31.e`) — no disabled-option/audio cue was added. A richer cue remains
+   possible as a future presentation-layer touch but is not required by `FR-11500`; this
+   subroutine has no real input binding yet regardless (`BL-0148`), so the no-op is not yet
+   player-reachable either way.
 
 ## 20. Related ADRs
 

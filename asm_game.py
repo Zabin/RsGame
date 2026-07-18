@@ -319,6 +319,22 @@ WEAPON_TIER    = 0xC6D9  # 1 byte -- damage dealt per hit, default 1, range 1-3
                           # (persisted stat; no player-facing way to raise it
                           # yet -- the funding mechanism gap named above).
 
+# IP-1123 (FR-11400/FR-11500, ADS-002): Infinite Mode Combat Sub-Mode --
+# player health/setback/healing economy. First unclaimed byte past
+# WEAPON_TIER's own end (0xC6D9). PLAYER_HEALTH boot-*initialized* to 3
+# (max) -- like WEAPON_TIER, not simply cleared, since a fresh combat
+# session starts at full health, not zero. COMBAT_ENTRY_X/Y need no boot
+# clear: every region-entry event that could ever be read while
+# COMBAT_MODE is on has already written them first (inf_record_combat_
+# entry runs at every inf_ensure_window call site), the same
+# "write-before-read" discipline MOB_DATA/PROJ_X/Y/DIR already establish.
+PLAYER_HEALTH   = 0xC6DA  # 1 byte -- 0-3, default/max 3 (three heart cells,
+                           # R218's heart-container convention; a fixed max,
+                           # not itself an upgrade axis).
+COMBAT_ENTRY_X  = 0xC6DB  # 1 byte -- PLAYER_X at the last region-entry event,
+                           # the zero-health setback's own return point.
+COMBAT_ENTRY_Y  = 0xC6DC  # 1 byte -- PLAYER_Y at the last region-entry event.
+
 SAVE_VERSION_ADDR = 0xA012   # save-format version guard (FR-5220 / Design Decision 2)
 SAVE_VERSION_VAL  = 0x05     # bumped 0x04->0x05 (IP-1104, fifth bump since ship — the
                               # value sequence is strictly monotonic, never reused). A single
@@ -458,6 +474,11 @@ def build_game_asm(rom: ROM) -> dict:
     rom.XOR_A(); rom.LD_nn_A(PROJ_ACTIVE)
     rom.LD_A_n(1); rom.LD_nn_A(WEAPON_TIER)
 
+    # Init PLAYER_HEALTH to max (3) (IP-1123) -- NOT simply cleared, a fresh
+    # combat session starts full, not at zero. COMBAT_ENTRY_X/Y need no
+    # boot clear (write-before-read, see their own WRAM comment).
+    rom.LD_A_n(3); rom.LD_nn_A(PLAYER_HEALTH)
+
     # Clear VRAM bank 0 (same A-clobber caveat — re-zero each iter)
     rom.XOR_A(); rom.LDH_n_A(VBK)
     rom.LD_HL_nn(0x8000); rom.LD_BC_nn(0x2000)
@@ -585,6 +606,7 @@ def build_game_asm(rom: ROM) -> dict:
     rom.JP_NZ('end_frame')
     rom.CALL('check_collisions')
     rom.CALL('inf_projectile_update')  # IP-1122: no-op unless COMBAT_MODE/PROJ_ACTIVE
+    rom.CALL('inf_mob_contact_check')  # IP-1123: no-op unless COMBAT_MODE
     rom.CALL('check_zone_transition')
     rom.CALL('check_complete')
     rom.JP('end_frame')
@@ -846,6 +868,7 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_nn_A(INF_ROW); rom.LD_nn_A(INF_ROW + 1)
     rom.LD_nn_A(INF_COL); rom.LD_nn_A(INF_COL + 1)
     rom.CALL('inf_ensure_window')
+    rom.CALL('inf_record_combat_entry')  # IP-1123: initial region-entry point
     rom.LD_A_n(GS_INTRO); rom.LD_nn_A(TRANSITION_TO)
     rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW)
     rom.JP('end_frame')
@@ -1300,6 +1323,7 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_E(); rom.LD_nn_A(INF_COL); rom.LD_A_D(); rom.LD_nn_A(INF_COL + 1)
     rom.CALL('inf_ensure_window')
     rom.LD_A_n(8); rom.LD_nn_A(PLAYER_X)
+    rom.CALL('inf_record_combat_entry')  # IP-1123
     rom.JP('czt_redraw')
 
     rom.label('czti_left')
@@ -1311,6 +1335,7 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_E(); rom.LD_nn_A(INF_COL); rom.LD_A_D(); rom.LD_nn_A(INF_COL + 1)
     rom.CALL('inf_ensure_window')
     rom.LD_A_n(150); rom.LD_nn_A(PLAYER_X)
+    rom.CALL('inf_record_combat_entry')  # IP-1123
     rom.JP('czt_redraw')
 
     rom.label('czti_top')
@@ -1322,6 +1347,7 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_E(); rom.LD_nn_A(INF_ROW); rom.LD_A_D(); rom.LD_nn_A(INF_ROW + 1)
     rom.CALL('inf_ensure_window')
     rom.LD_A_n(120); rom.LD_nn_A(PLAYER_Y)
+    rom.CALL('inf_record_combat_entry')  # IP-1123
     rom.JP('czt_redraw')
 
     rom.label('czti_bot')
@@ -1333,6 +1359,7 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_E(); rom.LD_nn_A(INF_ROW); rom.LD_A_D(); rom.LD_nn_A(INF_ROW + 1)
     rom.CALL('inf_ensure_window')
     rom.LD_A_n(24); rom.LD_nn_A(PLAYER_Y)
+    rom.CALL('inf_record_combat_entry')  # IP-1123
     rom.JP('czt_redraw')
 
     # ── check_complete ───────────────────────────────────
@@ -1517,6 +1544,13 @@ def build_game_asm(rom: ROM) -> dict:
 
     rom.LD_A_B(); rom.ADD_A_n(TL_DIGIT_0)
     rom.LD_HL_nn(0x980A); rom.LD_HL_A()
+
+    # IP-1123: health HUD, reached under the exact same GAMESTATE==PLAYING
+    # + SCORE_DIRTY gate and VBlank-safe timing this routine's own body
+    # already established -- inf_health_hud_draw's own COMBAT_MODE gate is
+    # the only additional condition, so the base game's row-0-only HUD is
+    # completely unaffected when combat mode is off.
+    rom.CALL('inf_health_hud_draw')
     rom.RET()
 
     # ── do_screen_redraw ──────────────────────────────────
@@ -3310,6 +3344,144 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_B(); rom.CP_n(6); rom.JR_C('ipht_loop')
     rom.RET()
 
+    # ── inf_record_combat_entry (IP-1123) ──────────────────
+    # Records the current PLAYER_X/PLAYER_Y as COMBAT_ENTRY_X/Y -- called
+    # from every inf_ensure_window call site (initial Infinite Mode entry,
+    # each of czt_infinite's own four direction branches after their own
+    # PLAYER_X/Y update, and the post-load restore path), each of which is
+    # exactly a "this is now the current region" event. Gated on
+    # COMBAT_MODE -- a no-op call when off, so recording is fully inert
+    # until IP-1120's own gating screen ships (COMBAT_MODE is never set by
+    # any shipped code path today). Clobbers A.
+    rom.label('inf_record_combat_entry')
+    rom.LD_A_nn(COMBAT_MODE); rom.OR_A(); rom.RET_Z()
+    rom.LD_A_nn(PLAYER_X); rom.LD_nn_A(COMBAT_ENTRY_X)
+    rom.LD_A_nn(PLAYER_Y); rom.LD_nn_A(COMBAT_ENTRY_Y)
+    rom.RET()
+
+    # ── inf_mob_contact_check (IP-1123, FR-11400) ──────────
+    # Called once per frame (st_playing, gated on COMBAT_MODE -- a no-op
+    # otherwise). Tests the player's own 8x16 box against each active
+    # MOB_DATA slot's position, reusing check_collisions' own asymmetric
+    # point-in-box technique verbatim (mob position as the point, PLAYER_X/
+    # Y as the box origin -- the exact same relationship check_collisions
+    # itself tests, unmodified): 0 <= (mob_x - PLAYER_X) <= 7 and
+    # 0 <= (mob_y - PLAYER_Y) <= 15. On the first contact found: decrements
+    # PLAYER_HEALTH by 1 (a fixed per-contact cost, not per-mob-type-scaled
+    # -- FS-112 does not specify per-type damage variation); at zero,
+    # calls inf_health_setback. Stops after the first contact (mirrors
+    # inf_projectile_hittest's own "at most one resolved per call"
+    # discipline -- simultaneous multi-mob overlap does not stack multiple
+    # decrements in one frame). Clobbers A/B/C/D/E/HL.
+    rom.label('inf_mob_contact_check')
+    rom.LD_A_nn(COMBAT_MODE); rom.OR_A(); rom.RET_Z()
+    rom.LD_HL_nn(MOB_DATA)
+    rom.LD_B_n(0)
+    rom.label('imcc_loop')
+    rom.LD_E_HL(); rom.INC_HL()     # E = mob x, HL -> y
+    rom.LD_D_HL(); rom.INC_HL()     # D = mob y, HL -> species
+    rom.INC_HL()                     # skip species, HL -> health
+    rom.INC_HL()                     # skip health, HL -> active
+    rom.LD_A_HL()                    # A = active (HL still -> active byte)
+    rom.PUSH_BC(); rom.PUSH_HL()
+    rom.OR_A(); rom.JR_Z('imcc_skip')
+
+    rom.LD_A_nn(PLAYER_X); rom.LD_H_A()
+    rom.LD_A_E(); rom.emit(0x94)      # SUB H: A = mob_x - PLAYER_X
+    rom.CP_n(8); rom.JR_NC('imcc_skip')
+    rom.LD_A_nn(PLAYER_Y); rom.LD_H_A()
+    rom.LD_A_D(); rom.emit(0x94)      # SUB H: A = mob_y - PLAYER_Y
+    rom.CP_n(16); rom.JR_NC('imcc_skip')
+
+    # CONTACT
+    rom.LD_A_nn(PLAYER_HEALTH); rom.OR_A(); rom.JR_Z('imcc_no_dec')
+    rom.DEC_A(); rom.LD_nn_A(PLAYER_HEALTH)
+    rom.LD_A_n(1); rom.LD_nn_A(SCORE_DIRTY)  # health changed -- redraw the HUD promptly
+    rom.LD_A_nn(PLAYER_HEALTH); rom.OR_A(); rom.JR_NZ('imcc_no_dec')
+    rom.CALL('inf_health_setback')
+    rom.label('imcc_no_dec')
+    rom.POP_HL(); rom.POP_BC()
+    rom.RET()
+
+    rom.label('imcc_skip')
+    rom.POP_HL(); rom.INC_HL()
+    rom.POP_BC(); rom.INC_B()
+    rom.LD_A_B(); rom.CP_n(6); rom.JR_C('imcc_loop')
+    rom.RET()
+
+    # ── inf_health_setback (IP-1123, FR-11400) ─────────────
+    # Called when PLAYER_HEALTH reaches 0 (from inf_mob_contact_check).
+    # Restores PLAYER_HEALTH to its own max (3), repositions the player to
+    # COMBAT_ENTRY_X/Y (the region-entry point), and does NOT write
+    # GAMESTATE -- stays PLAYING, per FR-11400's own Postcondition (no
+    # game-over state exists to transition to, MSTR-001 A5's fail-state-
+    # free base design holds inside C11's own carve-out). Clobbers A.
+    rom.label('inf_health_setback')
+    rom.LD_A_n(3); rom.LD_nn_A(PLAYER_HEALTH)
+    rom.LD_A_nn(COMBAT_ENTRY_X); rom.LD_nn_A(PLAYER_X)
+    rom.LD_A_nn(COMBAT_ENTRY_Y); rom.LD_nn_A(PLAYER_Y)
+    rom.RET()
+
+    # ── inf_heal_spend (IP-1123, FR-11500) ──────────────────
+    # Player-choice healing: gated on COMBAT_MODE and
+    # RUNNING_TREASURE_COUNT > 0 (16-bit, both bytes checked). Decrements
+    # RUNNING_TREASURE_COUNT by 1 (standard 16-bit borrow: check low byte
+    # for a needed high-byte borrow BEFORE decrementing, since DEC's own Z
+    # flag can't distinguish "wrapped" from "already zero" after the fact)
+    # -- the same shared count FS-110 Workflow C reads for the win/
+    # high-score comparison, no second ledger (FR-11500's own Acceptance
+    # Criterion). Increments PLAYER_HEALTH by 1, capped at max (3). NOT
+    # called from anywhere in this package's own control flow -- the
+    # heal-spend action's own input binding has no free button named
+    # upstream (every existing button already claimed: D-pad movement, A
+    # now claimed by IP-1122's fire input, B is the universal cancel,
+    # START/SELECT both claimed by existing menus) -- a genuine,
+    # unresolved gap named explicitly (harvested to the backlog), not
+    # invented here. This subroutine is defined and exposed, directly
+    # force-testable (T31.d/e), pending a real call site once the input
+    # question resolves -- mirrors inf_mob_defeat's own "defined and
+    # exposed, no call site yet" precedent. Clobbers A.
+    rom.label('inf_heal_spend')
+    rom.LD_A_nn(COMBAT_MODE); rom.OR_A(); rom.RET_Z()
+    rom.LD_A_nn(RUNNING_TREASURE_COUNT); rom.OR_A(); rom.JR_NZ('ihs_have')
+    rom.LD_A_nn(RUNNING_TREASURE_COUNT + 1); rom.OR_A(); rom.RET_Z()
+    rom.label('ihs_have')
+    rom.LD_A_nn(RUNNING_TREASURE_COUNT); rom.OR_A(); rom.JR_NZ('ihs_no_borrow')
+    rom.LD_A_nn(RUNNING_TREASURE_COUNT + 1); rom.DEC_A(); rom.LD_nn_A(RUNNING_TREASURE_COUNT + 1)
+    rom.label('ihs_no_borrow')
+    rom.LD_A_nn(RUNNING_TREASURE_COUNT); rom.DEC_A(); rom.LD_nn_A(RUNNING_TREASURE_COUNT)
+
+    rom.LD_A_n(1); rom.LD_nn_A(SCORE_DIRTY)  # treasure count always changed above
+    rom.LD_A_nn(PLAYER_HEALTH); rom.CP_n(3); rom.JR_NC('ihs_done')
+    rom.INC_A(); rom.LD_nn_A(PLAYER_HEALTH)
+    rom.label('ihs_done')
+    rom.RET()
+
+    # ── inf_health_hud_draw (IP-1123) ───────────────────────
+    # Called from update_status_disp (mirrors its own SCORE_DIRTY/
+    # GAMESTATE==PLAYING trigger and VBlank-safe timing), gated additionally
+    # on COMBAT_MODE -- a no-op (no VRAM write at all) when off, so the
+    # base game's own row-0-only HUD is completely unaffected. Writes
+    # TL_HEART_FULL/TL_HEART_EMPTY across the three row-1 cells (VRAM
+    # 0x9820-0x9822, immediately below the existing row-0 score bar) per
+    # PLAYER_HEALTH's current value (0-3): reused verbatim, zero new
+    # tile-art cost (R218's heart-container convention). Clobbers A/B/C/HL.
+    rom.label('inf_health_hud_draw')
+    rom.LD_A_nn(COMBAT_MODE); rom.OR_A(); rom.RET_Z()
+    rom.LD_A_nn(PLAYER_HEALTH); rom.LD_B_A()
+    rom.LD_HL_nn(0x9820)
+    rom.LD_C_n(3)
+    rom.label('ihhd_loop')
+    rom.LD_A_B(); rom.OR_A(); rom.JR_Z('ihhd_empty')
+    rom.LD_A_n(TL_HEART_FULL); rom.LD_HLI_A()
+    rom.DEC_B()
+    rom.JR('ihhd_next')
+    rom.label('ihhd_empty')
+    rom.LD_A_n(TL_HEART_EMPTY); rom.LD_HLI_A()
+    rom.label('ihhd_next')
+    rom.DEC_C(); rom.JR_NZ('ihhd_loop')
+    rom.RET()
+
     # ── inf_check_top_score (IP-1103, FR-10400) ───────────
     # The win-condition comparison subroutine. Inputs: none (reads
     # RUNNING_TREASURE_COUNT and TOP_SCORE_TABLE directly); clobbers A/B/D/E.
@@ -3626,6 +3798,7 @@ def build_game_asm(rom: ROM) -> dict:
     # from the just-restored WRAM ledger via inf_ensure_window's own
     # cross-reference -- no separate restore-path lookup needed here.
     rom.CALL('inf_ensure_window')
+    rom.CALL('inf_record_combat_entry')  # IP-1123: PLAYER_X/Y already restored above
     rom.label('tls_inf_skip')
     # TOP_SCORE_TABLE: always restored, both modes (persistent high score,
     # independent of GAME_MODE -- ADR-0017 point 4; save_to_sram writes it

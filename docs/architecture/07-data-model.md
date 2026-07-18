@@ -527,6 +527,39 @@ moves purely horizontally. `handle_play_input`'s new fire branch (A-button-just-
 `MOB_DATA`, subtracting `WEAPON_TIER` from a hit mob's health (floored at 0, calling
 `inf_mob_defeat` at zero) and always stopping the projectile on any hit. 5 bytes total.
 
+### 7k. Combat Sub-Mode: player health & economy WRAM — `IP-1123` (confirmed 2026-07-18)
+
+First unclaimed bytes past `WEAPON_TIER`'s own end (`0xC6D9`, §7j). `PLAYER_HEALTH`
+boot-*initialized* to 3 (max), not simply cleared — a fresh combat session starts at full health.
+`COMBAT_ENTRY_X`/`Y` need no boot clear: `inf_record_combat_entry` runs at every
+`inf_ensure_window` call site (initial entry, all four `czt_infinite` transition branches, and
+the post-load restore path), so any read is always preceded by a same-or-earlier write.
+
+| Address | Name | Size | Purpose |
+|---|---|---|---|
+| `C6DA` | `PLAYER_HEALTH` | 1 byte | 0-3, default/max 3 (three heart cells, `R218`'s heart-container convention) |
+| `C6DB` | `COMBAT_ENTRY_X` | 1 byte | `PLAYER_X` at the last region-entry event — the zero-health setback's own return point |
+| `C6DC` | `COMBAT_ENTRY_Y` | 1 byte | `PLAYER_Y` at the last region-entry event |
+
+`inf_mob_contact_check` (hooked into `st_playing`'s per-frame chain, after
+`inf_projectile_update`) reuses `check_collisions`' own asymmetric point-in-box technique
+verbatim (mob position as the point, `PLAYER_X`/`Y` as the box — the same relationship
+`check_collisions` itself tests, unmodified) — on contact, decrements `PLAYER_HEALTH` by 1
+(fixed, not per-mob-type-scaled) and calls `inf_health_setback` at zero. `inf_health_setback`
+restores `PLAYER_HEALTH` to max and repositions to `COMBAT_ENTRY_X`/`Y`, never writing
+`GAMESTATE` (stays `PLAYING`, `FR-11400`'s own Postcondition — `MSTR-001` A5's fail-state-free
+base design holds inside `C11`'s own carve-out). `inf_heal_spend` (gated on `COMBAT_MODE` and
+`RUNNING_TREASURE_COUNT > 0`) decrements `RUNNING_TREASURE_COUNT` directly (no second ledger,
+`FR-11500`'s own Acceptance Criterion) and heals 1, capped at max — defined and exposed but
+**not yet called from anywhere**: the heal-spend action has no free input button (every existing
+button already claimed — D-pad movement, A now claimed by `IP-1122`'s fire input, B the universal
+cancel, START/SELECT both claimed by existing menus), a genuine gap tracked by `BL-0148`,
+unresolved. `inf_health_hud_draw` (hooked into `update_status_disp`, gated additionally on
+`COMBAT_MODE`) writes `TL_HEART_FULL`/`TL_HEART_EMPTY` across VRAM `0x9820`-`0x9822` (row 1,
+immediately below the row-0 score bar) per `PLAYER_HEALTH`'s current value — a no-op (zero VRAM
+writes) when `COMBAT_MODE` is off, so the base game's row-0-only HUD is completely unaffected.
+3 bytes total.
+
 ### 8. Tile index map implication (cross-reference only — GDS-08 decides the actual strategy)
 
 **ADR-0009**'s biome-family `Region` identity (GDS-04's delta) needs tile budget per family,

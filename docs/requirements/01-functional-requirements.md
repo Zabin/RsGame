@@ -2383,7 +2383,7 @@ none of FR-10000's own leaves are amended by this group. `FR-9000`'s finite mode
   inside `C11`'s own grimmer carve-out.
 - **Rationale:** `ADS-002` §Domain Model (PlayerHealth); user decision 2026-07-17 (non-lethal
   setback, no real game-over); `R218` (heart-container HUD convention).
-- **Priority:** Must (target — not yet implemented)
+- **Priority:** Must (Implemented — 2026-07-18, `IP-1123`)
 - **Inputs:** Mob contact/attack events.
 - **Outputs:** Player health HUD updates; a setback event at zero health.
 - **Preconditions:** `COMBAT_MODE` active.
@@ -2398,7 +2398,14 @@ none of FR-10000's own leaves are amended by this group. `FR-9000`'s finite mode
   user decision, 2026-07-17.
 - **Related ADRs:** None.
 - **Notes:** The exact setback mechanic (respawn point, treasure penalty amount) is a
-  `06-feature-specification` decision; this FR fixes only that it must be non-lethal.
+  `06-feature-specification` decision; this FR fixes only that it must be non-lethal. **2026-07-18
+  (`IP-1123`):** implemented as `inf_mob_contact_check` (per-frame, reuses `check_collisions`'
+  own asymmetric point-in-box technique verbatim against `PLAYER_X`/`Y`) and `inf_health_setback`
+  (restores `PLAYER_HEALTH` to max, repositions to `COMBAT_ENTRY_X`/`Y` — a new field recorded by
+  `inf_record_combat_entry` at every region-entry event, never writes `GAMESTATE`). The setback's
+  own "treasure partially restored" phrasing from this FR's own Description is not implemented —
+  the user's 2026-07-17 decision and `ADS-002` both settled on a pure position/health reset with
+  no treasure penalty; `T31.c` verifies the shipped behavior.
 
 ### FR-11500 — Treasure-spent healing economy
 
@@ -2412,7 +2419,7 @@ none of FR-10000's own leaves are amended by this group. `FR-9000`'s finite mode
   a second, independent currency.
 - **Rationale:** `ADS-002` §Domain Model (treasure's widened role); user decision 2026-07-17
   (treasure is *spent*, not merely triggering).
-- **Priority:** Must (target — not yet implemented)
+- **Priority:** Must (Implemented — 2026-07-18, `IP-1123`; player-reachable path still blocked)
 - **Inputs:** A heal-spend action; the current `RUNNING_TREASURE_COUNT`.
 - **Outputs:** Player health restoration; a reduced `RUNNING_TREASURE_COUNT`.
 - **Preconditions:** `COMBAT_MODE` active; `RUNNING_TREASURE_COUNT` > 0.
@@ -2427,7 +2434,12 @@ none of FR-10000's own leaves are amended by this group. `FR-9000`'s finite mode
 - **Source Documents:** `ADS-002` §Domain Model; direct user decision, 2026-07-17.
 - **Related ADRs:** None.
 - **Notes:** The exact heal-spend input/rate (how much health per unit of treasure) is a
-  `06-feature-specification` decision.
+  `06-feature-specification` decision. **2026-07-18 (`IP-1123`):** implemented as `inf_heal_spend`
+  (spends exactly 1 treasure per heal, heals exactly 1, capped at max — `T31.d`/`T31.d2`/`T31.e`)
+  decrementing `RUNNING_TREASURE_COUNT` directly (no second ledger, `T31.d`'s own assertion).
+  **Not yet player-reachable**: the heal-spend action has no free input button (`BL-0148`,
+  unresolved) — this subroutine is defined, exposed, and directly force-tested, mirroring
+  `IP-1121`'s own "defined and exposed, no call site yet" precedent for `inf_mob_defeat`.
 
 ### FR-11600 — Combat state save persistence
 
