@@ -5,9 +5,10 @@
 > delta 2026-07-13 (edge-indicator legend screen, `FEAT-1200`, `CR-06`/`BL-0100`); delta
 > 2026-07-14 (Infinite Mode, `FEAT-10000`, `ADS-001`/`ADR-0016`/`ADR-0017`/`BL-0082`); delta
 > 2026-07-14 (cont'd) (`FEAT-10000`'s missing `FEAT-4100` edge added, `BL-0111`); delta 2026-07-16
-> (`FEAT-7100` added, `ADR-0019`/`BL-0127`).**
+> (`FEAT-7100` added, `ADR-0019`/`BL-0127`); delta 2026-07-17 (`FEAT-11000` added, Infinite Mode
+> combat sub-mode, `BL-0133`/`ADS-002`/`MSTR-001` C11).**
 > Owned by `05-feature-decomposition`. Analyzes dependencies among [FP-03](03-feature-catalog.md)'s
-> eighteen Features. **No circular dependency found.**
+> nineteen Features. **No circular dependency found.**
 
 ## Graph
 
@@ -31,6 +32,7 @@ graph TD
     FEAT1200["FEAT-1200: SELECT Menu &<br/>Edge-Indicator Legend (NEW)"]
     FEAT10000["FEAT-10000: Infinite Mode<br/>(NEW)"]
     FEAT7100["FEAT-7100: Procedural Music<br/>Generation (NEW)"]
+    FEAT11000["FEAT-11000: Infinite Mode<br/>Combat Sub-Mode (NEW)"]
 
     FEAT1000 --> FEAT2000
     FEAT1000 --> FEAT3000
@@ -75,6 +77,9 @@ graph TD
     FEAT9000 --> FEAT7100
     FEAT10000 --> FEAT7100
     FEAT1000 --> FEAT7100
+    FEAT10000 --> FEAT11000
+    FEAT3000 --> FEAT11000
+    FEAT6000 --> FEAT11000
 
     FEAT7000 -.underpins.-> FEAT1000
     FEAT7000 -.underpins.-> FEAT2000
@@ -92,6 +97,7 @@ graph TD
     FEAT7000 -.underpins.-> FEAT1200
     FEAT7000 -.underpins.-> FEAT10000
     FEAT7000 -.underpins.-> FEAT7100
+    FEAT7000 -.underpins.-> FEAT11000
 
     style FEAT5100 fill:#9d9,stroke:#333,stroke-width:2px
     style FEAT9000 fill:#f9d,stroke:#333,stroke-width:2px
@@ -104,6 +110,7 @@ graph TD
     style FEAT1200 fill:#9cf,stroke:#333,stroke-width:2px
     style FEAT10000 fill:#c9f,stroke:#333,stroke-width:2px
     style FEAT7100 fill:#fc9,stroke:#333,stroke-width:2px
+    style FEAT11000 fill:#c66,stroke:#333,stroke-width:2px
 ```
 
 *(FEAT-5100 highlighted green — shipped and VERIFIED since this graph's last version. The five
@@ -130,7 +137,17 @@ dependencies (`FEAT-10000`) is itself still `Future`-bucketed and not release-sc
 second (`FEAT-9000`'s own `FR-4320` widening) is mid-implementation and gated on G3 — so
 `FEAT-7100`'s build-time generation half is immediately startable (its data-level dependencies are
 all shipped) but its runtime selection half cannot be fully exercised until both upstream threads
-land, a real, named sequencing constraint (see Critical path, below).
+land, a real, named sequencing constraint (see Critical path, below). FEAT-11000 highlighted
+dark red — the 2026-07-17 Infinite Mode combat sub-mode delta (`BL-0133`/`ADS-002`/`MSTR-001`
+C11), a sixth, independent thread with a **different dependency shape than any of the five
+above**: unlike FEAT-7100 (whose readiness trails two separate upstream arcs), all three of
+FEAT-11000's own dependencies (FEAT-10000, FEAT-3000, FEAT-6000) are already shipped/`VERIFIED` —
+so, like FEAT-10000/FEAT-1200 before it, this thread is immediately specifiable once cataloged,
+not serialized behind any other in-flight work. What sets it apart is depth, not readiness: it is
+the first Feature in this graph whose own dependency (`FEAT-10000`) is itself a `NEW`-tagged
+Feature rather than a bootstrap/Release-2 one — a two-generation-deep new-work chain (bootstrap →
+FEAT-10000 → FEAT-11000), though every link in that chain is already built and verified, so the
+depth adds no build-order risk today.
 Solid arrows are hard dependencies (A → B means B depends on A); dotted arrows from FEAT-7000
 represent the non-blocking "underpins" relationship its cross-cutting NFRs have with every
 player-visible Feature.)*
@@ -142,8 +159,8 @@ player-visible Feature.)*
 | FEAT-1000 | — (foundational) | FEAT-2000, FEAT-3000, FEAT-5000, FEAT-6000, FEAT-9000, FEAT-1100, FEAT-1200, FEAT-10000, FEAT-7100 |
 | FEAT-4000 | — (foundational) | FEAT-2000, FEAT-3000, FEAT-6000, FEAT-9000, FEAT-4100 |
 | FEAT-2000 | FEAT-1000, FEAT-4000 | FEAT-3000, FEAT-5000, FEAT-2100 |
-| FEAT-3000 | FEAT-1000, FEAT-2000, FEAT-4000 | FEAT-5000, FEAT-6000, FEAT-5100, FEAT-9000, FEAT-10000 |
-| FEAT-6000 | FEAT-1000, FEAT-3000, FEAT-4000 | FEAT-4100, FEAT-6100 |
+| FEAT-3000 | FEAT-1000, FEAT-2000, FEAT-4000 | FEAT-5000, FEAT-6000, FEAT-5100, FEAT-9000, FEAT-10000, FEAT-11000 |
+| FEAT-6000 | FEAT-1000, FEAT-3000, FEAT-4000 | FEAT-4100, FEAT-6100, FEAT-11000 |
 | FEAT-5000 | FEAT-1000, FEAT-2000, FEAT-3000 | FEAT-5100, FEAT-1100, FEAT-5300, FEAT-10000 |
 | FEAT-5100 | FEAT-3000, FEAT-5000 | FEAT-5300 |
 | FEAT-7000 | — (infrastructure floor) | all others, non-blocking |
@@ -155,8 +172,9 @@ player-visible Feature.)*
 | **FEAT-9100** | FEAT-9000 | FEAT-2100 |
 | **FEAT-2100** | FEAT-9100, FEAT-2000 | FEAT-1200 |
 | **FEAT-1200** | FEAT-1000, FEAT-1100, FEAT-2100 | — (nothing yet) |
-| **FEAT-10000** | FEAT-1000, FEAT-1100, FEAT-3000, FEAT-5000, FEAT-9000, FEAT-4100 | FEAT-7100 |
+| **FEAT-10000** | FEAT-1000, FEAT-1100, FEAT-3000, FEAT-5000, FEAT-9000, FEAT-4100 | FEAT-7100, FEAT-11000 |
 | **FEAT-7100** | FEAT-9000, FEAT-10000, FEAT-1000 | — (nothing yet) |
+| **FEAT-11000** | FEAT-10000, FEAT-3000, FEAT-6000 | — (nothing yet) |
 
 ## Critical path
 
@@ -207,6 +225,14 @@ generation half, but the selection half's true readiness trails `FR-4320`'s own 
 flagging explicitly rather than folding into a single undifferentiated "1 node, ready" claim the
 way `FEAT-1200`/`FEAT-10000` were.
 
+**Infinite Mode Combat Sub-Mode (new, 2026-07-17):** all three of `FEAT-11000`'s own dependencies
+(`FEAT-10000`, `FEAT-3000`, `FEAT-6000`) are already shipped/`VERIFIED` — this thread's own
+*effective* new-work length is 1 node (`FEAT-11000` itself), tied with `FEAT-1200`/`FEAT-10000`
+for the shortest active thread, and does not extend the critical path. Unlike `FEAT-7100`'s own
+two-source wait, `FEAT-11000` has no comparable blocker — its dependency on `FEAT-10000` is a
+true build-order dependency (not code-reuse-only, the way `FEAT-10000`'s own dependency on
+`FEAT-9000` was), but `FEAT-10000` is fully shipped, so this resolves cleanly today.
+
 ## Blocking Features (high fan-out)
 
 - **FEAT-1000** (8 direct dependents) — remains the single highest-fan-out Feature; grows by one
@@ -227,6 +253,12 @@ way `FEAT-1200`/`FEAT-10000` were.
 - **FEAT-4100** (2 direct dependents: FEAT-6100, FEAT-10000) — grows by one with this delta
   (`BL-0111`); still well below the "high fan-out" threshold the three Features above meet, noted
   here only because the correction changed the count, not because it newly qualifies as blocking.
+- **FEAT-10000** (2 direct dependents: FEAT-7100, FEAT-11000) — grows by one with this delta;
+  still well below the "high fan-out" threshold, noted here only because a second, genuine
+  build-order dependent (not code-reuse-only, unlike `FEAT-10000`'s own relationship to
+  `FEAT-9000`) now exists. Any change to `FEAT-10000`'s own per-region materialization hook or
+  save format now has two downstream consumers to keep in sync, not one — worth tracking once
+  either thread reaches implementation.
 
 ## Parallel opportunities
 
@@ -255,6 +287,11 @@ way `FEAT-1200`/`FEAT-10000` were.
   Infinite Mode playback is to be verified too — a two-source wait unlike any single-blocker
   pattern seen in prior deltas (`FEAT-2100`'s single wait on `FEAT-9100`, `FEAT-1200`'s zero
   waits).
+- **FEAT-11000 is immediately specifiable, not serialized behind any in-flight thread** — all
+  three of its own dependencies (`FEAT-10000`, `FEAT-3000`, `FEAT-6000`) are already shipped and
+  `VERIFIED`. It can proceed to `06-feature-specification` in parallel with `FEAT-7100`'s own
+  remaining runtime-selection work — the two threads share `FEAT-10000` as a dependency but do
+  not depend on each other.
 
 ## Circular dependency check
 
@@ -274,3 +311,11 @@ all three of its own edges point *into* it from already-terminal-or-mid-chain Fe
 (`FEAT-1000`, `FEAT-9000`, `FEAT-10000`), and `FEAT-7100` itself has zero dependents, so it can
 only ever be a sink, never introduce a cycle by construction — the same structural argument
 `FEAT-10000` itself relied on.
+
+**Infinite Mode combat sub-mode delta (2026-07-17):** re-confirmed clean with `FEAT-11000`
+added — all three of its own edges (`FEAT-10000`, `FEAT-3000`, `FEAT-6000`) point *into* it from
+already-terminal-or-sink Features, and `FEAT-11000` itself has zero dependents, so it can only
+ever be a sink, never introduce a cycle by construction. This makes `FEAT-10000` no longer a
+pure sink (it now has two dependents, `FEAT-7100` and `FEAT-11000`), but both of `FEAT-10000`'s
+own outgoing edges still point strictly forward (to Features with zero dependents of their own),
+so the graph remains a strict DAG.

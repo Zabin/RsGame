@@ -14,10 +14,12 @@
 > `ADR-0019`/`BL-0127`); **delta 2026-07-17 — `FEAT-10000` + `FEAT-7100` + the `FR-4320`
 > nine-biome-family-identity delta move Future → Release 2 as a third addendum, assessed **GO**,
 > user-confirmed
-> ([release-assessment-infinite-mode-and-nine-biome-family-delta.md](../reviews/release-assessment-infinite-mode-and-nine-biome-family-delta.md))**.**
+> ([release-assessment-infinite-mode-and-nine-biome-family-delta.md](../reviews/release-assessment-infinite-mode-and-nine-biome-family-delta.md))**;
+> delta 2026-07-17 (cont'd) (`FEAT-11000`, Infinite Mode combat sub-mode, joins Future,
+> `BL-0133`/`ADS-002`/`MSTR-001` C11).**
 > Owned by
 > `05-feature-decomposition`. Assigns every Feature
-> in [FP-03](03-feature-catalog.md) (now eighteen) to exactly one bucket, using
+> in [FP-03](03-feature-catalog.md) (now nineteen) to exactly one bucket, using
 > [FP-04](04-feature-dependency-graph.md)'s dependency analysis. **Bootstrap framing: seven of
 > eight bootstrap-baseline Features are already shipped** (FEAT-5100 shipped and verified
 > 2026-07-07, correcting this document's prior "no shipped implementation" framing — `BL-0036`).
@@ -165,8 +167,14 @@ inventing requirements:
 
 ### Decomposed, not yet scheduled
 
-Both `FEAT-10000` and `FEAT-7100` (below) moved out of this section 2026-07-17 — see the new
-Release 2 addendum. Nothing remains in this subsection at present.
+`FEAT-10000` and `FEAT-7100` moved out of this section 2026-07-17 — see the new Release 2
+addendum above.
+
+| Feature | Why here |
+|---|---|
+| FEAT-11000 (Infinite Mode Combat Sub-Mode) | Not yet implemented. All three of its own dependencies (`FEAT-10000`, `FEAT-3000`, `FEAT-6000`) are already shipped/`VERIFIED` — zero graph-blocking dependencies, per FP-04. Placed in `Future`, mirroring `FEAT-10000`'s own original placement before its GO, purely a release-commitment choice, not a technical one: this is a substantially larger body of new production code (mob AI, projectile physics, health/damage, a second economy, a save-format extension) than any Feature currently scheduled, and the pipeline journal (run #228) recorded a deliberate checkpoint here rather than assuming continued scope without the user weighing in. |
+
+Nothing else remains in this subsection at present.
 
 ## Callouts
 
@@ -201,7 +209,11 @@ Release 2 addendum. Nothing remains in this subsection at present.
   (Procedural Music Generation) is also fully decomposed and placed in Future** — unlike
   `FEAT-10000`, its runtime selection half carries a real technical blocker in addition to the
   no-release-commitment reason (see its own Future-bucket entry above); its build-time generation
-  half shares `FEAT-10000`'s own commitment-only framing.
+  half shares `FEAT-10000`'s own commitment-only framing. **`FEAT-11000` (Infinite Mode Combat
+  Sub-Mode, added 2026-07-17) is also fully decomposed and placed in Future** — zero
+  graph-blocking dependencies (all three shipped/`VERIFIED`), same commitment-only framing as
+  `FEAT-10000` originally carried, deliberately not auto-scheduled given the scope of the eventual
+  production code it represents.
 
 ## Sequencing note
 

@@ -4,7 +4,9 @@
 > increment, 5 new Features + FEAT-5100 shipped-status correction; FEAT-6000/FEAT-7000 Risk
 > fields corrected, `BL-0037`); delta 2026-07-11 (2 new Features — `FEAT-9100` maze-shaped region
 > adjacency, `FEAT-2100` maze-aware transition-edge signaling — for `ADR-0012`'s post-ship
-> remediation, `BL-0064`/`0065`/`0067`).** Owned by
+> remediation, `BL-0064`/`0065`/`0067`); delta 2026-07-17 (new `FEAT-11000`, Infinite Mode combat
+> sub-mode, 82 requirements total, this project's first `FR-11xxx` Feature, `BL-0133`/`ADS-002`/
+> `MSTR-001` C11).** Owned by
 > `05-feature-decomposition`. Derives from the closed
 > [RQ-01](../requirements/01-functional-requirements.md)/
 > [RQ-02](../requirements/02-non-functional-requirements.md) baseline, now 36 bootstrap `FR-xxxx`/
@@ -874,6 +876,85 @@
   above for the real, already-tracked implementation-time questions this Feature carries forward
   (`BL-0107`/`BL-0108`/`BL-0109`).
 
+## FEAT-11000 — Infinite Mode Combat Sub-Mode (new — not yet implemented)
+
+- **Feature ID:** FEAT-11000
+- **Title:** Infinite Mode Combat Sub-Mode
+- **Purpose:** Offer a distinct, explicitly opt-in combat layer inside Infinite Mode — mobs,
+  ranged weapon fire, player health, a treasure-spent healing economy — for the dual-audience
+  carve-out `MSTR-001` C11 names, without touching the base child-friendly Infinite Mode or
+  finite mode at all.
+- **Description:** Formalizes `ADS-002`'s architecture end to end: a third MODE SELECT option
+  (alongside the existing Finite/Infinite toggle) that gates the sub-mode on for a save's entire
+  life; per-region mob materialization drawn as a pure function of `(seed, row, col)`, independent
+  of and uncorrelated with the region's own biome/treasure draws, up to six concurrent mobs
+  (adjustable default); a single-slot ranged projectile fired on player input, resolved against
+  mob hitboxes via `check_collisions`' own established point-in-box technique; a player health
+  value displayed via the existing heart-tile art, with a non-lethal setback (never a
+  `GAMESTATE` game-over) on reaching zero; a treasure-spent healing economy that decrements the
+  same `RUNNING_TREASURE_COUNT` `FEAT-10000`'s own win/high-score logic reads, not a second
+  ledger; and combat state (mob state, weapon tier, player health) persisted across save/load via
+  a new `SAVE_VERSION_VAL` bump, mirroring `FEAT-10000`'s/`FEAT-5100`'s own established
+  version-byte pattern.
+- **Scope:** The complete combat sub-mode as one cohesive capability — gating, mob
+  materialization/defeat, weapon fire/hit resolution, player health/setback, the healing economy,
+  and save persistence are kept together here (nothing has been implemented yet to reveal a clean
+  seam), mirroring how `FEAT-10000` itself started as one unsplit Feature before any split was
+  warranted. `06-feature-specification` may split this later if implementation detail shows a
+  natural boundary (e.g. mob AI vs. weapon/hit-resolution vs. HUD). Explicitly **excludes**
+  `FEAT-10000`'s own base Infinite Mode capability (mode entry, streaming generation, treasure
+  placement, the base win condition, save/load) — none of `FEAT-10000`'s own leaves are amended
+  by this Feature, per `ADS-002`'s own Open Question 5 confirming this capability is additive and
+  Infinite-Mode-exclusive — and the entire finite mode (`FEAT-9000`/`FEAT-4100`/`FEAT-5300`),
+  confirmed unaffected by the same Open Question.
+- **Included Requirements:** FR-11100, FR-11200, FR-11300, FR-11400, FR-11500, FR-11600;
+  NFR-1500, NFR-4500.
+- **Excluded Requirements:** FR-10100–FR-10600 (base Infinite Mode — `FEAT-10000`, unamended);
+  FR-9100–FR-9200/FR-9160/FR-9161 (finite mode's own generation/treasure/win-condition group —
+  `FEAT-9000`, confirmed unaffected).
+- **Dependencies:** FEAT-10000 (this Feature is strictly a gated sub-mode of Infinite Mode —
+  `COMBAT_MODE` is valid only alongside `GAME_MODE=1`; mob/projectile materialization piggybacks
+  on `FEAT-10000`'s own per-region materialization hook; combat state persistence extends
+  `FEAT-10000`'s own save/load mechanism and version-byte precedent); FEAT-3000 (Collectibles,
+  Scoring & Victory — `RUNNING_TREASURE_COUNT` is the same count this Feature's own healing
+  economy spends from, not a second ledger); FEAT-6000 (Presentation & HUD — the player-health
+  display reuses this Feature's own existing heart-tile art and HUD-write pattern, a new direct
+  dependency `FEAT-10000` itself did not need).
+- **Dependent Features:** None yet — no Feature in this catalog builds on the combat sub-mode's
+  own output.
+- **Affected Modules:** `asm_game.py` (new mob/projectile/health routines, fire-input handling,
+  save-write/load-restore extension — prospective, no code exists yet).
+- **Related ADRs:** ADR-0007 (8×16 OBJ mode governs any new mob sprite).
+- **User Value:** Medium-High — directly answers `MSTR-001` C11's own dual-audience carve-out
+  (a grimmer, parent-facing layer inside a game designed for a child), a real Vision-level
+  commitment rather than exploratory scope; not yet requested by playtesting.
+- **Technical Value:** Medium — reuses established techniques throughout (per-region
+  positionally-deterministic materialization from `FEAT-10000`, hitbox testing from
+  `check_collisions`, heart-tile HUD art, the version-byte save pattern) rather than introducing
+  new infrastructure; the technical novelty is in composing them into a new gameplay layer, not in
+  any single mechanism.
+- **Complexity:** High — a wholly new gameplay layer (mob AI, projectile physics, health/damage,
+  a second economy on an existing ledger, a save-format extension) layered onto an already-complex
+  host mode, comparable in scope to `FEAT-10000` at the point it was first cataloged.
+- **Risk:** Medium-High — `NFR-1500`'s own per-frame cycle budget is honestly `UNCONFIRMED`
+  (measurement owed once real code exists, and must be checked against `NFR-1400`'s own
+  already-`NOT MET` region-materialization cost, not the nominal frame ceiling alone — a
+  compounding-cost risk `R115` names directly); `NFR-4500`'s ROM/OAM budget is real but
+  favorable (`R115` measured 1,378 bytes ROM headroom and 31 of 40 free OAM entries before this
+  Feature's own implementation) — flagged honestly rather than assumed safe, per this catalog's
+  own established discipline (`FEAT-10000`'s own Risk field set the precedent for naming
+  `UNCONFIRMED`/`NOT YET SIZED` NFRs directly).
+- **Suggested Verification Strategy:** Test — oracle/SM83 lockstep for mob materialization
+  determinism (mirroring `FEAT-10000`'s own established methodology), direct-force integration
+  checks for weapon hit/miss and defeat presentation, a save/load round-trip harness mirroring
+  `IP-1104`'s own precedent; Analysis for `NFR-1500`'s cycle-budget measurement (direct
+  cycle-counting, not a `test_rom.py` assertion, per that NFR's own Verification Method).
+- **Open Questions:** None blocking this stage's own cataloging — `ADS-002`'s own eight Open
+  Questions are all resolved or committed as adjustable defaults (2026-07-17), and this stage
+  invents no new ones. The exact mob species/count-per-region distribution, fire-input binding
+  confirmation, setback mechanic details, and heal-spend rate are all named in the source FRs'
+  own Notes fields as `06`/`08` decisions, not open at this stage.
+
 ## FEAT-7100 — Procedural Music Generation (new — not yet implemented)
 
 > **Forward reference (metadata only):** specified by
@@ -966,7 +1047,11 @@ were always unambiguously `FEAT-9000`'s own). **Edge-indicator legend screen del
 above. **Running total before this delta: 60 + 11 = 71.** **Procedural music generation delta**
 (2026-07-16, `ADR-0019`/`BL-0127`): 2 new `FR-xxxx` (`FR-7100`/`FR-7110`) + 1 new `NFR-xxxx`
 (`NFR-4400`) = 3 new requirement IDs, all owned by `FEAT-7100` above — this project's first use of
-the `FR-7xxx` audio range. **Total: 71 + 3 = 74 requirement IDs**, every one assigned to exactly
+the `FR-7xxx` audio range. **Running total before this delta: 71 + 3 = 74.** **Infinite Mode
+combat sub-mode delta** (2026-07-17, this pass, `BL-0133`/`ADS-002`/`MSTR-001` C11): 6 new
+`FR-xxxx` (`FR-11100`–`FR-11600`) + 2 new `NFR-xxxx` (`NFR-1500`/`NFR-4500`) = 8 new requirement
+IDs, all owned by `FEAT-11000` above — this project's first use of the `FR-11xxx` range.
+**Total: 74 + 8 = 82 requirement IDs**, every one assigned to exactly
 one Feature project-wide (verified by direct tally, restated in [FP-05](05-feature-review.md)'s
 review rather than only asserted here). (`CR-05`/`CR-07` are explicitly outside this tally where
 still un-baselined — `CR-05` remains a Candidate per `ADR-0018`'s own routing to a future `04`

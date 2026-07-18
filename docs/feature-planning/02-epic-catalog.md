@@ -17,7 +17,10 @@
 > new Epic `EP-7000`** holds **`FEAT-7100`** (Procedural Music Generation) — kept distinct from
 > every existing Epic since it is this project's first audio-generation capability, with no
 > existing pattern (world content, save persistence, gameplay loop, engineering quality) it
-> naturally extends.
+> naturally extends. **2026-07-17: `FEAT-11000`** (Infinite Mode Combat Sub-Mode) **joins
+> `EP-6000`** — unlike `FEAT-7100`'s own new-Epic precedent, this Feature is strictly a gated
+> sub-mode *of* Infinite Mode itself (`COMBAT_MODE` valid only alongside `GAME_MODE=1`), not an
+> independent capability, so it joins the existing Epic rather than opening `EP-8000`.
 
 ## EP-1000 — Core Gameplay Loop
 
@@ -148,28 +151,39 @@
 - **Purpose:** Offer a second, additive, non-terminating world-generation mode — streaming,
   positionally-deterministic, no fixed extent — as a genuinely separate player-facing thread from
   `EP-5000`'s own finite `(seed, scale)` world.
-- **Features Included:** FEAT-10000 (Infinite Mode). One Feature, new — not yet implemented.
-- **Modules:** `asm_game.py` (new Infinite Mode routines, prospective), `worldgen.py` (prospective
-  oracle mirror) — the same physical files `EP-5000` already touches, but an independent code path
-  within them, per `ADR-0016`'s own explicit "additive, not amended" framing.
-- **Estimated Scope:** A single, deliberately unsplit Feature for now (see `FEAT-10000`'s own
-  Scope field) — no `FS-xxx` authored yet, no requirements-level gap remaining before one can be.
-  Given its own separate identity from `EP-5000` (a parallel generation architecture, a different
-  win condition, a different save format — not an extension of anything `EP-5000` owns), this
-  Epic is kept distinct rather than folded into `EP-5000`, unlike how `FEAT-9100` joined `EP-5000`
-  in 2026-07-11 (that addition *did* extend `FEAT-9000`'s own generation routine directly; this
-  one deliberately does not, per `ADR-0016` point 7's own explicit "second, independent
-  architecture" framing).
-- **Risks:** High complexity/Medium-High risk, comparable to `EP-5000`'s own `FEAT-9000` at first
-  cataloging — a wholly new generation algorithm with no shipped precedent, plus two explicitly
-  `UNCONFIRMED`/`NOT YET SIZED` NFRs (materialization timing, WRAM/SRAM budget) this Epic's own
-  Feature surfaces honestly rather than assumes away.
+- **Features Included:** FEAT-10000 (Infinite Mode, implemented/`VERIFIED`); FEAT-11000 (Infinite
+  Mode Combat Sub-Mode, new — not yet implemented, joined 2026-07-17). Two Features.
+- **Modules:** `asm_game.py` (Infinite Mode routines, shipped; new combat-sub-mode routines,
+  prospective), `worldgen.py` (oracle mirror, shipped) — the same physical files `EP-5000` already
+  touches, but an independent code path within them, per `ADR-0016`'s own explicit "additive, not
+  amended" framing.
+- **Estimated Scope:** `FEAT-10000` is fully implemented, `VERIFIED`, and release-scheduled
+  (Release 2, 2026-07-17 GO). **`FEAT-11000` (added 2026-07-17) is a second, deliberately
+  unsplit Feature** (see its own Scope field) layered strictly inside `FEAT-10000` — no `FS-xxx`
+  authored yet, no requirements-level gap remaining before one can be. Given its own separate
+  identity from `EP-5000` (a parallel generation architecture, a different win condition, a
+  different save format — not an extension of anything `EP-5000` owns), this Epic remains kept
+  distinct rather than folded into `EP-5000`, unlike how `FEAT-9100` joined `EP-5000` in
+  2026-07-11 (that addition *did* extend `FEAT-9000`'s own generation routine directly; Infinite
+  Mode deliberately does not, per `ADR-0016` point 7's own explicit "second, independent
+  architecture" framing). `FEAT-11000` itself joins this Epic (rather than opening a new one,
+  the way `FEAT-7100` did) because it is strictly a gated sub-mode *of* Infinite Mode, not an
+  independent capability with no existing pattern to extend.
+- **Risks:** `FEAT-10000`'s own risk is resolved (shipped, `VERIFIED`, integration-reviewed
+  clean). **`FEAT-11000` carries this Epic's own current risk**: High complexity/Medium-High
+  risk, comparable to `EP-5000`'s own `FEAT-9000` at first cataloging — a wholly new gameplay
+  layer with no shipped precedent, plus an explicitly `UNCONFIRMED` NFR (`NFR-1500`'s per-frame
+  cycle budget, which must be checked against `NFR-1400`'s own already-`NOT MET` cost rather than
+  assumed independent) this Epic's own new Feature surfaces honestly rather than assumes away.
 - **Dependencies:** EP-1000 (FEAT-1000's game-state machine, FEAT-1100's new-game entry flow,
-  FEAT-3000's collection/scoring concepts); EP-3000 (FEAT-5000's save/continue convention);
-  EP-5000 (shares `FEAT-9000`'s underlying `gw_prng_step` PRNG construction — a code-reuse
-  dependency, not a structural one; also the technical origin of the per-super-cell hash
-  technique `ADR-0018` separately reuses for `EP-5000`'s own finite-mode blob clustering — a
-  contribution flowing *from* this Epic *to* `EP-5000`, not a dependency *on* it).
+  FEAT-3000's collection/scoring concepts — the last of which `FEAT-11000`'s own healing economy
+  also spends from directly); EP-2000 (**new, 2026-07-17** — `FEAT-11000`'s own player-health HUD
+  reuses `FEAT-6000`'s existing heart-tile art and HUD-write pattern, a dependency `FEAT-10000`
+  itself did not need); EP-3000 (FEAT-5000's save/continue convention); EP-5000 (shares
+  `FEAT-9000`'s underlying `gw_prng_step` PRNG construction — a code-reuse dependency, not a
+  structural one; also the technical origin of the per-super-cell hash technique `ADR-0018`
+  separately reuses for `EP-5000`'s own finite-mode blob clustering — a contribution flowing
+  *from* this Epic *to* `EP-5000`, not a dependency *on* it).
 
 ## EP-7000 — Procedural Music Generation
 
@@ -205,7 +219,7 @@
 | EP-3000 | Persistence | FEAT-5000, FEAT-5100, FEAT-5300 | `asm_game.py` | Low (shipped Features); Medium (FEAT-5300, new) |
 | EP-4000 | Engineering Quality & Verification | FEAT-7000 | all six + `test_rom.py` | Low (both tracked non-compliances resolved) |
 | EP-5000 | World Generation & Visual Narrative | FEAT-9000, FEAT-4100, FEAT-6100, FEAT-9100 | new `worldgen.py`, `tilemaps.py`, `tiles.py` | **Medium-High** (FEAT-9000: new algorithm, no shipped precedent); Low-Medium (FEAT-9100, new but algorithm choice already resolved) |
-| EP-6000 | Infinite Mode | FEAT-10000 | `asm_game.py`, `worldgen.py` (prospective) | **Medium-High** (new algorithm, no shipped precedent, two `UNCONFIRMED`/`NOT YET SIZED` NFRs) |
+| EP-6000 | Infinite Mode | FEAT-10000 (shipped, `VERIFIED`), FEAT-11000 (new) | `asm_game.py`, `worldgen.py` | Low (FEAT-10000, shipped/`VERIFIED`); **Medium-High** (FEAT-11000, new sub-mode, no shipped precedent, `NFR-1500` `UNCONFIRMED`) |
 | EP-7000 | Procedural Music Generation | FEAT-7100 | `music.py`, `build_rom.py`, `asm_game.py` (prospective) | Medium (build-time half unblocked; runtime selection half blocked on `FR-4320`'s own separate arc shipping) |
 
 Every Feature in [FP-03](03-feature-catalog.md) belongs to exactly one Epic above; no Feature
