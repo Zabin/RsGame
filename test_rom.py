@@ -3736,6 +3736,47 @@ check("T28.e Timing: the sub-theme repoint lands with the redraw itself (within 
 pb.stop()
 wipe_save()
 
+print("\n=== T34: Combat Sub-Mode — Sprite Content (IP-1125) ===")
+
+import build_rom as _build_rom_mod
+
+_t34_data = _tiles_mod.build_tile_data()
+def _t34_tile_bytes(idx):
+    return _t34_data[idx * 16:(idx + 1) * 16]
+
+_t34_mob = bytes(_t34_tile_bytes(_tiles_mod.TL_MOB))
+_t34_mob_bot = bytes(_t34_tile_bytes(_tiles_mod.TL_MOB_BOT))
+_t34_proj = bytes(_t34_tile_bytes(_tiles_mod.TL_PROJECTILE))
+_t34_proj_bot = bytes(_t34_tile_bytes(_tiles_mod.TL_PROJECTILE_BOT))
+check("T34.a Tile indices: TL_MOB/TL_MOB_BOT/TL_PROJECTILE/TL_PROJECTILE_BOT sit at 0x0A-0x0D exactly",
+      (_tiles_mod.TL_MOB, _tiles_mod.TL_MOB_BOT,
+       _tiles_mod.TL_PROJECTILE, _tiles_mod.TL_PROJECTILE_BOT) == (0x0A, 0x0B, 0x0C, 0x0D),
+      f"got={(_tiles_mod.TL_MOB, _tiles_mod.TL_MOB_BOT, _tiles_mod.TL_PROJECTILE, _tiles_mod.TL_PROJECTILE_BOT)}")
+
+check("T34.b Registered: TL_MOB/TL_PROJECTILE tile data matches mob_obj()/projectile_obj() exactly; both bottom halves are blank",
+      _t34_mob == bytes(_tiles_mod.mob_obj())
+      and _t34_proj == bytes(_tiles_mod.projectile_obj())
+      and _t34_mob_bot == bytes(_tiles_mod.ui_blank())
+      and _t34_proj_bot == bytes(_tiles_mod.ui_blank()),
+      "mismatch against tiles.py's own generator functions")
+
+_t34_existing_obj = {
+    'bunny_t': bytes(_t34_tile_bytes(_tiles_mod.TL_BUNNY_T_F1)),
+    'bunny_b': bytes(_t34_tile_bytes(_tiles_mod.TL_BUNNY_B_F1)),
+    'carrot':  bytes(_t34_tile_bytes(_tiles_mod.TL_CARROT)),
+    'star':    bytes(_t34_tile_bytes(_tiles_mod.TL_STAR)),
+    'flower':  bytes(_t34_tile_bytes(_tiles_mod.TL_FLOWER_OBJ)),
+}
+_t34_dupes = [name for name, data in _t34_existing_obj.items()
+              if data == _t34_mob or data == _t34_proj]
+check("T34.c Distinctness: mob/projectile art is visually distinct (byte-for-byte) from every existing OBJ tile and from each other",
+      _t34_dupes == [] and _t34_mob != _t34_proj,
+      f"dupes={_t34_dupes} mob==proj:{_t34_mob == _t34_proj}")
+
+check("T34.d Palette budget: OBJ_PALETTES table still holds exactly 8 fixed-size entries (mob/projectile reuse the two previously-placeholder 'unused/white' slots, no new slot added)",
+      len(_build_rom_mod.OBJ_PALETTES) == 8 and all(len(p) == 4 for p in _build_rom_mod.OBJ_PALETTES),
+      f"count={len(_build_rom_mod.OBJ_PALETTES)}")
+
 # ══════════════════════════════════════════════════════
 # SUMMARY
 # ══════════════════════════════════════════════════════

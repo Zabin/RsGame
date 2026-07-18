@@ -34,6 +34,7 @@ without that discipline is exactly what went stale before (`BL-0007`/`BL-0008`).
 |---|---|
 | `0x00`–`0x03` | Bunny walk frames, 8×16 OBJ pairs (`00`/`01`, `02`/`03`) |
 | `0x04`–`0x09` | Carrot / star / flower OBJ sprites (each + blank pad tile) |
+| `0x0A`–`0x0D` | Combat sub-mode mob / projectile OBJ sprites, each + blank pad tile (`IP-1125`, OBJ pal 4/5) |
 | `0x10`–`0x19` | UI icons: BG blank, heart full/empty, carrot icon, star icon, border, 4 arrows |
 | `0x1A`–`0x1D` | Maze-blocked edge indicator (4 directional tiles, `IP-1081`/`FS-108`) |
 | `0x20`+ | Digits |
