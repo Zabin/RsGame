@@ -878,6 +878,12 @@
 
 ## FEAT-11000 — Infinite Mode Combat Sub-Mode (new — not yet implemented)
 
+> **Forward reference (metadata only):** specified by
+> [FS-112](../features/FS-112-infinite-mode-combat-sub-mode.md) (2026-07-17). 3 Open Questions
+> recorded there (gating UI mechanism — architecture-level, may need a `03` round-trip;
+> damage-vs-heal-spend frame ordering; no-op heal-spend feedback), all routed to
+> `07-implementation-planning`.
+
 - **Feature ID:** FEAT-11000
 - **Title:** Infinite Mode Combat Sub-Mode
 - **Purpose:** Offer a distinct, explicitly opt-in combat layer inside Infinite Mode — mobs,
