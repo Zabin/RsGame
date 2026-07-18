@@ -4,7 +4,8 @@
 > visual-story-narrative/procgen-world-map increment — see §2a/§3a/§4a below; delta 2026-07-13 —
 > §4c, `SELECT` becomes a small menu, target state, not yet shipped, `CR-06`/`BL-0100`; delta
 > 2026-07-14 — §4d, new-game mode choice (Finite/Infinite), target state, not yet shipped,
-> `BL-0113`).** Owned by
+> `BL-0113`; delta 2026-07-17 — §4e, the Infinite Mode combat sub-mode's own gating confirmation,
+> target state, not yet shipped, `BL-0146`/`ADS-002`/`MSTR-001` C11).** Owned by
 > `03-architecture-design-synthesis`. Builds on [GDS-00](00-vision.md); the next level,
 > [GDS-02 System Context](02-system-context.md), builds on this one.
 >
@@ -282,6 +283,51 @@ reuses or claims new (following `ADR-0015`'s precedent of leaving byte-encoding 
 `07`/`08` when either representation is equally valid — mirrors §4c's identical treatment of
 `SELECT MENU`'s cursor byte).
 
+### 4e. Infinite Mode combat sub-mode's own gating confirmation — delta for `BL-0146` (decided 2026-07-17)
+
+`BL-0146` (`07-implementation-planning`, `IP-1120`'s own planning pass, blocked on this exact
+gap): `ADS-002`/`MSTR-001` C11 commit the combat sub-mode to a real, explicitly-gated new-game
+choice, but §4d above states, as a load-bearing fact, that `MODE SELECT` "presents **finite** and
+**infinite**" — a closed, two-option description a silently-added third option would falsify.
+This delta amends that description and names the concrete mechanism.
+
+**Decision: `MODE SELECT`'s own two options (`finite`/`infinite`) are unchanged.** Choosing
+`infinite` now leads to a new, one-screen **`COMBAT MODE CONFIRM`** state — a binary `Y`/`N`
+cursor choice ("ENABLE COMBAT MODE?") — before proceeding to `INFINITE SEED ENTRY`, rather than
+extending `MODE SELECT`'s own cursor to a three-way choice. This keeps "which world" (`MODE
+SELECT`'s own concern) and "combat on/off" (an Infinite-Mode-only sub-choice, per `ADS-002`'s own
+confirmed Infinite-Mode-exclusivity) on two separate, orthogonal axes rather than conflating them
+into one three-state cursor — the same reasoning that already led `MODE SELECT` itself to be a
+distinct state from `SEED/SCALE ENTRY` rather than a widened options list on an existing screen
+(§4d's own precedent). Reuses the exact cursor-menu pattern `MAIN MENU`/`SELECT MENU`/`MODE
+SELECT` itself already established, per `R218`'s own difficulty-gated-optional-content precedent
+(an explicit, clearly-signposted choice, never a hidden toggle) — not a new UI convention.
+
+```
+                       └──"infinite" (A)──▶ COMBAT MODE CONFIRM ──confirm──▶ INFINITE SEED ENTRY ──confirm──▶ INTRO ──A──▶ PLAYING (Infinite Mode)
+                                                  │
+                                                  └──B (cancel)──▶ MODE SELECT
+```
+
+- **`COMBAT MODE CONFIRM`** (new) — reachable only from `MODE SELECT`'s "infinite" confirm;
+  presents a binary `Y`/`N` cursor choice, defaulting to `N` on entry (never defaults to enabled,
+  per `ADS-002`'s own "never enabled by default" requirement, `FR-11100`). `A` on `Y` sets the new
+  `COMBAT_MODE` WRAM flag (`IP-1121`'s own scope) and proceeds to `INFINITE SEED ENTRY`; `A` on
+  `N` proceeds identically but leaves `COMBAT_MODE` at its boot-cleared 0. `B` cancels back to
+  `MODE SELECT` (the "one step back" convention, mirroring `INFINITE SEED ENTRY`'s own cancel
+  target, §4d).
+- **The finite path is completely unaffected** — `MODE SELECT`'s "finite" confirm still proceeds
+  directly to `SEED/SCALE ENTRY`, no detour through `COMBAT MODE CONFIRM` (the combat sub-mode is
+  Infinite-Mode-exclusive, `ADS-002` Open Question 5).
+- **`INFINITE SEED ENTRY` itself is unchanged** — this delta inserts a new state *before* it, not
+  a new field within it.
+
+**Not decided here (implementation-level, `07`/`08-code-implementation`):** the exact new
+`GAMESTATE` numeric value for `COMBAT MODE CONFIRM` (the next free value following
+`GS_INFINITE_SEED_ENTRY = 11`, per this project's own append-only `GAMESTATE` numbering
+convention); the WRAM byte its own `Y`/`N` cursor uses (reuses or claims new, following
+`ADR-0015`'s precedent — mirrors §4c/§4d's identical treatment).
+
 ### 5. Former Open Question — world-scale direction (resolved 2026-07-09, see §3a/ADR-0010)
 
 This section originally posed "wider vs. deeper" as an open tension (bootstrap pass, 2026-07-06;
@@ -351,3 +397,15 @@ and cancelling exactly per the diagram above, including the named asymmetric-can
 (`SEED/SCALE ENTRY`'s own `B`-cancel target left unredirected). `T25` (`test_rom.py`, 10 checks)
 exercises the full diagram end to end. `MODE SELECT`'s own cursor byte reuses `MM_CURSOR`
 (the choice this section left open, resolved the same way §4c's `SELECT MENU` precedent was).
+
+**Delta record (2026-07-17):** §4e added, per `BL-0146` (`07-implementation-planning`, `IP-1120`'s
+own planning pass, blocked on this exact gap — `MODE SELECT`'s own §4d text stated a closed
+two-option fact `ADS-002`/`MSTR-001` C11's combat sub-mode would falsify). Delta, not
+re-authoring — §§1–4d remain accurate (as-shipped or already-established target state); §4e is
+new **target state, not yet shipped** — no `IP-xxxx` package is `READY` for it yet (`IP-1120`
+itself remains `BLOCKED` on this delta landing, then re-plannable in full). Decision: a new
+`COMBAT MODE CONFIRM` state inserted between `MODE SELECT`'s "infinite" confirm and `INFINITE
+SEED ENTRY`, not a three-state `MODE SELECT` cursor — keeps "which world" and "combat on/off" on
+separate axes. `MODE SELECT`'s own two options and `SEED/SCALE ENTRY`'s finite path are both
+completely unaffected. `07-implementation-planning` returns to re-plan `IP-1120` in full against
+this delta next. No merge-gate box above is reopened.

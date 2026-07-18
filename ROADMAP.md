@@ -63,7 +63,7 @@ build order.
 | ID | Document | Path | Depends on | Status |
 |---|---|---|---|---|
 | GDS-00 | Vision level | `docs/architecture/00-vision.md` | MSTR-001 | ✅ (revised 2026-07-09 for MSTR-001 v3.0) |
-| GDS-01 | Concept of Play | `docs/architecture/01-concept-of-play.md` | GDS-00 | ✅ (2026-07-06; delta 2026-07-09 for procgen-world increment; delta 2026-07-13 §4c — `SELECT` becomes a small `MAP`/`LEGEND` menu, target state, `CR-06`/`BL-0100`; delta 2026-07-14 §4d — new-game mode choice (Finite/Infinite), target state, `BL-0113`) |
+| GDS-01 | Concept of Play | `docs/architecture/01-concept-of-play.md` | GDS-00 | ✅ (2026-07-06; delta 2026-07-09 for procgen-world increment; delta 2026-07-13 §4c — `SELECT` becomes a small `MAP`/`LEGEND` menu, target state, `CR-06`/`BL-0100`; delta 2026-07-14 §4d — new-game mode choice (Finite/Infinite), target state, `BL-0113`; delta 2026-07-17 §4e — combat sub-mode's own `COMBAT MODE CONFIRM` gating state, target state, `BL-0146`/`ADS-002`/`MSTR-001` C11) |
 | GDS-02 | System Context | `docs/architecture/02-system-context.md` | GDS-01 | ✅ (2026-07-06) |
 | GDS-03 | Architecture | `docs/architecture/03-architecture.md` | GDS-02 | ✅ (2026-07-06) |
 | GDS-04 | Domain Model | `docs/architecture/04-domain-model.md` | GDS-03 | ✅ (2026-07-06; delta 2026-07-09 for procgen-world increment; delta 2026-07-10, BL-0033; delta 2026-07-12 — `KeyItem` cardinality/win-condition corrected, `ADR-0015`/`BL-0093`) |
