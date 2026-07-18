@@ -1711,6 +1711,6 @@ entries free before this delta (post-`IP-9170`/`IP-9180`). The 6-mob-slot defaul
 entries incl. the projectile) leaves 24 free — real headroom, not asserted safe until each
 package's own build confirms it (see each package's own Risks field).
 
-**Authorization:** **none of the six packages are authorized.** All six are now fully planned
-(`IP-1120`'s own architecture gap resolved, `GDS-01` §4e, `BL-0146` closed) — a single G3 decision
-from the user can now authorize the entire set.
+**Authorization:** **all six packages AUTHORIZED** (G3, user "Yes, build all six," 2026-07-17).
+Build order: `IP-1125` → `IP-1121` → `IP-1122`/`IP-1123` (parallel) → `IP-1124`; `IP-1120` in
+parallel once `IP-1121` lands.
