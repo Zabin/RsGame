@@ -177,28 +177,38 @@ mob-spawn draw would most naturally hook into.
    Answered by `MSTR-001` v4.0's new **C11**: yes, via a narrow, opt-in carve-out — a gated
    combat sub-mode intended for a parent/adult player may be tonally grimmer; the base game's own
    child-friendly commitment is unchanged. See `01-vision`'s run for the full record.
-2. Is treasure *spent* on healing (reducing the win/high-score count) or does it trigger healing
-   without being consumed? Changes the entire economy model.
-3. Does the weapon have ammo/durability, or is "upgraded... healed... by the treasure" its only
-   resource interaction? (Owner's own 2026-07-17 clarification narrowed this but didn't close it.)
-4. What is the fail state? No player-damage/health concept exists today — does combat introduce a
-   real "game over," or is damage non-lethal/cosmetic (consistent with C9's tone either way this
-   resolves)?
-5. Finite mode or Infinite Mode only? `BL-0133`'s own filing says "on the infinite map" — should
-   this be confirmed as Infinite-Mode-exclusive, or could/should it extend to finite mode later?
-6. Concurrent mob count and spawn density — a first-order OAM/ROM-budget-shaping decision.
-7. Does mob/weapon-tier state persist across save/load (a new SRAM version bump, mirroring
-   `IP-1010`/`IP-1050`/`IP-1104`'s own precedent), or is it session-only?
-8. **(Research-level, blocking a fuller architecture pass) — NEW 2026-07-17.** No R1xx/R2xx/R3xx
-   research topic covers combat/enemy design conventions, hardware-feasible projectile/hit-
-   detection techniques on SM83, or health/damage HUD conventions. Committing to concrete mob/
-   projectile/health entity shapes (the System Architecture sketch above stays a sketch, not a
-   decision) needs this grounding first — routed to `02-research-game-design` (design
-   conventions: enemy AI patterns, difficulty pacing for an opt-in "parent mode," health/damage
-   HUD conventions on GBC-era titles) and `02-research-gbc-hardware` (hardware feasibility:
-   projectile movement/collision cost on SM83, OAM budget for concurrent mob+projectile sprites,
-   whether a second APU channel is needed for combat SFX — this project currently uses only
-   channel 1).
+2. **RESOLVED 2026-07-17 (user decision).** Is treasure *spent* on healing (reducing the
+   win/high-score count) or does it trigger healing without being consumed? **Spent** — treasure
+   is consumed to heal, creating a real risk/reward tension (heal now vs. bank treasure for
+   score). `RUNNING_TREASURE_COUNT` itself is decremented on heal, not merely read.
+3. **RESOLVED 2026-07-17 (user decision).** Does the weapon have ammo/durability? **No** — it
+   fires freely once acquired; treasure funds only its power/upgrade tier, not ammo or
+   durability. No ammo-count HUD element needed.
+4. **RESOLVED 2026-07-17 (user decision).** What is the fail state? **Non-lethal setback** — no
+   real "game over" in combat mode; reaching zero health triggers a setback (e.g. respawn at the
+   last safe point, some treasure lost) while the run continues. Consistent with `A5`'s own
+   fail-state-free base-game design holding even inside `C11`'s grimmer carve-out — "grimmer"
+   describes tone/presentation, not a departure from this project's no-fail-state principle.
+5. **RESOLVED** (was always this by the owner's own filing, not newly decided). Finite mode or
+   Infinite Mode only? `BL-0133`'s own filing text says "on the infinite map" — **Infinite Mode
+   exclusive**, confirmed; `COMBAT_MODE` is only ever valid alongside `GAME_MODE=1` (System
+   Architecture above).
+6. **Committed as an architecture default, not a fixed requirement.** Concurrent mob count: **6
+   slots**, derived from `R115`'s own measured OAM headroom (System Architecture above) — `04`/`06`
+   may adjust this number, but it is no longer an open question in the sense of "undecided," only
+   "adjustable."
+7. **RESOLVED 2026-07-17 (user decision).** Does combat state persist across save/load? **Yes** —
+   mob state, weapon tier, and player health all persist, mirroring `IP-1010`/`IP-1050`/`IP-1104`'s
+   own established save-format-bump precedent. A new `SAVE_VERSION_VAL` bump is therefore a real,
+   expected part of this capability's own implementation, not optional.
+8. **RESOLVED 2026-07-17.** Research grounding gap, closed by **`R218`** (design conventions:
+   poof-defeat, heart-container HUD, difficulty-gating precedent) and **`R115`** (hardware
+   feasibility: no hardware collision detection, OAM/APU headroom) — both authored and cited
+   throughout System Architecture above.
+
+**All eight Open Questions now resolved or committed as adjustable defaults.** This ADS is
+complete for what `03-architecture-design-synthesis` can decide; `04-requirements-engineering`
+can now baseline real `FR-xxxx`s against it.
 
 ## Decision Log
 
@@ -207,12 +217,14 @@ mob-spawn draw would most naturally hook into.
 | 2026-07-17 | This ADS stops short of producing an `FS-xxx` or any `FR-xxxx` — the Vision-level tension (Open Question 1) is judged blocking, not merely informative, because every downstream requirement's shape depends on its answer. | This skill's own charter: it names tensions and routes genuine domain gaps upstream rather than inventing a resolution; a vision-level tonal question is exactly the class `01-vision` exists to own, not `03`. |
 | 2026-07-17 | Treasure's dual-purpose-economy question (Open Question 2) and the weapon's ammo/durability question (Open Question 3) are recorded as open rather than assumed, per the owner's own 2026-07-17 clarification narrowing but not closing them. | Direct owner statement, quoted in `BL-0133`'s own backlog entry. |
 | 2026-07-17 | **A second stop, found on this same day's follow-up pass** (after Open Question 1 resolved): before committing to concrete mob/projectile/health entity designs or a gating mechanism, this skill searched the research encyclopedia for any grounding on combat/enemy/damage design and found **none** — a genuine domain-knowledge gap, not a small detail. `R204` mentions HUD health-bar *weighting* in passing (not combat design); `R214` explicitly warns *against* treating existing combat-focused GBC homebrew (Azure Dreams/Dragon Crystal) as design templates for *this* project, without offering an alternative. No R1xx/R2xx/R3xx topic covers enemy AI patterns, projectile/hitscan feasibility on SM83, sprite-based hit-detection conventions, or health/damage HUD conventions for a GBC title. This pass stops here rather than inventing combat-design conventions itself — that would be exactly the kind of research-origination this skill's own charter forbids. | Direct search of `docs/research/encyclopedia/` (grep for combat/enemy/mob/projectile/weapon/health/damage across every R1xx/R2xx/R3xx topic) — confirmed empty beyond the two tangential mentions above. |
+| 2026-07-17 | Committed to concrete candidate architecture (6-slot mob table, transient projectile, MODE SELECT gating option, A-button fire input, poof-defeat + reused heart-tile HUD) now that `R218`/`R115` ground it. Every concrete claim (A-button unbound during `PLAYING`, `TL_HEART_FULL`/`TL_HEART_EMPTY` already shipped) re-verified against the live tree before being stated, not assumed from the research topics alone. | `R218`, `R115`, direct code read of `handle_play_input`/`st_playing`/`tiles.py`. |
+| 2026-07-17 | **User resolved all four remaining Open Questions in one batched round**: treasure is *spent* on healing (Open Question 2); the weapon fires freely with no ammo/durability, treasure funds power only (Open Question 3); the fail state is a non-lethal setback, no real game-over (Open Question 4); combat state (mobs, weapon tier, health) persists across save/load via a new `SAVE_VERSION_VAL` bump (Open Question 7). All eight Open Questions are now closed or committed as adjustable defaults — `04-requirements-engineering` can proceed. | Direct user decision, 2026-07-17 (batched `AskUserQuestion`, all four recommended options accepted). |
 
 ## What this ADS does NOT do
 
-It does not baseline any `FR-xxxx`, does not produce an `FS-xxx`, and does not commit to any of
-the candidate shapes sketched under System Architecture/Domain Model above — those are
-groundwork for whichever pass follows once Open Question 1 is answered, not decisions. This
-mirrors `ADS-001`'s own precedent of naming candidate shapes without prematurely fixing them,
-one level further upstream than that document sat (that one already had an unambiguous Vision
-basis in `C7`; this one does not yet).
+All eight Open Questions are now resolved or committed as adjustable defaults, and the System
+Architecture/Domain Model sections above are real candidate architecture, not sketches. Even so,
+this document itself **does not baseline any `FR-xxxx` and does not produce an `FS-xxx`** — that
+formalization is `04-requirements-engineering`'s (then `06-feature-specification`'s) own job,
+never this skill's. The numeric defaults named here (6 mob slots, A-button binding, etc.) are
+recommendations `04`/`06` may adjust, not fixed requirements.
