@@ -2,7 +2,8 @@
 
 - **Document ID:** R108 · **Version:** 1.0 · **Status:** ✅
 - **Dependencies:** R101 (frame-timed note triggering)
-- **Referenced By:** none yet
+- **Referenced By:** R115 (2026-07-17 — confirms channels 2–4 are entirely unused, headroom for
+  combat-mode SFX, `BL-0133`)
 - **Produces:** grounds `music.py`'s note encoding and `asm_game.py`'s channel-1 playback routine
 - **Feature Mapping:** *(none yet)*
 - **Related Topics:** none yet
