@@ -2957,13 +2957,19 @@ check("T25.b1c SEED/SCALE ENTRY's own B-cancel target is still MAIN MENU (GS=6) 
       pb.memory[GAMESTATE] == 6, f"GS={pb.memory[GAMESTATE]}")
 pb.stop()
 
-# T25.b2 — MODE SELECT, confirm "infinite" -> INFINITE SEED ENTRY, GAME_MODE==1.
+# T25.b2 — MODE SELECT, confirm "infinite" -> COMBAT MODE CONFIRM,
+# GAME_MODE==1. IP-1120 (BL-0153): ms_infinite's own transition target
+# retargeted from GS_INFINITE_SEED_ENTRY (11) to GS_COMBAT_MODE_CONFIRM
+# (12) -- this assertion's own expected GAMESTATE is a necessary,
+# intentional consequence of that package's own Interfaces §5 (not a
+# silent break of "T25 stays unmodified"; the COMBAT MODE CONFIRM state
+# itself is fully covered by IP-1120's own T33 suite).
 pb = fresh_boot(200)
 pb.button('a'); [pb.tick() for _ in range(40)]        # MAIN MENU -> MODE SELECT
 pb.button('down'); [pb.tick() for _ in range(40)]     # toggle to infinite
 pb.button('a'); [pb.tick() for _ in range(40)]        # confirm infinite
-check("T25.b2a MODE SELECT, confirm infinite -> INFINITE SEED ENTRY (GS=11)",
-      pb.memory[GAMESTATE] == 11, f"GS={pb.memory[GAMESTATE]}")
+check("T25.b2a MODE SELECT, confirm infinite -> COMBAT MODE CONFIRM (GS=12, IP-1120)",
+      pb.memory[GAMESTATE] == 12, f"GS={pb.memory[GAMESTATE]}")
 check("T25.b2b GAME_MODE == 1 (infinite)", pb.memory[GAME_MODE] == 1,
       f"GAME_MODE={pb.memory[GAME_MODE]}")
 pb.stop()
@@ -2990,7 +2996,8 @@ pb.stop()
 pb = fresh_boot(200)
 pb.button('a'); [pb.tick() for _ in range(40)]        # MAIN MENU -> MODE SELECT
 pb.button('down'); [pb.tick() for _ in range(40)]
-pb.button('a'); [pb.tick() for _ in range(40)]        # confirm infinite -> INFINITE SEED ENTRY
+pb.button('a'); [pb.tick() for _ in range(40)]        # confirm infinite -> COMBAT MODE CONFIRM (IP-1120)
+pb.button('a'); [pb.tick() for _ in range(40)]        # confirm default "N" -> INFINITE SEED ENTRY
 enter_infinite_seed(pb, [1, 2, 3, 4, 5])              # seed=12345
 check("T25.d1 Confirm -> INTRO (GS=1)", pb.memory[GAMESTATE] == 1, f"GS={pb.memory[GAMESTATE]}")
 check("T25.d1b SEED written correctly (12345)",
@@ -3015,7 +3022,8 @@ pb.stop()
 pb = fresh_boot(200)
 pb.button('a'); [pb.tick() for _ in range(40)]
 pb.button('down'); [pb.tick() for _ in range(40)]
-pb.button('a'); [pb.tick() for _ in range(40)]        # -> INFINITE SEED ENTRY
+pb.button('a'); [pb.tick() for _ in range(40)]        # -> COMBAT MODE CONFIRM (IP-1120)
+pb.button('a'); [pb.tick() for _ in range(40)]        # confirm default "N" -> INFINITE SEED ENTRY
 seed_before_e1 = pb.memory[SEED] | (pb.memory[SEED+1] << 8)
 mode_before_e1 = pb.memory[GAME_MODE]
 pb.button('up'); [pb.tick() for _ in range(10)]       # touch a digit, then abandon via B
@@ -3042,7 +3050,8 @@ pb.stop()
 pb = fresh_boot(200)
 pb.button('a'); [pb.tick() for _ in range(40)]
 pb.button('down'); [pb.tick() for _ in range(40)]
-pb.button('a'); [pb.tick() for _ in range(40)]
+pb.button('a'); [pb.tick() for _ in range(40)]        # -> COMBAT MODE CONFIRM (IP-1120)
+pb.button('a'); [pb.tick() for _ in range(40)]        # confirm default "N" -> INFINITE SEED ENTRY
 enter_infinite_seed(pb, [0, 0, 0, 0, 0])              # seed=0
 check("T25.f1 SEED left at exactly 0 as entered (not force-written to 1, matches finite mode's own precedent)",
       pb.memory[SEED] | (pb.memory[SEED+1] << 8) == 0,
@@ -3067,12 +3076,14 @@ ICTS_ADDR = _gw_rom.labels['inf_check_top_score']
 ITP_ADDR = _gw_rom.labels['inf_treasure_pos']
 
 def enter_infinite_mode(pb, seed):
-    """MAIN MENU -> MODE SELECT -> (infinite) -> INFINITE SEED ENTRY ->
-    seed digits -> INTRO -> A -> PLAYING. The same button script T25.d
-    established, packaged for reuse."""
+    """MAIN MENU -> MODE SELECT -> (infinite) -> COMBAT MODE CONFIRM
+    (IP-1120, confirms default "N") -> INFINITE SEED ENTRY -> seed digits
+    -> INTRO -> A -> PLAYING. The same button script T25.d established,
+    packaged for reuse."""
     pb.button('a'); [pb.tick() for _ in range(40)]
     pb.button('down'); [pb.tick() for _ in range(40)]
     pb.button('a'); [pb.tick() for _ in range(40)]
+    pb.button('a'); [pb.tick() for _ in range(40)]        # COMBAT MODE CONFIRM: confirm default "N"
     enter_infinite_seed(pb, [(seed // 10 ** (4 - i)) % 10 for i in range(5)])
     pb.button('a'); [pb.tick() for _ in range(80)]
 
@@ -4138,6 +4149,153 @@ check("T31.f COMBAT_MODE off: no row-1 HUD write, mob-contact/heal-spend logic n
       pb.memory[PLAYER_HEALTH_ADDR] == 3 and _t31f_rtc == 5 and _t31f_row1 == [0xAA, 0xAA, 0xAA],
       f"health={pb.memory[PLAYER_HEALTH_ADDR]} rtc={_t31f_rtc} row1={_t31f_row1}")
 
+pb.stop()
+wipe_save()
+
+print("\n=== T33: Combat Sub-Mode — Mode Gating & UI (IP-1120) ===")
+
+CMC_CURSOR_ADDR = 0xC6DD
+
+def _to_mode_select(pb):
+    """MAIN MENU -> MODE SELECT, cursor at default (finite)."""
+    pb.button('a'); [pb.tick() for _ in range(40)]
+
+def _to_combat_confirm(pb):
+    """MAIN MENU -> MODE SELECT -> toggle infinite -> confirm -> COMBAT
+    MODE CONFIRM (GS=12)."""
+    _to_mode_select(pb)
+    pb.button('down'); [pb.tick() for _ in range(40)]
+    pb.button('a'); [pb.tick() for _ in range(40)]
+
+# T33.a — off by default: from a fresh COMBAT MODE CONFIRM entry (cursor
+# defaults to "N"), press A immediately without touching UP/DOWN, confirm
+# COMBAT_MODE stays 0 and GAMESTATE reaches INFINITE SEED ENTRY (GS=11).
+pb = fresh_boot(200)
+_to_combat_confirm(pb)
+check("T33.a0 Reaches COMBAT MODE CONFIRM (GS=12)", pb.memory[GAMESTATE] == 12,
+      f"GS={pb.memory[GAMESTATE]}")
+check("T33.a0b CMC_CURSOR defaults to 0 (N)", pb.memory[CMC_CURSOR_ADDR] == 0,
+      f"cursor={pb.memory[CMC_CURSOR_ADDR]}")
+pb.button('a'); [pb.tick() for _ in range(40)]
+check("T33.a Off by default: A at default N cursor leaves COMBAT_MODE == 0",
+      pb.memory[COMBAT_MODE_ADDR] == 0, f"combat_mode={pb.memory[COMBAT_MODE_ADDR]}")
+check("T33.a2 Reaches INFINITE SEED ENTRY (GS=11)", pb.memory[GAMESTATE] == 11,
+      f"GS={pb.memory[GAMESTATE]}")
+pb.stop()
+
+# T33.b — confirm sets the flag: toggle to "Y" (one UP or DOWN press),
+# press A, confirm COMBAT_MODE == 1 and GAMESTATE == GS_INFINITE_SEED_ENTRY.
+pb = fresh_boot(200)
+_to_combat_confirm(pb)
+pb.button('up'); [pb.tick() for _ in range(40)]
+check("T33.b0 UP toggles CMC_CURSOR to 1 (Y)", pb.memory[CMC_CURSOR_ADDR] == 1,
+      f"cursor={pb.memory[CMC_CURSOR_ADDR]}")
+pb.button('a'); [pb.tick() for _ in range(40)]
+check("T33.b Confirm sets the flag: COMBAT_MODE == 1, GAMESTATE == 11",
+      pb.memory[COMBAT_MODE_ADDR] == 1 and pb.memory[GAMESTATE] == 11,
+      f"combat_mode={pb.memory[COMBAT_MODE_ADDR]} GS={pb.memory[GAMESTATE]}")
+pb.stop()
+
+# T33.c — B-cancel returns to MODE SELECT with "infinite" still
+# highlighted: from COMBAT MODE CONFIRM, press B, confirm GAMESTATE ==
+# GS_MODE_SELECT and MM_CURSOR != 0 (still "infinite", not reset to
+# "finite").
+pb = fresh_boot(200)
+_to_combat_confirm(pb)
+pb.button('b'); [pb.tick() for _ in range(40)]
+check("T33.c B-cancel returns to MODE SELECT (GS=10) with infinite still highlighted",
+      pb.memory[GAMESTATE] == 10 and pb.memory[MM_CURSOR] != 0,
+      f"GS={pb.memory[GAMESTATE]} MM_CURSOR={pb.memory[MM_CURSOR]}")
+check("T33.c2 B-cancel writes no COMBAT_MODE (still 0)", pb.memory[COMBAT_MODE_ADDR] == 0,
+      f"combat_mode={pb.memory[COMBAT_MODE_ADDR]}")
+pb.stop()
+
+# T33.d — re-entry resets to "N": toggle to "Y", B-cancel back to MODE
+# SELECT, re-enter COMBAT MODE CONFIRM (MM_CURSOR still "infinite," so a
+# plain A re-enters it), confirm CMC_CURSOR == 0 on the fresh entry (never
+# carries a stale "Y" forward).
+pb = fresh_boot(200)
+_to_combat_confirm(pb)
+pb.button('up'); [pb.tick() for _ in range(40)]        # toggle to Y
+check("T33.d0 Toggled to Y before cancelling", pb.memory[CMC_CURSOR_ADDR] == 1,
+      f"cursor={pb.memory[CMC_CURSOR_ADDR]}")
+pb.button('b'); [pb.tick() for _ in range(40)]         # cancel -> MODE SELECT
+pb.button('a'); [pb.tick() for _ in range(40)]         # re-enter (MM_CURSOR already "infinite")
+check("T33.d Re-entry resets to N: fresh CMC_CURSOR == 0 despite prior Y toggle",
+      pb.memory[GAMESTATE] == 12 and pb.memory[CMC_CURSOR_ADDR] == 0,
+      f"GS={pb.memory[GAMESTATE]} cursor={pb.memory[CMC_CURSOR_ADDR]}")
+pb.stop()
+
+# T33.e — finite path unaffected: drive MODE SELECT -> "finite" (default
+# cursor, no toggle), confirm GAMESTATE == GS_SEED_SCALE_ENTRY directly, no
+# detour through COMBAT MODE CONFIRM, COMBAT_MODE unaffected.
+pb = fresh_boot(200)
+_to_mode_select(pb)
+pb.button('a'); [pb.tick() for _ in range(40)]         # confirm finite (default cursor)
+check("T33.e Finite path unaffected: MODE SELECT confirm finite -> SEED/SCALE ENTRY (GS=7) directly",
+      pb.memory[GAMESTATE] == 7 and pb.memory[COMBAT_MODE_ADDR] == 0,
+      f"GS={pb.memory[GAMESTATE]} combat_mode={pb.memory[COMBAT_MODE_ADDR]}")
+pb.stop()
+
+# T33.f — T25 non-regression spot check: MODE SELECT's own B-cancel to
+# MAIN MENU and SEED/SCALE ENTRY's own direct reachability both still work
+# exactly as T25 itself already re-confirms elsewhere in this same
+# full-suite run (T25.b1/T25.c1, both updated only where IP-1120's own
+# retarget actually changed behavior — T25.b2a/d1/e1/f's own button
+# scripts, not their assertions' intent).
+pb = fresh_boot(200)
+_to_mode_select(pb)
+pb.button('down'); [pb.tick() for _ in range(40)]      # highlight infinite, do NOT confirm
+pb.button('b'); [pb.tick() for _ in range(40)]
+check("T33.f T25 non-regression: MODE SELECT B-cancel still reaches MAIN MENU (GS=6), GAME_MODE unwritten",
+      pb.memory[GAMESTATE] == 6 and pb.memory[GAME_MODE] == 0,
+      f"GS={pb.memory[GAMESTATE]} GAME_MODE={pb.memory[GAME_MODE]}")
+pb.stop()
+
+# T33.g — reused-array non-corruption (BL-0153 remediation-specific):
+# after visiting COMBAT MODE CONFIRM (forcing its own redraw so the
+# text-overlay memcpy calls run), navigate back to MODE SELECT and
+# confirm its own screen still reads "BUNNY QUEST"/"FINITE"/"INFINITE"
+# correctly -- proving the overlay only ever touches the live VRAM copy,
+# never mode_select_screen's own ROM-resident array.
+pb = fresh_boot(200)
+_to_combat_confirm(pb)
+pb.button('up'); [pb.tick() for _ in range(40)]        # force an extra redraw (toggle)
+pb.button('b'); [pb.tick() for _ in range(40)]         # back to MODE SELECT
+_t33g_title = [pb.memory[0x9800 + 3*32 + 5 + i] for i in range(len("BUNNY QUEST"))]
+_t33g_expected_title = [_tiles_mod.char_to_tile(c) for c in "BUNNY QUEST"]
+_t33g_finite = [pb.memory[0x9800 + 7*32 + 8 + i] for i in range(len("FINITE"))]
+_t33g_expected_finite = [_tiles_mod.char_to_tile(c) for c in "FINITE"]
+_t33g_infinite = [pb.memory[0x9800 + 9*32 + 8 + i] for i in range(len("INFINITE"))]
+_t33g_expected_infinite = [_tiles_mod.char_to_tile(c) for c in "INFINITE"]
+check("T33.g Reused-array non-corruption: MODE SELECT still reads BUNNY QUEST/FINITE/INFINITE after visiting COMBAT MODE CONFIRM",
+      _t33g_title == _t33g_expected_title and _t33g_finite == _t33g_expected_finite and
+      _t33g_infinite == _t33g_expected_infinite,
+      f"title={_t33g_title} finite={_t33g_finite} infinite={_t33g_infinite}")
+pb.stop()
+
+# T33.h — overlay content correct: drive to COMBAT MODE CONFIRM, read the
+# row-3/row-7/row-9 VRAM tile bytes directly, confirm they read "COMBAT
+# MODE?"/"NO"/"YES" (not stale BUNNY QUEST/FINITE/INFINITE leftovers) and
+# that no trailing character from the longer original labels survives the
+# shorter replacement (row 7 col 13, FINITE's own last letter's position,
+# and row 9 col 15, INFINITE's own last letter's position, both blank).
+pb = fresh_boot(200)
+_to_combat_confirm(pb)
+_t33h_title = [pb.memory[0x9800 + 3*32 + 5 + i] for i in range(len("COMBAT MODE?"))]
+_t33h_expected_title = [_tiles_mod.char_to_tile(c) for c in "COMBAT MODE?"]
+_t33h_no = [pb.memory[0x9800 + 7*32 + 8 + i] for i in range(2)]
+_t33h_expected_no = [_tiles_mod.char_to_tile(c) for c in "NO"]
+_t33h_yes = [pb.memory[0x9800 + 9*32 + 8 + i] for i in range(3)]
+_t33h_expected_yes = [_tiles_mod.char_to_tile(c) for c in "YES"]
+_t33h_trailing_finite = pb.memory[0x9800 + 7*32 + 13]   # FINITE's own last letter's cell
+_t33h_trailing_infinite = pb.memory[0x9800 + 9*32 + 15] # INFINITE's own last letter's cell
+check("T33.h Overlay content correct: COMBAT MODE?/NO/YES render, no stale trailing characters",
+      _t33h_title == _t33h_expected_title and _t33h_no == _t33h_expected_no and
+      _t33h_yes == _t33h_expected_yes and _t33h_trailing_finite == TL_BG_BLANK and
+      _t33h_trailing_infinite == TL_BG_BLANK,
+      f"title={_t33h_title} no={_t33h_no} yes={_t33h_yes} "
+      f"trailing_finite={_t33h_trailing_finite} trailing_infinite={_t33h_trailing_infinite}")
 pb.stop()
 wipe_save()
 

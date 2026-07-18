@@ -2257,7 +2257,7 @@ none of FR-10000's own leaves are amended by this group. `FR-9000`'s finite mode
 - **Rationale:** `ADS-002` §System Architecture ("Gating Mechanism"); `MSTR-001` C11 ("opt-in,
   explicitly gated"); `R218`'s difficulty-gated-optional-content precedent (Double Dragon II,
   TimeSplitters 2 — a labeled choice, never a hidden toggle).
-- **Priority:** Must (target — not yet implemented)
+- **Priority:** Must (Implemented — 2026-07-18, `IP-1120`)
 - **Inputs:** A MODE SELECT choice.
 - **Outputs:** A new save with `COMBAT_MODE` enabled or disabled, fixed for that save's life
   (mirrors FR-9110/FR-10100's own immutability pattern).
@@ -2274,7 +2274,15 @@ none of FR-10000's own leaves are amended by this group. `FR-9000`'s finite mode
 - **Related ADRs:** None yet — `ADR-0007` (8×16 OBJ) governs any new sprite this capability adds,
   not the gating UI itself.
 - **Notes:** The exact MODE SELECT screen layout/wording is a `06-feature-specification`/
-  `08-content-authoring` decision, not fixed here.
+  `08-content-authoring` decision, not fixed here. **2026-07-18 (`IP-1120`):** implemented as a
+  new `GS_COMBAT_MODE_CONFIRM` state (binary Y/N cursor, defaults to N) reached only after
+  confirming "infinite" on `MODE SELECT`, before `INFINITE SEED ENTRY`. **ROM-budget remediation
+  (`BL-0153`):** the confirm screen reuses `mode_select_screen`'s own already-registered
+  tile/attr array as its base rather than registering a second full `ALL_SCREENS` entry, drawing
+  its own differing text ("COMBAT MODE?"/"NO"/"YES") at runtime via `memcpy` — the original
+  design overflowed the ROM by 542 bytes; this technique costs ~256 bytes instead. `T33.a`–`h`
+  verify the gating behavior, the finite path's non-regression, and the reused-array technique's
+  own non-corruption.
 
 ### FR-11200 — Mob presence, materialization, and defeat
 

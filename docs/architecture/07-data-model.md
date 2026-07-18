@@ -560,6 +560,33 @@ immediately below the row-0 score bar) per `PLAYER_HEALTH`'s current value — a
 writes) when `COMBAT_MODE` is off, so the base game's row-0-only HUD is completely unaffected.
 3 bytes total.
 
+### 7l. Combat Sub-Mode: mode gating & UI — `IP-1120` (confirmed 2026-07-18)
+
+First unclaimed byte past `COMBAT_ENTRY_Y`'s own end (`0xC6DC`, §7k). New `GAMESTATE` value
+`GS_COMBAT_MODE_CONFIRM = 12` (next free value following `GS_INFINITE_SEED_ENTRY = 11`, this
+project's own append-only numbering convention), reached only after confirming "infinite" on
+`MODE SELECT`, before `INFINITE SEED ENTRY`.
+
+| Address | Name | Size | Purpose |
+|---|---|---|---|
+| `C6DD` | `CMC_CURSOR` | 1 byte | this state's own Y/N cursor: 0="N" (default), nonzero="Y" — not a reuse of `MM_CURSOR`, since `MODE SELECT`'s own cursor must survive a B-cancel round trip through this state and back |
+
+**ROM-budget remediation (`BL-0153`, 2026-07-18):** the original design registered a new
+`combat_mode_confirm_screen()` in `ALL_SCREENS` — despite reusing existing font tiles and
+palette 2, the fixed per-screen tile+attr array cost (576+576 = 1,152 bytes, paid by every
+`ALL_SCREENS` entry regardless of content novelty) overflowed the ROM by 542 bytes against the
+866 bytes of headroom remaining after `IP-1122`/`IP-1123` — the same class of gap `BL-0134`
+already surfaced for `IP-1022`'s four new finite-mode screens. **Shipped design:** `dsr_cmc`
+(the `do_screen_redraw` dispatch entry for `GS_COMBAT_MODE_CONFIRM`) reuses `mode_select_
+screen`'s own already-registered tile/attr array as its base (`patches['cmc_t']`/`patches
+['cmc_a']` resolve to the *same* address pair `patches['ms_t']`/`patches['ms_a']` resolve to,
+not a new `screen_addrs` entry) and draws its own differing text — "COMBAT MODE?" (row 3),
+"NO"/"YES" (rows 7/9, replacing "BUNNY QUEST"/"FINITE"/"INFINITE") — at runtime via `memcpy`
+(reused verbatim) from three small inline literal-text blobs, the same "static base + runtime
+overlay" technique `draw_sse_digits`/`draw_ise_digits` already use for their own dynamic digit
+content. `tilemaps.py`/`ALL_SCREENS` are not touched by this package at all. Net ROM growth:
+~256 bytes (measured), against the original design's ~1,408 bytes.
+
 ### 8. Tile index map implication (cross-reference only — GDS-08 decides the actual strategy)
 
 **ADR-0009**'s biome-family `Region` identity (GDS-04's delta) needs tile budget per family,

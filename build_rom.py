@@ -237,6 +237,10 @@ def build(out_path='BunnyQuest.gbc'):
     p16(patches['ms_a'],  screen_addrs['mode_select'][1])
     p16(patches['ise_t'], screen_addrs['infinite_seed_entry'][0])
     p16(patches['ise_a'], screen_addrs['infinite_seed_entry'][1])
+    # IP-1120 (BL-0153 ROM-budget remediation): combat mode confirm reuses
+    # mode_select's own screen data -- no new screen_addrs entry.
+    p16(patches['cmc_t'], screen_addrs['mode_select'][0])
+    p16(patches['cmc_a'], screen_addrs['mode_select'][1])
 
     # IP-1030: one tile/attr address pair per biome family (5), parallel
     # to the title_t/title_a pattern above — not one pair per region.

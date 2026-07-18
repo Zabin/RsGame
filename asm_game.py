@@ -15,7 +15,8 @@ from tiles import (TL_CARROT, TL_STAR, TL_FLOWER_OBJ,
                    TL_HEART_FULL, TL_HEART_EMPTY, TL_DIGIT_0,
                    TL_ARROW_U, TL_ARROW_D, TL_ARROW_L, TL_ARROW_R,
                    TL_BLOCKED_U, TL_BLOCKED_D, TL_BLOCKED_L, TL_BLOCKED_R,
-                   TL_BG_BLANK, TILE_DATA_TILES, TL_MOB, TL_PROJECTILE)
+                   TL_BG_BLANK, TILE_DATA_TILES, TL_MOB, TL_PROJECTILE,
+                   char_to_tile)
 
 # ── WRAM addresses ─────────────────────────────────────────
 GAMESTATE      = 0xC000
@@ -335,6 +336,17 @@ COMBAT_ENTRY_X  = 0xC6DB  # 1 byte -- PLAYER_X at the last region-entry event,
                            # the zero-health setback's own return point.
 COMBAT_ENTRY_Y  = 0xC6DC  # 1 byte -- PLAYER_Y at the last region-entry event.
 
+# IP-1120 (FR-11100, GDS-01 §4e): Combat Sub-Mode gating & UI. First
+# unclaimed byte past COMBAT_ENTRY_Y's own end (0xC6DC). CMC_CURSOR is
+# NOT a reuse of MM_CURSOR (unlike MODE SELECT's own reuse of it) --
+# MODE SELECT's own cursor value ("infinite") must survive a B-cancel
+# round trip through COMBAT MODE CONFIRM and back, so the two states'
+# cursors cannot share one byte the way MAIN MENU/SELECT MENU/MODE
+# SELECT (never simultaneously reachable from one another) safely do.
+# No boot clear needed -- reset via MM_JUST_ENTERED on every genuine
+# state entry (cmc_on_entry), the same convention MM_CURSOR itself uses.
+CMC_CURSOR = 0xC6DD  # 1 byte -- this state's own Y/N cursor: 0="N" (default), nonzero="Y".
+
 SAVE_VERSION_ADDR = 0xA012   # save-format version guard (FR-5220 / Design Decision 2)
 SAVE_VERSION_VAL  = 0x05     # bumped 0x04->0x05 (IP-1104, fifth bump since ship — the
                               # value sequence is strictly monotonic, never reused). A single
@@ -389,6 +401,11 @@ GS_MODE_SELECT, GS_INFINITE_SEED_ENTRY = 10, 11  # IP-1100: MAIN MENU's
                                   # "new game" now opens a finite/infinite
                                   # cursor menu instead of jumping directly
                                   # to GS_SEED_SCALE_ENTRY (GDS-01 §4d)
+GS_COMBAT_MODE_CONFIRM = 12  # IP-1120 (GDS-01 §4e): reached only after
+                                  # MODE SELECT's "infinite" confirm, before
+                                  # INFINITE SEED ENTRY -- a binary Y/N
+                                  # cursor choice, defaulting to N, that
+                                  # sets IP-1121's COMBAT_MODE flag.
 
 
 def build_game_asm(rom: ROM) -> dict:
@@ -565,6 +582,7 @@ def build_game_asm(rom: ROM) -> dict:
     rom.CP_n(GS_LEGEND); rom.JP_Z('st_legend')
     rom.CP_n(GS_MODE_SELECT); rom.JP_Z('st_mode_select')
     rom.CP_n(GS_INFINITE_SEED_ENTRY); rom.JP_Z('st_infinite_seed_entry')
+    rom.CP_n(GS_COMBAT_MODE_CONFIRM); rom.JP_Z('st_combat_mode_confirm')
     rom.JP('end_frame')
 
     # ── State: TITLE ─────────────────────────────────────
@@ -799,6 +817,46 @@ def build_game_asm(rom: ROM) -> dict:
     rom.JP('end_frame')
     rom.label('ms_infinite')
     rom.LD_A_n(1); rom.LD_nn_A(GAME_MODE)
+    # IP-1120: retargeted from GS_INFINITE_SEED_ENTRY to
+    # GS_COMBAT_MODE_CONFIRM (GDS-01 §4e) -- MODE SELECT's own two options
+    # and the finite path above are both completely unaffected. CMC_CURSOR
+    # reset to 0 ("N") on every fresh entry into the confirm state (not a
+    # boot-only clear -- the player can retry this transition multiple
+    # times in one boot via repeated B-cancel/re-entry).
+    rom.XOR_A(); rom.LD_nn_A(CMC_CURSOR)
+    rom.LD_A_n(GS_COMBAT_MODE_CONFIRM); rom.LD_nn_A(TRANSITION_TO)
+    rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW)
+    rom.JP('end_frame')
+
+    # ── State: COMBAT MODE CONFIRM (IP-1120, FR-11100, GDS-01 §4e) ──
+    # Mirrors st_mode_select's own UP/DOWN-toggle/A-confirm/B-cancel shape
+    # exactly. B cancels to GS_MODE_SELECT without setting MM_JUST_ENTERED
+    # (mirrors st_infinite_seed_entry's own identical B-cancel precedent),
+    # so MODE SELECT's own MM_CURSOR stays on "infinite" rather than
+    # resetting to "finite" -- and does NOT reset GAME_MODE back to 0,
+    # since this state is reached only via the Infinite Mode path. A
+    # confirms: CMC_CURSOR==0 ("N") leaves COMBAT_MODE at its existing
+    # boot-cleared 0; nonzero ("Y") sets it to 1. Either way, transitions
+    # to GS_INFINITE_SEED_ENTRY (st_infinite_seed_entry, IP-1100's own
+    # unmodified state -- this package only redirects into it).
+    rom.label('st_combat_mode_confirm')
+    rom.LD_A_nn(JOY_NEW); rom.LD_B_A()
+    rom.BIT_b_B(J_UP); rom.JR_NZ('cmc_toggle')
+    rom.BIT_b_B(J_DOWN); rom.JP_Z('cmc_check_b')
+    rom.label('cmc_toggle')
+    rom.LD_A_nn(CMC_CURSOR); rom.XOR_n(1); rom.LD_nn_A(CMC_CURSOR)
+    rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW)
+    rom.JP('end_frame')
+    rom.label('cmc_check_b')
+    rom.BIT_b_B(J_B); rom.JR_Z('cmc_check_a')
+    rom.LD_A_n(GS_MODE_SELECT); rom.LD_nn_A(TRANSITION_TO)
+    rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW)
+    rom.JP('end_frame')
+    rom.label('cmc_check_a')
+    rom.BIT_b_B(J_A); rom.JP_Z('end_frame')
+    rom.LD_A_nn(CMC_CURSOR); rom.OR_A(); rom.JR_Z('cmc_no')
+    rom.LD_A_n(1); rom.LD_nn_A(COMBAT_MODE)
+    rom.label('cmc_no')
     rom.LD_A_n(GS_INFINITE_SEED_ENTRY); rom.LD_nn_A(TRANSITION_TO)
     rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW)
     rom.JP('end_frame')
@@ -1580,7 +1638,8 @@ def build_game_asm(rom: ROM) -> dict:
                     (GS_SAVE,'dsr_sv'),(GS_MAP,'dsr_m'),(GS_VICTORY,'dsr_v'),
                     (GS_MAIN_MENU,'dsr_mm'),(GS_SEED_SCALE_ENTRY,'dsr_sse'),
                     (GS_SELECT_MENU,'dsr_sm'),(GS_LEGEND,'dsr_lg'),
-                    (GS_MODE_SELECT,'dsr_ms'),(GS_INFINITE_SEED_ENTRY,'dsr_ise')]:
+                    (GS_MODE_SELECT,'dsr_ms'),(GS_INFINITE_SEED_ENTRY,'dsr_ise'),
+                    (GS_COMBAT_MODE_CONFIRM,'dsr_cmc')]:
         rom.LD_A_nn(GAMESTATE); rom.CP_n(gs); rom.JP_Z(lbl)
     rom.JP('dsr_done')
 
@@ -1615,6 +1674,15 @@ def build_game_asm(rom: ROM) -> dict:
     # on every digit-cursor edit — see st_infinite_seed_entry).
     _dsr_screen('dsr_ms',  'ms_t',  'ms_a',  extra='ms_on_entry')
     _dsr_screen('dsr_ise', 'ise_t', 'ise_a', extra='draw_ise_digits')
+    # IP-1120 (BL-0153 ROM-budget remediation): combat mode confirm reuses
+    # mode_select_screen's own array as its base -- 'cmc_t'/'cmc_a' are
+    # this call site's own distinct patches keys (each _dsr_screen call
+    # needs a unique key for its own LD_DE_nn(0)/LD_BC_nn(0) placeholder
+    # pair) but build_rom.py resolves them to the SAME address pair
+    # 'ms_t'/'ms_a' already resolve to -- no new screen_addrs entry, no
+    # new ALL_SCREENS registration. cmc_on_entry draws this state's own
+    # differing text on top of the reused array's own baked-in content.
+    _dsr_screen('dsr_cmc', 'cmc_t', 'cmc_a', extra='cmc_on_entry')
 
     # PLAYING: biome-family screen dispatch (IP-1030, generalizes the
     # former fixed 9-entry zs_table). CUR_ZONE is read as the current
@@ -2122,6 +2190,65 @@ def build_game_asm(rom: ROM) -> dict:
     rom.label('dmsc_infinite')
     rom.LD_HL_nn(MS_CURSOR_INFINITE_ADDR)
     rom.label('dmsc_write')
+    rom.LD_A_n(TL_ARROW_R); rom.LD_HL_A()
+    rom.RET()
+
+    # ── Combat mode confirm overlay text (IP-1120, BL-0153) ────
+    # Three small literal-text blobs, emitted directly in the code stream
+    # (never executed -- the JR jumps past them). cmc_str_title is a
+    # direct 12-byte replacement for mode_select_screen's own 11-char
+    # "BUNNY QUEST" (fully covers it, no separate blank needed).
+    # cmc_str_no/cmc_str_yes are pre-padded with TL_BG_BLANK so a single
+    # memcpy both writes the new label AND erases the longer original
+    # label's own trailing characters ("FINITE"/"INFINITE") in one pass.
+    rom.JR('cmc_str_end')
+    rom.label('cmc_str_title')
+    rom.emit(*[char_to_tile(c) for c in "COMBAT MODE?"])
+    rom.label('cmc_str_no')
+    rom.emit(*([char_to_tile(c) for c in "NO"] + [TL_BG_BLANK] * 4))
+    rom.label('cmc_str_yes')
+    rom.emit(*([char_to_tile(c) for c in "YES"] + [TL_BG_BLANK] * 5))
+    rom.label('cmc_str_end')
+
+    # ── cmc_on_entry / draw_combat_confirm_cursor (IP-1120) ───
+    # copy_screen (called by _dsr_screen just before this) re-blits
+    # mode_select_screen's own array -- including its baked-in "BUNNY
+    # QUEST"/"FINITE"/"INFINITE" text -- on EVERY dispatch into dsr_cmc,
+    # not just a genuine state entry (a same-state toggle redraw goes
+    # through the identical path). So the text overlay below runs
+    # unconditionally every time, exactly like the cursor redraw already
+    # does. VBK is already 0 (tile-plane bank) on entry -- copy_screen's
+    # own body always leaves it there before returning.
+    rom.label('cmc_on_entry')
+    rom.LD_DE_nn(rom.labels['cmc_str_title'])
+    rom.LD_HL_nn(0x9800 + 3*32 + 5); rom.LD_BC_nn(12); rom.CALL('memcpy')
+    rom.LD_DE_nn(rom.labels['cmc_str_no'])
+    rom.LD_HL_nn(0x9800 + 7*32 + 8); rom.LD_BC_nn(6); rom.CALL('memcpy')
+    rom.LD_DE_nn(rom.labels['cmc_str_yes'])
+    rom.LD_HL_nn(0x9800 + 9*32 + 8); rom.LD_BC_nn(8); rom.CALL('memcpy')
+
+    # Mirrors ms_on_entry exactly from here: reset CMC_CURSOR to 0 ("N")
+    # only on a genuine state entry (MM_JUST_ENTERED), then always redraw
+    # the cursor glyph. Reuses the same cursor column mode_select_screen's
+    # own array already uses (col 6), since the label column is unchanged.
+    CMC_CURSOR_NO_ADDR  = 0x9800 + 7*32 + 6
+    CMC_CURSOR_YES_ADDR = 0x9800 + 9*32 + 6
+
+    rom.LD_A_nn(MM_JUST_ENTERED); rom.OR_A(); rom.JR_Z('cmc_oe_no_reset')
+    rom.XOR_A(); rom.LD_nn_A(MM_JUST_ENTERED)
+    rom.LD_nn_A(CMC_CURSOR)
+    rom.label('cmc_oe_no_reset')
+    rom.CALL('draw_combat_confirm_cursor')
+    rom.RET()
+
+    rom.label('draw_combat_confirm_cursor')
+    rom.LD_HL_nn(CMC_CURSOR_NO_ADDR);  rom.LD_A_n(TL_BG_BLANK); rom.LD_HL_A()
+    rom.LD_HL_nn(CMC_CURSOR_YES_ADDR); rom.LD_A_n(TL_BG_BLANK); rom.LD_HL_A()
+    rom.LD_A_nn(CMC_CURSOR); rom.OR_A(); rom.JR_NZ('dcmc_yes')
+    rom.LD_HL_nn(CMC_CURSOR_NO_ADDR); rom.JR('dcmc_write')
+    rom.label('dcmc_yes')
+    rom.LD_HL_nn(CMC_CURSOR_YES_ADDR)
+    rom.label('dcmc_write')
     rom.LD_A_n(TL_ARROW_R); rom.LD_HL_A()
     rom.RET()
 

@@ -54,6 +54,19 @@
 > `inf_heal_spend` (defined/exposed, no real input binding yet — `BL-0148`, unresolved),
 > `inf_health_hud_draw` (row-1 heart cells, hooked into `update_status_disp`). `COMPLETE`, own
 > `09-package-verification` pass owed.
+>
+> **`IP-1120` implemented 2026-07-18** — Workflow A (the `gate` verb) is built, closing this
+> Feature's own **Open Question 1**: a new `GS_COMBAT_MODE_CONFIRM` state (binary Y/N cursor,
+> defaults to N) reached only after confirming "infinite" on `MODE SELECT`, before `INFINITE
+> SEED ENTRY`; `ms_infinite`'s existing transition retargeted (one constant); `COMBAT_MODE` set
+> only on explicit "Y" confirm. **First attempt hit a real ROM-budget overflow (542 bytes,
+> `BL-0153`), same class as `BL-0134`** — resolved by a same-day re-plan: the confirm screen
+> reuses `mode_select_screen`'s own already-registered tile/attr array as its base and draws its
+> own differing text at runtime via `memcpy`, instead of registering a second full `ALL_SCREENS`
+> entry. `COMPLETE`, own `09-package-verification` pass owed. This closes all six combat
+> sub-mode packages to at least `COMPLETE` — `IP-1121` `VERIFIED`, `IP-1122`/`IP-1123`/`IP-1120`
+> `COMPLETE` (own `09` passes owed), `IP-1124` still `NOT STARTED` (blocked on `IP-1122`/
+> `IP-1123` reaching `VERIFIED`), `IP-1125` `VERIFIED`.
 
 [↑ Features index](INDEX.md) · [Feature Catalog](../feature-planning/03-feature-catalog.md) ·
 [Epic Catalog](../feature-planning/02-epic-catalog.md)
