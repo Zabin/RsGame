@@ -12,11 +12,12 @@
 > **Planned 2026-07-17** (`07-implementation-planning`) — six packages,
 > [IP-1120](../implementation/packages/IP-1120-infinite-mode-combat-mode-gating.md)–[IP-1125](../implementation/packages/IP-1125-combat-sprite-content.md),
 > **none authorized.** [IP-1120](../implementation/packages/IP-1120-infinite-mode-combat-mode-gating.md)
-> (mode gating & UI, resolving Open Question 1) is additionally **`BLOCKED`** on a `GDS-01` §4d
-> amendment (a genuine architecture gap this planning pass found — `MODE SELECT`'s own
-> architecture text states a closed two-option fact a third option would falsify, mirroring
-> `BL-0113`'s own precedent for `MODE SELECT`'s original existence) — routed to
-> `03-architecture-design-synthesis`, not resolved here. The other five packages
+> (mode gating & UI, resolving Open Question 1) was initially blocked on a `GDS-01` amendment (a
+> genuine architecture gap this planning pass found — `MODE SELECT`'s own architecture text
+> stated a closed two-option fact a third option would falsify, mirroring `BL-0113`'s own
+> precedent) — routed to `03-architecture-design-synthesis` (`BL-0146`), resolved the same day as
+> `GDS-01` §4e (a new `COMBAT MODE CONFIRM` state), and `IP-1120` is now fully planned. The other
+> five packages
 > ([IP-1121](../implementation/packages/IP-1121-infinite-mode-combat-mob-materialization-and-rendering.md)
 > mob materialization/rendering/defeat,
 > [IP-1122](../implementation/packages/IP-1122-infinite-mode-combat-weapon-fire-and-hit-resolution.md)
@@ -394,15 +395,11 @@ implementation-level choices, mirroring `FS-110`'s own precedent for exactly thi
 
 ## 19. Open Questions
 
-1. **UI mechanic for the combat sub-mode's own gating choice is not decided.** `ADS-002` commits
-   to *a* third MODE SELECT option existing, but not its concrete shape: a three-state `MM_CURSOR`
-   cycle on the existing `GS_MODE_SELECT` screen (Finite / Infinite / Infinite+Combat) versus a
-   separate confirmation screen shown only after choosing Infinite Mode (mirroring `IP-1090`'s own
-   SELECT-menu-confirmation precedent, which `ADS-002` itself names as a possibility). This is an
-   architecture/interface-level choice (does it need a new `GameState`, per §11), not a
-   requirements-level one. Resolves at: `07-implementation-planning`, mirroring `FS-110`'s own
-   Open Question 6 precedent for exactly this class of UI-shape decision — or a return to
-   `03-architecture-design-synthesis` first if the chosen shape needs a `GDS-01` delta.
+1. **Resolved (`GDS-01` §4e, `IP-1120`, 2026-07-17).** The gating mechanism needed a `GDS-01`
+   delta after all (§4d's own text was a closed two-option fact a third option would have
+   falsified) — routed to `03-architecture-design-synthesis` (`BL-0146`), which decided a new
+   `COMBAT MODE CONFIRM` state (binary Y/N, not a three-state `MODE SELECT` cursor), keeping
+   "which world" and "combat on/off" on separate axes. `IP-1120` is now fully planned against it.
 2. **Damage-vs-heal-spend ordering within the same frame is not decided.** Whether a mob's attack
    and a player's heal-spend action can both resolve in the same frame, and if so which applies
    first, is genuinely undecided (§7 edge case). Not expected to matter often (both are

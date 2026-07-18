@@ -4,9 +4,10 @@
 > Mode, `FS-110`/`FEAT-10000`, 5 packages `IP-1100`–`IP-1104`, AUTHORIZED 2026-07-14, "Yes, build
 > all five"); delta 2026-07-16 (Procedural Music Generation, `FS-111`/`FEAT-7100`, 2 packages
 > `IP-1110`/`IP-1111`, not yet authorized); delta 2026-07-17 (Infinite Mode Combat Sub-Mode,
-> `FS-112`/`FEAT-11000`, 6 packages `IP-1120`–`IP-1125`, none authorized — `IP-1120` additionally
-> `BLOCKED` on a `GDS-01` §4d amendment, a genuine architecture gap this pass found and routed
-> upstream rather than planned around).** Owned by
+> `FS-112`/`FEAT-11000`, 6 packages `IP-1120`–`IP-1125`, none authorized — `IP-1120` initially
+> `BLOCKED` on a `GDS-01` §4d amendment, a genuine architecture gap found and routed upstream
+> rather than planned around; resolved same day, `GDS-01` §4e, `IP-1120` now fully planned).**
+> Owned by
 > `07-implementation-planning`. Records how approved work is cut into Implementation Packages —
 > the rationale for every split/no-split decision is the artifact. Package status lives in the
 > [Master Build Plan](00-master-build-plan.md), not here.
@@ -1638,27 +1639,28 @@ prematurely.
 | **Act** (fire input, projectile update, hit resolution against mobs) | [IP-1122](packages/IP-1122-infinite-mode-combat-weapon-fire-and-hit-resolution.md) | Reuses `check_collisions`' own asymmetric point-in-box technique (`R115`) — no new hitbox model. |
 | **Act** (mob contact damage, non-lethal setback trigger) | [IP-1123](packages/IP-1123-infinite-mode-combat-player-health-and-economy.md) | Folded with the health/economy package — damage-taking and the health value it decrements are the same concern; the setback is health reaching zero, not a separable mechanic. |
 | **Persist** (combat state: mob table, weapon tier, player health) | [IP-1124](packages/IP-1124-infinite-mode-combat-save-persistence.md) | Mirrors `IP-1104`'s own version-byte-bump pattern exactly. **Projectile state is explicitly not persisted** (`ADS-002`: "transient, generation-time-only, never persisted," mirroring `INF_MZ_RESULT`'s own precedent) — a deliberate exclusion, not an oversight. |
-| **Gate** (the third MODE SELECT option, `COMBAT_MODE` flag) | [IP-1120](packages/IP-1120-infinite-mode-combat-mode-gating.md) | **`BLOCKED`** — see the architecture-gap finding below. Sets a flag `IP-1121` already defines and consumes; does not itself need to exist before `IP-1121`–`IP-1125` can be built and tested (tests force `COMBAT_MODE` directly, mirroring how `GAME_MODE`/`INF_WINDOW` are already force-set in `test_rom.py` today). |
+| **Gate** (the new `COMBAT MODE CONFIRM` state, `COMBAT_MODE` flag) | [IP-1120](packages/IP-1120-infinite-mode-combat-mode-gating.md) | **Fully planned 2026-07-17** — see the resolved architecture-gap note below (`GDS-01` §4e). Sets a flag `IP-1121` already defines and consumes; did not itself need to exist before `IP-1121`–`IP-1125` could be planned/built and tested (tests force `COMBAT_MODE` directly, mirroring how `GAME_MODE`/`INF_WINDOW` are already force-set in `test_rom.py` today). |
 | **Review** | Deferred to `09-content-review` once `IP-1125`'s sprite art ships — not this stage's own scope to package. |
 
-### A genuine architecture gap found during planning, not named by `FS-112` as blocking
+### A genuine architecture gap found during planning — resolved same increment (`GDS-01` §4e)
 
 `FS-112`'s own Open Question 1 named the gating UI's exact mechanism as undecided (a three-state
 `MM_CURSOR` cycle vs. a new confirmation screen) and routed it to this stage. Direct re-read of
 [GDS-01 §4d](../architecture/01-concept-of-play.md#4d-new-game-mode-choice-finite--infinite--delta-for-bl-0113-decided-2026-07-14)
-finds it states, as a load-bearing fact, that `MODE SELECT` "presents **finite** and **infinite**"
-— a closed, two-option description. Adding a third, real option is not merely an implementation-level
-byte-encoding choice this stage is free to make (the class `ADR-0015`'s own precedent reserves for
-`07`/`08`) — it changes what `GDS-01` itself asserts the screen offers, the same class of
-"architecture document states a fact this pass would falsify" gap `BL-0113` itself was originally
-filed to close for `MODE SELECT`'s own existence. Per this skill's own charter ("An unimplementable
-spec or a conflict found while planning routes upstream — never planned around quietly"), this
-pass does **not** decide the mechanism itself and does **not** silently extend `MM_CURSOR`'s range
-without an architecture-level record of it. **Routed to `03-architecture-design-synthesis`** for a
-light `GDS-01` §4d amendment (naming the third option and, if chosen, the extended cursor range or
-new state) before `IP-1120` can be planned in full and marked `READY`. This does **not** block the
-other five packages — none of them read or depend on the exact gating mechanism, only on the
-`COMBAT_MODE` flag `IP-1121` defines directly.
+found it states, as a load-bearing fact, that `MODE SELECT` "presents **finite** and **infinite**"
+— a closed, two-option description. Adding a third, real option was not merely an implementation-
+level byte-encoding choice this stage was free to make (the class `ADR-0015`'s own precedent
+reserves for `07`/`08`) — it would have changed what `GDS-01` itself asserts the screen offers,
+the same class of "architecture document states a fact this pass would falsify" gap `BL-0113`
+itself was originally filed to close for `MODE SELECT`'s own existence. Per this skill's own
+charter ("An unimplementable spec or a conflict found while planning routes upstream — never
+planned around quietly"), this pass did not decide the mechanism itself or silently extend
+`MM_CURSOR`'s range — **routed to `03-architecture-design-synthesis`** (`BL-0146`), which
+returned the same day with **`GDS-01` §4e**: a new `COMBAT MODE CONFIRM` state, not a widened
+`MODE SELECT` cursor — keeping "which world" and "combat on/off" on separate axes. `IP-1120` is
+now re-planned in full against this decision (see the package's own §6/§7/§8/§10). This gap never
+blocked the other five packages — none of them read or depend on the exact gating mechanism, only
+on the `COMBAT_MODE` flag `IP-1121` defines directly.
 
 ### Supersession sweep
 
@@ -1681,15 +1683,16 @@ that could silently overrun. Confirmed clean.
 | Fire input (A button), projectile spawn/update, hit-test against the mob table | [IP-1122](packages/IP-1122-infinite-mode-combat-weapon-fire-and-hit-resolution.md) | `08-code-implementation` | `IP-1121` (the mob table this resolves hits against); `IP-1125` (projectile sprite tile index) |
 | Player health field, HUD write (reused heart tiles), mob-contact damage, non-lethal setback, treasure-spend healing economy | [IP-1123](packages/IP-1123-infinite-mode-combat-player-health-and-economy.md) | `08-code-implementation` | `IP-1121` (mob contact as a damage source) |
 | Combat state save persistence (`SAVE_VERSION_VAL` bump `0x05`→`0x06`) | [IP-1124](packages/IP-1124-infinite-mode-combat-save-persistence.md) | `08-code-implementation` | `IP-1121`/`IP-1122`/`IP-1123` (persists their combined state) |
-| Third MODE SELECT option, `COMBAT_MODE` gating UI | [IP-1120](packages/IP-1120-infinite-mode-combat-mode-gating.md) | `08-code-implementation` | `IP-1121` (the flag it sets); **`BLOCKED`** on a `GDS-01` §4d amendment (`03-architecture-design-synthesis`) |
+| New `COMBAT MODE CONFIRM` state, `COMBAT_MODE` gating UI | [IP-1120](packages/IP-1120-infinite-mode-combat-mode-gating.md) | `08-code-implementation` | `IP-1121` (the flag it sets); `IP-1100` (`VERIFIED`, `ms_infinite`'s transition retargeted) |
 
 **Split rationale:** six packages, cut along the verb-inventory seams above, deliberately
 *not* mirroring `FS-110`'s own five-package generate/render/persist/gate split one-for-one —
 this capability's own generate/render coupling for mobs is tighter (folded into one package,
 `IP-1121`) while its act/persist/gate seams are looser (three separate packages) because mob
 contact-damage and the healing economy share one state field (`IP-1123`) that fire/hit-resolution
-does not touch (`IP-1122`), and the gating UI is genuinely blocked on an upstream question the
-other five are not. **Considered and rejected:** folding `IP-1122` (weapon fire) into `IP-1121`
+does not touch (`IP-1122`), and the gating UI initially depended on an upstream architecture
+decision the other five did not (resolved same day, `GDS-01` §4e). **Considered and rejected:**
+folding `IP-1122` (weapon fire) into `IP-1121`
 (mob materialization/rendering) — rejected because a projectile's own update/hit-test loop is a
 per-frame *player-action* concern, structurally distinct from a per-region *generation* concern,
 and keeping them separate lets `IP-1122` be independently tested against a fixture mob table
@@ -1700,7 +1703,7 @@ apart from the code that consumes them.
 
 **Critical path:** `IP-1125` → `IP-1121` → `IP-1122` → `IP-1124` (4 nodes) — the longest chain;
 `IP-1123` branches off `IP-1121` in parallel with `IP-1122`, both feeding into `IP-1124`;
-`IP-1120` is a fifth, parallel branch off `IP-1121`, currently `BLOCKED` independent of the
+`IP-1120` is a fifth, parallel branch off `IP-1121`, now fully planned, independent of the
 critical path's own progress.
 
 **ROM/OAM budget (per `NFR-4500`, `R115`):** 1,378 bytes of ROM headroom and 31 of 40 shadow-OAM
@@ -1708,7 +1711,6 @@ entries free before this delta (post-`IP-9170`/`IP-9180`). The 6-mob-slot defaul
 entries incl. the projectile) leaves 24 free — real headroom, not asserted safe until each
 package's own build confirms it (see each package's own Risks field).
 
-**Authorization:** **none of the six packages are authorized.** `IP-1120` additionally cannot
-reach `READY` until the `GDS-01` §4d amendment lands — recommend `03-architecture-design-synthesis`
-runs next for that narrow amendment, in parallel with (not blocking) a G3 decision on the other
-five.
+**Authorization:** **none of the six packages are authorized.** All six are now fully planned
+(`IP-1120`'s own architecture gap resolved, `GDS-01` §4e, `BL-0146` closed) — a single G3 decision
+from the user can now authorize the entire set.

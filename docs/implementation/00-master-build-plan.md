@@ -890,8 +890,9 @@ No critical-path interaction beyond `IP-9170`→`IP-9180`'s own sequencing — i
 
 Six packages implementing `FR-11100`–`FR-11600`/`NFR-1500`/`NFR-4500` — see the
 [TWBS](01-technical-work-breakdown.md#infinite-mode-combat-sub-mode-fs-112feat-11000ep-6000-ads-002mstr-001-c11bl-0133-planned-2026-07-17)
-for the full verb inventory, split rationale, and a genuine architecture gap this pass found
-(`IP-1120` needs a `GDS-01` §4d amendment before it can be planned/marked `READY` in full).
+for the full verb inventory and split rationale. **`IP-1120`'s own architecture gap is now
+resolved** (`GDS-01` §4e, `BL-0146` closed 2026-07-17) — all six packages are now fully planned;
+none are authorized.
 
 | Package | Title | Owner (08 peer) | Status | Depends on | Authorized? | Notes |
 |---|---|---|---|---|---|---|
@@ -900,13 +901,13 @@ for the full verb inventory, split rationale, and a genuine architecture gap thi
 | [IP-1122](packages/IP-1122-infinite-mode-combat-weapon-fire-and-hit-resolution.md) | Infinite Mode Combat: Weapon Fire & Hit Resolution | `08-code-implementation` | **NOT STARTED** | IP-1121, IP-1125 | **Not authorized** | New `PROJ_*`/`WEAPON_TIER` WRAM (`0xC6D5`–`0xC6D9`); A-button fire input (confirmed free); reuses `check_collisions`' hitbox technique. **Found a genuine requirements gap during planning**: `WEAPON_TIER`'s own treasure-funded upgrade mechanism has no baselined FR (`FR-11500` covers healing only) — harvested to the backlog, routed to `04-requirements-engineering`. |
 | [IP-1123](packages/IP-1123-infinite-mode-combat-player-health-and-economy.md) | Infinite Mode Combat: Player Health, Setback & Healing Economy | `08-code-implementation` | **NOT STARTED** | IP-1121 | **Not authorized** | New `PLAYER_HEALTH`/`COMBAT_ENTRY_X`/`COMBAT_ENTRY_Y` WRAM (`0xC6DA`–`0xC6DC`); reused heart-tile HUD, row 1; treasure-spend healing decrements `RUNNING_TREASURE_COUNT` directly, no second ledger. **Found a genuine gap**: the heal-spend action's own input binding has no free button named upstream (every existing button already claimed) — harvested to the backlog. |
 | [IP-1124](packages/IP-1124-infinite-mode-combat-save-persistence.md) | Infinite Mode Combat: Save Persistence | `08-code-implementation` | **NOT STARTED** | IP-1121, IP-1122, IP-1123 | **Not authorized** | New SRAM `0xA350`–`0xA371`; `SAVE_VERSION_VAL` `0x05`→`0x06` (sixth bump since ship, extending `IP-1010`→`IP-1050`→`IP-9110`→`IP-1104`'s own monotonic sequence). Projectile deliberately not persisted, mirroring `INF_MZ_RESULT`'s own transient-state precedent. Last in critical path. |
-| [IP-1120](packages/IP-1120-infinite-mode-combat-mode-gating.md) | Infinite Mode Combat: Mode Gating & UI | `08-code-implementation` | **`BLOCKED`** | IP-1121 | N/A — blocked before authorization is relevant | **Genuinely blocked on upstream architecture work, not G3**: `GDS-01` §4d states `MODE SELECT` "presents finite and infinite" as a closed, two-option fact; adding a third option needs an architecture-level record first (a light amendment), mirroring `BL-0113`'s own precedent for `MODE SELECT`'s original existence. Cannot be planned in full (Files to Modify, tasks, tests, DoD) until that lands. Recommend `03-architecture-design-synthesis` next for this narrow amendment — does not block the other five packages, none of which depend on the gating mechanism's exact shape. |
+| [IP-1120](packages/IP-1120-infinite-mode-combat-mode-gating.md) | Infinite Mode Combat: Mode Gating & UI | `08-code-implementation` | **NOT STARTED** | IP-1121, IP-1100 (VERIFIED) | **Not authorized** | Re-planned in full 2026-07-17 against `GDS-01` §4e (`BL-0146` closed): new `GS_COMBAT_MODE_CONFIRM=12` state (binary Y/N, `CMC_CURSOR` WRAM byte `0xC6DD`), reached only after `MODE SELECT`'s "infinite" confirm; `ms_infinite`'s existing transition retargeted (one constant) — `MODE SELECT`'s own two options and the finite path completely unaffected. New `combat_mode_confirm_screen()` (font-only, zero new tile art). |
 
 **Critical path:** `IP-1125` → `IP-1121` → `IP-1122` → `IP-1124` (4 nodes); `IP-1123` branches off
 `IP-1121` in parallel with `IP-1122`, feeding into `IP-1124`; `IP-1120` is a fifth, parallel branch
-off `IP-1121`, currently `BLOCKED` independent of the critical path's own progress.
+off `IP-1121`, now fully planned and eligible for G3 alongside the other five.
 
-**Authorization state: none of the six packages are authorized.** `IP-1120` additionally cannot
-reach `READY` until the `GDS-01` §4d amendment lands, regardless of G3. The other five are
-eligible for a G3 ask once the user is ready to authorize them (planning does not imply
-authorization, per this stage's own charter).
+**Authorization state: none of the six packages are authorized.** All six are now fully planned
+(`IP-1120`'s own architecture gap resolved, `GDS-01` §4e) — a single G3 decision from the user can
+now authorize the entire set (planning does not imply authorization, per this stage's own
+charter).
