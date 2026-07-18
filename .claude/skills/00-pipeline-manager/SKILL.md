@@ -1,6 +1,6 @@
 ---
 name: 00-pipeline-manager
-description: Run the documentation-driven-development pipeline one step at a time with persistent memory — reconcile the pipeline journal (docs/pipeline/pipeline-journal.md) against the tree's real ledgers, triage the pipeline backlog (docs/pipeline/backlog.md — every finding/recommendation harvested from prior runs plus 00-intake-filed features/bugs, each needing an explicit disposition before the next step is chosen), determine the single next step, execute it by invoking the owning numbered skill (01-vision through 11-release-readiness), harvest the invoked skill's findings into the backlog, append the run to the journal, and report what to do next. Modes: no args = advance one step; "status" = read-only survey + recommendation; "triage" = backlog triage only; "log" = show the journal; "sync" = reconcile only; "run <skill> [target]" = execute a specific step out of recommended order (journaled as an override). Use when asked to "run the pipeline," "run the pipeline skill," "do the next step," "continue where we left off," "where are we / what's next," "triage the backlog," or "show the pipeline log." It always stops at human gates (G3 package authorization, release GO/NO-GO, Critical review findings) and asks rather than proceeding; it performs no stage work itself beyond invoking the owning skill.
+description: Run the documentation-driven-development pipeline with persistent memory — reconcile the pipeline journal (docs/pipeline/pipeline-journal.md) against the tree's real ledgers, triage the pipeline backlog (docs/pipeline/backlog.md — every finding/recommendation harvested from prior runs plus 00-intake-filed features/bugs, each needing an explicit disposition before the next step is chosen), determine the next step, execute it by invoking the owning numbered skill (01-vision through 11-release-readiness), harvest the invoked skill's findings into the backlog, append the run to the journal, and repeat. Modes: no args = iterate — keep advancing, one skill invocation at a time, each fully journaled, until every open thread and backlog item is genuinely blocked by something only the user can resolve (not by more research/architecture/requirements/planning work the pipeline can do itself), then report the whole run in one summary; "step" = advance exactly one step and report immediately; "status" = read-only survey + recommendation; "triage" = backlog triage only; "log" = show the journal; "sync" = reconcile only; "run <skill> [target]" = execute a specific step out of recommended order (journaled as an override). Use when asked to "run the pipeline," "run the pipeline skill," "do the next step," "continue where we left off," "iterate until blocked," "where are we / what's next," "triage the backlog," or "show the pipeline log." It always stops at genuine human-only gates (G3 package authorization, release GO/NO-GO, Vision-level tension, a ripe NEEDS-USER item, Critical review findings) and asks rather than proceeding; it performs no stage work itself beyond invoking the owning skill.
 ---
 
 # Pipeline Manager
@@ -13,8 +13,23 @@ against reality, executes the next step by invoking the owning skill, and logs w
 previous run surfaced is ever silently forgotten.
 
 It performs **no stage work itself**. It reads ledgers, invokes exactly one owning skill per
-advance, and writes exactly two files of its own: the journal and the backlog. A manager that
-starts doing the stages' work stops being trustworthy about where the pipeline is.
+internal step, and writes exactly two files of its own: the journal and the backlog. A manager
+that starts doing the stages' work stops being trustworthy about where the pipeline is.
+
+**Default behavior is to iterate, not to take one step and stop.** Every internal step is still
+exactly one skill invocation, still fully journaled (its own run-log row, Position rewrite,
+backlog harvest) before the next is chosen — nothing about the per-step discipline changes. What
+changes is that the manager keeps choosing and executing the next step, across as many stage
+skills as it takes, until every open thread and backlog item is **genuinely blocked by something
+only the user can resolve** — not merely "big," "a lot of work," or "touches production code" —
+and only *then* does it stop and report. A gap closeable by any pipeline stage's own automated
+work (any of the three `02-research-*` tiers, `03` architecture, `04` requirements, `05`
+decomposition, `06` spec, `07` planning) is never itself a reason to stop; the manager runs that
+stage next instead of asking. The genuine stopping conditions are: **G3** package authorization,
+**G4** release GO, a **Vision-level** tension only `01-vision`'s own user-facing judgment can
+settle, a ripe **`NEEDS-USER`** backlog entry, an unadjudicated Critical/High review finding, or
+the backlog/next-step queue being truly empty (nothing left to advance). See `step` mode below
+for the old one-stage-at-a-time behavior when that's what's actually wanted.
 
 ## The journal — `docs/pipeline/pipeline-journal.md`
 
@@ -72,14 +87,23 @@ to it" with no trigger is not a disposition.
 
 | Invocation | Behavior |
 |---|---|
-| *(no args)* | **Advance**: reconcile → triage backlog → determine next step → gate-check → invoke the owning skill → harvest + journal → report. One step per run. |
+| *(no args)* | **Iterate**: repeat {reconcile → triage backlog → determine next step → gate-check → invoke the owning skill → harvest + journal} for as many internal steps as it takes, advancing through every unblocked stage automatically, until a genuine human-only gate is hit or the backlog/next-step queue is truly empty. One skill invocation per internal step, each fully journaled — but the chat-facing report is composed once, at the very end (see "Pipeline position & completion summary" below). |
+| `step` | **Advance exactly one step**: the loop body above, run once, then report immediately — the old default behavior, for when single-stage control is actually wanted. |
 | `status` | Read-only: reconcile in-memory, print the stage survey + backlog summary + recommendation. No writes unless drift was found and the user confirms syncing it. |
 | `triage` | Backlog only: harvest anything un-harvested from the last run, put a disposition on every `NEW` entry, re-check `DEFERRED` triggers and `NEEDS-USER` questions. No skill invoked. |
 | `log` | Print the Position block, the last ~10 run-log rows, and open backlog entries; no writes. |
 | `sync` | Reconcile journal + backlog against the ledgers; invoke nothing. Use after doing pipeline work outside the manager. |
-| `run <skill> [target]` | Execute a specific step even if it isn't the recommendation (still gate-checked, never gate-bypassed). Journaled with mode `override` and the recommendation it superseded. |
+| `run <skill> [target]` | Execute a specific step even if it isn't the recommendation (still gate-checked, never gate-bypassed). Journaled with mode `override` and the recommendation it superseded. Reports immediately, like `step`. |
 
-## Workflow (advance mode)
+## Workflow (the loop body — one internal step)
+
+In `step` mode, run this once. In the default iterate mode, run this repeatedly — each pass is
+one internal step, chosen and executed fresh from the post-previous-step state — until Step 4
+stops at a genuine gate or Step 3 finds nothing left to advance. Do not skip or batch the journal
+writes across iterations to save time: every internal step gets its own Step 6 (harvest + journal
+row + Position rewrite + commit) before the next step is chosen, exactly as if it were run
+standalone. The only thing iterate mode changes about Steps 1–6 is that they run in a loop; Step 7
+(Report) is what changes shape — see its own section below.
 
 ### Step 1 — Read the journal and backlog, then reconcile against the ledgers
 
@@ -188,14 +212,18 @@ Before invoking anything, stop and ask the user (via `AskUserQuestion`) if the s
   to the user this run — lower-tier entries that depend on it are held, not asked;
 - **spending judgment the user reserved** — anything a stage skill's own rules say needs the user.
 
-A gate stop is a complete, successful run: journal it (`GATE: …`), record the user's answers in
-the backlog/journal when they come, report what decision unblocks the pipeline, and end.
+A gate stop is a complete, successful step: journal it (`GATE: …`). In `step` mode this ends the
+run immediately. **In iterate mode, a gate stop ends the whole loop** — this is the one thing
+that terminates iteration before the backlog/next-step queue is empty. Record the user's answers
+in the backlog/journal when they come; the next invocation (whichever mode) picks up from there.
 
 ### Step 5 — Execute by invoking the owning skill
 
 Invoke the owning numbered skill via the `Skill` tool with the specific target — including any
 `SCHEDULED` backlog entries riding this step. Follow that skill's own rules completely — the
-manager adds no shortcuts and removes no obligations. One skill invocation per advance run.
+manager adds no shortcuts and removes no obligations. One skill invocation per internal step —
+in iterate mode, the next internal step gets its own fresh Step 5, never two invocations folded
+into one.
 
 ### Step 6 — Harvest, then journal the run
 
@@ -210,8 +238,15 @@ committed its own work per its own conventions).
 
 ### Step 7 — Report
 
-The mandatory completion summary (below), always ending with what the *next* advance will do —
-so the user can simply run the manager again.
+In `step`/`status`/`triage`/`log`/`sync`/`run` modes: report immediately after this one step, per
+the mandatory completion summary below.
+
+**In iterate mode: do not report after each internal step.** The journal and backlog already carry
+the durable record of every step taken (that's what makes them the persistent memory) — the
+chat-facing report is a separate, one-time thing composed only once the loop actually stops
+(genuine gate, or the queue is empty). Loop back to Step 1 instead of narrating progress
+mid-run — see "Pipeline position & completion summary" below for what the single, end-of-loop
+report contains.
 
 ## Refactoring — explicit scheduling conditions
 
@@ -258,7 +293,17 @@ re-checks the equivalence evidence) before anything downstream builds on the mov
 
 ## Guardrails
 
-- **One step per advance.** No chaining "while I'm here." The journal makes stopping cheap.
+- **One skill invocation per internal step, always.** Whether in `step` mode or mid-iteration,
+  never fold two stages into one pass "while I'm here" — the journal makes stopping/resuming
+  cheap, so there's no efficiency gain in skipping the per-step discipline.
+- **Iterate mode stops only for a genuine gate, never for scope.** A step being large,
+  production-code-touching, or multi-package is not a reason to pause — only G3, G4, a
+  Vision-level tension, a ripe `NEEDS-USER` item, an unadjudicated Critical/High finding, or a
+  truly empty queue stop the loop. If tempted to stop early because a step "feels like it should
+  ask first," check: is this actually one of those five, or just unfamiliar/large? Only the
+  former stops iteration.
+- **Don't narrate mid-loop.** In iterate mode, no chat-facing report between internal steps —
+  only the journal/backlog writes. The user sees one report, at the end.
 - **Higher tier first.** Never put a lower-tier open question to the user while a higher-tier
   one it depends on (per tier precedence) is still ripe and unasked — resolve altitude before
   detail, so the user is never asked a question a Vision/Architecture answer would have changed.
@@ -282,26 +327,50 @@ re-checks the equivalence evidence) before anything downstream builds on the mov
 - [ ] If more than one tier had a ripe open question, only the highest tier (plus genuinely
       tier-independent ones) was put to the user this run — no lower-tier question was asked
       while a higher-tier one it depends on was still unresolved.
-- [ ] The invoked skill's findings were harvested into the backlog before the run ended.
-- [ ] Exactly one skill was invoked (or zero, for status/log/sync/triage/gate runs).
-- [ ] Every gate the step touched was stopped at and asked about — none assumed.
-- [ ] The run-log row, Position block, and backlog updates were written and committed, and match
-      what actually happened this run.
+- [ ] The invoked skill's findings were harvested into the backlog before the next step was chosen.
+- [ ] Exactly one skill was invoked per internal step (or zero, for status/log/sync/triage/gate
+      steps) — in iterate mode, this holds for *every* step in the loop, not just the first.
+- [ ] Every gate touched by any step was stopped at and asked about — none assumed, and in
+      iterate mode a gate hit anywhere in the loop actually ended the loop rather than being
+      talked past.
+- [ ] In iterate mode, the loop did not stop early for a step that merely looked large or
+      unfamiliar — only for one of the five genuine gate conditions or a truly empty queue.
+- [ ] Every run-log row, Position-block rewrite, and backlog update — one per internal step — was
+      written and committed before the next step was chosen, and matches what actually happened.
+- [ ] In iterate mode, no chat-facing report was produced between internal steps — the loop ran
+      silently (from the user's perspective) until it actually stopped.
 - [ ] Nothing outside `docs/pipeline/` was written by the manager itself.
 
 ## Pipeline position & completion summary (mandatory, every run)
 
 This skill is **Stage 00 — the manager**; it can be run at any time and is the default entry point
 for all pipeline work (its stage-00 peer `00-intake` files new features/bugs into the backlog this
-skill triages). End **every** run — advance, status, triage, log, sync, override, or gate stop —
-with a chat summary containing exactly these three parts:
+skill triages).
+
+**`step`/`status`/`triage`/`log`/`sync`/`run` modes:** end that single run with a chat summary
+containing exactly these three parts:
 
 1. **What happened** — mode, skill invoked (if any) and its outcome in one line, journal row
    appended, backlog deltas (harvested / dispositioned / closed, by ID), any drift corrected.
 2. **Recommendations** — open gates awaiting the user, `NEEDS-USER` backlog entries and the exact
    decisions they need, parallel steps available, drift found and who owns it.
-3. **Next step** — what the next `/00-pipeline-manager` advance will execute (skill + target +
-   any backlog entries riding along + why), or the exact decision needed if the pipeline is gated
-   on the user.
+3. **Next step** — what the next invocation will execute (skill + target + any backlog entries
+   riding along + why), or the exact decision needed if the pipeline is gated on the user.
 
-Never end a run without naming the next step — that line is the whole point of having a manager.
+**Iterate mode (no args): produce this same three-part summary exactly once, when the loop
+actually stops** — not after every internal step. Since the loop may span many stages, the
+summary's shape adapts to cover the whole run:
+
+1. **What happened** — the full chain of internal steps taken this run, in order (skill invoked
+   + one-line outcome for each — a compact list, not a re-narration of every stage's own detailed
+   completion summary), every journal row appended, every backlog delta across the whole run
+   (harvested / dispositioned / closed, by ID), any drift corrected along the way.
+2. **Recommendations** — same as above, covering everything surfaced across the whole run, not
+   just the last step.
+3. **Next step** — **the exact gate that stopped the loop** (a specific `AskUserQuestion`-ready
+   decision — G3 on named packages, a G4 GO/NO-GO call, a Vision-level question, a `NEEDS-USER`
+   backlog item's exact decision) if a gate stopped it, or confirmation that the backlog/next-step
+   queue is genuinely empty if nothing did.
+
+Never end a run without naming the next step (or the gate that's blocking it) — that line is the
+whole point of having a manager, in either mode.
