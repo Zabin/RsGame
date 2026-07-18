@@ -14,11 +14,11 @@
 
 ## Position
 
-- **Updated:** 2026-07-17 (run #231)
+- **Updated:** 2026-07-17 (run #232)
 - **Increment:** Four independent arcs closed; a fifth (dual-audience combat) advanced all the
   way from Vision through research, architecture, a full requirements baseline, feature
-  decomposition, specification, and now implementation planning; two small HUD remediations
-  shipped; the biome/music delta assessed and baselined GO. **(1)/(2)** unchanged (runs #167/#168).
+  decomposition, specification, and implementation planning; two small HUD remediations shipped;
+  the biome/music delta assessed and baselined GO. **(1)/(2)** unchanged (runs #167/#168).
   **(3)/(4)** — all six packages plus two remediations `VERIFIED`, clean integration review,
   **GO'd** (run #221). **`IP-9170`/`IP-9180`** implemented, `COMPLETE`. **`ADS-002`** cleared its
   Vision blocker (`MSTR-001` C11, run #219), its research blocker (`R218`/`R115`, runs #224/#225),
@@ -29,36 +29,35 @@
   `EP-6000`. **Run #230: `06-feature-specification`** authored **FS-112** (all 20 fields, 3 Open
   Questions, all routed to `07`). **Run #231: `07-implementation-planning`** cut **six packages**
   (`IP-1120`–`IP-1125`) — found a genuine architecture gap (`IP-1120` needs a `GDS-01` §4d
-  amendment, `BL-0146`, mirroring `BL-0113`'s own precedent) and two further requirements gaps
-  (`WEAPON_TIER` funding `BL-0147`; heal-spend input binding `BL-0148`), all harvested rather than
-  resolved unilaterally. Bootstrap baseline remains fully closed (01–11 ✅); Release 2 GO.
+  amendment, `BL-0146`) and two further requirements gaps (`WEAPON_TIER` funding `BL-0147`;
+  heal-spend input binding `BL-0148`), all harvested. **Run #232: `03-architecture-design-
+  synthesis`** authored **GDS-01 §4e** — a new `COMBAT MODE CONFIRM` state, closing `BL-0146`;
+  `IP-1120` can now be re-planned in full. Bootstrap baseline remains fully closed (01–11 ✅);
+  Release 2 GO.
 - **Pipeline state:** Bootstrap stages 01–11 ✅; Release 2 GO. **39 packages `VERIFIED`, two
   `COMPLETE`** (`IP-9170`/`IP-9180`, both own `09-package-verification` passes owed in a fresh
-  session). The combat sub-mode now has six planned packages, none authorized — `IP-1120` is
-  additionally `BLOCKED` on `BL-0146`'s own upstream architecture amendment, independent of G3.
-  The other five (`IP-1121`–`1125`) are eligible for a G3 ask whenever the user is ready — this is
-  now, concretely, the real production-code commitment run #228's checkpoint anticipated.
-  Standing, non-blocking doc/design work unchanged: the doc-accuracy sweep family
-  (`BL-0136`/`BL-0137`/`BL-0140`–`BL-0143`); `BL-0118` (`NFR-1400` cycle-budget gap); `BL-0123`
-  (`try_load_save` unneeded finite-mode work); `BL-0112` (Infinite Mode run-end trigger); `BL-0097`
-  (Medium, routed already); `BL-0130` (catalog text gap).
-- **Backlog:** 150 entries. `BL-0133` → `IN PIPELINE` (six packages planned, run #231). `BL-0146`
-  `SCHEDULED` (rides the next `03` invocation). `BL-0147`/`BL-0148` `SCHEDULED` (ride a future
-  `04`/`06` touch, non-blocking). `BL-0145` `DONE`. `BL-0144`/`BL-0139` → `IN PIPELINE`.
-  `BL-0127`/`BL-0128` `DONE`.
-- **Next step:** `03-architecture-design-synthesis` on `BL-0146` (a narrow `GDS-01` §4d amendment
-  naming the combat sub-mode's third MODE SELECT option) — small and precedented, not a gate
-  itself. Separately, `IP-1121`/`1122`/`1123`/`1124`/`1125` are planned and eligible for a G3 ask
-  whenever the user is ready — the real production-code commitment this increment has flagged
-  twice now (runs #228/#231). A fresh session can independently run `09-package-verification` on
-  `IP-9170` then `IP-9180`.
-- **Open gates:** **G3 authorization for `IP-1121`–`1125`** — five real production-code packages
-  (mob AI, projectile physics, health/damage, a treasure economy, a save-format bump) awaiting the
-  user's explicit go-ahead before `08-code-implementation`/`08-content-authoring` can build any of
-  them; not yet asked this run, since `03`'s own narrow amendment is the higher-leverage next step
-  and doesn't itself need the user. No higher-tier open question (per the manager's own
-  tier-precedence rule) blocks `03`. This advance executed exactly one step (`07`), per the
-  manager's own one-step-per-advance guardrail — it did not chain into `03` in the same run.
+  session). The combat sub-mode's own architecture gap is closed — `IP-1120` awaits only a
+  `07-implementation-planning` re-touch (mechanical, no more upstream blockers), and once that
+  lands, all six combat packages will be fully planned with **no gate left except G3
+  authorization from the user.** This is now, concretely, the real production-code commitment
+  run #228's checkpoint anticipated. Standing, non-blocking doc/design work unchanged: the
+  doc-accuracy sweep family (`BL-0136`/`BL-0137`/`BL-0140`–`BL-0143`); `BL-0118` (`NFR-1400`
+  cycle-budget gap); `BL-0123` (`try_load_save` unneeded finite-mode work); `BL-0112` (Infinite
+  Mode run-end trigger); `BL-0097` (Medium, routed already); `BL-0130` (catalog text gap).
+- **Backlog:** 150 entries. `BL-0133` → `IN PIPELINE` (architecture gap closed, run #232).
+  `BL-0146` `DONE`. `BL-0147`/`BL-0148` `SCHEDULED` (ride a future `04`/`06` touch, non-blocking).
+  `BL-0145` `DONE`. `BL-0144`/`BL-0139` → `IN PIPELINE`. `BL-0127`/`BL-0128` `DONE`.
+- **Next step:** `07-implementation-planning` — re-plan `IP-1120` in full against `GDS-01` §4e
+  (a mechanical touch, no more upstream blockers). Once that lands, the sole remaining step for
+  the whole combat-sub-mode increment is a **G3 decision from the user** on
+  `IP-1120`–`1125` — five/six real production-code packages (mob AI, projectile physics,
+  health/damage, a treasure economy, a save-format bump, a new gating screen). A fresh session can
+  independently run `09-package-verification` on `IP-9170` then `IP-9180`.
+- **Open gates:** **none yet formally reached** — the next action (`07`'s own `IP-1120` re-plan)
+  needs no user input. **G3 authorization for the full six-package combat set will be the very
+  next thing this pipeline needs from the user**, immediately after that re-plan completes — no
+  higher-tier open question (per the manager's own tier-precedence rule) stands ahead of it. This
+  advance executed exactly one step (`03`), per the manager's own one-step-per-advance guardrail.
 
 ## Run log
 
@@ -299,3 +298,4 @@
 | 229 | 2026-07-17 | advance (same session, "Iterate pipeline skill" — read as the user's confirmation past run #228's checkpoint) | `05-feature-decomposition` | `FR-11100`–`FR-11600`/`NFR-1500`/`NFR-4500` — fold into the Feature Catalog | ✅ Catalogued as one unsplit **`FEAT-11000`** (Infinite Mode Combat Sub-Mode, 8 requirements), mirroring `FEAT-10000`'s own original unsplit-Feature precedent — nothing implemented yet to reveal a clean seam. **Joined `EP-6000` (Infinite Mode)** rather than opening a new Epic (the opposite call from `FEAT-7100`'s own `EP-7000` precedent) — reviewed and confirmed correct: `FEAT-11000` is strictly a gated sub-mode *of* Infinite Mode (`COMBAT_MODE` valid only alongside `GAME_MODE=1`), not an independent capability. Dependencies: `FEAT-10000` (gating/materialization hook/save extension), `FEAT-3000` (the same `RUNNING_TREASURE_COUNT` its healing economy spends from), `FEAT-6000` (a new direct edge `FEAT-10000` itself never needed — the health HUD reuses existing heart-tile art). All three dependencies already shipped/`VERIFIED` — immediately specifiable, not serialized behind anything in flight. Placed in the `Future` bucket (zero graph-blocking dependencies; no release commitment made), mirroring `FEAT-10000`'s own original placement. FP-05 **finding #12** reviewed the delta clean: no duplicate, no oversized-Feature defect, no architectural inconsistency, no new circular dependency (`FEAT-10000` now has two dependents, `FEAT-7100` and `FEAT-11000`, but both edges still point strictly forward). 82 requirement IDs now tallied project-wide, every one owned exactly once. `ROADMAP.md`'s five FP rows updated in sync. | `06-feature-specification` on `FEAT-11000` — the next unGated step, but still one stage closer to the real production code (`07`→`08`, an eventual G3 ask) this increment's own scope has now been flagged for twice. This advance executed exactly one step, per the manager's own one-step-per-advance guardrail. |
 | 230 | 2026-07-17 | advance (same session, "Iterate pipeline skill until all items are blocked") | `06-feature-specification` | `FEAT-11000` — Infinite Mode Combat Sub-Mode | ✅ Authored **FS-112**, all 20 fields, carrying forward the exact 8-requirement set (`FR-11100`–`11600`/`NFR-1500`/`NFR-4500`) FEAT-11000 owns. Five Workflows (A–E) covering entry gating, mob materialization/defeat, weapon fire/hit resolution, player health/setback/healing economy, save persistence. **3 Open Questions**, all routed to `07-implementation-planning`: (1) the gating UI's exact mechanism (three-state `MM_CURSOR` cycle vs. a new confirmation screen) — flagged as possibly needing a `03` round-trip if it needs a new `GameState`; (2) damage-vs-heal-spend same-frame ordering; (3) no-op heal-spend feedback. `docs/features/INDEX.md` + `FEAT-11000`'s own forward-reference metadata updated. | `07-implementation-planning` on `FS-112` |
 | 231 | 2026-07-17 | advance (same session, "Iterate pipeline skill until all items are blocked") | `07-implementation-planning` | `FS-112` — Technical Work Breakdown + Implementation Packages | ✅ Verb inventory (generate/render/act/persist/gate) cut **six packages**: `IP-1125` (sprite content, no dependencies), `IP-1121` (mob materialization/rendering/defeat, delta's dependency root), `IP-1122` (weapon fire & hit resolution), `IP-1123` (player health/setback/healing economy), `IP-1124` (save persistence, `SAVE_VERSION_VAL` `0x05`→`0x06`), `IP-1120` (mode gating & UI). **Found a genuine architecture gap, not planned around**: `IP-1120` needs a `GDS-01` §4d amendment before it can be planned in full — `MODE SELECT`'s own architecture text states a closed two-option fact ("presents finite and infinite") a third option would falsify, mirroring `BL-0113`'s own precedent for `MODE SELECT`'s original existence (`BL-0146`, harvested). Does not block the other five packages, none of which depend on the gating mechanism's exact shape. **Found two further requirements gaps**, both harvested rather than resolved unilaterally: `WEAPON_TIER`'s own treasure-funded upgrade mechanism has no baselined FR (`BL-0147`); the heal-spend action's own input binding has no free button named upstream (`BL-0148`). None of the six packages are authorized (G3). Master Build Plan, `packages/INDEX.md`, TWBS, `FS-112` metadata, `ROADMAP.md` all updated in sync. | `03-architecture-design-synthesis` for `BL-0146`'s narrow `GDS-01` §4d amendment (a small, precedented delta, not Vision-level) — runs in parallel with, not blocking, a future G3 ask on `IP-1121`/`1122`/`1123`/`1124`/`1125` whenever the user is ready |
+| 232 | 2026-07-17 | advance (same session, "Iterate pipeline skill until all items are blocked") | `03-architecture-design-synthesis` | `BL-0146` — GDS-01 §4d amendment (combat sub-mode gating) | ✅ Authored **GDS-01 §4e**: a new `COMBAT MODE CONFIRM` state (binary Y/N, defaults to N, never enabled by default per `FR-11100`) inserted between `MODE SELECT`'s "infinite" confirm and `INFINITE SEED ENTRY` — keeps "which world" and "combat on/off" on separate axes rather than widening `MODE SELECT` to a three-state cursor, mirroring the same reasoning that already made `MODE SELECT` its own state rather than an extension of an existing screen. `MODE SELECT`'s own two options and the finite path both completely unaffected — delta, not re-authoring. `docs/architecture/INDEX.md` + `ROADMAP.md` flipped together. Closes `BL-0146`. | `07-implementation-planning` — re-plan `IP-1120` in full against `GDS-01` §4e (Files to Modify/Tasks/Tests/DoD), completing all six combat-sub-mode packages. Once that lands, the sole remaining step is a G3 decision from the user on `IP-1120`–`1125` — the real production-code commitment this increment has now fully surfaced. |
