@@ -22,7 +22,11 @@
 > 2026-07-16 (cont'd) — **`CR-08` resolved and baselined into `FR-4310`**, a concrete nine-value
 > adjacency-grammar ordering grounded in `R212` v1.1; delta 2026-07-16 (cont'd) — **new FR-7000
 > group (FR-7100/FR-7110), procedural music generation, `ADR-0019`/`BL-0127`** — this project's
-> first use of the FR-7xxx audio range — see Changelog).**
+> first use of the FR-7xxx audio range; **delta 2026-07-17 — new FR-11000 group (FR-11100–11600),
+> Infinite Mode combat sub-mode, `BL-0133`/`ADS-002`/`MSTR-001` C11** — this project's first use
+> of the FR-11xxx range, gated on `ADS-002`'s own now-fully-resolved Open Questions and a batch
+> of direct user decisions (treasure-spent healing, no weapon ammo/durability, non-lethal
+> setback, save persistence) — see Changelog).**
 > Owned by `04-requirements-engineering`.
 > Derives from [GDS-05](../architecture/05-functional-requirements.md)'s six capability groupings
 > (C1–C6) — this document formalizes each into numbered, testable `FR-xxxx` requirements per
@@ -35,6 +39,21 @@
 
 ## Changelog
 
+- **2026-07-17 — New FR-11000 group (FR-11100–11600), Infinite Mode combat sub-mode** (`BL-0133`,
+  `ADS-002`, `MSTR-001` C11). This project's first use of the FR-11xxx range. Formalizes: entry
+  gating via a new MODE SELECT option (`FR-11100`); mob materialization/defeat, independent-
+  reseed-drawn per region, up to six concurrent (adjustable default, `FR-11200`); ranged-weapon
+  fire and hit resolution, reusing `check_collisions`' own hitbox technique (`FR-11300`); player
+  health with a non-lethal setback fail state — no real game-over, consistent with `A5` holding
+  inside `C11`'s carve-out (`FR-11400`); a treasure-spent healing economy that decrements the
+  same `RUNNING_TREASURE_COUNT` `FR-10400`'s own win/high-score logic reads, not a second ledger
+  (`FR-11500`); and save persistence via a new `SAVE_VERSION_VAL` bump, mirroring `IP-1010`/
+  `IP-1050`/`IP-1104`'s own established pattern (`FR-11600`). Every leaf traces to `ADS-002`'s own
+  now-fully-resolved architecture and a batch of direct user decisions (2026-07-17): treasure is
+  *spent* (not merely triggering) healing; the weapon fires freely with no ammo/durability; the
+  fail state is a non-lethal setback; combat state persists across save/load. `FR-9000`'s finite
+  mode is entirely unaffected — this capability is Infinite-Mode-exclusive by the owner's own
+  original filing text ("on the infinite map").
 - **2026-07-16 — New FR-7000 group (FR-7100/FR-7110), procedural music generation** (`BL-0127`,
   `ADR-0019`). This project's first use of the FR-7xxx audio range (confirmed unused before this
   delta). `FR-7100`: build-time generation of nine biome-family sub-themes from the existing main
@@ -2216,6 +2235,206 @@ FR-9000's own leaves are amended or superseded by this group)*
   like" — not a game-imposed event — since no bounded-run mechanic exists. No `GDS-01` delta is
   needed: an indefinitely-resumable run introduces no new `GAMESTATE`, matching `CR-07`'s own
   analysis that this answer carries no architecture gap.
+
+## FR-11000 — Infinite Mode Combat Sub-Mode (target — 2026-07-17, new capability, not yet shipped)
+
+*(formalizes [ADS-002](../architecture/ADS-002-infinite-mode-combat-sub-mode.md), grounded by
+`MSTR-001` **C11** (the dual-audience carve-out), `R218` (design conventions), `R115` (hardware
+feasibility) — a new, additive, explicitly opt-in sub-mode layered on FR-10000's Infinite Mode;
+none of FR-10000's own leaves are amended by this group. `FR-9000`'s finite mode is unaffected —
+`ADS-002`'s own Open Question 5 confirms this capability is Infinite-Mode-exclusive.)*
+
+### FR-11100 — Combat sub-mode entry (explicit, gated choice)
+
+- **ID:** FR-11100
+- **Title:** The system shall offer the combat sub-mode as a distinct, explicitly-labeled choice
+  on the MODE SELECT screen, separate from and never defaulting from Infinite Mode's existing
+  entry flow.
+- **Description:** At new-game creation, after choosing Infinite Mode, the system shall present a
+  third, clearly-labeled MODE SELECT option (alongside the existing Finite/Infinite toggle) that
+  enables the combat sub-mode for that save. The sub-mode is never enabled by default and is never
+  reachable via any path a player could enter unintentionally.
+- **Rationale:** `ADS-002` §System Architecture ("Gating Mechanism"); `MSTR-001` C11 ("opt-in,
+  explicitly gated"); `R218`'s difficulty-gated-optional-content precedent (Double Dragon II,
+  TimeSplitters 2 — a labeled choice, never a hidden toggle).
+- **Priority:** Must (target — not yet implemented)
+- **Inputs:** A MODE SELECT choice.
+- **Outputs:** A new save with `COMBAT_MODE` enabled or disabled, fixed for that save's life
+  (mirrors FR-9110/FR-10100's own immutability pattern).
+- **Preconditions:** The player has chosen Infinite Mode at new-game creation (FR-10100).
+- **Postconditions:** `COMBAT_MODE` is recorded only alongside `GAME_MODE`'s own Infinite Mode
+  value — never valid for a finite-mode save.
+- **Acceptance Criteria:** MODE SELECT presents the combat-mode option only after Infinite Mode
+  is chosen; the option is visually and textually distinct from the base Infinite Mode choice;
+  declining it (the default) reaches today's unchanged Infinite Mode exactly as shipped; accepting
+  it records `COMBAT_MODE` for that save only.
+- **Dependencies:** FR-10100 (Infinite Mode's own entry flow, extended here).
+- **Verification Method:** Test.
+- **Source Documents:** `ADS-002` §System Architecture (Gating Mechanism); `MSTR-001` C11.
+- **Related ADRs:** None yet — `ADR-0007` (8×16 OBJ) governs any new sprite this capability adds,
+  not the gating UI itself.
+- **Notes:** The exact MODE SELECT screen layout/wording is a `06-feature-specification`/
+  `08-content-authoring` decision, not fixed here.
+
+### FR-11200 — Mob presence, materialization, and defeat
+
+- **ID:** FR-11200
+- **Title:** When the combat sub-mode is active, the system shall materialize mobs per
+  region alongside existing treasure/biome materialization, and resolve mob defeat as a
+  non-graphic disappearance.
+- **Description:** Mirroring FR-10200's own per-region materialization and FR-10300's treasure
+  presence draw, the system shall draw mob presence/type as a pure function of `(seed, row, col)`
+  when the combat sub-mode is active, independent of and uncorrelated with the region's own
+  biome/treasure draws. Up to six mobs may be concurrently active (an adjustable default per
+  `ADS-002`/`R115`'s own measured OAM headroom, not a hard ceiling this FR fixes). A defeated
+  mob shall disappear via a brief presentation sequence with no persistent corpse and no graphic
+  content, per `R218`'s own established convention.
+- **Rationale:** `ADS-002` §System Architecture (mob spawning, defeat presentation); `R218`
+  (poof-defeat convention); `R115` (OAM headroom, independent-reseed discipline).
+- **Priority:** Must (target — not yet implemented)
+- **Inputs:** `(seed, row, col)` for the region being materialized; the combat sub-mode's own
+  active state.
+- **Outputs:** Zero or more active mob entities per materialized region.
+- **Preconditions:** `COMBAT_MODE` is active (FR-11100); the region is being materialized
+  (FR-10200's existing hook point).
+- **Postconditions:** Mob presence/type/position is deterministic and reproducible for the same
+  `(seed, row, col)`; a materialized region with `COMBAT_MODE` inactive is byte-for-byte identical
+  to today's shipped Infinite Mode (this capability is strictly additive).
+- **Acceptance Criteria:** Re-materializing the same region with the same seed reproduces
+  identical mob presence/type/position; the same region materialized with `COMBAT_MODE` inactive
+  shows zero mobs and is otherwise unaffected; a defeated mob deactivates without a persistent
+  corpse sprite or graphic content.
+- **Dependencies:** FR-10200 (the materialization hook this draw extends), FR-11100 (the gating
+  flag this draw is conditioned on).
+- **Verification Method:** Test (oracle/SM83 lockstep, mirroring FR-10200's own established
+  methodology; a direct-force integration check for defeat presentation).
+- **Source Documents:** `ADS-002` §System Architecture; `R218` §Concepts; `R115` §Operational
+  Context (the 31-of-40-entry OAM headroom this FR's own "up to six mobs" figure is derived
+  from).
+- **Related ADRs:** `ADR-0007` (8×16 OBJ mode governs any new mob sprite).
+- **Notes:** The exact mob species/count-per-region distribution and any difficulty-scaling rule
+  are `06`/`08-content-authoring` decisions, not fixed here.
+
+### FR-11300 — Ranged weapon fire and hit resolution
+
+- **ID:** FR-11300
+- **Title:** When the combat sub-mode is active, the system shall let the player fire a ranged
+  projectile that damages a mob it hits.
+- **Description:** The system shall accept a fire input (during `PLAYING`, combat sub-mode
+  active) that spawns one active projectile from the player's own position in the player's
+  current facing direction. The projectile moves each frame until it either hits an active mob
+  (reducing that mob's health, defeating it at zero per FR-11200) or reaches a terminal
+  condition (screen/window edge, or an existing active projectile is still in flight — at most
+  one projectile active at a time, an adjustable default).
+- **Rationale:** `ADS-002` §System Architecture (ranged weapon, hit-test); `R115` (no hardware
+  collision detection — software point-in-box, reusing `check_collisions`' own established
+  technique).
+- **Priority:** Must (target — not yet implemented)
+- **Inputs:** The fire input; the player's current position/facing direction.
+- **Outputs:** A moving projectile entity; mob health reduction on hit.
+- **Preconditions:** `COMBAT_MODE` active; `GAMESTATE == PLAYING`.
+- **Postconditions:** A projectile that hits a mob reduces that mob's health and stops (does not
+  pass through); a projectile that reaches its terminal condition without hitting anything
+  deactivates cleanly.
+- **Acceptance Criteria:** Firing while no projectile is active spawns one; firing while one is
+  already active has no additional effect (until the active one terminates); a projectile that
+  reaches an active mob's hitbox reduces its health and deactivates; a projectile that reaches a
+  terminal boundary without a hit deactivates without effect.
+- **Dependencies:** FR-11200 (the mob entities this resolves hits against).
+- **Verification Method:** Test (direct-force hit/miss scenarios, mirroring `IP-9100`'s own
+  established hitbox-test methodology).
+- **Source Documents:** `ADS-002` §System Architecture; `R115` §Concepts/§Implementation
+  Guidance.
+- **Related ADRs:** None.
+- **Notes:** The exact fire-input binding (A button, confirmed free during `PLAYING` by direct
+  code read as of `ADS-002`'s own pass) and weapon-power scaling (FR-11500) are `06`/`08`
+  decisions this FR states at the observable-behavior level only.
+
+### FR-11400 — Player health and non-lethal setback
+
+- **ID:** FR-11400
+- **Title:** When the combat sub-mode is active, the system shall track player health and, on
+  reaching zero, apply a non-lethal setback rather than ending the run.
+- **Description:** The system shall track a player health value, displayed via a persistent HUD
+  element (reusing the existing heart-tile art, `R218`). A mob's contact/attack reduces player
+  health; reaching zero triggers a defined non-lethal setback (e.g. returning the player to the
+  last region entered with treasure/health partially restored) — never a `GAMESTATE` transition
+  to a "game over" state, consistent with `MSTR-001` A5's fail-state-free base design holding
+  inside `C11`'s own grimmer carve-out.
+- **Rationale:** `ADS-002` §Domain Model (PlayerHealth); user decision 2026-07-17 (non-lethal
+  setback, no real game-over); `R218` (heart-container HUD convention).
+- **Priority:** Must (target — not yet implemented)
+- **Inputs:** Mob contact/attack events.
+- **Outputs:** Player health HUD updates; a setback event at zero health.
+- **Preconditions:** `COMBAT_MODE` active.
+- **Postconditions:** The player never reaches a `GAMESTATE` other than `PLAYING` as a result of
+  combat damage; the run continues after a zero-health setback.
+- **Acceptance Criteria:** Health decreases on mob contact/attack, reflected in the HUD within a
+  frame budget mirroring FR-6xxx's own existing HUD-update timing; reaching zero health triggers
+  the defined setback and the run continues in `PLAYING`, never a game-over state.
+- **Dependencies:** FR-11200 (mob contact as a damage source).
+- **Verification Method:** Test.
+- **Source Documents:** `ADS-002` §Domain Model; `R218` §Concepts (heart-container HUD); direct
+  user decision, 2026-07-17.
+- **Related ADRs:** None.
+- **Notes:** The exact setback mechanic (respawn point, treasure penalty amount) is a
+  `06-feature-specification` decision; this FR fixes only that it must be non-lethal.
+
+### FR-11500 — Treasure-spent healing economy
+
+- **ID:** FR-11500
+- **Title:** When the combat sub-mode is active, treasure collection shall be consumable to
+  restore player health, reducing the running treasure count that also drives the win/high-score
+  system.
+- **Description:** The system shall let the player choose to spend collected treasure
+  (`RUNNING_TREASURE_COUNT`, `FR-10300`/`FR-10400`) to restore player health (FR-11400). Spending
+  decrements the same count `FR-10400`'s own top-score comparison reads — this FR does not create
+  a second, independent currency.
+- **Rationale:** `ADS-002` §Domain Model (treasure's widened role); user decision 2026-07-17
+  (treasure is *spent*, not merely triggering).
+- **Priority:** Must (target — not yet implemented)
+- **Inputs:** A heal-spend action; the current `RUNNING_TREASURE_COUNT`.
+- **Outputs:** Player health restoration; a reduced `RUNNING_TREASURE_COUNT`.
+- **Preconditions:** `COMBAT_MODE` active; `RUNNING_TREASURE_COUNT` > 0.
+- **Postconditions:** `RUNNING_TREASURE_COUNT` decreases by the amount spent; player health
+  increases correspondingly (up to its own maximum, FR-11400).
+- **Acceptance Criteria:** Spending treasure to heal reduces `RUNNING_TREASURE_COUNT` by exactly
+  the spent amount; the same count is what `FR-10400`'s own top-score comparison reads at
+  run's end — no separate ledger exists.
+- **Dependencies:** FR-10300/FR-10400 (the treasure count this FR spends from), FR-11400 (the
+  health this FR restores).
+- **Verification Method:** Test.
+- **Source Documents:** `ADS-002` §Domain Model; direct user decision, 2026-07-17.
+- **Related ADRs:** None.
+- **Notes:** The exact heal-spend input/rate (how much health per unit of treasure) is a
+  `06-feature-specification` decision.
+
+### FR-11600 — Combat state save persistence
+
+- **ID:** FR-11600
+- **Title:** Combat sub-mode state (mob state, weapon tier, player health) shall persist across
+  save/load.
+- **Description:** Mirroring FR-5xxx's/FR-10500's own established save-persistence pattern, the
+  system shall persist the combat sub-mode's own state across a save/load boundary via a new
+  `SAVE_VERSION_VAL` bump, the same versioning discipline `IP-1010`/`IP-1050`/`IP-1104` already
+  established.
+- **Rationale:** `ADS-002` Open Question 7; user decision 2026-07-17 (persists, not session-only).
+- **Priority:** Must (target — not yet implemented)
+- **Inputs:** Combat sub-mode state at save time.
+- **Outputs:** Restored combat sub-mode state after load.
+- **Preconditions:** `COMBAT_MODE` active; a save is performed.
+- **Postconditions:** Loading a save with `COMBAT_MODE` active restores mob state, weapon tier,
+  and player health exactly as they were at save time.
+- **Acceptance Criteria:** A save/load round trip reproduces identical mob state, weapon tier,
+  and player health; a pre-combat-mode save (older `SAVE_VERSION_VAL`) loads cleanly without this
+  state (mirroring FR-10500's own version-guard precedent for pre-Infinite-Mode saves).
+- **Dependencies:** FR-11200 (mob state), FR-11300/FR-11500 (weapon tier), FR-11400 (player
+  health).
+- **Verification Method:** Test (mirroring `IP-1104`'s own save/load round-trip methodology).
+- **Source Documents:** `ADS-002` Open Question 7; direct user decision, 2026-07-17.
+- **Related ADRs:** None.
+- **Notes:** The exact SRAM layout for this new state is `GDS-07`/`07-implementation-planning`'s
+  own scope, not fixed here.
 
 ## Candidate Requirements
 

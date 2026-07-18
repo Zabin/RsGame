@@ -29,7 +29,11 @@
 > into FR-4310's own row (concrete nine-value adjacency ordering, `R212` v1.1); delta 2026-07-16
 > (cont'd) — FR-7100/FR-7110/NFR-4400 rows added for the new procedural-music-generation
 > capability (`ADR-0019`, `BL-0127`), this project's first use of the FR-7xxx audio range,
-> confirmed unused before this delta.**
+> confirmed unused before this delta; delta 2026-07-17 — FR-11100–11600/NFR-1500/NFR-4500 rows
+> added for the new Infinite Mode combat sub-mode capability (`BL-0133`/`ADS-002`/`MSTR-001` C11),
+> this project's first use of the FR-11xxx range, confirmed unused before this delta; all Module/
+> Feature Spec/Implementation Package/Test cells honestly `UNASSIGNED` — nothing has reached
+> `05`/`06`/`07`/`08` yet.**
 > Owned by `04-requirements-engineering`.
 > One row per [RQ-01](01-functional-requirements.md)/[RQ-02](02-non-functional-requirements.md)
 > requirement (Candidates marked). Populates the row-level matrix
@@ -106,6 +110,12 @@
 | CR-07 | Infinite Mode run/session shape (`BL-0106`) — **RESOLVED 2026-07-13, baselined as FR-10600** once the project owner decided directly ("for now assume indefinitely resumable") | R216 | — | ADR-0017 | `asm_game.py` (prospective) | `CANDIDATE — NOT BASELINED` (see FR-10600) | `CANDIDATE — NOT BASELINED` | `CANDIDATE — NOT BASELINED` |
 | CR-08 | Adjacency-grammar ordering position for the four newly-folded biome identities (`BL-0128`) — **RESOLVED and BASELINED 2026-07-16 as `FR-4310`'s own delta**, per RQ-03 finding #21 | R212 (v1.1) | GDS-04 delta | ADR-0009 | `worldgen.py` | `CLOSED — see FR-4310` | `CLOSED — see FR-4310` | `CLOSED — see FR-4310` |
 | FR-10600 | Indefinitely resumable Infinite Mode run (no bounded end-condition mechanic) | R216 | ADS-001 §Open Questions (Q1) | ADR-0017 | `asm_game.py` | FS-110 | IP-1104 | T27.f |
+| FR-11100 | Combat sub-mode entry (explicit, gated MODE SELECT choice) | R218 | ADS-002 §System Architecture (Gating Mechanism) | ADR-0007 | `asm_game.py` (prospective) | UNASSIGNED | UNASSIGNED | UNASSIGNED |
+| FR-11200 | Mob presence, materialization, and non-graphic defeat | R218, R115 | ADS-002 §System Architecture, §Domain Model | ADR-0007 | `asm_game.py`/`worldgen.py` (prospective) | UNASSIGNED | UNASSIGNED | UNASSIGNED |
+| FR-11300 | Ranged weapon fire and hit resolution | R115 | ADS-002 §System Architecture | — | `asm_game.py` (prospective) | UNASSIGNED | UNASSIGNED | UNASSIGNED |
+| FR-11400 | Player health and non-lethal setback | R218 | ADS-002 §Domain Model | — | `asm_game.py` (prospective) | UNASSIGNED | UNASSIGNED | UNASSIGNED |
+| FR-11500 | Treasure-spent healing economy | — | ADS-002 §Domain Model | — | `asm_game.py` (prospective) | UNASSIGNED | UNASSIGNED | UNASSIGNED |
+| FR-11600 | Combat state save persistence | — | ADS-002 (Open Question 7) | — | `asm_game.py` (prospective) | UNASSIGNED | UNASSIGNED | UNASSIGNED |
 
 ## Non-Functional Requirements
 
@@ -135,6 +145,8 @@
 | NFR-4300 | Infinite Mode materialized-window WRAM headroom (Met, 2026-07-14) | R114 | ADS-001 §System Architecture | ADR-0016 | `asm_game.py` | FS-110 | IP-1102 | GDS-07 §7e inspection — 15 bytes vs. ~3.1 KiB bank-0 headroom |
 | NFR-4400 | Procedural music generation ROM budget (Met, `IP-1110`, 2026-07-16) | R217 | — | ADR-0019 | `music.py`, `build_rom.py` | FS-111 | IP-1110 (VERIFIED) | Inspection — direct build measurement (31362/32768 bytes used) |
 | NFR-5400 | Infinite Mode visited-region-ledger integrity and bounded capacity (Met, 128 entries FIFO-bounded) | R114 | ADS-001 §System Architecture | ADR-0016 | `asm_game.py` | FS-110 | IP-1104 | T27.a, T27.c |
+| NFR-1500 | Combat sub-mode per-frame cycle budget (status UNCONFIRMED — target, not yet implemented) | R115 | ADS-002 §System Architecture (Cycle budget) | ADR-0016 (frame-budget precedent) | `asm_game.py` (prospective) | UNASSIGNED | UNASSIGNED | UNASSIGNED |
+| NFR-4500 | Combat sub-mode ROM and OAM budget (target — not yet implemented) | R115 | ADS-002 §System Architecture (Sprite budget, ROM budget) | ADR-0011, ADR-0020 | `build_rom.py`, `asm_game.py` (prospective) | UNASSIGNED | UNASSIGNED | UNASSIGNED |
 
 ## Notes on this matrix's honesty discipline
 
