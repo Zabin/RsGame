@@ -2,7 +2,9 @@
 
 - **Document ID:** R105 · **Version:** 1.0 · **Status:** ✅
 - **Dependencies:** R101 (DMA timing budget), R102 (access-window rules), R103 (LCDC OBJ-size bit)
-- **Referenced By:** R110 (the VBlank ISR is what makes DMA timing safe)
+- **Referenced By:** R110 (the VBlank ISR is what makes DMA timing safe), R115 (2026-07-17 —
+  the OAM entry format/40-entry budget this topic establishes grounds the combat sub-mode's own
+  concurrent-sprite headroom arithmetic, `BL-0133`)
 - **Produces:** grounds `asm_game.py`'s `OAM_BUF`/`HRAM_DMA`/sprite-write routines
 - **Feature Mapping:** *(none yet)*
 - **Related Topics:** R101, R102, R103, R110

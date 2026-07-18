@@ -64,6 +64,27 @@ and flows forward from there:
   back to 04; an architecture gap found at 06 goes back to 03; a domain-knowledge gap anywhere
   goes to the owning 02 skill. Each skill's summary routes its findings to the owning stage.
 
+## Question ordering (tier precedence)
+
+Open questions and human gates form an altitude order, not a flat queue: a decision at a higher
+stage can reshape or moot a question at every stage below it, but never the reverse. When more
+than one stage has a ripe open question (a `NEEDS-USER` backlog entry, an unresolved Open
+Question, a pending gate), `00-pipeline-manager` surfaces the **highest tier first, one tier per
+run**, rather than batching everything the tree happens to have open:
+
+`01 Vision` > `03 Architecture` > `04 Requirements` > `05 Feature Decomposition` >
+`06 Feature Specification` > `07 Implementation Planning` > `08 Implementation` >
+`09 Verification` / `10 Integration` / `11 Release` (peers, ordered by what they review, not by
+further precedence among themselves). `02 Research` grounds `01`/`03` and is only pulled in when
+the specific higher-tier question needs a domain fact — it has no precedence slot of its own.
+
+A lower-tier question that genuinely depends on a still-open higher-tier one is held back (not
+asked) until the higher-tier answer lands, then re-derived rather than replayed verbatim — the
+higher answer may have already resolved it. Questions from unrelated parts of the tree at
+different tiers don't wait on each other and can still be asked in the same round-trip. See
+`00-pipeline-manager`'s own workflow for the full mechanics (how entries get held, annotated, and
+re-checked).
+
 ## Hard rules the stages share (interim governance — formalized later as MSTR-006)
 
 Until `01-vision`/`03-architecture-design-synthesis` author the `docs/master/` MSTR corpus, the

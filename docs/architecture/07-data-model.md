@@ -128,6 +128,7 @@ Confirmed directly against `tiles.py`'s 87 `TL_*` constants (updated by
 | Range | Content |
 |---|---|
 | `0x00`–`0x09` | OBJ sprites: bunny frames (8×16 pairs `00/01`, `02/03`), carrot (`04`+blank `05`), star (`06`+blank `07`), flower (`08`+blank `09`) |
+| `0x0A`–`0x0D` | **Combat sub-mode mob/projectile OBJ sprites** (`IP-1125`/`FS-112`) — mob (`0A`+blank `0B`, OBJ pal 4 repurposed), projectile (`0C`+blank `0D`, OBJ pal 5 repurposed); both previously-placeholder palette slots now hold real colors, no new slot claimed |
 | `0x10`–`0x19` | UI icons: BG blank, heart full/empty, carrot icon, star icon, border, 4 direction arrows |
 | `0x1A`–`0x1D` | **Maze-blocked edge indicator** (`IP-1081`/`FS-108`) — 4 directional broken/dashed-bar tiles, palette 2 reused, drawn by `IP-1082`'s render branch wherever `draw_region_arrows` classifies an edge `blocked` |
 | `0x1E`–`0x1F` | Free — 2 slots unused (next free slot in this block) |

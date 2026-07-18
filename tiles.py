@@ -25,6 +25,10 @@ TL_CARROT      = 0x04   # carrot art at 0x04, blank bottom at 0x05
 TL_BLANK_OBJ   = 0x05
 TL_STAR        = 0x06   # star art at 0x06, blank bottom at 0x07
 TL_FLOWER_OBJ  = 0x08   # flower art at 0x08, blank bottom at 0x09
+TL_MOB         = 0x0A   # IP-1125: combat sub-mode mob, blank bottom at 0x0B
+TL_MOB_BOT     = 0x0B
+TL_PROJECTILE     = 0x0C   # IP-1125: combat sub-mode projectile, blank bottom at 0x0D
+TL_PROJECTILE_BOT = 0x0D
 
 # UI tiles 0x10-0x1F
 TL_BG_BLANK     = 0x10
@@ -195,6 +199,36 @@ def flower_obj(): return enc([
     [1,2,3,1,1,3,2,1],
     [0,1,2,3,3,2,1,0],
     [0,0,1,2,2,1,0,0],
+])
+
+# Mob OBJ (IP-1125, combat sub-mode) -- pal 4 repurposed from the shipped
+# "unused / cursor" placeholder: 1=light body, 2=body, 3=dark outline/spikes.
+# Simple, non-graphic silhouette per R218's own "poof" convention -- no
+# blood/gore, reads as a blob-with-spikes creature, distinct from every
+# existing OBJ tile (bunny/carrot/star/flower).
+def mob_obj(): return enc([
+    [0,3,0,0,0,0,3,0],
+    [3,2,3,0,0,3,2,3],
+    [3,2,2,3,3,2,2,3],
+    [2,2,1,2,2,1,2,2],
+    [2,2,3,2,2,3,2,2],
+    [2,2,2,2,2,2,2,2],
+    [3,2,2,2,2,2,2,3],
+    [0,3,3,3,3,3,3,0],
+])
+
+# Projectile OBJ (IP-1125) -- pal 5 repurposed from the shipped white
+# placeholder: 1=light core, 2=mid, 3=outer glow. A small radiating orb,
+# distinct from every existing OBJ tile and from mob_obj() above.
+def projectile_obj(): return enc([
+    [0,0,0,3,3,0,0,0],
+    [0,0,3,2,2,3,0,0],
+    [0,3,2,1,1,2,3,0],
+    [3,2,1,1,1,1,2,3],
+    [3,2,1,1,1,1,2,3],
+    [0,3,2,1,1,2,3,0],
+    [0,0,3,2,2,3,0,0],
+    [0,0,0,3,3,0,0,0],
 ])
 
 # ── Beach (palette 1=sand) ──────────────
@@ -950,6 +984,11 @@ def build_tile_data():
     put(TL_BLANK_OBJ,  ui_blank())
     put(0x07,          ui_blank())
     put(0x09,          ui_blank())
+    # IP-1125 (combat sub-mode): mob + projectile, each top-art/blank-bottom
+    put(TL_MOB,             mob_obj())
+    put(TL_MOB_BOT,         ui_blank())
+    put(TL_PROJECTILE,      projectile_obj())
+    put(TL_PROJECTILE_BOT,  ui_blank())
 
     # UI
     put(TL_BG_BLANK,     ui_blank())

@@ -1352,6 +1352,36 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_nn(CARROTS_COUNT); rom.ADD_A_n(TL_DIGIT_0)
     rom.LD_HL_nn(0x9802); rom.LD_HL_A()
 
+    # carrot-target digit at (col 4, row 0) -> 0x9804 (IP-9170, BL-0139):
+    # _score_bar bakes a literal "9" here at build time; finite mode's real
+    # win condition is CARROTS_COUNT == WORLD_SCALE (IP-1021), so any scale
+    # other than 9 showed a target digit that didn't match its own win
+    # condition. Finite mode only -- Infinite Mode has no fixed carrot
+    # ceiling, so its own col-4 cell is deliberately left at whatever
+    # _score_bar baked (BL-0144, an open design question, not this fix's
+    # scope).
+    rom.LD_A_nn(GAME_MODE); rom.OR_A(); rom.JR_NZ('usd_infinite_target')
+    rom.LD_A_nn(WORLD_SCALE); rom.ADD_A_n(TL_DIGIT_0)
+    rom.LD_HL_nn(0x9804); rom.LD_HL_A()
+    rom.JR('usd_skip_target')
+
+    # Infinite Mode target-digit cell (IP-9180, BL-0144, user decision
+    # 2026-07-17): shows RUNNING_TREASURE_COUNT's low byte reduced mod 10
+    # (repeated-subtraction, no DIV -- mirrors inf_mod9's own established
+    # technique, bound 10 instead of 9). Single-digit-cell constraint means
+    # this is the low decimal digit only, an accepted display approximation
+    # named in IP-9180's own Risks -- not the count's own true value mod 10
+    # once it exceeds 255 (rare: would need 256+ treasures in one run).
+    rom.label('usd_infinite_target')
+    rom.LD_A_nn(RUNNING_TREASURE_COUNT)
+    rom.label('usd_it_loop')
+    rom.CP_n(10); rom.JR_C('usd_it_done')
+    rom.SUB_n(10); rom.JR('usd_it_loop')
+    rom.label('usd_it_done')
+    rom.ADD_A_n(TL_DIGIT_0)
+    rom.LD_HL_nn(0x9804); rom.LD_HL_A()
+    rom.label('usd_skip_target')
+
     # score digits at 0x9808-0x980A
     rom.LD_A_nn(SCORE); rom.LD_B_A()
     rom.LD_C_n(0)

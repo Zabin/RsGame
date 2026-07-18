@@ -9,7 +9,8 @@
 > (`IP-1104`, 128-entry FIFO-bounded ledger, `BL-0108` sized); delta 2026-07-16 (cont'd) —
 > NFR-6510 delta note for `FR-4320`'s nine-identity biome axis (`BL-0128`), no NFR text change;
 > delta 2026-07-16 (cont'd) — new NFR-4400, procedural music generation ROM budget, `ADR-0019`/
-> `BL-0127` — see Changelog).** Owned by
+> `BL-0127`; delta 2026-07-17 — new NFR-1500 (combat sub-mode cycle budget) and NFR-4500 (combat
+> sub-mode ROM/OAM budget), `BL-0133`/`ADS-002`/`R115` — see Changelog).** Owned by
 > `04-requirements-engineering`. Derives from
 > [GDS-06](../architecture/06-non-functional-requirements.md)'s five NFRs (N1–N5) — formalized
 > into numbered `NFR-xxxx` requirements per
@@ -20,6 +21,14 @@
 
 ## Changelog
 
+- **2026-07-17 — New NFR-1500 (combat sub-mode cycle budget) and NFR-4500 (combat sub-mode
+  ROM/OAM budget)** (`BL-0133`, `ADS-002`, `R115`). Both state the bar without assuming
+  compliance, mirroring `NFR-1400`/`NFR-4400`'s own established "measure, don't assume"
+  discipline: `NFR-1500` requires direct cycle-counting of combat per-frame logic against
+  `NFR-1400`'s own already-`NOT MET` budget (not the nominal ceiling alone); `NFR-4500` requires
+  the combat sub-mode's own ROM/OAM cost be measured against `R115`'s directly-measured current
+  headroom (1,378 ROM bytes, 31 of 40 OAM entries free) — the 6-concurrent-mob default
+  `FR-11200` names is derived from this NFR's own figure, not invented separately.
 - **2026-07-16 — New NFR-4400, procedural music generation ROM budget** (`BL-0127`, `ADR-0019`).
   Sized against a direct measurement (`music_data()` = 181 bytes today), not assumed — nine
   tracks at comparable size ≈ 1629 bytes fits the ~2872-byte headroom the last full build
@@ -220,6 +229,41 @@
   hitch on region entry, not a crash, data-loss, or unplayable stall). Routed to a new backlog
   entry for a follow-up optimization package to actually close the gap, rather than
   discovering the requirement only after a stutter is reported.
+
+### NFR-1500 — Combat sub-mode per-frame cycle budget (target — 2026-07-17, status UNCONFIRMED)
+
+- **ID:** NFR-1500
+- **Title:** Combat sub-mode per-frame logic (mob AI tick, projectile update, hit-test) shall be
+  measured against the frame budget `NFR-1400` already partially consumes, not assumed safe on
+  the nominal 70,224-cycle ceiling alone.
+- **Description:** `R115` §Implementation Guidance names the real risk directly: `NFR-1400`'s
+  already-`NOT MET` region-materialization cost (78,860–81,792 cycles measured) means any new
+  per-frame combat logic that runs on the *same* frame as a region-materialization transition
+  would compound an already-over-budget frame, not merely consume fresh headroom. This NFR states
+  the bar (a direct measurement is required, on both a combat-only frame and a frame where combat
+  logic and region materialization coincide, if that coincidence is reachable) — it does not
+  itself confirm compliance, mirroring `NFR-1400`'s own "states the bar, doesn't assume it" shape.
+- **Rationale:** `R115` §Implementation Guidance ("any new per-frame combat logic must be
+  measured against the *already-consumed* portion of the frame budget, not the nominal ceiling
+  alone"); `ADS-002` §System Architecture (Cycle budget).
+- **Priority:** Must (target — not yet implemented; measurement owed once a real implementation
+  exists)
+- **Inputs:** The combat sub-mode's own per-frame logic (mob AI, projectile update, hit-test).
+- **Outputs:** A direct cycle-count measurement, mirroring `NFR-1400`'s own PC/SP-hijack
+  cycle-counting methodology.
+- **Preconditions:** `COMBAT_MODE` active.
+- **Postconditions:** The measurement is recorded honestly (Met/Not Met), whichever it is — this
+  NFR does not require compliance to close, only an honest measurement, mirroring `NFR-1400`'s
+  own precedent.
+- **Acceptance Criteria:** Direct cycle-counting of combat-mode per-frame logic, on both a
+  combat-only frame and (if reachable) a frame coinciding with region materialization, is
+  performed and recorded before the owning implementation package is considered `COMPLETE`.
+- **Verification Method:** Analysis (cycle-counting, mirroring `NFR-1400`/`IP-1102`'s own
+  established methodology).
+- **Source Documents:** `R115` §Implementation Guidance; `ADS-002` §System Architecture.
+- **Related ADRs:** None.
+- **Notes:** Whichever stage-08 package implements combat's per-frame logic owns this
+  measurement, per `NFR-1400`'s own precedent — not resolved or assumed here.
 
 ## Reliability
 
@@ -498,6 +542,41 @@
   the shared-ostinato transform option is later adopted, per `ADR-0019` point 5's own explicit
   deferral, or arc (3)'s own `IP-1022`/`IP-1106` land and consume more headroom than expected),
   this NFR's own Status must be re-measured, not assumed to still hold.
+
+### NFR-4500 — Combat sub-mode ROM and OAM budget (target — 2026-07-17, `BL-0133`)
+
+- **ID:** NFR-4500
+- **Title:** The combat sub-mode's mob/projectile sprites, weapon-fire logic, and health HUD
+  shall fit within the ROM's confirmed headroom and the shadow-OAM's confirmed sprite-entry
+  headroom, without assuming either is unlimited.
+- **Description:** `R115`'s own direct measurement of the current tree (post-`IP-9170`/`IP-9180`)
+  found 1,378 bytes of ROM headroom and 31 of 40 shadow-OAM entries free (9 used: 1 player + up
+  to 8 collectibles). This NFR requires the combat sub-mode's own implementation to be measured
+  against these real figures, not an assumed-unlimited budget — mirroring `NFR-4400`'s own
+  "sized against a real measurement, not assumed free" discipline.
+- **Rationale:** `R115` §Operational Context/§Implementation Guidance (the 31-entry OAM headroom
+  and 1,378-byte ROM headroom figures, directly measured); `ADS-002` §System Architecture (ROM
+  budget, Sprite budget).
+- **Priority:** Must (target — not yet implemented)
+- **Inputs:** The combat sub-mode's own tile art, code, and per-mob/projectile OAM entry count.
+- **Outputs:** A built ROM remaining exactly 32768 bytes; a worst-case concurrent OAM entry count
+  confirmed within the 40-entry shadow-OAM budget.
+- **Preconditions:** None (a build-time/implementation-time property).
+- **Postconditions:** The built ROM is exactly 32768 bytes; worst-case concurrent sprite use
+  (player + collectibles + mobs + projectile) stays within 40 OAM entries.
+- **Acceptance Criteria:** After implementation, direct measurement confirms the ROM builds at
+  exactly 32768 bytes and the worst-case concurrent OAM entry count (mirroring `T1.12`'s own
+  established collectible-count-ceiling audit methodology) stays at or below 40. If either figure
+  is exceeded, further ROM-efficiency work (mirroring `ADR-0020`) or `ADR-0011`'s committed
+  bank-switching cutover is required before this NFR can close — not assumed to fit.
+- **Verification Method:** Inspection (ROM-byte-usage + OAM-entry-count measurement at
+  implementation, mirroring `NFR-4400`/`T1.12`'s own precedent).
+- **Source Documents:** `R115` §Operational Context; `ADS-002` §System Architecture.
+- **Related ADRs:** `ADR-0011` (the committed-but-unimplemented bank-switching fallback), `ADR-0020`
+  (the ROM-efficiency precedent).
+- **Notes:** The 6-concurrent-mob default `ADS-002`/`FR-11200` name is derived from this NFR's own
+  measured headroom (6 mobs + 1 projectile = 7 new entries, leaving 24 free) — a real figure, not
+  an assumption; any change to the mob-count default should re-derive this arithmetic.
 
 ## Data Integrity
 

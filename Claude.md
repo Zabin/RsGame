@@ -76,7 +76,7 @@ per zone, victory at `CARROTS_COUNT == 9`. `CUR_ZONE` is `0–8`; `CARROT_FLAGS`
 
 ---
 
-## Known Good Behavior (Baseline + Release 1 — assessed GO 2026-07-10; Release 2 — assessed GO 2026-07-12)
+## Known Good Behavior (Baseline + Release 1 — assessed GO 2026-07-10; Release 2 — assessed GO 2026-07-12; Release 2 addendum — assessed GO 2026-07-17)
 
 > Release readiness: **GO** ([release-assessment-bootstrap-tranche.md](docs/reviews/release-assessment-bootstrap-tranche.md));
 > **Release 2 (procedural world + visual narrative, bundled with all post-ship remediation):
@@ -84,7 +84,16 @@ per zone, victory at `CARROTS_COUNT == 9`. `CUR_ZONE` is `0–8`; `CARROT_FLAGS`
 > ([release-assessment-release-2-bundled.md](docs/reviews/release-assessment-release-2-bundled.md))
 > — one named exception carried forward: `FEAT-2100`'s maze-aware edge-signaling shipped its
 > classification logic only, the visual rendering half is not yet built (`BL-0075`).
-> Everything below is shipped, `VERIFIED`, and integration-reviewed clean.
+> **Release 2 addendum (Infinite Mode + nine biome-family identities + procedural music):
+> GO, user-confirmed 2026-07-17**
+> ([release-assessment-infinite-mode-and-nine-biome-family-delta.md](docs/reviews/release-assessment-infinite-mode-and-nine-biome-family-delta.md))
+> — twelve packages shipped: Infinite Mode (`FEAT-10000`, a new game mode alongside the original
+> finite mode — seed/scale still fixed at new-game creation, but the world streams indefinitely
+> instead of stopping at a bounded grid); the finite-mode biome-family taxonomy widened from 5 to
+> 9 identities (folding the original Village/Cave/Desert/Plains zone art back in); procedural
+> per-biome music sub-themes. Everything below (the bulleted list) still describes only the
+> pre-Release-2 fixed-9-zone model, per the pre-existing staleness note below (`BL-0091`) — not
+> re-authored by this GO, which is a trackers/status flip only.
 >
 > **Staleness flagged, not fixed here:** the bulleted behavior list immediately below still
 > describes the pre-Release-2 fixed-9-zone/9-carrot/3×3-map model. Release 2 replaced world

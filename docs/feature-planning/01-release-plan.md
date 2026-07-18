@@ -11,9 +11,15 @@
 > (edge-indicator legend screen, `FEAT-1200` joins Release 2 as a second addendum, `CR-06`/
 > `BL-0100`); delta 2026-07-14 (Infinite Mode, `FEAT-10000` joins Future, `ADS-001`/`ADR-0016`/
 > `ADR-0017`/`BL-0082`); delta 2026-07-16 (Procedural Music Generation, `FEAT-7100` joins Future,
-> `ADR-0019`/`BL-0127`).** Owned by
+> `ADR-0019`/`BL-0127`); **delta 2026-07-17 — `FEAT-10000` + `FEAT-7100` + the `FR-4320`
+> nine-biome-family-identity delta move Future → Release 2 as a third addendum, assessed **GO**,
+> user-confirmed
+> ([release-assessment-infinite-mode-and-nine-biome-family-delta.md](../reviews/release-assessment-infinite-mode-and-nine-biome-family-delta.md))**;
+> delta 2026-07-17 (cont'd) (`FEAT-11000`, Infinite Mode combat sub-mode, joins Future,
+> `BL-0133`/`ADS-002`/`MSTR-001` C11).**
+> Owned by
 > `05-feature-decomposition`. Assigns every Feature
-> in [FP-03](03-feature-catalog.md) (now eighteen) to exactly one bucket, using
+> in [FP-03](03-feature-catalog.md) (now nineteen) to exactly one bucket, using
 > [FP-04](04-feature-dependency-graph.md)'s dependency analysis. **Bootstrap framing: seven of
 > eight bootstrap-baseline Features are already shipped** (FEAT-5100 shipped and verified
 > 2026-07-07, correcting this document's prior "no shipped implementation" framing — `BL-0036`).
@@ -109,6 +115,25 @@ Step 4 already established: the fixed bucket vocabulary has no "Release 3."
 Independent of the `ADR-0012` addendum's own ordering constraint (`FEAT-9100` before `FEAT-2100`)
 — `FEAT-1200` can proceed in parallel with either, per FP-04's own dependency analysis.
 
+### Release 2 addendum — Infinite Mode, nine biome-family identities, procedural music (added 2026-07-17, GO)
+
+Three streams of Future-bucket scope, all fully implemented, `VERIFIED`, and integration-reviewed
+clean by 2026-07-17, moved here on the project owner's explicit GO
+([release-assessment-infinite-mode-and-nine-biome-family-delta.md](../reviews/release-assessment-infinite-mode-and-nine-biome-family-delta.md)) —
+mirroring the identical "no Release 3" reasoning `FEAT-1200`'s own addendum above already
+established.
+
+| Feature/Delta | Why here |
+|---|---|
+| FEAT-10000 (Infinite Mode) | Fully shipped: all five packages (`IP-1100`–`IP-1104`) `VERIFIED`, integration-reviewed clean ([integration-review-infinite-mode-tranche.md](../reviews/integration-review-infinite-mode-tranche.md)). |
+| `FR-4320` delta (nine biome-family identities, folding into `FEAT-9000`/`FEAT-4100`'s existing scope, not a new Feature) | Fully shipped: `IP-1105`/`IP-1033`/`IP-1022`/`IP-1106`, all `VERIFIED`. |
+| FEAT-7100 (Procedural Music Generation) | Fully shipped: `IP-1110`/`IP-1111`, both `VERIFIED`. Its own prior blocker (verification against all nine biome-family identities) is resolved now that the `FR-4320` delta above has shipped. |
+| Remediations `BL-0138` (`IP-9160`)/`BL-0134` (`IP-9150`) | Riding the same window — both `VERIFIED`. |
+
+All twelve packages across this addendum, both integration reviews (this one plus the earlier
+Infinite Mode tranche review), and the Release Assessment above are the evidence base for this
+GO. See that assessment for the full scope audit, deviations, and residual risks.
+
 ## Bucket: Future
 
 Two kinds of item live here: program-level concerns not yet decomposed into a Feature at all, and
@@ -142,27 +167,14 @@ inventing requirements:
 
 ### Decomposed, not yet scheduled
 
-- **FEAT-10000 (Infinite Mode)** — added 2026-07-14, per `ADS-001`/`ADR-0016`/`ADR-0017`
-  (`BL-0082`, user-directed adoption). Fully decomposed (see [FP-03](03-feature-catalog.md)) with
-  a complete FR/NFR baseline and zero graph-blocking dependencies (all five of its own
-  dependencies are already shipped/`VERIFIED`, per [FP-04](04-feature-dependency-graph.md)) — it
-  is placed in Future rather than a numbered Release **not because anything blocks it technically,
-  but because no release commitment has been made**: this is exploratory, owner-initiated scope
-  with no MSTR-001 commitment driving it and no G3 authorization on record. Ready to move to a
-  real Release bucket the moment the project owner decides to schedule it — `06-feature-
-  specification` can proceed against it in the meantime regardless of bucket, per this pipeline's
-  own stage ordering (bucket assignment doesn't gate specification, only implementation
-  authorization, G3).
-- **FEAT-7100 (Procedural Music Generation)** — added 2026-07-16, per `ADR-0019` (`BL-0127`,
-  project-owner-requested). Fully decomposed (see [FP-03](03-feature-catalog.md)) with a complete
-  FR/NFR baseline (`FR-7100`/`FR-7110`/`NFR-4400`). Placed in Future for the same reason
-  `FEAT-10000` is: exploratory, owner-initiated scope with no `MSTR-001` commitment and no G3
-  authorization on record — not a technical block on specification. Its own build-time generation
-  half has zero graph-blocking dependencies; its runtime selection half has a real (not merely
-  bucket-driven) blocker of its own — it cannot be fully verified against all nine biome-family
-  identities until `FR-4320`'s own four implementation packages ship, and, separately, until
-  `FEAT-10000` itself is scheduled if Infinite Mode's own playback is to be verified too (see
-  [FP-04](04-feature-dependency-graph.md)'s critical-path note on this Feature).
+`FEAT-10000` and `FEAT-7100` moved out of this section 2026-07-17 — see the new Release 2
+addendum above.
+
+| Feature | Why here |
+|---|---|
+| FEAT-11000 (Infinite Mode Combat Sub-Mode) | Not yet implemented. All three of its own dependencies (`FEAT-10000`, `FEAT-3000`, `FEAT-6000`) are already shipped/`VERIFIED` — zero graph-blocking dependencies, per FP-04. Placed in `Future`, mirroring `FEAT-10000`'s own original placement before its GO, purely a release-commitment choice, not a technical one: this is a substantially larger body of new production code (mob AI, projectile physics, health/damage, a second economy, a save-format extension) than any Feature currently scheduled, and the pipeline journal (run #228) recorded a deliberate checkpoint here rather than assuming continued scope without the user weighing in. |
+
+Nothing else remains in this subsection at present.
 
 ## Callouts
 
@@ -197,7 +209,11 @@ inventing requirements:
   (Procedural Music Generation) is also fully decomposed and placed in Future** — unlike
   `FEAT-10000`, its runtime selection half carries a real technical blocker in addition to the
   no-release-commitment reason (see its own Future-bucket entry above); its build-time generation
-  half shares `FEAT-10000`'s own commitment-only framing.
+  half shares `FEAT-10000`'s own commitment-only framing. **`FEAT-11000` (Infinite Mode Combat
+  Sub-Mode, added 2026-07-17) is also fully decomposed and placed in Future** — zero
+  graph-blocking dependencies (all three shipped/`VERIFIED`), same commitment-only framing as
+  `FEAT-10000` originally carried, deliberately not auto-scheduled given the scope of the eventual
+  production code it represents.
 
 ## Sequencing note
 

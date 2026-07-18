@@ -760,6 +760,48 @@ check("T8.10b HUD carrot-count digit reflects forced CARROTS_COUNT=5 within 2 fr
 pb.memory[CARROTS_COUNT] = carrots_pre; pb.memory[SCORE_DIRTY] = 1
 [pb.tick() for _ in range(2)]
 
+# T8.10c/d/e (IP-9170, BL-0139): HUD carrot-target digit (row 0, col 4,
+# 0x9804) must track WORLD_SCALE at runtime in finite mode -- previously
+# baked to a literal "9" regardless of the real win condition
+# (CARROTS_COUNT == WORLD_SCALE, IP-1021). Two non-default, non-corpus-
+# default scale values (this suite's own default fixture scale is 3) so
+# the check can't pass vacuously against the pre-existing bug.
+world_scale_pre = pb.memory[WORLD_SCALE]
+pb.memory[WORLD_SCALE] = 5; pb.memory[SCORE_DIRTY] = 1
+[pb.tick() for _ in range(2)]
+td5 = pb.memory[0x9804] - TL_DIGIT_0
+check("T8.10c HUD carrot-target digit reflects forced WORLD_SCALE=5 within 2 frames (IP-9170)",
+      td5 == 5, f"digit={td5}")
+pb.memory[WORLD_SCALE] = 7; pb.memory[SCORE_DIRTY] = 1
+[pb.tick() for _ in range(2)]
+td7 = pb.memory[0x9804] - TL_DIGIT_0
+check("T8.10d HUD carrot-target digit reflects forced WORLD_SCALE=7 within 2 frames (IP-9170)",
+      td7 == 7, f"digit={td7}")
+# T8.10e/f (IP-9180, BL-0144): in Infinite Mode, col 4 shows
+# RUNNING_TREASURE_COUNT's low byte reduced mod 10 -- WORLD_SCALE changes
+# must NOT affect it once GAME_MODE=1 (the IP-9170/IP-9180 branch split),
+# and the digit must correctly wrap past 9 (a value >=10 proves the mod-10
+# reduction runs, not just a raw low-nibble read).
+rtc_pre = pb.memory[0xC405]
+pb.memory[GAME_MODE] = 1; pb.memory[WORLD_SCALE] = 6
+pb.memory[0xC405] = 7; pb.memory[SCORE_DIRTY] = 1
+[pb.tick() for _ in range(2)]
+td_inf7 = pb.memory[0x9804] - TL_DIGIT_0
+check("T8.10e Infinite Mode HUD digit reflects RUNNING_TREASURE_COUNT=7 within 2 frames (IP-9180)",
+      td_inf7 == 7, f"digit={td_inf7}")
+pb.memory[0xC405] = 13; pb.memory[SCORE_DIRTY] = 1
+[pb.tick() for _ in range(2)]
+td_inf13 = pb.memory[0x9804] - TL_DIGIT_0
+check("T8.10f Infinite Mode HUD digit wraps correctly for RUNNING_TREASURE_COUNT=13 -> 3 (IP-9180)",
+      td_inf13 == 3, f"digit={td_inf13}")
+pb.memory[GAME_MODE] = 0
+pb.memory[0xC405] = rtc_pre
+pb.memory[WORLD_SCALE] = world_scale_pre; pb.memory[SCORE_DIRTY] = 1
+[pb.tick() for _ in range(2)]
+td_fin_regress = pb.memory[0x9804] - TL_DIGIT_0
+check("T8.10g Finite mode non-regression: WORLD_SCALE digit unaffected by IP-9180's Infinite Mode branch",
+      td_fin_regress == world_scale_pre, f"digit={td_fin_regress} expected={world_scale_pre}")
+
 # Map hearts (BL-0001 closure): z0 heart full, z1 heart empty.
 # update_map_hearts writes 0x9800 + {6,9,12}*32 + {6,11,16}, LCD off during redraw.
 pb.button('select'); [pb.tick() for _ in range(40)]
@@ -1225,11 +1267,13 @@ _ARROW_EXCLUDE_RC = {(1, 15), (16, 15), (9, 1), (9, 18)}   # up/down/left/right
 # IP-9160: row 0 is now compared too (the zone-name region is real
 # per-screen oracle content — its wholesale exclusion masked BL-0138's
 # stale-name defect). Only the live digit cells update_status_disp
-# rewrites at runtime are excluded: col 2 (carrot count), cols 8-10
-# (score) — inventoried by direct read of every row-0 writer
-# (_score_bar's own placeholders are static; update_status_disp is the
-# sole runtime row-0 writer, tile plane only).
-_ROW0_DYNAMIC_RC = {(0, 2), (0, 8), (0, 9), (0, 10)}
+# rewrites at runtime are excluded: col 2 (carrot count), col 4
+# (carrot-target, IP-9170 -- finite mode only, but this suite always
+# advances via advance_to_playing's finite path), cols 8-10 (score) —
+# inventoried by direct read of every row-0 writer (_score_bar's own
+# placeholders are static; update_status_disp is the sole runtime row-0
+# writer, tile plane only).
+_ROW0_DYNAMIC_RC = {(0, 2), (0, 4), (0, 8), (0, 9), (0, 10)}
 def full_screen_tiles_attrs(pb):
     tiles = [pb.memory[0x9800 + r*32 + c] for r in range(0, 18) for c in range(32)]
     pb.memory[0xFF4F] = 1
@@ -3691,6 +3735,47 @@ check("T28.e Timing: the sub-theme repoint lands with the redraw itself (within 
       f"frames={_t28e_frames}")
 pb.stop()
 wipe_save()
+
+print("\n=== T34: Combat Sub-Mode — Sprite Content (IP-1125) ===")
+
+import build_rom as _build_rom_mod
+
+_t34_data = _tiles_mod.build_tile_data()
+def _t34_tile_bytes(idx):
+    return _t34_data[idx * 16:(idx + 1) * 16]
+
+_t34_mob = bytes(_t34_tile_bytes(_tiles_mod.TL_MOB))
+_t34_mob_bot = bytes(_t34_tile_bytes(_tiles_mod.TL_MOB_BOT))
+_t34_proj = bytes(_t34_tile_bytes(_tiles_mod.TL_PROJECTILE))
+_t34_proj_bot = bytes(_t34_tile_bytes(_tiles_mod.TL_PROJECTILE_BOT))
+check("T34.a Tile indices: TL_MOB/TL_MOB_BOT/TL_PROJECTILE/TL_PROJECTILE_BOT sit at 0x0A-0x0D exactly",
+      (_tiles_mod.TL_MOB, _tiles_mod.TL_MOB_BOT,
+       _tiles_mod.TL_PROJECTILE, _tiles_mod.TL_PROJECTILE_BOT) == (0x0A, 0x0B, 0x0C, 0x0D),
+      f"got={(_tiles_mod.TL_MOB, _tiles_mod.TL_MOB_BOT, _tiles_mod.TL_PROJECTILE, _tiles_mod.TL_PROJECTILE_BOT)}")
+
+check("T34.b Registered: TL_MOB/TL_PROJECTILE tile data matches mob_obj()/projectile_obj() exactly; both bottom halves are blank",
+      _t34_mob == bytes(_tiles_mod.mob_obj())
+      and _t34_proj == bytes(_tiles_mod.projectile_obj())
+      and _t34_mob_bot == bytes(_tiles_mod.ui_blank())
+      and _t34_proj_bot == bytes(_tiles_mod.ui_blank()),
+      "mismatch against tiles.py's own generator functions")
+
+_t34_existing_obj = {
+    'bunny_t': bytes(_t34_tile_bytes(_tiles_mod.TL_BUNNY_T_F1)),
+    'bunny_b': bytes(_t34_tile_bytes(_tiles_mod.TL_BUNNY_B_F1)),
+    'carrot':  bytes(_t34_tile_bytes(_tiles_mod.TL_CARROT)),
+    'star':    bytes(_t34_tile_bytes(_tiles_mod.TL_STAR)),
+    'flower':  bytes(_t34_tile_bytes(_tiles_mod.TL_FLOWER_OBJ)),
+}
+_t34_dupes = [name for name, data in _t34_existing_obj.items()
+              if data == _t34_mob or data == _t34_proj]
+check("T34.c Distinctness: mob/projectile art is visually distinct (byte-for-byte) from every existing OBJ tile and from each other",
+      _t34_dupes == [] and _t34_mob != _t34_proj,
+      f"dupes={_t34_dupes} mob==proj:{_t34_mob == _t34_proj}")
+
+check("T34.d Palette budget: OBJ_PALETTES table still holds exactly 8 fixed-size entries (mob/projectile reuse the two previously-placeholder 'unused/white' slots, no new slot added)",
+      len(_build_rom_mod.OBJ_PALETTES) == 8 and all(len(p) == 4 for p in _build_rom_mod.OBJ_PALETTES),
+      f"count={len(_build_rom_mod.OBJ_PALETTES)}")
 
 # ══════════════════════════════════════════════════════
 # SUMMARY

@@ -13,8 +13,8 @@ is closed with its decision recorded in prose. Status here and in `ROADMAP.md` m
 
 | Level | Title | File | Status |
 |---|---|---|---|
-| GDS-00 | Vision (owned by `01-vision`) | [00-vision.md](00-vision.md) | ✅ Authored (gate closed 2026-07-06; revised 2026-07-06 and again 2026-07-09 for MSTR-001 v3.0, see MSTR-001 §8) |
-| GDS-01 | Concept of Play | [01-concept-of-play.md](01-concept-of-play.md) | ✅ Authored (gate closed 2026-07-06; delta 2026-07-09 for procgen-world increment, §§2a/3a/4a/4b; delta 2026-07-13 §4c — `SELECT` becomes a small menu (`MAP`/`LEGEND`), target state, `CR-06`/`BL-0100`; delta 2026-07-14 §4d — new-game mode choice (Finite/Infinite) via `MODE SELECT`, target state, `BL-0113`) |
+| GDS-00 | Vision (owned by `01-vision`) | [00-vision.md](00-vision.md) | ✅ Authored (gate closed 2026-07-06; revised 2026-07-06, 2026-07-09 for MSTR-001 v3.0, and 2026-07-17 for v4.0's C11 dual-audience carve-out — see MSTR-001 §8/§8a) |
+| GDS-01 | Concept of Play | [01-concept-of-play.md](01-concept-of-play.md) | ✅ Authored (gate closed 2026-07-06; delta 2026-07-09 for procgen-world increment, §§2a/3a/4a/4b; delta 2026-07-13 §4c — `SELECT` becomes a small menu (`MAP`/`LEGEND`), target state, `CR-06`/`BL-0100`; delta 2026-07-14 §4d — new-game mode choice (Finite/Infinite) via `MODE SELECT`, target state, `BL-0113`; delta 2026-07-17 §4e — combat sub-mode's own `COMBAT MODE CONFIRM` gating state, target state, `BL-0146`/`ADS-002`/`MSTR-001` C11) |
 | GDS-02 | System Context | [02-system-context.md](02-system-context.md) | ✅ Authored (gate closed 2026-07-06) |
 | GDS-03 | Architecture | [03-architecture.md](03-architecture.md) | ✅ Authored (gate closed 2026-07-06) |
 | GDS-04 | Domain Model | [04-domain-model.md](04-domain-model.md) | ✅ Authored (gate closed 2026-07-06; delta 2026-07-09 for procgen-world increment — Seed/WorldScale/Region/KeyItem; delta 2026-07-10 — SaveGame bullet corrected, BL-0033; delta 2026-07-12 — `KeyItem` cardinality/win-condition corrected, `ADR-0015`) |
@@ -34,6 +34,7 @@ file.
 | ID | Cluster | File | Status |
 |---|---|---|---|
 | [ADS-001](ADS-001-streaming-infinite-world-generation.md) | Streaming, positionally-deterministic world generation for a new, additive Infinite Mode (`BL-0082`) | [ADS-001-streaming-infinite-world-generation.md](ADS-001-streaming-infinite-world-generation.md) | ✅ Authored (2026-07-13; produces `ADR-0016`/`ADR-0017`) |
+| [ADS-002](ADS-002-infinite-mode-combat-sub-mode.md) | Infinite Mode combat sub-mode: mobs + treasure-fed ranged weapon (`BL-0133`) | [ADS-002-infinite-mode-combat-sub-mode.md](ADS-002-infinite-mode-combat-sub-mode.md) | ✅ **All eight Open Questions resolved or committed as adjustable defaults, 2026-07-17** (`MSTR-001` C11; `R218`/`R115` research; concrete architecture: 6-slot mob WRAM table, single-slot projectile, MODE SELECT "COMBAT MODE" gating option, A-button fire input, poof-defeat + reused heart-tile HUD; user decisions: treasure spent on healing, no weapon ammo/durability, non-lethal setback fail state, combat state persists across save/load). Still produces no `FS-xxx`/`FR-xxxx` — that's `04`/`06`'s own job next. |
 
 ## §3 — Vision-layer artifacts owned by `01-vision`
 

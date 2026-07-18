@@ -62,8 +62,8 @@ OBJ_PALETTES = [
     [BLACK, OB_LITE_YEL, OB_GOLD,     OB_PURPLE  ],   # 1 star
     [BLACK, OB_LITE_PNK, OB_HOT_PNK,  OB_PURPLE  ],   # 2 flower
     [BLACK, OB_LITE_ORG, OB_ORANGE,   OB_LEAF    ],   # 3 carrot
-    [BLACK, WHITE,       OB_LITE_PNK, OB_HOT_PNK ],   # 4 unused / cursor
-    [BLACK, WHITE,       WHITE,       WHITE      ],
+    [BLACK, OB_LITE_PUR, OB_PURPLE,   OB_HOT_PNK ],   # 4 mob (IP-1125)
+    [BLACK, OB_LITE_YEL, OB_GOLD,     OB_ORANGE  ],   # 5 projectile (IP-1125)
     [BLACK, WHITE,       WHITE,       WHITE      ],
     [BLACK, WHITE,       WHITE,       WHITE      ],
 ]
