@@ -1714,3 +1714,51 @@ package's own build confirms it (see each package's own Risks field).
 **Authorization:** **all six packages AUTHORIZED** (G3, user "Yes, build all six," 2026-07-17).
 Build order: `IP-1125` → `IP-1121` → `IP-1122`/`IP-1123` (parallel) → `IP-1124`; `IP-1120` in
 parallel once `IP-1121` lands.
+
+### `IP-1120` re-plan — ROM-budget remediation (`BL-0153`, 2026-07-18)
+
+`IP-1120` was implemented by `08-code-implementation` on 2026-07-18, exactly per its own §6, and
+found structurally correct — but a full build overflowed the 32768-byte ROM by 542 bytes. The
+package's own §13 Risks cited the 1,378-byte headroom figure from this TWBS's own line above,
+current when `IP-1120` was first planned (2026-07-17) but stale by the time it was built: `IP-1122`
+and `IP-1123` had since landed (2026-07-18), leaving only 866 bytes. More load-bearing than the
+stale figure: the package's own `combat_mode_confirm_screen()` — despite reusing existing font
+tiles and palette 2, "zero new tile art or palette entries" per its own §6 — still had to pay the
+**fixed per-screen `ALL_SCREENS` array cost** (576 tile bytes + 576 attr bytes = 1,152 bytes),
+since `build_rom.py`'s own screen-emission loop (`for name, fn in ALL_SCREENS: ... rom.emit(b)`)
+has no special case for content novelty — it emits a full array per registered entry regardless.
+This is the exact same class of gap `BL-0134` already surfaced for `IP-1022`'s four new
+finite-mode screens, and this planning pass repeats that precedent's own remediation shape rather
+than re-deriving it from scratch: check for a mechanical recovery first, escalate to a design
+change only if none suffices.
+
+**Mechanical recovery checked and ruled out:** `TILE_DATA_TILES`'s own trim slack (the technique
+`IP-9150` already used once) is at most ~48 bytes today (a handful of unused trailing tile slots)
+— nowhere near the 542-byte shortfall.
+
+**`ADR-0020`'s procedural-fill technique checked and ruled out:** that pattern compresses a
+*repeating terrain formula* (a per-tile modulo computation) into a small parameter block plus a
+runtime fill loop — it fits `IP-1022`'s four biome screens because their content **is** a formula.
+`COMBAT MODE CONFIRM`'s content is four lines of static menu text on a blank background; there is
+no repeating formula to extract, so this technique does not apply here.
+
+**Design change adopted:** `COMBAT MODE CONFIRM` does **not** register its own `ALL_SCREENS`
+entry at all. Instead it **reuses `mode_select_screen`'s own already-registered tile/attr array**
+as its base (the two states share almost the entire static layout — blank background, the same
+border rows 2/14, the same row-7/row-9 label positions) and draws its own differing text (the
+title plus the "NO"/"YES" labels) **at runtime**, overlaying the reused "BUNNY QUEST"/"FINITE"/
+"INFINITE" text — the same "static base + a small runtime overlay" technique `draw_sse_digits`/
+`draw_ise_digits` already use for their own dynamic digit content, just applied to a small
+fixed-literal string instead of a computed digit. This costs three tiny inline data blobs (12 + 6
++ 8 = 26 bytes, the row-7/row-9 blobs padded with blank tiles so a shorter replacement string
+fully overwrites the longer original with no separate blank pass) plus a `memcpy`-based writer
+(reusing the existing `memcpy` subroutine verbatim) — on the order of 90-100 bytes total, against
+`combat_mode_confirm_screen()`'s own 1,152-byte array cost. Net effect: `IP-1120`'s own total ROM
+growth drops from ~1,408 bytes (1,152 screen + ~256 code) to roughly 260-320 bytes, comfortably
+inside the 866-byte headroom with several hundred bytes to spare. `tilemaps.py` is removed from
+this package's own file set entirely — `combat_mode_confirm_screen()`/`ALL_SCREENS` are no longer
+touched. See the re-planned package's own §5/§6/§13 for the full mechanism.
+
+**Supersession-sweep note:** this re-plan does not retire or generalize any existing model — it
+narrows `IP-1120`'s own original design to avoid a cost the original design didn't need to pay,
+with no change to any other package's own interface or assumption. No sweep re-run needed.

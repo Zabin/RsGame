@@ -494,6 +494,99 @@ would fail to hide a defeated mob's stale OAM entry) both operate on this block 
 `MOB_COUNT`) but has no call site yet — `IP-1122`'s own hit-resolution logic is the real future
 caller. 32 bytes total, comfortably inside the confirmed bank-0 headroom.
 
+**`IP-1122` implemented 2026-07-18** — `inf_mob_defeat` now has its own call site
+(`inf_projectile_hittest`, §7j below), closing the "future caller" note above.
+
+### 7j. Combat Sub-Mode: ranged weapon/projectile WRAM — `IP-1122` (confirmed 2026-07-18)
+
+First unclaimed bytes past `MOB_DATA`'s own end (`0xC6D4`, §7i). `PROJ_ACTIVE` boot-cleared
+(same `COLL_COUNT`/`MOB_COUNT` "count/flag gates array validity" convention); `WEAPON_TIER`
+boot-*initialized* to 1, not simply cleared — its valid range is 1-3, and the treasure-funded
+mechanism that would ever raise it above 1 has no baselined FR yet (`BL-0147`, unresolved by this
+package).
+
+| Address | Name | Size | Purpose |
+|---|---|---|---|
+| `C6D5` | `PROJ_ACTIVE` | 1 byte | 0=no projectile in flight (default), 1=active |
+| `C6D6` | `PROJ_X` | 1 byte | projectile's own X, independent of `PLAYER_X` once fired |
+| `C6D7` | `PROJ_Y` | 1 byte | projectile's own Y, fixed at its spawn value (horizontal-only movement, see `PROJ_DIR`) |
+| `C6D8` | `PROJ_DIR` | 1 byte | 0=right, 1=left — mirrors `PLAYER_DIR`'s own real 2-value encoding (see note below) |
+| `C6D9` | `WEAPON_TIER` | 1 byte | damage dealt per hit, default 1, range 1-3 (persisted stat; funding mechanism not yet built) |
+
+**Named deviation from `IP-1122` §6's own phrasing:** the package's Files-to-Modify text
+describes `PROJ_DIR` as "0-3 mirroring the player's own facing-direction encoding," but direct
+code read confirms `PLAYER_DIR` is written only by `handle_play_input`'s RIGHT/LEFT branches
+(never UP/DOWN) — this codebase's own established "facing direction" concept is 2-state, not
+4-state. `FR-11300`'s own Notes explicitly delegate the exact facing-direction mechanism to
+`06`/`08` discretion, so this is a named implementation decision, not a blocker: the projectile
+moves purely horizontally. `handle_play_input`'s new fire branch (A-button-just-pressed,
+`COMBAT_MODE`-gated) spawns the projectile at the player's own position/facing;
+`inf_projectile_update` (hooked into `st_playing`'s per-frame chain, a no-op unless
+`COMBAT_MODE`/`PROJ_ACTIVE`) advances `PROJ_X` and calls `inf_projectile_hittest`, which reuses
+`check_collisions`' own asymmetric point-in-box technique verbatim (unmodified) against
+`MOB_DATA`, subtracting `WEAPON_TIER` from a hit mob's health (floored at 0, calling
+`inf_mob_defeat` at zero) and always stopping the projectile on any hit. 5 bytes total.
+
+### 7k. Combat Sub-Mode: player health & economy WRAM — `IP-1123` (confirmed 2026-07-18)
+
+First unclaimed bytes past `WEAPON_TIER`'s own end (`0xC6D9`, §7j). `PLAYER_HEALTH`
+boot-*initialized* to 3 (max), not simply cleared — a fresh combat session starts at full health.
+`COMBAT_ENTRY_X`/`Y` need no boot clear: `inf_record_combat_entry` runs at every
+`inf_ensure_window` call site (initial entry, all four `czt_infinite` transition branches, and
+the post-load restore path), so any read is always preceded by a same-or-earlier write.
+
+| Address | Name | Size | Purpose |
+|---|---|---|---|
+| `C6DA` | `PLAYER_HEALTH` | 1 byte | 0-3, default/max 3 (three heart cells, `R218`'s heart-container convention) |
+| `C6DB` | `COMBAT_ENTRY_X` | 1 byte | `PLAYER_X` at the last region-entry event — the zero-health setback's own return point |
+| `C6DC` | `COMBAT_ENTRY_Y` | 1 byte | `PLAYER_Y` at the last region-entry event |
+
+`inf_mob_contact_check` (hooked into `st_playing`'s per-frame chain, after
+`inf_projectile_update`) reuses `check_collisions`' own asymmetric point-in-box technique
+verbatim (mob position as the point, `PLAYER_X`/`Y` as the box — the same relationship
+`check_collisions` itself tests, unmodified) — on contact, decrements `PLAYER_HEALTH` by 1
+(fixed, not per-mob-type-scaled) and calls `inf_health_setback` at zero. `inf_health_setback`
+restores `PLAYER_HEALTH` to max and repositions to `COMBAT_ENTRY_X`/`Y`, never writing
+`GAMESTATE` (stays `PLAYING`, `FR-11400`'s own Postcondition — `MSTR-001` A5's fail-state-free
+base design holds inside `C11`'s own carve-out). `inf_heal_spend` (gated on `COMBAT_MODE` and
+`RUNNING_TREASURE_COUNT > 0`) decrements `RUNNING_TREASURE_COUNT` directly (no second ledger,
+`FR-11500`'s own Acceptance Criterion) and heals 1, capped at max — defined and exposed but
+**not yet called from anywhere**: the heal-spend action has no free input button (every existing
+button already claimed — D-pad movement, A now claimed by `IP-1122`'s fire input, B the universal
+cancel, START/SELECT both claimed by existing menus), a genuine gap tracked by `BL-0148`,
+unresolved. `inf_health_hud_draw` (hooked into `update_status_disp`, gated additionally on
+`COMBAT_MODE`) writes `TL_HEART_FULL`/`TL_HEART_EMPTY` across VRAM `0x9820`-`0x9822` (row 1,
+immediately below the row-0 score bar) per `PLAYER_HEALTH`'s current value — a no-op (zero VRAM
+writes) when `COMBAT_MODE` is off, so the base game's row-0-only HUD is completely unaffected.
+3 bytes total.
+
+### 7l. Combat Sub-Mode: mode gating & UI — `IP-1120` (confirmed 2026-07-18)
+
+First unclaimed byte past `COMBAT_ENTRY_Y`'s own end (`0xC6DC`, §7k). New `GAMESTATE` value
+`GS_COMBAT_MODE_CONFIRM = 12` (next free value following `GS_INFINITE_SEED_ENTRY = 11`, this
+project's own append-only numbering convention), reached only after confirming "infinite" on
+`MODE SELECT`, before `INFINITE SEED ENTRY`.
+
+| Address | Name | Size | Purpose |
+|---|---|---|---|
+| `C6DD` | `CMC_CURSOR` | 1 byte | this state's own Y/N cursor: 0="N" (default), nonzero="Y" — not a reuse of `MM_CURSOR`, since `MODE SELECT`'s own cursor must survive a B-cancel round trip through this state and back |
+
+**ROM-budget remediation (`BL-0153`, 2026-07-18):** the original design registered a new
+`combat_mode_confirm_screen()` in `ALL_SCREENS` — despite reusing existing font tiles and
+palette 2, the fixed per-screen tile+attr array cost (576+576 = 1,152 bytes, paid by every
+`ALL_SCREENS` entry regardless of content novelty) overflowed the ROM by 542 bytes against the
+866 bytes of headroom remaining after `IP-1122`/`IP-1123` — the same class of gap `BL-0134`
+already surfaced for `IP-1022`'s four new finite-mode screens. **Shipped design:** `dsr_cmc`
+(the `do_screen_redraw` dispatch entry for `GS_COMBAT_MODE_CONFIRM`) reuses `mode_select_
+screen`'s own already-registered tile/attr array as its base (`patches['cmc_t']`/`patches
+['cmc_a']` resolve to the *same* address pair `patches['ms_t']`/`patches['ms_a']` resolve to,
+not a new `screen_addrs` entry) and draws its own differing text — "COMBAT MODE?" (row 3),
+"NO"/"YES" (rows 7/9, replacing "BUNNY QUEST"/"FINITE"/"INFINITE") — at runtime via `memcpy`
+(reused verbatim) from three small inline literal-text blobs, the same "static base + runtime
+overlay" technique `draw_sse_digits`/`draw_ise_digits` already use for their own dynamic digit
+content. `tilemaps.py`/`ALL_SCREENS` are not touched by this package at all. Net ROM growth:
+~256 bytes (measured), against the original design's ~1,408 bytes.
+
 ### 8. Tile index map implication (cross-reference only — GDS-08 decides the actual strategy)
 
 **ADR-0009**'s biome-family `Region` identity (GDS-04's delta) needs tile budget per family,

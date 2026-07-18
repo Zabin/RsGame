@@ -2257,7 +2257,7 @@ none of FR-10000's own leaves are amended by this group. `FR-9000`'s finite mode
 - **Rationale:** `ADS-002` §System Architecture ("Gating Mechanism"); `MSTR-001` C11 ("opt-in,
   explicitly gated"); `R218`'s difficulty-gated-optional-content precedent (Double Dragon II,
   TimeSplitters 2 — a labeled choice, never a hidden toggle).
-- **Priority:** Must (target — not yet implemented)
+- **Priority:** Must (Implemented — 2026-07-18, `IP-1120`)
 - **Inputs:** A MODE SELECT choice.
 - **Outputs:** A new save with `COMBAT_MODE` enabled or disabled, fixed for that save's life
   (mirrors FR-9110/FR-10100's own immutability pattern).
@@ -2274,7 +2274,15 @@ none of FR-10000's own leaves are amended by this group. `FR-9000`'s finite mode
 - **Related ADRs:** None yet — `ADR-0007` (8×16 OBJ) governs any new sprite this capability adds,
   not the gating UI itself.
 - **Notes:** The exact MODE SELECT screen layout/wording is a `06-feature-specification`/
-  `08-content-authoring` decision, not fixed here.
+  `08-content-authoring` decision, not fixed here. **2026-07-18 (`IP-1120`):** implemented as a
+  new `GS_COMBAT_MODE_CONFIRM` state (binary Y/N cursor, defaults to N) reached only after
+  confirming "infinite" on `MODE SELECT`, before `INFINITE SEED ENTRY`. **ROM-budget remediation
+  (`BL-0153`):** the confirm screen reuses `mode_select_screen`'s own already-registered
+  tile/attr array as its base rather than registering a second full `ALL_SCREENS` entry, drawing
+  its own differing text ("COMBAT MODE?"/"NO"/"YES") at runtime via `memcpy` — the original
+  design overflowed the ROM by 542 bytes; this technique costs ~256 bytes instead. `T33.a`–`h`
+  verify the gating behavior, the finite path's non-regression, and the reused-array technique's
+  own non-corruption.
 
 ### FR-11200 — Mob presence, materialization, and defeat
 
@@ -2338,7 +2346,7 @@ none of FR-10000's own leaves are amended by this group. `FR-9000`'s finite mode
 - **Rationale:** `ADS-002` §System Architecture (ranged weapon, hit-test); `R115` (no hardware
   collision detection — software point-in-box, reusing `check_collisions`' own established
   technique).
-- **Priority:** Must (target — not yet implemented)
+- **Priority:** Must (Implemented — 2026-07-18, `IP-1122`)
 - **Inputs:** The fire input; the player's current position/facing direction.
 - **Outputs:** A moving projectile entity; mob health reduction on hit.
 - **Preconditions:** `COMBAT_MODE` active; `GAMESTATE == PLAYING`.
@@ -2357,7 +2365,18 @@ none of FR-10000's own leaves are amended by this group. `FR-9000`'s finite mode
 - **Related ADRs:** None.
 - **Notes:** The exact fire-input binding (A button, confirmed free during `PLAYING` by direct
   code read as of `ADS-002`'s own pass) and weapon-power scaling (FR-11500) are `06`/`08`
-  decisions this FR states at the observable-behavior level only.
+  decisions this FR states at the observable-behavior level only. **2026-07-18 (`IP-1122`):**
+  implemented as `handle_play_input`'s new A-button fire branch, `inf_projectile_update`
+  (per-frame movement, hooked into `st_playing`), and `inf_projectile_hittest` (reuses
+  `check_collisions`' own asymmetric point-in-box technique verbatim, unmodified). **Named
+  deviation:** `PROJ_DIR` mirrors `PLAYER_DIR`'s own real 2-value encoding (0=right, 1=left) —
+  direct code read confirms `PLAYER_DIR` is written only by `handle_play_input`'s RIGHT/LEFT
+  branches, never UP/DOWN, so this codebase's own established "facing direction" concept is
+  2-state, not the 4-state range `IP-1122` §6 assumed; this FR's own Notes explicitly delegate
+  the exact mechanism to `06`/`08` discretion, so the projectile moves horizontally only. `T30.a`–
+  `e` (+ spot check `T30.c2`) verify fire/no-double-fire/hit/miss/`COMBAT_MODE`-off. `WEAPON_TIER`
+  ships as a persisted, fixed-default (1) stat — its own treasure-funded upgrade mechanism remains
+  the known gap tracked by `BL-0147`, unresolved by this package.
 
 ### FR-11400 — Player health and non-lethal setback
 
@@ -2372,7 +2391,7 @@ none of FR-10000's own leaves are amended by this group. `FR-9000`'s finite mode
   inside `C11`'s own grimmer carve-out.
 - **Rationale:** `ADS-002` §Domain Model (PlayerHealth); user decision 2026-07-17 (non-lethal
   setback, no real game-over); `R218` (heart-container HUD convention).
-- **Priority:** Must (target — not yet implemented)
+- **Priority:** Must (Implemented — 2026-07-18, `IP-1123`)
 - **Inputs:** Mob contact/attack events.
 - **Outputs:** Player health HUD updates; a setback event at zero health.
 - **Preconditions:** `COMBAT_MODE` active.
@@ -2387,7 +2406,14 @@ none of FR-10000's own leaves are amended by this group. `FR-9000`'s finite mode
   user decision, 2026-07-17.
 - **Related ADRs:** None.
 - **Notes:** The exact setback mechanic (respawn point, treasure penalty amount) is a
-  `06-feature-specification` decision; this FR fixes only that it must be non-lethal.
+  `06-feature-specification` decision; this FR fixes only that it must be non-lethal. **2026-07-18
+  (`IP-1123`):** implemented as `inf_mob_contact_check` (per-frame, reuses `check_collisions`'
+  own asymmetric point-in-box technique verbatim against `PLAYER_X`/`Y`) and `inf_health_setback`
+  (restores `PLAYER_HEALTH` to max, repositions to `COMBAT_ENTRY_X`/`Y` — a new field recorded by
+  `inf_record_combat_entry` at every region-entry event, never writes `GAMESTATE`). The setback's
+  own "treasure partially restored" phrasing from this FR's own Description is not implemented —
+  the user's 2026-07-17 decision and `ADS-002` both settled on a pure position/health reset with
+  no treasure penalty; `T31.c` verifies the shipped behavior.
 
 ### FR-11500 — Treasure-spent healing economy
 
@@ -2401,7 +2427,7 @@ none of FR-10000's own leaves are amended by this group. `FR-9000`'s finite mode
   a second, independent currency.
 - **Rationale:** `ADS-002` §Domain Model (treasure's widened role); user decision 2026-07-17
   (treasure is *spent*, not merely triggering).
-- **Priority:** Must (target — not yet implemented)
+- **Priority:** Must (Implemented — 2026-07-18, `IP-1123`; player-reachable path still blocked)
 - **Inputs:** A heal-spend action; the current `RUNNING_TREASURE_COUNT`.
 - **Outputs:** Player health restoration; a reduced `RUNNING_TREASURE_COUNT`.
 - **Preconditions:** `COMBAT_MODE` active; `RUNNING_TREASURE_COUNT` > 0.
@@ -2416,7 +2442,12 @@ none of FR-10000's own leaves are amended by this group. `FR-9000`'s finite mode
 - **Source Documents:** `ADS-002` §Domain Model; direct user decision, 2026-07-17.
 - **Related ADRs:** None.
 - **Notes:** The exact heal-spend input/rate (how much health per unit of treasure) is a
-  `06-feature-specification` decision.
+  `06-feature-specification` decision. **2026-07-18 (`IP-1123`):** implemented as `inf_heal_spend`
+  (spends exactly 1 treasure per heal, heals exactly 1, capped at max — `T31.d`/`T31.d2`/`T31.e`)
+  decrementing `RUNNING_TREASURE_COUNT` directly (no second ledger, `T31.d`'s own assertion).
+  **Not yet player-reachable**: the heal-spend action has no free input button (`BL-0148`,
+  unresolved) — this subroutine is defined, exposed, and directly force-tested, mirroring
+  `IP-1121`'s own "defined and exposed, no call site yet" precedent for `inf_mob_defeat`.
 
 ### FR-11600 — Combat state save persistence
 

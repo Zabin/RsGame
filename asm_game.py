@@ -15,7 +15,8 @@ from tiles import (TL_CARROT, TL_STAR, TL_FLOWER_OBJ,
                    TL_HEART_FULL, TL_HEART_EMPTY, TL_DIGIT_0,
                    TL_ARROW_U, TL_ARROW_D, TL_ARROW_L, TL_ARROW_R,
                    TL_BLOCKED_U, TL_BLOCKED_D, TL_BLOCKED_L, TL_BLOCKED_R,
-                   TL_BG_BLANK, TILE_DATA_TILES, TL_MOB)
+                   TL_BG_BLANK, TILE_DATA_TILES, TL_MOB, TL_PROJECTILE,
+                   char_to_tile)
 
 # ── WRAM addresses ─────────────────────────────────────────
 GAMESTATE      = 0xC000
@@ -289,6 +290,63 @@ MOB_DATA       = 0xC6B7  # 30 bytes, C6B7-C6D4 -- 6 slots x 5 bytes: x (1),
                           # freshly rewritten on every inf_ensure_window
                           # center-cell recompute, not accumulated.
 
+# IP-1122 (FR-11300, ADS-002): Infinite Mode Combat Sub-Mode -- ranged
+# weapon/projectile. First unclaimed byte past MOB_DATA's own end (0xC6D4).
+# PROJ_ACTIVE boot-cleared (same COLL_COUNT/MOB_COUNT "count/flag gates
+# array validity" convention -- PROJ_X/Y/DIR need no boot clear).
+# WEAPON_TIER boot-initialized to 1 (not simply cleared -- its valid range
+# is 1-3, per this package's own §6; the treasure-funded mechanism that
+# would ever raise it above 1 is a genuine requirements gap this package
+# does not resolve, harvested to the backlog).
+PROJ_ACTIVE    = 0xC6D5  # 1 byte -- 0=no projectile in flight (default), 1=active.
+PROJ_X         = 0xC6D6  # 1 byte -- projectile's own X, independent of PLAYER_X
+                          # once fired (copied from it only at fire time).
+PROJ_Y         = 0xC6D7  # 1 byte -- projectile's own Y, fixed at its spawn value
+                          # for this package's own horizontal-only movement (see
+                          # PROJ_DIR below).
+PROJ_DIR       = 0xC6D8  # 1 byte -- 0=right, 1=left. Mirrors PLAYER_DIR's own
+                          # REAL encoding, not the "0-3" range IP-1122's own §6
+                          # assumed: direct code read confirms PLAYER_DIR is
+                          # written only by handle_play_input's RIGHT/LEFT
+                          # branches (never UP/DOWN) -- this codebase's own
+                          # established "facing direction" concept is 2-state,
+                          # not 4-state. FR-11300's own Notes explicitly leave
+                          # the exact facing-direction mechanism to 06/08
+                          # discretion, so this is a named implementation
+                          # decision (not a blocker), harvested as a low-severity
+                          # doc-accuracy finding against IP-1122 §6's phrasing.
+                          # The projectile therefore moves purely horizontally.
+WEAPON_TIER    = 0xC6D9  # 1 byte -- damage dealt per hit, default 1, range 1-3
+                          # (persisted stat; no player-facing way to raise it
+                          # yet -- the funding mechanism gap named above).
+
+# IP-1123 (FR-11400/FR-11500, ADS-002): Infinite Mode Combat Sub-Mode --
+# player health/setback/healing economy. First unclaimed byte past
+# WEAPON_TIER's own end (0xC6D9). PLAYER_HEALTH boot-*initialized* to 3
+# (max) -- like WEAPON_TIER, not simply cleared, since a fresh combat
+# session starts at full health, not zero. COMBAT_ENTRY_X/Y need no boot
+# clear: every region-entry event that could ever be read while
+# COMBAT_MODE is on has already written them first (inf_record_combat_
+# entry runs at every inf_ensure_window call site), the same
+# "write-before-read" discipline MOB_DATA/PROJ_X/Y/DIR already establish.
+PLAYER_HEALTH   = 0xC6DA  # 1 byte -- 0-3, default/max 3 (three heart cells,
+                           # R218's heart-container convention; a fixed max,
+                           # not itself an upgrade axis).
+COMBAT_ENTRY_X  = 0xC6DB  # 1 byte -- PLAYER_X at the last region-entry event,
+                           # the zero-health setback's own return point.
+COMBAT_ENTRY_Y  = 0xC6DC  # 1 byte -- PLAYER_Y at the last region-entry event.
+
+# IP-1120 (FR-11100, GDS-01 §4e): Combat Sub-Mode gating & UI. First
+# unclaimed byte past COMBAT_ENTRY_Y's own end (0xC6DC). CMC_CURSOR is
+# NOT a reuse of MM_CURSOR (unlike MODE SELECT's own reuse of it) --
+# MODE SELECT's own cursor value ("infinite") must survive a B-cancel
+# round trip through COMBAT MODE CONFIRM and back, so the two states'
+# cursors cannot share one byte the way MAIN MENU/SELECT MENU/MODE
+# SELECT (never simultaneously reachable from one another) safely do.
+# No boot clear needed -- reset via MM_JUST_ENTERED on every genuine
+# state entry (cmc_on_entry), the same convention MM_CURSOR itself uses.
+CMC_CURSOR = 0xC6DD  # 1 byte -- this state's own Y/N cursor: 0="N" (default), nonzero="Y".
+
 SAVE_VERSION_ADDR = 0xA012   # save-format version guard (FR-5220 / Design Decision 2)
 SAVE_VERSION_VAL  = 0x05     # bumped 0x04->0x05 (IP-1104, fifth bump since ship — the
                               # value sequence is strictly monotonic, never reused). A single
@@ -343,6 +401,11 @@ GS_MODE_SELECT, GS_INFINITE_SEED_ENTRY = 10, 11  # IP-1100: MAIN MENU's
                                   # "new game" now opens a finite/infinite
                                   # cursor menu instead of jumping directly
                                   # to GS_SEED_SCALE_ENTRY (GDS-01 §4d)
+GS_COMBAT_MODE_CONFIRM = 12  # IP-1120 (GDS-01 §4e): reached only after
+                                  # MODE SELECT's "infinite" confirm, before
+                                  # INFINITE SEED ENTRY -- a binary Y/N
+                                  # cursor choice, defaulting to N, that
+                                  # sets IP-1121's COMBAT_MODE flag.
 
 
 def build_game_asm(rom: ROM) -> dict:
@@ -420,6 +483,18 @@ def build_game_asm(rom: ROM) -> dict:
     # state). MOB_DATA's own 30 bytes need no boot clear -- MOB_COUNT == 0
     # gates validity, the same convention LEDGER/COLL_DATA already use.
     rom.XOR_A(); rom.LD_nn_A(COMBAT_MODE); rom.LD_nn_A(MOB_COUNT)
+
+    # Clear PROJ_ACTIVE, init WEAPON_TIER to 1 (IP-1122) -- same targeted-
+    # clear rationale as COMBAT_MODE/MOB_COUNT immediately above. PROJ_X/Y/
+    # DIR need no boot clear (PROJ_ACTIVE==0 gates their validity).
+    # WEAPON_TIER is NOT simply cleared -- its default is 1, not 0.
+    rom.XOR_A(); rom.LD_nn_A(PROJ_ACTIVE)
+    rom.LD_A_n(1); rom.LD_nn_A(WEAPON_TIER)
+
+    # Init PLAYER_HEALTH to max (3) (IP-1123) -- NOT simply cleared, a fresh
+    # combat session starts full, not at zero. COMBAT_ENTRY_X/Y need no
+    # boot clear (write-before-read, see their own WRAM comment).
+    rom.LD_A_n(3); rom.LD_nn_A(PLAYER_HEALTH)
 
     # Clear VRAM bank 0 (same A-clobber caveat — re-zero each iter)
     rom.XOR_A(); rom.LDH_n_A(VBK)
@@ -507,6 +582,7 @@ def build_game_asm(rom: ROM) -> dict:
     rom.CP_n(GS_LEGEND); rom.JP_Z('st_legend')
     rom.CP_n(GS_MODE_SELECT); rom.JP_Z('st_mode_select')
     rom.CP_n(GS_INFINITE_SEED_ENTRY); rom.JP_Z('st_infinite_seed_entry')
+    rom.CP_n(GS_COMBAT_MODE_CONFIRM); rom.JP_Z('st_combat_mode_confirm')
     rom.JP('end_frame')
 
     # ── State: TITLE ─────────────────────────────────────
@@ -547,6 +623,8 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_nn(NEED_REDRAW); rom.OR_A()
     rom.JP_NZ('end_frame')
     rom.CALL('check_collisions')
+    rom.CALL('inf_projectile_update')  # IP-1122: no-op unless COMBAT_MODE/PROJ_ACTIVE
+    rom.CALL('inf_mob_contact_check')  # IP-1123: no-op unless COMBAT_MODE
     rom.CALL('check_zone_transition')
     rom.CALL('check_complete')
     rom.JP('end_frame')
@@ -739,6 +817,46 @@ def build_game_asm(rom: ROM) -> dict:
     rom.JP('end_frame')
     rom.label('ms_infinite')
     rom.LD_A_n(1); rom.LD_nn_A(GAME_MODE)
+    # IP-1120: retargeted from GS_INFINITE_SEED_ENTRY to
+    # GS_COMBAT_MODE_CONFIRM (GDS-01 §4e) -- MODE SELECT's own two options
+    # and the finite path above are both completely unaffected. CMC_CURSOR
+    # reset to 0 ("N") on every fresh entry into the confirm state (not a
+    # boot-only clear -- the player can retry this transition multiple
+    # times in one boot via repeated B-cancel/re-entry).
+    rom.XOR_A(); rom.LD_nn_A(CMC_CURSOR)
+    rom.LD_A_n(GS_COMBAT_MODE_CONFIRM); rom.LD_nn_A(TRANSITION_TO)
+    rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW)
+    rom.JP('end_frame')
+
+    # ── State: COMBAT MODE CONFIRM (IP-1120, FR-11100, GDS-01 §4e) ──
+    # Mirrors st_mode_select's own UP/DOWN-toggle/A-confirm/B-cancel shape
+    # exactly. B cancels to GS_MODE_SELECT without setting MM_JUST_ENTERED
+    # (mirrors st_infinite_seed_entry's own identical B-cancel precedent),
+    # so MODE SELECT's own MM_CURSOR stays on "infinite" rather than
+    # resetting to "finite" -- and does NOT reset GAME_MODE back to 0,
+    # since this state is reached only via the Infinite Mode path. A
+    # confirms: CMC_CURSOR==0 ("N") leaves COMBAT_MODE at its existing
+    # boot-cleared 0; nonzero ("Y") sets it to 1. Either way, transitions
+    # to GS_INFINITE_SEED_ENTRY (st_infinite_seed_entry, IP-1100's own
+    # unmodified state -- this package only redirects into it).
+    rom.label('st_combat_mode_confirm')
+    rom.LD_A_nn(JOY_NEW); rom.LD_B_A()
+    rom.BIT_b_B(J_UP); rom.JR_NZ('cmc_toggle')
+    rom.BIT_b_B(J_DOWN); rom.JP_Z('cmc_check_b')
+    rom.label('cmc_toggle')
+    rom.LD_A_nn(CMC_CURSOR); rom.XOR_n(1); rom.LD_nn_A(CMC_CURSOR)
+    rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW)
+    rom.JP('end_frame')
+    rom.label('cmc_check_b')
+    rom.BIT_b_B(J_B); rom.JR_Z('cmc_check_a')
+    rom.LD_A_n(GS_MODE_SELECT); rom.LD_nn_A(TRANSITION_TO)
+    rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW)
+    rom.JP('end_frame')
+    rom.label('cmc_check_a')
+    rom.BIT_b_B(J_A); rom.JP_Z('end_frame')
+    rom.LD_A_nn(CMC_CURSOR); rom.OR_A(); rom.JR_Z('cmc_no')
+    rom.LD_A_n(1); rom.LD_nn_A(COMBAT_MODE)
+    rom.label('cmc_no')
     rom.LD_A_n(GS_INFINITE_SEED_ENTRY); rom.LD_nn_A(TRANSITION_TO)
     rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW)
     rom.JP('end_frame')
@@ -808,6 +926,7 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_nn_A(INF_ROW); rom.LD_nn_A(INF_ROW + 1)
     rom.LD_nn_A(INF_COL); rom.LD_nn_A(INF_COL + 1)
     rom.CALL('inf_ensure_window')
+    rom.CALL('inf_record_combat_entry')  # IP-1123: initial region-entry point
     rom.LD_A_n(GS_INTRO); rom.LD_nn_A(TRANSITION_TO)
     rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW)
     rom.JP('end_frame')
@@ -917,6 +1036,22 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW); rom.LD_nn_A(MM_JUST_ENTERED)
     rom.RET()
     rom.label('hpi_no_sel')
+
+    # IP-1122 (FR-11300): fire input. COMBAT_MODE-gated -- the A button
+    # stays a no-op during PLAYING when COMBAT_MODE is 0, unchanged from
+    # today (confirmed unbound here by direct code read, ADS-002). On
+    # A-button-just-pressed with no projectile already active, spawns one
+    # at the player's own position/facing; a second press while one is
+    # already in flight has no additional effect (FR-11300's own
+    # Acceptance Criterion).
+    rom.LD_A_nn(COMBAT_MODE); rom.OR_A(); rom.JR_Z('hpi_no_fire')
+    rom.LD_A_nn(JOY_NEW); rom.BIT_b_A(J_A); rom.JR_Z('hpi_no_fire')
+    rom.LD_A_nn(PROJ_ACTIVE); rom.OR_A(); rom.JR_NZ('hpi_no_fire')
+    rom.LD_A_n(1); rom.LD_nn_A(PROJ_ACTIVE)
+    rom.LD_A_nn(PLAYER_X); rom.LD_nn_A(PROJ_X)
+    rom.LD_A_nn(PLAYER_Y); rom.LD_nn_A(PROJ_Y)
+    rom.LD_A_nn(PLAYER_DIR); rom.LD_nn_A(PROJ_DIR)
+    rom.label('hpi_no_fire')
 
     rom.LD_A_nn(JOY_CUR); rom.LD_B_A()
     rom.XOR_A(); rom.LD_nn_A(TMP1)
@@ -1246,6 +1381,7 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_E(); rom.LD_nn_A(INF_COL); rom.LD_A_D(); rom.LD_nn_A(INF_COL + 1)
     rom.CALL('inf_ensure_window')
     rom.LD_A_n(8); rom.LD_nn_A(PLAYER_X)
+    rom.CALL('inf_record_combat_entry')  # IP-1123
     rom.JP('czt_redraw')
 
     rom.label('czti_left')
@@ -1257,6 +1393,7 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_E(); rom.LD_nn_A(INF_COL); rom.LD_A_D(); rom.LD_nn_A(INF_COL + 1)
     rom.CALL('inf_ensure_window')
     rom.LD_A_n(150); rom.LD_nn_A(PLAYER_X)
+    rom.CALL('inf_record_combat_entry')  # IP-1123
     rom.JP('czt_redraw')
 
     rom.label('czti_top')
@@ -1268,6 +1405,7 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_E(); rom.LD_nn_A(INF_ROW); rom.LD_A_D(); rom.LD_nn_A(INF_ROW + 1)
     rom.CALL('inf_ensure_window')
     rom.LD_A_n(120); rom.LD_nn_A(PLAYER_Y)
+    rom.CALL('inf_record_combat_entry')  # IP-1123
     rom.JP('czt_redraw')
 
     rom.label('czti_bot')
@@ -1279,6 +1417,7 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_E(); rom.LD_nn_A(INF_ROW); rom.LD_A_D(); rom.LD_nn_A(INF_ROW + 1)
     rom.CALL('inf_ensure_window')
     rom.LD_A_n(24); rom.LD_nn_A(PLAYER_Y)
+    rom.CALL('inf_record_combat_entry')  # IP-1123
     rom.JP('czt_redraw')
 
     # ── check_complete ───────────────────────────────────
@@ -1342,6 +1481,19 @@ def build_game_asm(rom: ROM) -> dict:
     # off, per inf_mob_render's own COMBAT_MODE gate).
     rom.label('uo_mobs')
     rom.CALL('inf_mob_render')
+    # IP-1122: projectile OAM entry, appended after the mob-render segment
+    # (inf_mob_render's own contract leaves HL advanced past all 6 mob
+    # entries). Gated on PROJ_ACTIVE alone -- COMBAT_MODE is implied
+    # (PROJ_ACTIVE can only ever be set while COMBAT_MODE is on, per
+    # handle_play_input's own fire-branch gate). This is the final OAM
+    # write of the frame, so an inactive projectile needs no explicit
+    # zero-write or HL advance -- update_oam's own top-of-routine clear
+    # already left these 4 bytes zeroed, and nothing reads HL afterward.
+    rom.LD_A_nn(PROJ_ACTIVE); rom.OR_A(); rom.RET_Z()
+    rom.LD_A_nn(PROJ_Y); rom.ADD_A_n(16); rom.LD_HLI_A()
+    rom.LD_A_nn(PROJ_X); rom.ADD_A_n(8);  rom.LD_HLI_A()
+    rom.LD_A_n(TL_PROJECTILE); rom.LD_HLI_A()
+    rom.LD_A_n(5); rom.LD_HLI_A()   # attr: OBJ palette 5 (projectile, IP-1125)
     rom.RET()
 
     # ── music_tick ───────────────────────────────────────
@@ -1450,6 +1602,13 @@ def build_game_asm(rom: ROM) -> dict:
 
     rom.LD_A_B(); rom.ADD_A_n(TL_DIGIT_0)
     rom.LD_HL_nn(0x980A); rom.LD_HL_A()
+
+    # IP-1123: health HUD, reached under the exact same GAMESTATE==PLAYING
+    # + SCORE_DIRTY gate and VBlank-safe timing this routine's own body
+    # already established -- inf_health_hud_draw's own COMBAT_MODE gate is
+    # the only additional condition, so the base game's row-0-only HUD is
+    # completely unaffected when combat mode is off.
+    rom.CALL('inf_health_hud_draw')
     rom.RET()
 
     # ── do_screen_redraw ──────────────────────────────────
@@ -1479,7 +1638,8 @@ def build_game_asm(rom: ROM) -> dict:
                     (GS_SAVE,'dsr_sv'),(GS_MAP,'dsr_m'),(GS_VICTORY,'dsr_v'),
                     (GS_MAIN_MENU,'dsr_mm'),(GS_SEED_SCALE_ENTRY,'dsr_sse'),
                     (GS_SELECT_MENU,'dsr_sm'),(GS_LEGEND,'dsr_lg'),
-                    (GS_MODE_SELECT,'dsr_ms'),(GS_INFINITE_SEED_ENTRY,'dsr_ise')]:
+                    (GS_MODE_SELECT,'dsr_ms'),(GS_INFINITE_SEED_ENTRY,'dsr_ise'),
+                    (GS_COMBAT_MODE_CONFIRM,'dsr_cmc')]:
         rom.LD_A_nn(GAMESTATE); rom.CP_n(gs); rom.JP_Z(lbl)
     rom.JP('dsr_done')
 
@@ -1514,6 +1674,15 @@ def build_game_asm(rom: ROM) -> dict:
     # on every digit-cursor edit — see st_infinite_seed_entry).
     _dsr_screen('dsr_ms',  'ms_t',  'ms_a',  extra='ms_on_entry')
     _dsr_screen('dsr_ise', 'ise_t', 'ise_a', extra='draw_ise_digits')
+    # IP-1120 (BL-0153 ROM-budget remediation): combat mode confirm reuses
+    # mode_select_screen's own array as its base -- 'cmc_t'/'cmc_a' are
+    # this call site's own distinct patches keys (each _dsr_screen call
+    # needs a unique key for its own LD_DE_nn(0)/LD_BC_nn(0) placeholder
+    # pair) but build_rom.py resolves them to the SAME address pair
+    # 'ms_t'/'ms_a' already resolve to -- no new screen_addrs entry, no
+    # new ALL_SCREENS registration. cmc_on_entry draws this state's own
+    # differing text on top of the reused array's own baked-in content.
+    _dsr_screen('dsr_cmc', 'cmc_t', 'cmc_a', extra='cmc_on_entry')
 
     # PLAYING: biome-family screen dispatch (IP-1030, generalizes the
     # former fixed 9-entry zs_table). CUR_ZONE is read as the current
@@ -2021,6 +2190,65 @@ def build_game_asm(rom: ROM) -> dict:
     rom.label('dmsc_infinite')
     rom.LD_HL_nn(MS_CURSOR_INFINITE_ADDR)
     rom.label('dmsc_write')
+    rom.LD_A_n(TL_ARROW_R); rom.LD_HL_A()
+    rom.RET()
+
+    # ── Combat mode confirm overlay text (IP-1120, BL-0153) ────
+    # Three small literal-text blobs, emitted directly in the code stream
+    # (never executed -- the JR jumps past them). cmc_str_title is a
+    # direct 12-byte replacement for mode_select_screen's own 11-char
+    # "BUNNY QUEST" (fully covers it, no separate blank needed).
+    # cmc_str_no/cmc_str_yes are pre-padded with TL_BG_BLANK so a single
+    # memcpy both writes the new label AND erases the longer original
+    # label's own trailing characters ("FINITE"/"INFINITE") in one pass.
+    rom.JR('cmc_str_end')
+    rom.label('cmc_str_title')
+    rom.emit(*[char_to_tile(c) for c in "COMBAT MODE?"])
+    rom.label('cmc_str_no')
+    rom.emit(*([char_to_tile(c) for c in "NO"] + [TL_BG_BLANK] * 4))
+    rom.label('cmc_str_yes')
+    rom.emit(*([char_to_tile(c) for c in "YES"] + [TL_BG_BLANK] * 5))
+    rom.label('cmc_str_end')
+
+    # ── cmc_on_entry / draw_combat_confirm_cursor (IP-1120) ───
+    # copy_screen (called by _dsr_screen just before this) re-blits
+    # mode_select_screen's own array -- including its baked-in "BUNNY
+    # QUEST"/"FINITE"/"INFINITE" text -- on EVERY dispatch into dsr_cmc,
+    # not just a genuine state entry (a same-state toggle redraw goes
+    # through the identical path). So the text overlay below runs
+    # unconditionally every time, exactly like the cursor redraw already
+    # does. VBK is already 0 (tile-plane bank) on entry -- copy_screen's
+    # own body always leaves it there before returning.
+    rom.label('cmc_on_entry')
+    rom.LD_DE_nn(rom.labels['cmc_str_title'])
+    rom.LD_HL_nn(0x9800 + 3*32 + 5); rom.LD_BC_nn(12); rom.CALL('memcpy')
+    rom.LD_DE_nn(rom.labels['cmc_str_no'])
+    rom.LD_HL_nn(0x9800 + 7*32 + 8); rom.LD_BC_nn(6); rom.CALL('memcpy')
+    rom.LD_DE_nn(rom.labels['cmc_str_yes'])
+    rom.LD_HL_nn(0x9800 + 9*32 + 8); rom.LD_BC_nn(8); rom.CALL('memcpy')
+
+    # Mirrors ms_on_entry exactly from here: reset CMC_CURSOR to 0 ("N")
+    # only on a genuine state entry (MM_JUST_ENTERED), then always redraw
+    # the cursor glyph. Reuses the same cursor column mode_select_screen's
+    # own array already uses (col 6), since the label column is unchanged.
+    CMC_CURSOR_NO_ADDR  = 0x9800 + 7*32 + 6
+    CMC_CURSOR_YES_ADDR = 0x9800 + 9*32 + 6
+
+    rom.LD_A_nn(MM_JUST_ENTERED); rom.OR_A(); rom.JR_Z('cmc_oe_no_reset')
+    rom.XOR_A(); rom.LD_nn_A(MM_JUST_ENTERED)
+    rom.LD_nn_A(CMC_CURSOR)
+    rom.label('cmc_oe_no_reset')
+    rom.CALL('draw_combat_confirm_cursor')
+    rom.RET()
+
+    rom.label('draw_combat_confirm_cursor')
+    rom.LD_HL_nn(CMC_CURSOR_NO_ADDR);  rom.LD_A_n(TL_BG_BLANK); rom.LD_HL_A()
+    rom.LD_HL_nn(CMC_CURSOR_YES_ADDR); rom.LD_A_n(TL_BG_BLANK); rom.LD_HL_A()
+    rom.LD_A_nn(CMC_CURSOR); rom.OR_A(); rom.JR_NZ('dcmc_yes')
+    rom.LD_HL_nn(CMC_CURSOR_NO_ADDR); rom.JR('dcmc_write')
+    rom.label('dcmc_yes')
+    rom.LD_HL_nn(CMC_CURSOR_YES_ADDR)
+    rom.label('dcmc_write')
     rom.LD_A_n(TL_ARROW_R); rom.LD_HL_A()
     rom.RET()
 
@@ -3159,6 +3387,228 @@ def build_game_asm(rom: ROM) -> dict:
     rom.label('imd_done')
     rom.RET()
 
+    # ── inf_projectile_update (IP-1122, FR-11300) ──────────
+    # Per-frame projectile movement, called once per frame from st_playing
+    # (gated on COMBAT_MODE/PROJ_ACTIVE -- a no-op call otherwise, matching
+    # every other combat-sub-mode routine's own additive discipline).
+    # Advances PROJ_X by one pixel per frame in PROJ_DIR; PROJ_Y never
+    # changes post-spawn (horizontal-only movement -- see PROJ_DIR's own
+    # WRAM comment for why: PLAYER_DIR, the only "facing direction" concept
+    # this codebase actually tracks, is a 2-state left/right flag, not the
+    # 4-state range this package's own §6 assumed). Reuses PLAYER_X's own
+    # boundary constants (0/152) as the projectile's terminal edge, the
+    # same coordinate space PROJ_X is copied from at fire time. On a
+    # surviving move, calls inf_projectile_hittest; on reaching the
+    # boundary, clears PROJ_ACTIVE with no hit-test performed. Clobbers A.
+    rom.label('inf_projectile_update')
+    rom.LD_A_nn(COMBAT_MODE); rom.OR_A(); rom.RET_Z()
+    rom.LD_A_nn(PROJ_ACTIVE); rom.OR_A(); rom.RET_Z()
+
+    rom.LD_A_nn(PROJ_DIR); rom.OR_A(); rom.JR_NZ('ipu_left')
+    rom.LD_A_nn(PROJ_X); rom.INC_A()
+    rom.CP_n(153); rom.JR_NC('ipu_deactivate')
+    rom.LD_nn_A(PROJ_X)
+    rom.JR('ipu_hittest')
+    rom.label('ipu_left')
+    rom.LD_A_nn(PROJ_X); rom.OR_A(); rom.JR_Z('ipu_deactivate')
+    rom.DEC_A(); rom.LD_nn_A(PROJ_X)
+    rom.label('ipu_hittest')
+    rom.CALL('inf_projectile_hittest')
+    rom.RET()
+    rom.label('ipu_deactivate')
+    rom.XOR_A(); rom.LD_nn_A(PROJ_ACTIVE)
+    rom.RET()
+
+    # ── inf_projectile_hittest (IP-1122, FR-11300) ─────────
+    # Iterates the 6 fixed MOB_DATA slots, applying check_collisions' own
+    # asymmetric point-in-box technique verbatim (same 8/16 constants, same
+    # unsigned-subtract-then-compare approach; check_collisions itself is
+    # not modified) with the projectile as the point and each active mob's
+    # own 8x16 box as the target: 0 <= (PROJ_X - mob_x) <= 7 and
+    # 0 <= (PROJ_Y - mob_y) <= 15. On the first hit found: subtracts
+    # WEAPON_TIER from that mob's health (floored at 0), writes it back,
+    # calls inf_mob_defeat at or below zero (which clears the mob's own
+    # active flag and decrements MOB_COUNT -- not duplicated here), and
+    # unconditionally clears PROJ_ACTIVE (the projectile stops on any hit,
+    # does not pass through, FR-11300's own Postcondition) -- then returns
+    # immediately without scanning further slots (at most one projectile in
+    # flight, so at most one hit can ever be resolved per call). Input:
+    # none (reads PROJ_X/PROJ_Y directly). Clobbers A/B/C/D/E/HL.
+    rom.label('inf_projectile_hittest')
+    rom.LD_HL_nn(MOB_DATA)
+    rom.LD_B_n(0)
+    rom.label('ipht_loop')
+    rom.LD_E_HL(); rom.INC_HL()     # E = mob x, HL -> y
+    rom.LD_D_HL(); rom.INC_HL()     # D = mob y, HL -> species
+    rom.INC_HL()                     # skip species, HL -> health
+    rom.LD_C_HL(); rom.INC_HL()     # C = health, HL -> active
+    rom.LD_A_HL()                    # A = active (HL still -> active byte)
+    rom.PUSH_BC(); rom.PUSH_HL()
+    rom.OR_A(); rom.JR_Z('ipht_skip')
+
+    rom.LD_A_nn(PROJ_X); rom.SUB_E()
+    rom.CP_n(8); rom.JR_NC('ipht_skip')
+    rom.LD_A_nn(PROJ_Y); rom.SUB_D()
+    rom.CP_n(16); rom.JR_NC('ipht_skip')
+
+    # HIT
+    rom.LD_A_nn(WEAPON_TIER); rom.LD_E_A()    # E = tier (mob x/y no longer needed)
+    rom.LD_A_C(); rom.SUB_E()                  # A = health - tier
+    rom.JR_NC('ipht_floor_ok')
+    rom.XOR_A()
+    rom.label('ipht_floor_ok')
+    rom.DEC_HL(); rom.LD_HL_A(); rom.INC_HL()   # write new health, HL -> active again
+    rom.OR_A(); rom.JR_NZ('ipht_no_defeat')
+    rom.CALL('inf_mob_defeat')                  # B still holds this slot's own index
+    rom.label('ipht_no_defeat')
+    rom.XOR_A(); rom.LD_nn_A(PROJ_ACTIVE)       # stop on hit, does not pass through
+    rom.POP_HL(); rom.POP_BC()
+    rom.RET()
+
+    rom.label('ipht_skip')
+    rom.POP_HL(); rom.INC_HL()
+    rom.POP_BC(); rom.INC_B()
+    rom.LD_A_B(); rom.CP_n(6); rom.JR_C('ipht_loop')
+    rom.RET()
+
+    # ── inf_record_combat_entry (IP-1123) ──────────────────
+    # Records the current PLAYER_X/PLAYER_Y as COMBAT_ENTRY_X/Y -- called
+    # from every inf_ensure_window call site (initial Infinite Mode entry,
+    # each of czt_infinite's own four direction branches after their own
+    # PLAYER_X/Y update, and the post-load restore path), each of which is
+    # exactly a "this is now the current region" event. Gated on
+    # COMBAT_MODE -- a no-op call when off, so recording is fully inert
+    # until IP-1120's own gating screen ships (COMBAT_MODE is never set by
+    # any shipped code path today). Clobbers A.
+    rom.label('inf_record_combat_entry')
+    rom.LD_A_nn(COMBAT_MODE); rom.OR_A(); rom.RET_Z()
+    rom.LD_A_nn(PLAYER_X); rom.LD_nn_A(COMBAT_ENTRY_X)
+    rom.LD_A_nn(PLAYER_Y); rom.LD_nn_A(COMBAT_ENTRY_Y)
+    rom.RET()
+
+    # ── inf_mob_contact_check (IP-1123, FR-11400) ──────────
+    # Called once per frame (st_playing, gated on COMBAT_MODE -- a no-op
+    # otherwise). Tests the player's own 8x16 box against each active
+    # MOB_DATA slot's position, reusing check_collisions' own asymmetric
+    # point-in-box technique verbatim (mob position as the point, PLAYER_X/
+    # Y as the box origin -- the exact same relationship check_collisions
+    # itself tests, unmodified): 0 <= (mob_x - PLAYER_X) <= 7 and
+    # 0 <= (mob_y - PLAYER_Y) <= 15. On the first contact found: decrements
+    # PLAYER_HEALTH by 1 (a fixed per-contact cost, not per-mob-type-scaled
+    # -- FS-112 does not specify per-type damage variation); at zero,
+    # calls inf_health_setback. Stops after the first contact (mirrors
+    # inf_projectile_hittest's own "at most one resolved per call"
+    # discipline -- simultaneous multi-mob overlap does not stack multiple
+    # decrements in one frame). Clobbers A/B/C/D/E/HL.
+    rom.label('inf_mob_contact_check')
+    rom.LD_A_nn(COMBAT_MODE); rom.OR_A(); rom.RET_Z()
+    rom.LD_HL_nn(MOB_DATA)
+    rom.LD_B_n(0)
+    rom.label('imcc_loop')
+    rom.LD_E_HL(); rom.INC_HL()     # E = mob x, HL -> y
+    rom.LD_D_HL(); rom.INC_HL()     # D = mob y, HL -> species
+    rom.INC_HL()                     # skip species, HL -> health
+    rom.INC_HL()                     # skip health, HL -> active
+    rom.LD_A_HL()                    # A = active (HL still -> active byte)
+    rom.PUSH_BC(); rom.PUSH_HL()
+    rom.OR_A(); rom.JR_Z('imcc_skip')
+
+    rom.LD_A_nn(PLAYER_X); rom.LD_H_A()
+    rom.LD_A_E(); rom.emit(0x94)      # SUB H: A = mob_x - PLAYER_X
+    rom.CP_n(8); rom.JR_NC('imcc_skip')
+    rom.LD_A_nn(PLAYER_Y); rom.LD_H_A()
+    rom.LD_A_D(); rom.emit(0x94)      # SUB H: A = mob_y - PLAYER_Y
+    rom.CP_n(16); rom.JR_NC('imcc_skip')
+
+    # CONTACT
+    rom.LD_A_nn(PLAYER_HEALTH); rom.OR_A(); rom.JR_Z('imcc_no_dec')
+    rom.DEC_A(); rom.LD_nn_A(PLAYER_HEALTH)
+    rom.LD_A_n(1); rom.LD_nn_A(SCORE_DIRTY)  # health changed -- redraw the HUD promptly
+    rom.LD_A_nn(PLAYER_HEALTH); rom.OR_A(); rom.JR_NZ('imcc_no_dec')
+    rom.CALL('inf_health_setback')
+    rom.label('imcc_no_dec')
+    rom.POP_HL(); rom.POP_BC()
+    rom.RET()
+
+    rom.label('imcc_skip')
+    rom.POP_HL(); rom.INC_HL()
+    rom.POP_BC(); rom.INC_B()
+    rom.LD_A_B(); rom.CP_n(6); rom.JR_C('imcc_loop')
+    rom.RET()
+
+    # ── inf_health_setback (IP-1123, FR-11400) ─────────────
+    # Called when PLAYER_HEALTH reaches 0 (from inf_mob_contact_check).
+    # Restores PLAYER_HEALTH to its own max (3), repositions the player to
+    # COMBAT_ENTRY_X/Y (the region-entry point), and does NOT write
+    # GAMESTATE -- stays PLAYING, per FR-11400's own Postcondition (no
+    # game-over state exists to transition to, MSTR-001 A5's fail-state-
+    # free base design holds inside C11's own carve-out). Clobbers A.
+    rom.label('inf_health_setback')
+    rom.LD_A_n(3); rom.LD_nn_A(PLAYER_HEALTH)
+    rom.LD_A_nn(COMBAT_ENTRY_X); rom.LD_nn_A(PLAYER_X)
+    rom.LD_A_nn(COMBAT_ENTRY_Y); rom.LD_nn_A(PLAYER_Y)
+    rom.RET()
+
+    # ── inf_heal_spend (IP-1123, FR-11500) ──────────────────
+    # Player-choice healing: gated on COMBAT_MODE and
+    # RUNNING_TREASURE_COUNT > 0 (16-bit, both bytes checked). Decrements
+    # RUNNING_TREASURE_COUNT by 1 (standard 16-bit borrow: check low byte
+    # for a needed high-byte borrow BEFORE decrementing, since DEC's own Z
+    # flag can't distinguish "wrapped" from "already zero" after the fact)
+    # -- the same shared count FS-110 Workflow C reads for the win/
+    # high-score comparison, no second ledger (FR-11500's own Acceptance
+    # Criterion). Increments PLAYER_HEALTH by 1, capped at max (3). NOT
+    # called from anywhere in this package's own control flow -- the
+    # heal-spend action's own input binding has no free button named
+    # upstream (every existing button already claimed: D-pad movement, A
+    # now claimed by IP-1122's fire input, B is the universal cancel,
+    # START/SELECT both claimed by existing menus) -- a genuine,
+    # unresolved gap named explicitly (harvested to the backlog), not
+    # invented here. This subroutine is defined and exposed, directly
+    # force-testable (T31.d/e), pending a real call site once the input
+    # question resolves -- mirrors inf_mob_defeat's own "defined and
+    # exposed, no call site yet" precedent. Clobbers A.
+    rom.label('inf_heal_spend')
+    rom.LD_A_nn(COMBAT_MODE); rom.OR_A(); rom.RET_Z()
+    rom.LD_A_nn(RUNNING_TREASURE_COUNT); rom.OR_A(); rom.JR_NZ('ihs_have')
+    rom.LD_A_nn(RUNNING_TREASURE_COUNT + 1); rom.OR_A(); rom.RET_Z()
+    rom.label('ihs_have')
+    rom.LD_A_nn(RUNNING_TREASURE_COUNT); rom.OR_A(); rom.JR_NZ('ihs_no_borrow')
+    rom.LD_A_nn(RUNNING_TREASURE_COUNT + 1); rom.DEC_A(); rom.LD_nn_A(RUNNING_TREASURE_COUNT + 1)
+    rom.label('ihs_no_borrow')
+    rom.LD_A_nn(RUNNING_TREASURE_COUNT); rom.DEC_A(); rom.LD_nn_A(RUNNING_TREASURE_COUNT)
+
+    rom.LD_A_n(1); rom.LD_nn_A(SCORE_DIRTY)  # treasure count always changed above
+    rom.LD_A_nn(PLAYER_HEALTH); rom.CP_n(3); rom.JR_NC('ihs_done')
+    rom.INC_A(); rom.LD_nn_A(PLAYER_HEALTH)
+    rom.label('ihs_done')
+    rom.RET()
+
+    # ── inf_health_hud_draw (IP-1123) ───────────────────────
+    # Called from update_status_disp (mirrors its own SCORE_DIRTY/
+    # GAMESTATE==PLAYING trigger and VBlank-safe timing), gated additionally
+    # on COMBAT_MODE -- a no-op (no VRAM write at all) when off, so the
+    # base game's own row-0-only HUD is completely unaffected. Writes
+    # TL_HEART_FULL/TL_HEART_EMPTY across the three row-1 cells (VRAM
+    # 0x9820-0x9822, immediately below the existing row-0 score bar) per
+    # PLAYER_HEALTH's current value (0-3): reused verbatim, zero new
+    # tile-art cost (R218's heart-container convention). Clobbers A/B/C/HL.
+    rom.label('inf_health_hud_draw')
+    rom.LD_A_nn(COMBAT_MODE); rom.OR_A(); rom.RET_Z()
+    rom.LD_A_nn(PLAYER_HEALTH); rom.LD_B_A()
+    rom.LD_HL_nn(0x9820)
+    rom.LD_C_n(3)
+    rom.label('ihhd_loop')
+    rom.LD_A_B(); rom.OR_A(); rom.JR_Z('ihhd_empty')
+    rom.LD_A_n(TL_HEART_FULL); rom.LD_HLI_A()
+    rom.DEC_B()
+    rom.JR('ihhd_next')
+    rom.label('ihhd_empty')
+    rom.LD_A_n(TL_HEART_EMPTY); rom.LD_HLI_A()
+    rom.label('ihhd_next')
+    rom.DEC_C(); rom.JR_NZ('ihhd_loop')
+    rom.RET()
+
     # ── inf_check_top_score (IP-1103, FR-10400) ───────────
     # The win-condition comparison subroutine. Inputs: none (reads
     # RUNNING_TREASURE_COUNT and TOP_SCORE_TABLE directly); clobbers A/B/D/E.
@@ -3475,6 +3925,7 @@ def build_game_asm(rom: ROM) -> dict:
     # from the just-restored WRAM ledger via inf_ensure_window's own
     # cross-reference -- no separate restore-path lookup needed here.
     rom.CALL('inf_ensure_window')
+    rom.CALL('inf_record_combat_entry')  # IP-1123: PLAYER_X/Y already restored above
     rom.label('tls_inf_skip')
     # TOP_SCORE_TABLE: always restored, both modes (persistent high score,
     # independent of GAME_MODE -- ADR-0017 point 4; save_to_sram writes it

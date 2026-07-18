@@ -2957,13 +2957,19 @@ check("T25.b1c SEED/SCALE ENTRY's own B-cancel target is still MAIN MENU (GS=6) 
       pb.memory[GAMESTATE] == 6, f"GS={pb.memory[GAMESTATE]}")
 pb.stop()
 
-# T25.b2 — MODE SELECT, confirm "infinite" -> INFINITE SEED ENTRY, GAME_MODE==1.
+# T25.b2 — MODE SELECT, confirm "infinite" -> COMBAT MODE CONFIRM,
+# GAME_MODE==1. IP-1120 (BL-0153): ms_infinite's own transition target
+# retargeted from GS_INFINITE_SEED_ENTRY (11) to GS_COMBAT_MODE_CONFIRM
+# (12) -- this assertion's own expected GAMESTATE is a necessary,
+# intentional consequence of that package's own Interfaces §5 (not a
+# silent break of "T25 stays unmodified"; the COMBAT MODE CONFIRM state
+# itself is fully covered by IP-1120's own T33 suite).
 pb = fresh_boot(200)
 pb.button('a'); [pb.tick() for _ in range(40)]        # MAIN MENU -> MODE SELECT
 pb.button('down'); [pb.tick() for _ in range(40)]     # toggle to infinite
 pb.button('a'); [pb.tick() for _ in range(40)]        # confirm infinite
-check("T25.b2a MODE SELECT, confirm infinite -> INFINITE SEED ENTRY (GS=11)",
-      pb.memory[GAMESTATE] == 11, f"GS={pb.memory[GAMESTATE]}")
+check("T25.b2a MODE SELECT, confirm infinite -> COMBAT MODE CONFIRM (GS=12, IP-1120)",
+      pb.memory[GAMESTATE] == 12, f"GS={pb.memory[GAMESTATE]}")
 check("T25.b2b GAME_MODE == 1 (infinite)", pb.memory[GAME_MODE] == 1,
       f"GAME_MODE={pb.memory[GAME_MODE]}")
 pb.stop()
@@ -2990,7 +2996,8 @@ pb.stop()
 pb = fresh_boot(200)
 pb.button('a'); [pb.tick() for _ in range(40)]        # MAIN MENU -> MODE SELECT
 pb.button('down'); [pb.tick() for _ in range(40)]
-pb.button('a'); [pb.tick() for _ in range(40)]        # confirm infinite -> INFINITE SEED ENTRY
+pb.button('a'); [pb.tick() for _ in range(40)]        # confirm infinite -> COMBAT MODE CONFIRM (IP-1120)
+pb.button('a'); [pb.tick() for _ in range(40)]        # confirm default "N" -> INFINITE SEED ENTRY
 enter_infinite_seed(pb, [1, 2, 3, 4, 5])              # seed=12345
 check("T25.d1 Confirm -> INTRO (GS=1)", pb.memory[GAMESTATE] == 1, f"GS={pb.memory[GAMESTATE]}")
 check("T25.d1b SEED written correctly (12345)",
@@ -3015,7 +3022,8 @@ pb.stop()
 pb = fresh_boot(200)
 pb.button('a'); [pb.tick() for _ in range(40)]
 pb.button('down'); [pb.tick() for _ in range(40)]
-pb.button('a'); [pb.tick() for _ in range(40)]        # -> INFINITE SEED ENTRY
+pb.button('a'); [pb.tick() for _ in range(40)]        # -> COMBAT MODE CONFIRM (IP-1120)
+pb.button('a'); [pb.tick() for _ in range(40)]        # confirm default "N" -> INFINITE SEED ENTRY
 seed_before_e1 = pb.memory[SEED] | (pb.memory[SEED+1] << 8)
 mode_before_e1 = pb.memory[GAME_MODE]
 pb.button('up'); [pb.tick() for _ in range(10)]       # touch a digit, then abandon via B
@@ -3042,7 +3050,8 @@ pb.stop()
 pb = fresh_boot(200)
 pb.button('a'); [pb.tick() for _ in range(40)]
 pb.button('down'); [pb.tick() for _ in range(40)]
-pb.button('a'); [pb.tick() for _ in range(40)]
+pb.button('a'); [pb.tick() for _ in range(40)]        # -> COMBAT MODE CONFIRM (IP-1120)
+pb.button('a'); [pb.tick() for _ in range(40)]        # confirm default "N" -> INFINITE SEED ENTRY
 enter_infinite_seed(pb, [0, 0, 0, 0, 0])              # seed=0
 check("T25.f1 SEED left at exactly 0 as entered (not force-written to 1, matches finite mode's own precedent)",
       pb.memory[SEED] | (pb.memory[SEED+1] << 8) == 0,
@@ -3067,12 +3076,14 @@ ICTS_ADDR = _gw_rom.labels['inf_check_top_score']
 ITP_ADDR = _gw_rom.labels['inf_treasure_pos']
 
 def enter_infinite_mode(pb, seed):
-    """MAIN MENU -> MODE SELECT -> (infinite) -> INFINITE SEED ENTRY ->
-    seed digits -> INTRO -> A -> PLAYING. The same button script T25.d
-    established, packaged for reuse."""
+    """MAIN MENU -> MODE SELECT -> (infinite) -> COMBAT MODE CONFIRM
+    (IP-1120, confirms default "N") -> INFINITE SEED ENTRY -> seed digits
+    -> INTRO -> A -> PLAYING. The same button script T25.d established,
+    packaged for reuse."""
     pb.button('a'); [pb.tick() for _ in range(40)]
     pb.button('down'); [pb.tick() for _ in range(40)]
     pb.button('a'); [pb.tick() for _ in range(40)]
+    pb.button('a'); [pb.tick() for _ in range(40)]        # COMBAT MODE CONFIRM: confirm default "N"
     enter_infinite_seed(pb, [(seed // 10 ** (4 - i)) % 10 for i in range(5)])
     pb.button('a'); [pb.tick() for _ in range(80)]
 
@@ -3888,6 +3899,403 @@ check("T29.e Defeat: active flag clears, MOB_COUNT decrements, no OAM entry writ
 check("T29.f OAM budget static audit: 1 player + up to 8 collectibles + 6 mobs <= 40 entries (NFR-4500)",
       1 + 8 + 6 <= 40, f"total={1 + 8 + 6}")
 
+pb.stop()
+wipe_save()
+
+print("\n=== T30: Combat Sub-Mode — Weapon Fire & Hit Resolution (IP-1122) ===")
+
+PROJ_ACTIVE_ADDR = 0xC6D5; PROJ_X_ADDR = 0xC6D6; PROJ_Y_ADDR = 0xC6D7
+PROJ_DIR_ADDR = 0xC6D8; WEAPON_TIER_ADDR = 0xC6D9
+JOY_CUR_ADDR = 0xC00C; JOY_NEW_ADDR = 0xC00E
+J_A_BIT = 0   # asm_game.py's own J_A=0 encoding
+HPI_ADDR = _gw_rom.labels['handle_play_input']
+IPU_ADDR = _gw_rom.labels['inf_projectile_update']
+
+def invoke_no_arg(pb, addr, budget=400):
+    """Direct PC/SP-hijack + self-loop-trap invocation of a no-argument
+    subroutine (handle_play_input / inf_projectile_update), mirroring
+    T29's own invoke_inf_materialize_mobs technique."""
+    pb.memory[GW_TRAP_ADDR] = 0x18; pb.memory[GW_TRAP_ADDR + 1] = 0xFE  # JR -2
+    sp = (pb.register_file.SP - 2) & 0xFFFF
+    pb.memory[sp] = GW_TRAP_ADDR & 0xFF
+    pb.memory[sp + 1] = (GW_TRAP_ADDR >> 8) & 0xFF
+    pb.register_file.SP = sp
+    pb.register_file.PC = addr
+    for _ in range(budget):
+        pb.tick()
+        if pb.register_file.PC == GW_TRAP_ADDR:
+            return True
+    return False
+
+def t30_reset(pb, combat_mode=1, weapon_tier=1):
+    pb.memory[GAME_MODE] = 1
+    pb.memory[COMBAT_MODE_ADDR] = combat_mode
+    pb.memory[MOB_COUNT_ADDR] = 0
+    for i in range(6):
+        base = MOB_DATA_ADDR + i * 5
+        for k in range(5): pb.memory[base + k] = 0
+    pb.memory[PROJ_ACTIVE_ADDR] = 0
+    pb.memory[PROJ_X_ADDR] = 0; pb.memory[PROJ_Y_ADDR] = 0; pb.memory[PROJ_DIR_ADDR] = 0
+    pb.memory[WEAPON_TIER_ADDR] = weapon_tier
+    pb.memory[JOY_CUR_ADDR] = 0; pb.memory[JOY_NEW_ADDR] = 0
+
+pb = fresh_boot(180)
+advance_to_playing(pb)
+
+# T30.a — fire spawns a projectile at the player's own position/facing.
+t30_reset(pb)
+pb.memory[PLAYER_X] = 80; pb.memory[PLAYER_Y] = 60; pb.memory[PLAYER_DIR] = 1
+pb.memory[JOY_NEW_ADDR] = 1 << J_A_BIT
+_t30a_ok = invoke_no_arg(pb, HPI_ADDR)
+_t30a_active = pb.memory[PROJ_ACTIVE_ADDR]
+_t30a_x = pb.memory[PROJ_X_ADDR]; _t30a_y = pb.memory[PROJ_Y_ADDR]; _t30a_dir = pb.memory[PROJ_DIR_ADDR]
+check("T30.a Fire spawns a projectile at the player's own position/facing",
+      _t30a_ok and _t30a_active == 1 and _t30a_x == 80 and _t30a_y == 60 and _t30a_dir == 1,
+      f"ok={_t30a_ok} active={_t30a_active} x={_t30a_x} y={_t30a_y} dir={_t30a_dir}")
+
+# T30.b — no double-fire: pressing A again while a projectile is already
+# active leaves its state completely unchanged (FR-11300's own Acceptance
+# Criterion), even though the player's own position/facing differ this time.
+t30_reset(pb)
+pb.memory[PROJ_ACTIVE_ADDR] = 1
+pb.memory[PROJ_X_ADDR] = 40; pb.memory[PROJ_Y_ADDR] = 90; pb.memory[PROJ_DIR_ADDR] = 0
+pb.memory[PLAYER_X] = 120; pb.memory[PLAYER_Y] = 20; pb.memory[PLAYER_DIR] = 1
+pb.memory[JOY_NEW_ADDR] = 1 << J_A_BIT
+_t30b_ok = invoke_no_arg(pb, HPI_ADDR)
+check("T30.b No double-fire: pressing A while a projectile is active leaves its state unchanged",
+      _t30b_ok and pb.memory[PROJ_ACTIVE_ADDR] == 1 and pb.memory[PROJ_X_ADDR] == 40 and
+      pb.memory[PROJ_Y_ADDR] == 90 and pb.memory[PROJ_DIR_ADDR] == 0,
+      f"ok={_t30b_ok} active={pb.memory[PROJ_ACTIVE_ADDR]} x={pb.memory[PROJ_X_ADDR]} "
+      f"y={pb.memory[PROJ_Y_ADDR]} dir={pb.memory[PROJ_DIR_ADDR]}")
+
+# T30.c — hit resolution: an active projectile that reaches an active mob's
+# hitbox reduces its health by WEAPON_TIER, deactivates the projectile, and
+# (at zero health) triggers inf_mob_defeat's own effects (active clears,
+# MOB_COUNT decrements — reusing T29.e's own assertions).
+t30_reset(pb)
+pb.memory[MOB_COUNT_ADDR] = 1
+_t30c_mob = MOB_DATA_ADDR
+pb.memory[_t30c_mob + 0] = 100; pb.memory[_t30c_mob + 1] = 50
+pb.memory[_t30c_mob + 2] = 0; pb.memory[_t30c_mob + 3] = 1; pb.memory[_t30c_mob + 4] = 1
+pb.memory[WEAPON_TIER_ADDR] = 1
+pb.memory[PROJ_ACTIVE_ADDR] = 1
+pb.memory[PROJ_X_ADDR] = 99; pb.memory[PROJ_Y_ADDR] = 50; pb.memory[PROJ_DIR_ADDR] = 0
+_t30c_ok = invoke_no_arg(pb, IPU_ADDR)
+_t30c_health = pb.memory[_t30c_mob + 3]; _t30c_active = pb.memory[_t30c_mob + 4]
+_t30c_count = pb.memory[MOB_COUNT_ADDR]; _t30c_proj = pb.memory[PROJ_ACTIVE_ADDR]
+check("T30.c Hit resolution: mob health reduced by WEAPON_TIER, defeated at zero (inf_mob_defeat's own effects), projectile stops",
+      _t30c_ok and _t30c_health == 0 and _t30c_active == 0 and _t30c_count == 0 and _t30c_proj == 0,
+      f"ok={_t30c_ok} health={_t30c_health} active={_t30c_active} count={_t30c_count} proj_active={_t30c_proj}")
+
+# T30.c2 — spot check: a non-lethal hit damages without defeating (mob
+# stays active, MOB_COUNT unchanged) — confirms the floor-at-0 write path
+# and the defeat-vs-damage-only branch are both independently correct.
+t30_reset(pb)
+pb.memory[MOB_COUNT_ADDR] = 1
+_t30c2_mob = MOB_DATA_ADDR
+pb.memory[_t30c2_mob + 0] = 100; pb.memory[_t30c2_mob + 1] = 50
+pb.memory[_t30c2_mob + 2] = 0; pb.memory[_t30c2_mob + 3] = 5; pb.memory[_t30c2_mob + 4] = 1
+pb.memory[WEAPON_TIER_ADDR] = 2
+pb.memory[PROJ_ACTIVE_ADDR] = 1
+pb.memory[PROJ_X_ADDR] = 99; pb.memory[PROJ_Y_ADDR] = 50; pb.memory[PROJ_DIR_ADDR] = 0
+_t30c2_ok = invoke_no_arg(pb, IPU_ADDR)
+check("T30.c2 Spot: a non-lethal hit reduces health by WEAPON_TIER without defeating the mob",
+      _t30c2_ok and pb.memory[_t30c2_mob + 3] == 3 and pb.memory[_t30c2_mob + 4] == 1 and
+      pb.memory[MOB_COUNT_ADDR] == 1 and pb.memory[PROJ_ACTIVE_ADDR] == 0,
+      f"ok={_t30c2_ok} health={pb.memory[_t30c2_mob+3]} active={pb.memory[_t30c2_mob+4]} "
+      f"count={pb.memory[MOB_COUNT_ADDR]} proj_active={pb.memory[PROJ_ACTIVE_ADDR]}")
+
+# T30.d — miss/terminal boundary: an active projectile with no mob in its
+# path deactivates cleanly on exiting the window, no mob health affected
+# (there are none active here to affect).
+t30_reset(pb)
+pb.memory[MOB_COUNT_ADDR] = 0
+pb.memory[PROJ_ACTIVE_ADDR] = 1
+pb.memory[PROJ_X_ADDR] = 150; pb.memory[PROJ_Y_ADDR] = 60; pb.memory[PROJ_DIR_ADDR] = 0
+_t30d_steps = 0
+while pb.memory[PROJ_ACTIVE_ADDR] == 1 and _t30d_steps < 20:
+    invoke_no_arg(pb, IPU_ADDR)
+    _t30d_steps += 1
+check("T30.d Miss/terminal boundary: projectile deactivates cleanly on exiting the window",
+      pb.memory[PROJ_ACTIVE_ADDR] == 0 and 0 < _t30d_steps <= 5,
+      f"proj_active={pb.memory[PROJ_ACTIVE_ADDR]} steps={_t30d_steps}")
+
+# T30.e — COMBAT_MODE off: the A button remains a no-op during PLAYING,
+# unchanged from today's shipped base game (non-regression).
+t30_reset(pb, combat_mode=0)
+pb.memory[PLAYER_X] = 80; pb.memory[PLAYER_Y] = 60; pb.memory[PLAYER_DIR] = 0
+pb.memory[JOY_NEW_ADDR] = 1 << J_A_BIT
+_t30e_ok = invoke_no_arg(pb, HPI_ADDR)
+check("T30.e COMBAT_MODE off: A button remains a no-op during PLAYING (PROJ_ACTIVE stays 0)",
+      _t30e_ok and pb.memory[PROJ_ACTIVE_ADDR] == 0,
+      f"ok={_t30e_ok} proj_active={pb.memory[PROJ_ACTIVE_ADDR]}")
+
+pb.stop()
+wipe_save()
+
+print("\n=== T31: Combat Sub-Mode — Player Health & Economy (IP-1123) ===")
+
+PLAYER_HEALTH_ADDR = 0xC6DA; COMBAT_ENTRY_X_ADDR = 0xC6DB; COMBAT_ENTRY_Y_ADDR = 0xC6DC
+IMCC_ADDR = _gw_rom.labels['inf_mob_contact_check']
+IHSB_ADDR = _gw_rom.labels['inf_health_setback']
+IHEAL_ADDR = _gw_rom.labels['inf_heal_spend']
+IHHD_ADDR = _gw_rom.labels['inf_health_hud_draw']
+
+def t31_reset(pb, combat_mode=1, player_health=3):
+    pb.memory[GAME_MODE] = 1
+    pb.memory[COMBAT_MODE_ADDR] = combat_mode
+    pb.memory[MOB_COUNT_ADDR] = 0
+    for i in range(6):
+        base = MOB_DATA_ADDR + i * 5
+        for k in range(5): pb.memory[base + k] = 0
+    pb.memory[PLAYER_HEALTH_ADDR] = player_health
+    pb.memory[COMBAT_ENTRY_X_ADDR] = 0; pb.memory[COMBAT_ENTRY_Y_ADDR] = 0
+    pb.memory[RUNNING_TREASURE_COUNT] = 0; pb.memory[RUNNING_TREASURE_COUNT + 1] = 0
+
+pb = fresh_boot(180)
+advance_to_playing(pb)
+
+# T31.a — mob contact reduces health: force the player onto an active mob's
+# position, step one frame (invoke_no_arg on inf_mob_contact_check),
+# confirm PLAYER_HEALTH decreases by exactly 1.
+t31_reset(pb, player_health=3)
+pb.memory[PLAYER_X] = 100; pb.memory[PLAYER_Y] = 50
+pb.memory[MOB_COUNT_ADDR] = 1
+_t31a_mob = MOB_DATA_ADDR
+pb.memory[_t31a_mob + 0] = 100; pb.memory[_t31a_mob + 1] = 50
+pb.memory[_t31a_mob + 2] = 0; pb.memory[_t31a_mob + 3] = 1; pb.memory[_t31a_mob + 4] = 1
+_t31a_ok = invoke_no_arg(pb, IMCC_ADDR)
+check("T31.a Mob contact reduces health by exactly 1",
+      _t31a_ok and pb.memory[PLAYER_HEALTH_ADDR] == 2,
+      f"ok={_t31a_ok} health={pb.memory[PLAYER_HEALTH_ADDR]}")
+
+# T31.b — HUD reflects health: force PLAYER_HEALTH to each of 0-3, confirm
+# the row-1 heart cells render the matching full/empty pattern.
+_t31b_bad = []
+for _h in range(4):
+    t31_reset(pb, player_health=_h)
+    invoke_no_arg(pb, IHHD_ADDR)
+    _row1 = [pb.memory[0x9820 + k] for k in range(3)]
+    _expected = [TL_HEART_FULL if k < _h else TL_HEART_EMPTY for k in range(3)]
+    if _row1 != _expected: _t31b_bad.append((_h, _row1, _expected))
+check("T31.b HUD reflects health: row-1 heart cells render the matching full/empty pattern for health 0-3",
+      len(_t31b_bad) == 0, f"bad={_t31b_bad}")
+
+# T31.c — zero-health setback: force PLAYER_HEALTH to 0, a known
+# COMBAT_ENTRY_X/Y, and the player elsewhere; confirm PLAYER_HEALTH resets
+# to max, position returns to the recorded region-entry point, and
+# GAMESTATE remains PLAYING (never transitions to any other state).
+t31_reset(pb, player_health=0)
+pb.memory[COMBAT_ENTRY_X_ADDR] = 40; pb.memory[COMBAT_ENTRY_Y_ADDR] = 90
+pb.memory[PLAYER_X] = 120; pb.memory[PLAYER_Y] = 20
+_t31c_gs_before = pb.memory[GAMESTATE]
+_t31c_ok = invoke_no_arg(pb, IHSB_ADDR)
+_t31c_gs_after = pb.memory[GAMESTATE]
+check("T31.c Zero-health setback: health resets to max, position returns to region-entry point, GAMESTATE unchanged",
+      _t31c_ok and pb.memory[PLAYER_HEALTH_ADDR] == 3 and pb.memory[PLAYER_X] == 40 and
+      pb.memory[PLAYER_Y] == 90 and _t31c_gs_after == _t31c_gs_before,
+      f"ok={_t31c_ok} health={pb.memory[PLAYER_HEALTH_ADDR]} x={pb.memory[PLAYER_X]} "
+      f"y={pb.memory[PLAYER_Y]} gs_before={_t31c_gs_before} gs_after={_t31c_gs_after}")
+
+# T31.d — heal-spend decrements the shared count: force a known
+# RUNNING_TREASURE_COUNT, trigger inf_heal_spend, confirm the exact
+# decrement and the corresponding PLAYER_HEALTH increase.
+t31_reset(pb, player_health=1)
+pb.memory[RUNNING_TREASURE_COUNT] = 5; pb.memory[RUNNING_TREASURE_COUNT + 1] = 0
+_t31d_ok = invoke_no_arg(pb, IHEAL_ADDR)
+_t31d_rtc = pb.memory[RUNNING_TREASURE_COUNT] | (pb.memory[RUNNING_TREASURE_COUNT + 1] << 8)
+check("T31.d Heal-spend decrements RUNNING_TREASURE_COUNT by 1 and increases PLAYER_HEALTH by 1",
+      _t31d_ok and _t31d_rtc == 4 and pb.memory[PLAYER_HEALTH_ADDR] == 2,
+      f"ok={_t31d_ok} rtc={_t31d_rtc} health={pb.memory[PLAYER_HEALTH_ADDR]}")
+
+# T31.d2 — spot check: heal-spend still spends treasure even when already
+# at max health, but does not push health past the cap (3).
+t31_reset(pb, player_health=3)
+pb.memory[RUNNING_TREASURE_COUNT] = 5; pb.memory[RUNNING_TREASURE_COUNT + 1] = 0
+_t31d2_ok = invoke_no_arg(pb, IHEAL_ADDR)
+_t31d2_rtc = pb.memory[RUNNING_TREASURE_COUNT] | (pb.memory[RUNNING_TREASURE_COUNT + 1] << 8)
+check("T31.d2 Spot: heal-spend at max health still spends treasure but does not exceed the health cap",
+      _t31d2_ok and _t31d2_rtc == 4 and pb.memory[PLAYER_HEALTH_ADDR] == 3,
+      f"ok={_t31d2_ok} rtc={_t31d2_rtc} health={pb.memory[PLAYER_HEALTH_ADDR]}")
+
+# T31.e — heal-spend at zero treasure is a no-op: force
+# RUNNING_TREASURE_COUNT=0, trigger inf_heal_spend, confirm no change to
+# either field.
+t31_reset(pb, player_health=1)
+pb.memory[RUNNING_TREASURE_COUNT] = 0; pb.memory[RUNNING_TREASURE_COUNT + 1] = 0
+_t31e_ok = invoke_no_arg(pb, IHEAL_ADDR)
+_t31e_rtc = pb.memory[RUNNING_TREASURE_COUNT] | (pb.memory[RUNNING_TREASURE_COUNT + 1] << 8)
+check("T31.e Heal-spend at zero treasure is a no-op (no change to RUNNING_TREASURE_COUNT or PLAYER_HEALTH)",
+      _t31e_ok and _t31e_rtc == 0 and pb.memory[PLAYER_HEALTH_ADDR] == 1,
+      f"ok={_t31e_ok} rtc={_t31e_rtc} health={pb.memory[PLAYER_HEALTH_ADDR]}")
+
+# T31.f — COMBAT_MODE off: no row-1 HUD write occurs, and mob-contact/
+# heal-spend logic never executes (non-regression against the base game's
+# own row-0-only HUD).
+t31_reset(pb, combat_mode=0, player_health=3)
+pb.memory[PLAYER_X] = 100; pb.memory[PLAYER_Y] = 50
+pb.memory[MOB_COUNT_ADDR] = 1
+_t31f_mob = MOB_DATA_ADDR
+pb.memory[_t31f_mob + 0] = 100; pb.memory[_t31f_mob + 1] = 50
+pb.memory[_t31f_mob + 2] = 0; pb.memory[_t31f_mob + 3] = 1; pb.memory[_t31f_mob + 4] = 1
+pb.memory[RUNNING_TREASURE_COUNT] = 5; pb.memory[RUNNING_TREASURE_COUNT + 1] = 0
+for _k in range(3): pb.memory[0x9820 + _k] = 0xAA   # poison row-1 first
+invoke_no_arg(pb, IMCC_ADDR)
+invoke_no_arg(pb, IHEAL_ADDR)
+invoke_no_arg(pb, IHHD_ADDR)
+_t31f_row1 = [pb.memory[0x9820 + k] for k in range(3)]
+_t31f_rtc = pb.memory[RUNNING_TREASURE_COUNT] | (pb.memory[RUNNING_TREASURE_COUNT + 1] << 8)
+check("T31.f COMBAT_MODE off: no row-1 HUD write, mob-contact/heal-spend logic never executes",
+      pb.memory[PLAYER_HEALTH_ADDR] == 3 and _t31f_rtc == 5 and _t31f_row1 == [0xAA, 0xAA, 0xAA],
+      f"health={pb.memory[PLAYER_HEALTH_ADDR]} rtc={_t31f_rtc} row1={_t31f_row1}")
+
+pb.stop()
+wipe_save()
+
+print("\n=== T33: Combat Sub-Mode — Mode Gating & UI (IP-1120) ===")
+
+CMC_CURSOR_ADDR = 0xC6DD
+
+def _to_mode_select(pb):
+    """MAIN MENU -> MODE SELECT, cursor at default (finite)."""
+    pb.button('a'); [pb.tick() for _ in range(40)]
+
+def _to_combat_confirm(pb):
+    """MAIN MENU -> MODE SELECT -> toggle infinite -> confirm -> COMBAT
+    MODE CONFIRM (GS=12)."""
+    _to_mode_select(pb)
+    pb.button('down'); [pb.tick() for _ in range(40)]
+    pb.button('a'); [pb.tick() for _ in range(40)]
+
+# T33.a — off by default: from a fresh COMBAT MODE CONFIRM entry (cursor
+# defaults to "N"), press A immediately without touching UP/DOWN, confirm
+# COMBAT_MODE stays 0 and GAMESTATE reaches INFINITE SEED ENTRY (GS=11).
+pb = fresh_boot(200)
+_to_combat_confirm(pb)
+check("T33.a0 Reaches COMBAT MODE CONFIRM (GS=12)", pb.memory[GAMESTATE] == 12,
+      f"GS={pb.memory[GAMESTATE]}")
+check("T33.a0b CMC_CURSOR defaults to 0 (N)", pb.memory[CMC_CURSOR_ADDR] == 0,
+      f"cursor={pb.memory[CMC_CURSOR_ADDR]}")
+pb.button('a'); [pb.tick() for _ in range(40)]
+check("T33.a Off by default: A at default N cursor leaves COMBAT_MODE == 0",
+      pb.memory[COMBAT_MODE_ADDR] == 0, f"combat_mode={pb.memory[COMBAT_MODE_ADDR]}")
+check("T33.a2 Reaches INFINITE SEED ENTRY (GS=11)", pb.memory[GAMESTATE] == 11,
+      f"GS={pb.memory[GAMESTATE]}")
+pb.stop()
+
+# T33.b — confirm sets the flag: toggle to "Y" (one UP or DOWN press),
+# press A, confirm COMBAT_MODE == 1 and GAMESTATE == GS_INFINITE_SEED_ENTRY.
+pb = fresh_boot(200)
+_to_combat_confirm(pb)
+pb.button('up'); [pb.tick() for _ in range(40)]
+check("T33.b0 UP toggles CMC_CURSOR to 1 (Y)", pb.memory[CMC_CURSOR_ADDR] == 1,
+      f"cursor={pb.memory[CMC_CURSOR_ADDR]}")
+pb.button('a'); [pb.tick() for _ in range(40)]
+check("T33.b Confirm sets the flag: COMBAT_MODE == 1, GAMESTATE == 11",
+      pb.memory[COMBAT_MODE_ADDR] == 1 and pb.memory[GAMESTATE] == 11,
+      f"combat_mode={pb.memory[COMBAT_MODE_ADDR]} GS={pb.memory[GAMESTATE]}")
+pb.stop()
+
+# T33.c — B-cancel returns to MODE SELECT with "infinite" still
+# highlighted: from COMBAT MODE CONFIRM, press B, confirm GAMESTATE ==
+# GS_MODE_SELECT and MM_CURSOR != 0 (still "infinite", not reset to
+# "finite").
+pb = fresh_boot(200)
+_to_combat_confirm(pb)
+pb.button('b'); [pb.tick() for _ in range(40)]
+check("T33.c B-cancel returns to MODE SELECT (GS=10) with infinite still highlighted",
+      pb.memory[GAMESTATE] == 10 and pb.memory[MM_CURSOR] != 0,
+      f"GS={pb.memory[GAMESTATE]} MM_CURSOR={pb.memory[MM_CURSOR]}")
+check("T33.c2 B-cancel writes no COMBAT_MODE (still 0)", pb.memory[COMBAT_MODE_ADDR] == 0,
+      f"combat_mode={pb.memory[COMBAT_MODE_ADDR]}")
+pb.stop()
+
+# T33.d — re-entry resets to "N": toggle to "Y", B-cancel back to MODE
+# SELECT, re-enter COMBAT MODE CONFIRM (MM_CURSOR still "infinite," so a
+# plain A re-enters it), confirm CMC_CURSOR == 0 on the fresh entry (never
+# carries a stale "Y" forward).
+pb = fresh_boot(200)
+_to_combat_confirm(pb)
+pb.button('up'); [pb.tick() for _ in range(40)]        # toggle to Y
+check("T33.d0 Toggled to Y before cancelling", pb.memory[CMC_CURSOR_ADDR] == 1,
+      f"cursor={pb.memory[CMC_CURSOR_ADDR]}")
+pb.button('b'); [pb.tick() for _ in range(40)]         # cancel -> MODE SELECT
+pb.button('a'); [pb.tick() for _ in range(40)]         # re-enter (MM_CURSOR already "infinite")
+check("T33.d Re-entry resets to N: fresh CMC_CURSOR == 0 despite prior Y toggle",
+      pb.memory[GAMESTATE] == 12 and pb.memory[CMC_CURSOR_ADDR] == 0,
+      f"GS={pb.memory[GAMESTATE]} cursor={pb.memory[CMC_CURSOR_ADDR]}")
+pb.stop()
+
+# T33.e — finite path unaffected: drive MODE SELECT -> "finite" (default
+# cursor, no toggle), confirm GAMESTATE == GS_SEED_SCALE_ENTRY directly, no
+# detour through COMBAT MODE CONFIRM, COMBAT_MODE unaffected.
+pb = fresh_boot(200)
+_to_mode_select(pb)
+pb.button('a'); [pb.tick() for _ in range(40)]         # confirm finite (default cursor)
+check("T33.e Finite path unaffected: MODE SELECT confirm finite -> SEED/SCALE ENTRY (GS=7) directly",
+      pb.memory[GAMESTATE] == 7 and pb.memory[COMBAT_MODE_ADDR] == 0,
+      f"GS={pb.memory[GAMESTATE]} combat_mode={pb.memory[COMBAT_MODE_ADDR]}")
+pb.stop()
+
+# T33.f — T25 non-regression spot check: MODE SELECT's own B-cancel to
+# MAIN MENU and SEED/SCALE ENTRY's own direct reachability both still work
+# exactly as T25 itself already re-confirms elsewhere in this same
+# full-suite run (T25.b1/T25.c1, both updated only where IP-1120's own
+# retarget actually changed behavior — T25.b2a/d1/e1/f's own button
+# scripts, not their assertions' intent).
+pb = fresh_boot(200)
+_to_mode_select(pb)
+pb.button('down'); [pb.tick() for _ in range(40)]      # highlight infinite, do NOT confirm
+pb.button('b'); [pb.tick() for _ in range(40)]
+check("T33.f T25 non-regression: MODE SELECT B-cancel still reaches MAIN MENU (GS=6), GAME_MODE unwritten",
+      pb.memory[GAMESTATE] == 6 and pb.memory[GAME_MODE] == 0,
+      f"GS={pb.memory[GAMESTATE]} GAME_MODE={pb.memory[GAME_MODE]}")
+pb.stop()
+
+# T33.g — reused-array non-corruption (BL-0153 remediation-specific):
+# after visiting COMBAT MODE CONFIRM (forcing its own redraw so the
+# text-overlay memcpy calls run), navigate back to MODE SELECT and
+# confirm its own screen still reads "BUNNY QUEST"/"FINITE"/"INFINITE"
+# correctly -- proving the overlay only ever touches the live VRAM copy,
+# never mode_select_screen's own ROM-resident array.
+pb = fresh_boot(200)
+_to_combat_confirm(pb)
+pb.button('up'); [pb.tick() for _ in range(40)]        # force an extra redraw (toggle)
+pb.button('b'); [pb.tick() for _ in range(40)]         # back to MODE SELECT
+_t33g_title = [pb.memory[0x9800 + 3*32 + 5 + i] for i in range(len("BUNNY QUEST"))]
+_t33g_expected_title = [_tiles_mod.char_to_tile(c) for c in "BUNNY QUEST"]
+_t33g_finite = [pb.memory[0x9800 + 7*32 + 8 + i] for i in range(len("FINITE"))]
+_t33g_expected_finite = [_tiles_mod.char_to_tile(c) for c in "FINITE"]
+_t33g_infinite = [pb.memory[0x9800 + 9*32 + 8 + i] for i in range(len("INFINITE"))]
+_t33g_expected_infinite = [_tiles_mod.char_to_tile(c) for c in "INFINITE"]
+check("T33.g Reused-array non-corruption: MODE SELECT still reads BUNNY QUEST/FINITE/INFINITE after visiting COMBAT MODE CONFIRM",
+      _t33g_title == _t33g_expected_title and _t33g_finite == _t33g_expected_finite and
+      _t33g_infinite == _t33g_expected_infinite,
+      f"title={_t33g_title} finite={_t33g_finite} infinite={_t33g_infinite}")
+pb.stop()
+
+# T33.h — overlay content correct: drive to COMBAT MODE CONFIRM, read the
+# row-3/row-7/row-9 VRAM tile bytes directly, confirm they read "COMBAT
+# MODE?"/"NO"/"YES" (not stale BUNNY QUEST/FINITE/INFINITE leftovers) and
+# that no trailing character from the longer original labels survives the
+# shorter replacement (row 7 col 13, FINITE's own last letter's position,
+# and row 9 col 15, INFINITE's own last letter's position, both blank).
+pb = fresh_boot(200)
+_to_combat_confirm(pb)
+_t33h_title = [pb.memory[0x9800 + 3*32 + 5 + i] for i in range(len("COMBAT MODE?"))]
+_t33h_expected_title = [_tiles_mod.char_to_tile(c) for c in "COMBAT MODE?"]
+_t33h_no = [pb.memory[0x9800 + 7*32 + 8 + i] for i in range(2)]
+_t33h_expected_no = [_tiles_mod.char_to_tile(c) for c in "NO"]
+_t33h_yes = [pb.memory[0x9800 + 9*32 + 8 + i] for i in range(3)]
+_t33h_expected_yes = [_tiles_mod.char_to_tile(c) for c in "YES"]
+_t33h_trailing_finite = pb.memory[0x9800 + 7*32 + 13]   # FINITE's own last letter's cell
+_t33h_trailing_infinite = pb.memory[0x9800 + 9*32 + 15] # INFINITE's own last letter's cell
+check("T33.h Overlay content correct: COMBAT MODE?/NO/YES render, no stale trailing characters",
+      _t33h_title == _t33h_expected_title and _t33h_no == _t33h_expected_no and
+      _t33h_yes == _t33h_expected_yes and _t33h_trailing_finite == TL_BG_BLANK and
+      _t33h_trailing_infinite == TL_BG_BLANK,
+      f"title={_t33h_title} no={_t33h_no} yes={_t33h_yes} "
+      f"trailing_finite={_t33h_trailing_finite} trailing_infinite={_t33h_trailing_infinite}")
 pb.stop()
 wipe_save()
 

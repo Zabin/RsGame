@@ -37,7 +37,36 @@
 > is built: `COMBAT_MODE`/`MOB_COUNT`/`MOB_DATA` (`asm_game.py`), `inf_materialize_mobs`
 > (hooked into `inf_ensure_window`'s existing center-cell recompute), `inf_mob_render` (hooked
 > into `update_oam`), `inf_mob_defeat` (defined/exposed, no call site yet — `IP-1122`'s own
-> scope). `COMPLETE`, own `09-package-verification` pass owed.
+> scope). **Independently verified 2026-07-18** ([VR-1121](../implementation/verification/VR-1121-infinite-mode-combat-mob-materialization-and-rendering.md)) — `VERIFIED`.
+>
+> **`IP-1122` implemented 2026-07-18** — Workflow C (ranged weapon fire and hit resolution) is
+> built: `PROJ_ACTIVE`/`PROJ_X`/`PROJ_Y`/`PROJ_DIR`/`WEAPON_TIER` (`asm_game.py`),
+> `handle_play_input`'s new A-button fire branch, `inf_projectile_update` (hooked into
+> `st_playing`'s per-frame chain), `inf_projectile_hittest` (reuses `check_collisions`' own
+> asymmetric point-in-box technique verbatim, unmodified). `COMPLETE`, own
+> `09-package-verification` pass owed.
+>
+> **`IP-1123` implemented 2026-07-18** — Workflow D (player health, non-lethal setback, treasure-
+> spent healing economy) is built: `PLAYER_HEALTH`/`COMBAT_ENTRY_X`/`COMBAT_ENTRY_Y`
+> (`asm_game.py`), `inf_mob_contact_check` (per-frame, reuses `check_collisions`' own technique
+> against `PLAYER_X`/`Y`), `inf_health_setback` (restore-and-reposition, never writes
+> `GAMESTATE`), `inf_record_combat_entry` (hooked into every `inf_ensure_window` call site),
+> `inf_heal_spend` (defined/exposed, no real input binding yet — `BL-0148`, unresolved),
+> `inf_health_hud_draw` (row-1 heart cells, hooked into `update_status_disp`). `COMPLETE`, own
+> `09-package-verification` pass owed.
+>
+> **`IP-1120` implemented 2026-07-18** — Workflow A (the `gate` verb) is built, closing this
+> Feature's own **Open Question 1**: a new `GS_COMBAT_MODE_CONFIRM` state (binary Y/N cursor,
+> defaults to N) reached only after confirming "infinite" on `MODE SELECT`, before `INFINITE
+> SEED ENTRY`; `ms_infinite`'s existing transition retargeted (one constant); `COMBAT_MODE` set
+> only on explicit "Y" confirm. **First attempt hit a real ROM-budget overflow (542 bytes,
+> `BL-0153`), same class as `BL-0134`** — resolved by a same-day re-plan: the confirm screen
+> reuses `mode_select_screen`'s own already-registered tile/attr array as its base and draws its
+> own differing text at runtime via `memcpy`, instead of registering a second full `ALL_SCREENS`
+> entry. `COMPLETE`, own `09-package-verification` pass owed. This closes all six combat
+> sub-mode packages to at least `COMPLETE` — `IP-1121` `VERIFIED`, `IP-1122`/`IP-1123`/`IP-1120`
+> `COMPLETE` (own `09` passes owed), `IP-1124` still `NOT STARTED` (blocked on `IP-1122`/
+> `IP-1123` reaching `VERIFIED`), `IP-1125` `VERIFIED`.
 
 [↑ Features index](INDEX.md) · [Feature Catalog](../feature-planning/03-feature-catalog.md) ·
 [Epic Catalog](../feature-planning/02-epic-catalog.md)
@@ -412,11 +441,12 @@ implementation-level choices, mirroring `FS-110`'s own precedent for exactly thi
    player/enemy-initiated discrete events, not continuous per-frame effects), but not asserted
    safe either. Resolves at: `07-implementation-planning`, as an implementation-level sequencing
    choice — does not require a requirements or architecture change either way.
-3. **The exact player-visible feedback for a no-op heal-spend attempt (zero treasure available)
-   is not decided.** A silent no-op versus a disabled-option/audio cue is a presentation-layer
-   choice `FR-11500` does not fix. Resolves at: `07-implementation-planning`/`08-code-
-   implementation`, mirroring how `FS-110` left comparable presentation-only choices (e.g. the
-   first-time-entry confirmation screen's exact wording) to implementation.
+3. **Resolved (`IP-1123`, 2026-07-18): shipped as a silent no-op.** `inf_heal_spend` at zero
+   treasure changes neither `RUNNING_TREASURE_COUNT` nor `PLAYER_HEALTH` and produces no other
+   observable effect (`T31.e`) — no disabled-option/audio cue was added. A richer cue remains
+   possible as a future presentation-layer touch but is not required by `FR-11500`; this
+   subroutine has no real input binding yet regardless (`BL-0148`), so the no-op is not yet
+   player-reachable either way.
 
 ## 20. Related ADRs
 
