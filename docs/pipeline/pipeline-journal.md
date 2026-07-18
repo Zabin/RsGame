@@ -14,36 +14,34 @@
 
 ## Position
 
-- **Updated:** 2026-07-18 (run #235)
-- **Increment:** Same as run #234, plus: **drift found and corrected** — `IP-1125` (combat
-  sub-mode sprite content) was implemented (commit `74d53c4`) after run #234 but never journaled
-  (no manager run authored it); the tree already shows it `COMPLETE`, 330/330 suite. This run's
-  own reconciliation caught and logged that gap rather than re-doing or silently trusting it.
-  This fresh session then used its genuine independence to clear the oldest owed verification:
-  **`IP-9170` → `VERIFIED`** (`VR-9170`) — 330/330 suite, ROM byte-identical rebuild, live-driven
-  via a standalone PyBoy script at non-default `WORLD_SCALE` 6/8 (not just the suite's own
-  fixture), no findings. `IP-9180` and `IP-1125` (own `09`/`09-content-review` passes) remain
-  owed, both now independently verifiable in this same fresh session.
-- **Pipeline state:** Bootstrap stages 01–11 ✅; Release 2 GO. **40 packages `VERIFIED`**
-  (`IP-9170` newly closed). **Two `COMPLETE`, verification owed:** `IP-9180` (`09`), `IP-1125`
-  (`09` + `09-content-review`) — both eligible now, same fresh session. Five combat sub-mode
-  packages (`IP-1120`–`1124`) remain `NOT STARTED`, `AUTHORIZED` (G3 granted run #234), ready for
+- **Updated:** 2026-07-18 (run #236)
+- **Increment:** Same as run #234, plus: **drift found and corrected** (run #235) — `IP-1125`
+  (combat sub-mode sprite content) was implemented (commit `74d53c4`) after run #234 but never
+  journaled; noted and logged rather than re-done or silently trusted. This fresh session then
+  cleared both owed HUD-remediation verifications: **`IP-9170` → `VERIFIED`** (`VR-9170`, run
+  #235) and **`IP-9180` → `VERIFIED`** (`VR-9180`, run #236) — both 330/330 suite, ROM
+  byte-identical rebuilds, each independently live-driven via a standalone PyBoy script at
+  non-default tunable values (not just the suite's own fixtures), no findings either time.
+  `IP-1125` (own `09`/`09-content-review` passes) remains owed, independently verifiable in this
+  same fresh session.
+- **Pipeline state:** Bootstrap stages 01–11 ✅; Release 2 GO. **41 packages `VERIFIED`**
+  (`IP-9170`/`IP-9180` newly closed). **One `COMPLETE`, verification owed:** `IP-1125` (`09` +
+  `09-content-review`) — eligible now, same fresh session. Five combat sub-mode packages
+  (`IP-1120`–`1124`) remain `NOT STARTED`, `AUTHORIZED` (G3 granted run #234), ready for
   `08-code-implementation` per the critical path (`IP-1121` first). Standing, non-blocking
   doc/design work unchanged: the doc-accuracy sweep family (`BL-0136`/`BL-0137`/`BL-0140`–
   `BL-0143`); `BL-0118` (`NFR-1400` cycle-budget gap); `BL-0123` (`try_load_save` unneeded
   finite-mode work); `BL-0112` (Infinite Mode run-end trigger); `BL-0097` (Medium, routed
   already); `BL-0130` (catalog text gap).
-- **Backlog:** 148 entries. `BL-0139` → `DONE` (`IP-9170` now `VERIFIED`). `BL-0133` still
-  `IN PIPELINE` (G3 granted, build in progress). `BL-0146`/`BL-0145`/`BL-0127`/`BL-0128` `DONE`.
-  `BL-0147`/`BL-0148` `SCHEDULED` (ride a future `04`/`06` touch, non-blocking). `BL-0144` still
-  `IN PIPELINE` (rides `IP-9180`'s own verification).
-- **Next step:** `09-package-verification` on `IP-9180` (same fresh session, independent of its
-  own implementation) — then `09-package-verification` + `09-content-review` on `IP-1125` — then
-  `08-code-implementation` on `IP-1121` (mob materialization/rendering/defeat, critical-path
-  root), `IP-1122`/`IP-1123` (parallel-eligible), `IP-1124` (last), `IP-1120` (parallel once
-  `IP-1121` lands).
-- **Open gates:** **none.** G3 granted for all six combat sub-mode packages (run #234). This run's
-  drift correction and verification pass both proceeded without needing the user.
+- **Backlog:** 148 entries. `BL-0139`/`BL-0144` → `DONE` (`IP-9170`/`IP-9180` both `VERIFIED`).
+  `BL-0133` still `IN PIPELINE` (G3 granted, build in progress). `BL-0146`/`BL-0145`/`BL-0127`/
+  `BL-0128` `DONE`. `BL-0147`/`BL-0148` `SCHEDULED` (ride a future `04`/`06` touch, non-blocking).
+- **Next step:** `09-package-verification` + `09-content-review` on `IP-1125` (same fresh session,
+  independent of its own implementation) — then `08-code-implementation` on `IP-1121` (mob
+  materialization/rendering/defeat, critical-path root), `IP-1122`/`IP-1123` (parallel-eligible),
+  `IP-1124` (last), `IP-1120` (parallel once `IP-1121` lands).
+- **Open gates:** **none.** G3 granted for all six combat sub-mode packages (run #234). Both
+  verification passes this run proceeded without needing the user.
 
 ## Run log
 
@@ -288,3 +286,4 @@
 | 233 | 2026-07-17 | advance → gate stop (same session, "Iterate pipeline skill until all items are blocked") | `07-implementation-planning` | Re-plan `IP-1120` in full against `GDS-01` §4e | ✅ Completed `IP-1120`'s remaining fields: new `GS_COMBAT_MODE_CONFIRM=12` state, `CMC_CURSOR` WRAM byte (`0xC6DD`), a font-only confirmation screen (zero new tile art), `ms_infinite`'s existing transition retargeted (one constant). New suite `T33` (6 checks) named. **This completes planning for all six combat sub-mode packages (`IP-1120`–`1125`)** — none authorized. Master Build Plan/`packages/INDEX.md`/TWBS/`FS-112` metadata/`ROADMAP.md` all updated in sync. **GATE: G3 authorization** — five/six real production-code packages (mob AI, projectile physics, health/damage, a treasure economy, a save-format bump, a new gating screen) require the user's explicit go-ahead before `08-code-implementation`/`08-content-authoring` can build any of them. This is the first genuine stop this "iterate until blocked" run has reached — every step before it (research, architecture, requirements, decomposition, specification, planning) needed no user input per each stage's own charter. | GATE: G3 authorization on `IP-1120`–`1125` (all six, or a named subset) — the user's explicit go-ahead, per this pipeline's own G3 rule (a package being fully planned is never itself authorization to build it) |
 | 234 | 2026-07-17 | advance → gate resolved (same session) | — (gate check) | G3 authorization for `IP-1120`–`1125` | ✅ **User answered: "Yes, build all six."** All six combat sub-mode packages authorized. Master Build Plan, `packages/INDEX.md`, TWBS all updated to `AUTHORIZED`. `BL-0133` → `IN PIPELINE` (authorized). | `08-content-authoring` on `IP-1125` (dependency root, no dependencies) — then `08-code-implementation` on `IP-1121`, `IP-1122`/`IP-1123` (parallel), `IP-1124`, `IP-1120`, in that order |
 | 235 | 2026-07-18 | advance (fresh session, "Run pipeline skill") | `09-package-verification` | `IP-9170` (HUD carrot-target digit fix) | ✅ **Drift found and corrected during reconciliation**: `IP-1125` (combat sprite content) was implemented (commit `74d53c4`) between run #234 and this run but never journaled — noted here rather than re-run or silently trusted. **`IP-9170` → VERIFIED** ([VR-9170](../implementation/verification/VR-9170-hud-carrot-target-digit-fix.md)): rebuilt ROM (32768 bytes, valid header), full suite 330/330, every DoD/checklist item re-derived from the tree by direct code read (`asm_game.py:1355`-`1366`), diff scope confirmed `asm_game.py`-only. Per this skill's own tunable-parameter rule, independently drove the built ROM live via a standalone PyBoy script (not the suite's own fixture) at non-default `WORLD_SCALE=6` and `8` — HUD digit tracked both exactly; confirmed the `GAME_MODE=1` branch is `IP-9180`'s own independent code, not a finite-mode leak. No findings. `BL-0139` → `DONE`. Master Build Plan, `packages/INDEX.md`, verification `INDEX.md` updated. | `09-package-verification` on `IP-9180` (same fresh session, independent of its own implementation) |
+| 236 | 2026-07-18 | advance (same fresh session) | `09-package-verification` | `IP-9180` (Infinite Mode HUD treasure-count digit) | ✅ **`IP-9180` → VERIFIED** ([VR-9180](../implementation/verification/VR-9180-infinite-mode-hud-treasure-count-digit.md)): rebuilt ROM (32768 bytes, valid header), full suite 330/330, every DoD/checklist item re-derived from the tree by direct code read (`asm_game.py:1368`-`1382`, `usd_infinite_target`'s mod-10 loop confirmed `DIV`/`MUL`-free), diff scope confirmed `asm_game.py`-only. Independently drove the built ROM live via a standalone PyBoy script at `RUNNING_TREASURE_COUNT=9` and `21` (disjoint from the suite's own fixture 7/13) — digit read 9 and correctly wrapped to 1; finite-mode non-regression independently reproduced (switched back to `GAME_MODE=0`, `WORLD_SCALE=4` → digit 4). No findings. `BL-0144` → `DONE`. Master Build Plan, `packages/INDEX.md`, verification `INDEX.md` updated. | `09-package-verification` + `09-content-review` on `IP-1125` (same fresh session, independent of its own implementation) |
