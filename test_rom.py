@@ -3891,6 +3891,137 @@ check("T29.f OAM budget static audit: 1 player + up to 8 collectibles + 6 mobs <
 pb.stop()
 wipe_save()
 
+print("\n=== T30: Combat Sub-Mode — Weapon Fire & Hit Resolution (IP-1122) ===")
+
+PROJ_ACTIVE_ADDR = 0xC6D5; PROJ_X_ADDR = 0xC6D6; PROJ_Y_ADDR = 0xC6D7
+PROJ_DIR_ADDR = 0xC6D8; WEAPON_TIER_ADDR = 0xC6D9
+JOY_CUR_ADDR = 0xC00C; JOY_NEW_ADDR = 0xC00E
+J_A_BIT = 0   # asm_game.py's own J_A=0 encoding
+HPI_ADDR = _gw_rom.labels['handle_play_input']
+IPU_ADDR = _gw_rom.labels['inf_projectile_update']
+
+def invoke_no_arg(pb, addr, budget=400):
+    """Direct PC/SP-hijack + self-loop-trap invocation of a no-argument
+    subroutine (handle_play_input / inf_projectile_update), mirroring
+    T29's own invoke_inf_materialize_mobs technique."""
+    pb.memory[GW_TRAP_ADDR] = 0x18; pb.memory[GW_TRAP_ADDR + 1] = 0xFE  # JR -2
+    sp = (pb.register_file.SP - 2) & 0xFFFF
+    pb.memory[sp] = GW_TRAP_ADDR & 0xFF
+    pb.memory[sp + 1] = (GW_TRAP_ADDR >> 8) & 0xFF
+    pb.register_file.SP = sp
+    pb.register_file.PC = addr
+    for _ in range(budget):
+        pb.tick()
+        if pb.register_file.PC == GW_TRAP_ADDR:
+            return True
+    return False
+
+def t30_reset(pb, combat_mode=1, weapon_tier=1):
+    pb.memory[GAME_MODE] = 1
+    pb.memory[COMBAT_MODE_ADDR] = combat_mode
+    pb.memory[MOB_COUNT_ADDR] = 0
+    for i in range(6):
+        base = MOB_DATA_ADDR + i * 5
+        for k in range(5): pb.memory[base + k] = 0
+    pb.memory[PROJ_ACTIVE_ADDR] = 0
+    pb.memory[PROJ_X_ADDR] = 0; pb.memory[PROJ_Y_ADDR] = 0; pb.memory[PROJ_DIR_ADDR] = 0
+    pb.memory[WEAPON_TIER_ADDR] = weapon_tier
+    pb.memory[JOY_CUR_ADDR] = 0; pb.memory[JOY_NEW_ADDR] = 0
+
+pb = fresh_boot(180)
+advance_to_playing(pb)
+
+# T30.a — fire spawns a projectile at the player's own position/facing.
+t30_reset(pb)
+pb.memory[PLAYER_X] = 80; pb.memory[PLAYER_Y] = 60; pb.memory[PLAYER_DIR] = 1
+pb.memory[JOY_NEW_ADDR] = 1 << J_A_BIT
+_t30a_ok = invoke_no_arg(pb, HPI_ADDR)
+_t30a_active = pb.memory[PROJ_ACTIVE_ADDR]
+_t30a_x = pb.memory[PROJ_X_ADDR]; _t30a_y = pb.memory[PROJ_Y_ADDR]; _t30a_dir = pb.memory[PROJ_DIR_ADDR]
+check("T30.a Fire spawns a projectile at the player's own position/facing",
+      _t30a_ok and _t30a_active == 1 and _t30a_x == 80 and _t30a_y == 60 and _t30a_dir == 1,
+      f"ok={_t30a_ok} active={_t30a_active} x={_t30a_x} y={_t30a_y} dir={_t30a_dir}")
+
+# T30.b — no double-fire: pressing A again while a projectile is already
+# active leaves its state completely unchanged (FR-11300's own Acceptance
+# Criterion), even though the player's own position/facing differ this time.
+t30_reset(pb)
+pb.memory[PROJ_ACTIVE_ADDR] = 1
+pb.memory[PROJ_X_ADDR] = 40; pb.memory[PROJ_Y_ADDR] = 90; pb.memory[PROJ_DIR_ADDR] = 0
+pb.memory[PLAYER_X] = 120; pb.memory[PLAYER_Y] = 20; pb.memory[PLAYER_DIR] = 1
+pb.memory[JOY_NEW_ADDR] = 1 << J_A_BIT
+_t30b_ok = invoke_no_arg(pb, HPI_ADDR)
+check("T30.b No double-fire: pressing A while a projectile is active leaves its state unchanged",
+      _t30b_ok and pb.memory[PROJ_ACTIVE_ADDR] == 1 and pb.memory[PROJ_X_ADDR] == 40 and
+      pb.memory[PROJ_Y_ADDR] == 90 and pb.memory[PROJ_DIR_ADDR] == 0,
+      f"ok={_t30b_ok} active={pb.memory[PROJ_ACTIVE_ADDR]} x={pb.memory[PROJ_X_ADDR]} "
+      f"y={pb.memory[PROJ_Y_ADDR]} dir={pb.memory[PROJ_DIR_ADDR]}")
+
+# T30.c — hit resolution: an active projectile that reaches an active mob's
+# hitbox reduces its health by WEAPON_TIER, deactivates the projectile, and
+# (at zero health) triggers inf_mob_defeat's own effects (active clears,
+# MOB_COUNT decrements — reusing T29.e's own assertions).
+t30_reset(pb)
+pb.memory[MOB_COUNT_ADDR] = 1
+_t30c_mob = MOB_DATA_ADDR
+pb.memory[_t30c_mob + 0] = 100; pb.memory[_t30c_mob + 1] = 50
+pb.memory[_t30c_mob + 2] = 0; pb.memory[_t30c_mob + 3] = 1; pb.memory[_t30c_mob + 4] = 1
+pb.memory[WEAPON_TIER_ADDR] = 1
+pb.memory[PROJ_ACTIVE_ADDR] = 1
+pb.memory[PROJ_X_ADDR] = 99; pb.memory[PROJ_Y_ADDR] = 50; pb.memory[PROJ_DIR_ADDR] = 0
+_t30c_ok = invoke_no_arg(pb, IPU_ADDR)
+_t30c_health = pb.memory[_t30c_mob + 3]; _t30c_active = pb.memory[_t30c_mob + 4]
+_t30c_count = pb.memory[MOB_COUNT_ADDR]; _t30c_proj = pb.memory[PROJ_ACTIVE_ADDR]
+check("T30.c Hit resolution: mob health reduced by WEAPON_TIER, defeated at zero (inf_mob_defeat's own effects), projectile stops",
+      _t30c_ok and _t30c_health == 0 and _t30c_active == 0 and _t30c_count == 0 and _t30c_proj == 0,
+      f"ok={_t30c_ok} health={_t30c_health} active={_t30c_active} count={_t30c_count} proj_active={_t30c_proj}")
+
+# T30.c2 — spot check: a non-lethal hit damages without defeating (mob
+# stays active, MOB_COUNT unchanged) — confirms the floor-at-0 write path
+# and the defeat-vs-damage-only branch are both independently correct.
+t30_reset(pb)
+pb.memory[MOB_COUNT_ADDR] = 1
+_t30c2_mob = MOB_DATA_ADDR
+pb.memory[_t30c2_mob + 0] = 100; pb.memory[_t30c2_mob + 1] = 50
+pb.memory[_t30c2_mob + 2] = 0; pb.memory[_t30c2_mob + 3] = 5; pb.memory[_t30c2_mob + 4] = 1
+pb.memory[WEAPON_TIER_ADDR] = 2
+pb.memory[PROJ_ACTIVE_ADDR] = 1
+pb.memory[PROJ_X_ADDR] = 99; pb.memory[PROJ_Y_ADDR] = 50; pb.memory[PROJ_DIR_ADDR] = 0
+_t30c2_ok = invoke_no_arg(pb, IPU_ADDR)
+check("T30.c2 Spot: a non-lethal hit reduces health by WEAPON_TIER without defeating the mob",
+      _t30c2_ok and pb.memory[_t30c2_mob + 3] == 3 and pb.memory[_t30c2_mob + 4] == 1 and
+      pb.memory[MOB_COUNT_ADDR] == 1 and pb.memory[PROJ_ACTIVE_ADDR] == 0,
+      f"ok={_t30c2_ok} health={pb.memory[_t30c2_mob+3]} active={pb.memory[_t30c2_mob+4]} "
+      f"count={pb.memory[MOB_COUNT_ADDR]} proj_active={pb.memory[PROJ_ACTIVE_ADDR]}")
+
+# T30.d — miss/terminal boundary: an active projectile with no mob in its
+# path deactivates cleanly on exiting the window, no mob health affected
+# (there are none active here to affect).
+t30_reset(pb)
+pb.memory[MOB_COUNT_ADDR] = 0
+pb.memory[PROJ_ACTIVE_ADDR] = 1
+pb.memory[PROJ_X_ADDR] = 150; pb.memory[PROJ_Y_ADDR] = 60; pb.memory[PROJ_DIR_ADDR] = 0
+_t30d_steps = 0
+while pb.memory[PROJ_ACTIVE_ADDR] == 1 and _t30d_steps < 20:
+    invoke_no_arg(pb, IPU_ADDR)
+    _t30d_steps += 1
+check("T30.d Miss/terminal boundary: projectile deactivates cleanly on exiting the window",
+      pb.memory[PROJ_ACTIVE_ADDR] == 0 and 0 < _t30d_steps <= 5,
+      f"proj_active={pb.memory[PROJ_ACTIVE_ADDR]} steps={_t30d_steps}")
+
+# T30.e — COMBAT_MODE off: the A button remains a no-op during PLAYING,
+# unchanged from today's shipped base game (non-regression).
+t30_reset(pb, combat_mode=0)
+pb.memory[PLAYER_X] = 80; pb.memory[PLAYER_Y] = 60; pb.memory[PLAYER_DIR] = 0
+pb.memory[JOY_NEW_ADDR] = 1 << J_A_BIT
+_t30e_ok = invoke_no_arg(pb, HPI_ADDR)
+check("T30.e COMBAT_MODE off: A button remains a no-op during PLAYING (PROJ_ACTIVE stays 0)",
+      _t30e_ok and pb.memory[PROJ_ACTIVE_ADDR] == 0,
+      f"ok={_t30e_ok} proj_active={pb.memory[PROJ_ACTIVE_ADDR]}")
+
+pb.stop()
+wipe_save()
+
 print("\n=== T34: Combat Sub-Mode — Sprite Content (IP-1125) ===")
 
 import build_rom as _build_rom_mod

@@ -494,6 +494,39 @@ would fail to hide a defeated mob's stale OAM entry) both operate on this block 
 `MOB_COUNT`) but has no call site yet — `IP-1122`'s own hit-resolution logic is the real future
 caller. 32 bytes total, comfortably inside the confirmed bank-0 headroom.
 
+**`IP-1122` implemented 2026-07-18** — `inf_mob_defeat` now has its own call site
+(`inf_projectile_hittest`, §7j below), closing the "future caller" note above.
+
+### 7j. Combat Sub-Mode: ranged weapon/projectile WRAM — `IP-1122` (confirmed 2026-07-18)
+
+First unclaimed bytes past `MOB_DATA`'s own end (`0xC6D4`, §7i). `PROJ_ACTIVE` boot-cleared
+(same `COLL_COUNT`/`MOB_COUNT` "count/flag gates array validity" convention); `WEAPON_TIER`
+boot-*initialized* to 1, not simply cleared — its valid range is 1-3, and the treasure-funded
+mechanism that would ever raise it above 1 has no baselined FR yet (`BL-0147`, unresolved by this
+package).
+
+| Address | Name | Size | Purpose |
+|---|---|---|---|
+| `C6D5` | `PROJ_ACTIVE` | 1 byte | 0=no projectile in flight (default), 1=active |
+| `C6D6` | `PROJ_X` | 1 byte | projectile's own X, independent of `PLAYER_X` once fired |
+| `C6D7` | `PROJ_Y` | 1 byte | projectile's own Y, fixed at its spawn value (horizontal-only movement, see `PROJ_DIR`) |
+| `C6D8` | `PROJ_DIR` | 1 byte | 0=right, 1=left — mirrors `PLAYER_DIR`'s own real 2-value encoding (see note below) |
+| `C6D9` | `WEAPON_TIER` | 1 byte | damage dealt per hit, default 1, range 1-3 (persisted stat; funding mechanism not yet built) |
+
+**Named deviation from `IP-1122` §6's own phrasing:** the package's Files-to-Modify text
+describes `PROJ_DIR` as "0-3 mirroring the player's own facing-direction encoding," but direct
+code read confirms `PLAYER_DIR` is written only by `handle_play_input`'s RIGHT/LEFT branches
+(never UP/DOWN) — this codebase's own established "facing direction" concept is 2-state, not
+4-state. `FR-11300`'s own Notes explicitly delegate the exact facing-direction mechanism to
+`06`/`08` discretion, so this is a named implementation decision, not a blocker: the projectile
+moves purely horizontally. `handle_play_input`'s new fire branch (A-button-just-pressed,
+`COMBAT_MODE`-gated) spawns the projectile at the player's own position/facing;
+`inf_projectile_update` (hooked into `st_playing`'s per-frame chain, a no-op unless
+`COMBAT_MODE`/`PROJ_ACTIVE`) advances `PROJ_X` and calls `inf_projectile_hittest`, which reuses
+`check_collisions`' own asymmetric point-in-box technique verbatim (unmodified) against
+`MOB_DATA`, subtracting `WEAPON_TIER` from a hit mob's health (floored at 0, calling
+`inf_mob_defeat` at zero) and always stopping the projectile on any hit. 5 bytes total.
+
 ### 8. Tile index map implication (cross-reference only — GDS-08 decides the actual strategy)
 
 **ADR-0009**'s biome-family `Region` identity (GDS-04's delta) needs tile budget per family,

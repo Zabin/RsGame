@@ -37,7 +37,14 @@
 > is built: `COMBAT_MODE`/`MOB_COUNT`/`MOB_DATA` (`asm_game.py`), `inf_materialize_mobs`
 > (hooked into `inf_ensure_window`'s existing center-cell recompute), `inf_mob_render` (hooked
 > into `update_oam`), `inf_mob_defeat` (defined/exposed, no call site yet — `IP-1122`'s own
-> scope). `COMPLETE`, own `09-package-verification` pass owed.
+> scope). **Independently verified 2026-07-18** ([VR-1121](../implementation/verification/VR-1121-infinite-mode-combat-mob-materialization-and-rendering.md)) — `VERIFIED`.
+>
+> **`IP-1122` implemented 2026-07-18** — Workflow C (ranged weapon fire and hit resolution) is
+> built: `PROJ_ACTIVE`/`PROJ_X`/`PROJ_Y`/`PROJ_DIR`/`WEAPON_TIER` (`asm_game.py`),
+> `handle_play_input`'s new A-button fire branch, `inf_projectile_update` (hooked into
+> `st_playing`'s per-frame chain), `inf_projectile_hittest` (reuses `check_collisions`' own
+> asymmetric point-in-box technique verbatim, unmodified). `COMPLETE`, own
+> `09-package-verification` pass owed.
 
 [↑ Features index](INDEX.md) · [Feature Catalog](../feature-planning/03-feature-catalog.md) ·
 [Epic Catalog](../feature-planning/02-epic-catalog.md)

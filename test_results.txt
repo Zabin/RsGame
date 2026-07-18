@@ -1,4 +1,4 @@
-BunnyQuest ROM Tests  PASS=336/336  FAIL=0
+BunnyQuest ROM Tests  PASS=342/342  FAIL=0
 ==================================================
 [PASS] T1.1 ROM size = 32768  (32768)
 [PASS] T1.2 Entry = NOP; JP
@@ -332,6 +332,12 @@ BunnyQuest ROM Tests  PASS=336/336  FAIL=0
 [PASS] T29.d Mob-count ceiling: MOB_COUNT never exceeds 6 across the corpus  (bad=[])
 [PASS] T29.e Defeat: active flag clears, MOB_COUNT decrements, no OAM entry written for the defeated slot  (active_after=0 count_after=0 oam=[0, 0, 0, 0])
 [PASS] T29.f OAM budget static audit: 1 player + up to 8 collectibles + 6 mobs <= 40 entries (NFR-4500)  (total=15)
+[PASS] T30.a Fire spawns a projectile at the player's own position/facing  (ok=True active=1 x=80 y=60 dir=1)
+[PASS] T30.b No double-fire: pressing A while a projectile is active leaves its state unchanged  (ok=True active=1 x=40 y=90 dir=0)
+[PASS] T30.c Hit resolution: mob health reduced by WEAPON_TIER, defeated at zero (inf_mob_defeat's own effects), projectile stops  (ok=True health=0 active=0 count=0 proj_active=0)
+[PASS] T30.c2 Spot: a non-lethal hit reduces health by WEAPON_TIER without defeating the mob  (ok=True health=3 active=1 count=1 proj_active=0)
+[PASS] T30.d Miss/terminal boundary: projectile deactivates cleanly on exiting the window  (proj_active=0 steps=3)
+[PASS] T30.e COMBAT_MODE off: A button remains a no-op during PLAYING (PROJ_ACTIVE stays 0)  (ok=True proj_active=0)
 [PASS] T34.a Tile indices: TL_MOB/TL_MOB_BOT/TL_PROJECTILE/TL_PROJECTILE_BOT sit at 0x0A-0x0D exactly  (got=(10, 11, 12, 13))
 [PASS] T34.b Registered: TL_MOB/TL_PROJECTILE tile data matches mob_obj()/projectile_obj() exactly; both bottom halves are blank  (mismatch against tiles.py's own generator functions)
 [PASS] T34.c Distinctness: mob/projectile art is visually distinct (byte-for-byte) from every existing OBJ tile and from each other  (dupes=[] mob==proj:False)

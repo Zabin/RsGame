@@ -2338,7 +2338,7 @@ none of FR-10000's own leaves are amended by this group. `FR-9000`'s finite mode
 - **Rationale:** `ADS-002` §System Architecture (ranged weapon, hit-test); `R115` (no hardware
   collision detection — software point-in-box, reusing `check_collisions`' own established
   technique).
-- **Priority:** Must (target — not yet implemented)
+- **Priority:** Must (Implemented — 2026-07-18, `IP-1122`)
 - **Inputs:** The fire input; the player's current position/facing direction.
 - **Outputs:** A moving projectile entity; mob health reduction on hit.
 - **Preconditions:** `COMBAT_MODE` active; `GAMESTATE == PLAYING`.
@@ -2357,7 +2357,18 @@ none of FR-10000's own leaves are amended by this group. `FR-9000`'s finite mode
 - **Related ADRs:** None.
 - **Notes:** The exact fire-input binding (A button, confirmed free during `PLAYING` by direct
   code read as of `ADS-002`'s own pass) and weapon-power scaling (FR-11500) are `06`/`08`
-  decisions this FR states at the observable-behavior level only.
+  decisions this FR states at the observable-behavior level only. **2026-07-18 (`IP-1122`):**
+  implemented as `handle_play_input`'s new A-button fire branch, `inf_projectile_update`
+  (per-frame movement, hooked into `st_playing`), and `inf_projectile_hittest` (reuses
+  `check_collisions`' own asymmetric point-in-box technique verbatim, unmodified). **Named
+  deviation:** `PROJ_DIR` mirrors `PLAYER_DIR`'s own real 2-value encoding (0=right, 1=left) —
+  direct code read confirms `PLAYER_DIR` is written only by `handle_play_input`'s RIGHT/LEFT
+  branches, never UP/DOWN, so this codebase's own established "facing direction" concept is
+  2-state, not the 4-state range `IP-1122` §6 assumed; this FR's own Notes explicitly delegate
+  the exact mechanism to `06`/`08` discretion, so the projectile moves horizontally only. `T30.a`–
+  `e` (+ spot check `T30.c2`) verify fire/no-double-fire/hit/miss/`COMBAT_MODE`-off. `WEAPON_TIER`
+  ships as a persisted, fixed-default (1) stat — its own treasure-funded upgrade mechanism remains
+  the known gap tracked by `BL-0147`, unresolved by this package.
 
 ### FR-11400 — Player health and non-lethal setback
 
