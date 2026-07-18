@@ -14,40 +14,39 @@
 
 ## Position
 
-- **Updated:** 2026-07-17 (run #223)
-- **Increment:** Four independent arcs closed; a fifth (dual-audience combat) opened at the
-  Vision layer and now stalled on a research gap; two small HUD remediations shipped; the
-  biome/music delta assessed and baselined GO. **(1)/(2)** unchanged, closed at runs #167/#168.
-  **(3)/(4)** (nine biome-family identities, procgen music) — all six packages plus two
-  remediations `VERIFIED`, **clean `10-integration-review`** (run #212), **GO'd** (run #221).
-  **`IP-9170`/`IP-9180`** (HUD digit fixes) both implemented, `COMPLETE`. **`ADS-002`**
-  (combat sub-mode, `BL-0133`) cleared its Vision-level blocker (`MSTR-001` v4.0's **C11**, run
-  #219) but **run #223 found a second blocker**: zero research-encyclopedia grounding for
-  combat/enemy design or projectile/hit-detection hardware feasibility on SM83 — correctly
-  stopped rather than inventing it, filed as **`BL-0145`**. Bootstrap baseline remains fully
-  closed (01–11 ✅); Release 2 (incl. the new addendum) baselined GO.
+- **Updated:** 2026-07-17 (run #226)
+- **Increment:** Four independent arcs closed; a fifth (dual-audience combat) advanced through
+  Vision → research → architecture and now gated on requirements-level user decisions; two small
+  HUD remediations shipped; the biome/music delta assessed and baselined GO. **(1)/(2)**
+  unchanged, closed at runs #167/#168. **(3)/(4)** — all six packages plus two remediations
+  `VERIFIED`, clean integration review, **GO'd** (run #221). **`IP-9170`/`IP-9180`** implemented,
+  `COMPLETE`. **`ADS-002`** cleared its Vision-level blocker (`MSTR-001` C11, run #219), then its
+  research blocker (**`R218`**/**`R115`**, runs #224/#225, closing `BL-0145`), then (run #226)
+  committed to concrete candidate architecture: a 6-slot mob table, a transient projectile slot,
+  a new MODE SELECT "COMBAT MODE" gating option, A-button fire input, poof-defeat + reused
+  heart-tile health HUD. **Still produces no `FS`/`FR`** — four genuine requirements-level
+  questions (economy, ammo/durability, fail-state severity, save persistence) need the user.
+  Bootstrap baseline remains fully closed (01–11 ✅); Release 2 (incl. the new addendum) GO.
 - **Pipeline state:** Bootstrap stages 01–11 ✅; Release 2 GO. **39 packages `VERIFIED`, two
   `COMPLETE`** (`IP-9170`/`IP-9180`, both own `09-package-verification` passes owed in a fresh
-  session — this session implemented both). `BL-0133`'s combat sub-mode now needs
-  `02-research-game-design` (combat/enemy design conventions, difficulty pacing for an opt-in
-  mode, health/damage HUD conventions) and `02-research-gbc-hardware` (projectile/hit-detection
-  feasibility on SM83, OAM/APU budget) before `03-architecture-design-synthesis` can return and
-  commit to real entity shapes. Standing, non-blocking doc/design work unchanged: the
+  session). `ADS-002` is architecturally complete for what this stage can decide — `04-
+  requirements-engineering` cannot baseline real FRs for the combat capability until the user
+  answers Open Questions 2/3/4/7. Standing, non-blocking doc/design work unchanged: the
   doc-accuracy sweep family (`BL-0136`/`BL-0137`/`BL-0140`–`BL-0143`); `BL-0118` (`NFR-1400`
-  cycle-budget gap, accepted/named); `BL-0123` (`try_load_save` doing unneeded finite-mode work on
-  Infinite Mode loads); `BL-0112` (Infinite Mode run-end trigger); `BL-0097` (Medium, routed to
-  `09-content-review` already); `BL-0130` (catalog text missing `FR-4320`).
-- **Backlog:** 147 entries. New this run: `BL-0145` (Medium, research gap, `SCHEDULED`).
-  `BL-0133` → `SCHEDULED` (rides the next `02-research-*` pass). `BL-0144`/`BL-0139` →
-  `IN PIPELINE` (`IP-9180`/`IP-9170` both `COMPLETE`). `BL-0127`/`BL-0128` `DONE`.
-- **Next step:** `02-research-game-design` on the combat-mode design-convention gap (`BL-0145`),
-  then `02-research-gbc-hardware` on the hardware-feasibility half — both needed before
-  `03-architecture-design-synthesis` can return to `ADS-002` with real grounding. Independently, a
-  fresh session can run `09-package-verification` on `IP-9170` then `IP-9180` (both implemented
-  this session, same-session independence still blocks it here).
-- **Open gates:** **none.** No authorization or GO decision is pending. The combat increment is
-  blocked on research (an executable next step, not a user decision) and `IP-9170`/`IP-9180`'s
-  verification is blocked on session freshness (also not a user decision).
+  cycle-budget gap); `BL-0123` (`try_load_save` unneeded finite-mode work); `BL-0112` (Infinite
+  Mode run-end trigger); `BL-0097` (Medium, routed already); `BL-0130` (catalog text gap).
+- **Backlog:** 147 entries. `BL-0145` `DONE` (both research halves closed). `BL-0133` →
+  `NEEDS-USER` (Open Questions 2/3/4/7, batched below). `BL-0144`/`BL-0139` → `IN PIPELINE`.
+  `BL-0127`/`BL-0128` `DONE`.
+- **Next step:** The user's answers to `ADS-002`'s four remaining Open Questions (is treasure
+  *spent* on healing or does it merely *trigger* healing; does the weapon have ammo/durability;
+  what severity is the fail state — real game-over vs. non-lethal setback; does combat
+  state persist across save/load) are what unblocks `04-requirements-engineering` on this
+  capability. Independently, a fresh session can run `09-package-verification` on `IP-9170` then
+  `IP-9180` (both implemented this session).
+- **Open gates:** **one.** `BL-0133`'s four remaining Open Questions — a genuine user decision,
+  not an executable step. `IP-9170`/`IP-9180`'s verification is blocked on session freshness, not
+  a decision.
 
 ## Run log
 
@@ -282,3 +281,4 @@
 | 223 | 2026-07-17 | advance (same session, "Iterate pipeline skill") | `03-architecture-design-synthesis` | `BL-0133`/`ADS-002` — fuller pass now that C11 exists | ✅ Marked Open Question 1 resolved (`MSTR-001` v4.0's C11 answers the Vision-tone tension). Before committing to concrete mob/projectile/health entity shapes or a gating mechanism, searched the research encyclopedia (grep across every R1xx/R2xx/R3xx topic for combat/enemy/mob/projectile/weapon/health/damage) and found **zero substantive grounding** — `R204` only mentions HUD health-bar weighting in passing, `R214` explicitly warns against treating existing combat-focused GBC homebrew as a design template without offering an alternative. Correctly stopped rather than inventing combat-design conventions itself (this skill's own charter: cites research, never originates it). New **Open Question 8** recorded in `ADS-002` naming the exact gap; harvested as **`BL-0145`** (Medium, `SCHEDULED`). `docs/architecture/INDEX.md` updated. No new architecture/FS/FR authored this run beyond the two Decision Log entries and the Open-Question-1 resolution note. | `02-research-game-design` (combat/enemy design conventions, difficulty pacing for an opt-in mode, health/damage HUD conventions) and `02-research-gbc-hardware` (projectile/hit-detection feasibility on SM83, OAM/APU budget) — both needed before `03` can return and commit to real entity shapes; independently, a fresh session can still run `09-package-verification` on `IP-9170`/`IP-9180` |
 | 224 | 2026-07-17 | advance (same session, "Iterate pipeline skill") | `02-research-game-design` | `BL-0145` — combat/enemy design conventions | ✅ Authored **R218** (combat & enemy design for an opt-in sub-mode): the non-graphic "poof" enemy-defeat convention (Zelda precedent, no blood/gore — grounded via WebSearch, cited), a heart-container health HUD convention that reuses this project's own already-shipped `TL_HEART_FULL`/`TL_HEART_EMPTY` tiles (`tiles.py`, confirmed by direct code read) at zero new art cost, and the difficulty-gated-optional-content precedent (Double Dragon II, TimeSplitters 2) grounding `MSTR-001` C11's "opt-in, explicitly gated" framing. Cross-linked R204/R206/R214 (R214's own prior warning against Azure Dreams/Dragon Crystal as templates is the reason this topic exists as the alternative). Index + ROADMAP updated. Closes the design half of `BL-0145`. | `02-research-gbc-hardware` on the same backlog entry's hardware-feasibility half |
 | 225 | 2026-07-17 | advance (same session) | `02-research-gbc-hardware` | `BL-0145` — projectile/hit-detection/OAM/APU feasibility | ✅ Authored **R115** (combat sub-mode hardware feasibility): confirmed no hardware collision detection exists on GBC (software point-in-box only, reusing `check_collisions`' own established asymmetric-tolerance technique); directly counted this project's own current worst-case concurrent OAM use from the shipped code (1 player + up to 8 collectibles = 9 of 40 entries, 31 free/124 bytes) rather than assuming headroom; confirmed APU channels 2–4 entirely unused (only channel 1/`NR1x` in use today), free for combat SFX without contending with the music engine; named the real constraint that new combat-frame cycles must not stack onto `inf_ensure_window`'s own already-accepted `NFR-1400` overage without separate re-measurement. Cross-linked R105/R108. Index + ROADMAP updated. **Both halves of `BL-0145` now closed** — harvested, `BL-0145` → `DONE`. | `03-architecture-design-synthesis` — return to `ADS-002` now fully grounded (R218 design + R115 hardware) and commit to concrete mob/projectile/health entity shapes and the gating mechanism |
+| 226 | 2026-07-17 | advance (same session, "Iterate pipeline skill") | `03-architecture-design-synthesis` | `ADS-002` — fuller pass, now grounded by `R218`/`R115` | ✅ Committed to concrete candidate architecture (no longer sketches-only): a 6-slot mob WRAM table mirroring `COLL_DATA`'s own shape (sized from `R115`'s own measured 31-of-40-entry OAM headroom), a single-slot transient projectile record (mirrors `INF_MZ_RESULT`'s own transient-state precedent), a new MODE SELECT "COMBAT MODE" option as the gating mechanism (new `COMBAT_MODE` WRAM flag, valid only alongside `GAME_MODE=1` per `BL-0133`'s own "on the infinite map" filing text), A-button fire input (confirmed unbound during `PLAYING` by direct code read of `handle_play_input`/`st_playing`), poof-style mob defeat and a heart-tile health HUD reusing already-shipped `TL_HEART_FULL`/`TL_HEART_EMPTY` (zero new art cost). Every concrete claim checked against the live tree before being stated (A-button binding, existing tile constants). Index updated. **Still produces no `FS`/`FR`**: Open Questions 2 (treasure spend-vs-trigger economy), 3 (weapon ammo/durability), 4 (fail-state severity), 7 (save persistence) are genuine requirements-level decisions outside this skill's own authority — harvested onto `BL-0133`'s existing entry, re-dispositioned `NEEDS-USER`. | Gate — the four remaining Open Questions need the user's decision before `04-requirements-engineering` can baseline real FRs for this capability |
