@@ -34,7 +34,7 @@ file.
 | ID | Cluster | File | Status |
 |---|---|---|---|
 | [ADS-001](ADS-001-streaming-infinite-world-generation.md) | Streaming, positionally-deterministic world generation for a new, additive Infinite Mode (`BL-0082`) | [ADS-001-streaming-infinite-world-generation.md](ADS-001-streaming-infinite-world-generation.md) | ✅ Authored (2026-07-13; produces `ADR-0016`/`ADR-0017`) |
-| [ADS-002](ADS-002-infinite-mode-combat-sub-mode.md) | Infinite Mode combat sub-mode: mobs + treasure-fed ranged weapon (`BL-0133`) | [ADS-002-infinite-mode-combat-sub-mode.md](ADS-002-infinite-mode-combat-sub-mode.md) | 🚧 Open Question 1 (Vision tolerance/tone) **resolved 2026-07-17** (`MSTR-001` v4.0, C11). Still produces no `FS-xxx`/`FR-xxxx` — the follow-up pass the same day found a **second blocker**: zero research-encyclopedia grounding for combat/enemy design or projectile/hit-detection hardware feasibility (Open Question 8). Routed to `02-research-game-design` + `02-research-gbc-hardware`. |
+| [ADS-002](ADS-002-infinite-mode-combat-sub-mode.md) | Infinite Mode combat sub-mode: mobs + treasure-fed ranged weapon (`BL-0133`) | [ADS-002-infinite-mode-combat-sub-mode.md](ADS-002-infinite-mode-combat-sub-mode.md) | 🚧 Open Questions 1 and 8 resolved (`MSTR-001` C11; `R218`/`R115` research). **Committed to concrete candidate architecture 2026-07-17**: 6-slot mob WRAM table, single-slot projectile, a new MODE SELECT "COMBAT MODE" gating option, A-button fire input, poof-defeat + reused heart-tile health HUD. Still produces no `FS-xxx`/`FR-xxxx` — Open Questions 2/3/4/7 (economy, ammo/durability, fail-state severity, save persistence) are genuine requirements-level decisions awaiting the user. |
 
 ## §3 — Vision-layer artifacts owned by `01-vision`
 
