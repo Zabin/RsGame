@@ -4,7 +4,8 @@
 - **Dependencies:** R213 (the algorithm families these case studies exemplify), R106 (MBC1/SRAM,
   banking), R211 (comparative visual-design case studies — the sibling "what has this hardware
   class actually shipped" methodology)
-- **Referenced By:** none yet
+- **Referenced By:** R218 (2026-07-17 — this topic's own warning against Azure Dreams/Dragon
+  Crystal as combat-design templates is the reason R218 exists as the alternative, `BL-0133`)
 - **Produces:** feasibility evidence for R213's screen/room-graph generation recommendation;
   answers D3's explicit "existing GBC homebrew games that use procedurally generated maps" ask
 - **Feature Mapping:** *(none yet)*

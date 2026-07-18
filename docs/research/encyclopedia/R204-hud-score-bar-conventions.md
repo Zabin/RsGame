@@ -2,7 +2,8 @@
 
 - **Document ID:** R204 · **Version:** 1.0 · **Status:** ✅
 - **Dependencies:** R203 (the row-0 slot the HUD occupies within the screen grid)
-- **Referenced By:** none yet
+- **Referenced By:** R218 (extends the "visual weighting by importance" principle to a
+  combat-mode health element, `BL-0133`)
 - **Produces:** grounds `tilemaps.py`'s `_score_bar()` function
 - **Feature Mapping:** *(none yet)*
 - **Related Topics:** R203
