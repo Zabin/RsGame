@@ -14,46 +14,40 @@
 
 ## Position
 
-- **Updated:** 2026-07-17 (run #222)
+- **Updated:** 2026-07-17 (run #223)
 - **Increment:** Four independent arcs closed; a fifth (dual-audience combat) opened at the
-  Vision layer; two small HUD remediations shipped; the biome/music delta assessed and baselined
-  GO. **(1)/(2)** unchanged, closed at runs #167/#168. **(3)/(4)** (nine biome-family identities,
-  procgen music) — all six packages plus two remediations `VERIFIED`, **clean
-  `10-integration-review`** (run #212). **Run #213: `IP-9170`** packaged/implemented (run #216,
-  `COMPLETE`), split off `BL-0144`. **Run #217: `ADS-002`** authored for `BL-0133` (combat
-  sub-mode) — surfaced a Vision-level tension, produced no `FS`/`FR`. **User answered three
-  batched questions (run #219's own trigger): combat tone ("designed for a child but the combat
-  mode is for when the parent is playing — it can be grimmer"), `BL-0144`'s HUD convention (show
-  running treasure count), and the standing G4 (run release-readiness now).** **Run #219:
-  `01-vision`** → **MSTR-001 v4.0**, new commitment **C11** (the dual-audience carve-out), GDS-00
-  + assumptions register (A5) amended in lock-step. **Run #220: `07-implementation-planning`**
-  packaged **`IP-9180`** for `BL-0144`. **Run #221: `11-release-readiness`** → **GO** on the full
-  12-package Infinite-Mode+biome-family+music scope
-  ([release-assessment-infinite-mode-and-nine-biome-family-delta.md](../reviews/release-assessment-infinite-mode-and-nine-biome-family-delta.md)),
-  user-confirmed, baseline flipped (`01-release-plan.md`/`ROADMAP.md`/`Claude.md`). **Run #222:
-  `IP-9180` implemented — `COMPLETE`**, 326/326 (self-caught and fixed the same class of
-  test-staleness `IP-9170` hit). Bootstrap baseline remains fully closed (01–11 ✅); Release 2
-  (now including this addendum) baselined GO.
-- **Pipeline state:** Bootstrap stages 01–11 ✅; Release 2 GO (addendum 2026-07-17). **39
-  packages `VERIFIED`, two `COMPLETE`** (`IP-9170`/`IP-9180`, both own `09-package-verification`
-  passes owed in a fresh session — this session implemented both). `BL-0133`'s combat sub-mode
-  has `ADS-002` + `MSTR-001` C11 now on record — the next `03-architecture-design-synthesis` pass
-  (mob/weapon/health entities, the gating mechanism) is the only open increment. Standing,
-  non-blocking doc/design work unchanged: the doc-accuracy sweep family (`BL-0136`/`BL-0137`/
-  `BL-0140`–`BL-0143`); `BL-0118` (`NFR-1400` cycle-budget gap, accepted/named); `BL-0123`
-  (`try_load_save` doing unneeded finite-mode work on Infinite Mode loads); `BL-0112` (Infinite
-  Mode run-end trigger); `BL-0097` (Medium, routed to `09-content-review` already); `BL-0130`
-  (catalog text missing `FR-4320`).
-- **Backlog:** 146 entries. `BL-0133` → `IN PIPELINE` (unblocked by C11, next step named above).
-  `BL-0144` → `IN PIPELINE` (`IP-9180` `COMPLETE`). `BL-0139` → `IN PIPELINE` (`IP-9170`
-  `COMPLETE`). `BL-0127`/`BL-0128` `DONE`.
-- **Next step:** A fresh session runs `09-package-verification` on `IP-9170` then `IP-9180`
-  (both implemented this session). Independently, `03-architecture-design-synthesis` can proceed
-  on `BL-0133`/`ADS-002` now that `MSTR-001` C11 exists — the next combat-mode design pass
-  (mob/projectile/health entities, the gating mechanism) is unGated and runnable immediately.
-- **Open gates:** **none blocking.** The standing G4 question is resolved (GO given, baseline
-  flipped). `IP-9170`/`IP-9180`'s own verification isn't an authorization gate — it's a
-  same-session-independence constraint, cleared by running in a fresh session next.
+  Vision layer and now stalled on a research gap; two small HUD remediations shipped; the
+  biome/music delta assessed and baselined GO. **(1)/(2)** unchanged, closed at runs #167/#168.
+  **(3)/(4)** (nine biome-family identities, procgen music) — all six packages plus two
+  remediations `VERIFIED`, **clean `10-integration-review`** (run #212), **GO'd** (run #221).
+  **`IP-9170`/`IP-9180`** (HUD digit fixes) both implemented, `COMPLETE`. **`ADS-002`**
+  (combat sub-mode, `BL-0133`) cleared its Vision-level blocker (`MSTR-001` v4.0's **C11**, run
+  #219) but **run #223 found a second blocker**: zero research-encyclopedia grounding for
+  combat/enemy design or projectile/hit-detection hardware feasibility on SM83 — correctly
+  stopped rather than inventing it, filed as **`BL-0145`**. Bootstrap baseline remains fully
+  closed (01–11 ✅); Release 2 (incl. the new addendum) baselined GO.
+- **Pipeline state:** Bootstrap stages 01–11 ✅; Release 2 GO. **39 packages `VERIFIED`, two
+  `COMPLETE`** (`IP-9170`/`IP-9180`, both own `09-package-verification` passes owed in a fresh
+  session — this session implemented both). `BL-0133`'s combat sub-mode now needs
+  `02-research-game-design` (combat/enemy design conventions, difficulty pacing for an opt-in
+  mode, health/damage HUD conventions) and `02-research-gbc-hardware` (projectile/hit-detection
+  feasibility on SM83, OAM/APU budget) before `03-architecture-design-synthesis` can return and
+  commit to real entity shapes. Standing, non-blocking doc/design work unchanged: the
+  doc-accuracy sweep family (`BL-0136`/`BL-0137`/`BL-0140`–`BL-0143`); `BL-0118` (`NFR-1400`
+  cycle-budget gap, accepted/named); `BL-0123` (`try_load_save` doing unneeded finite-mode work on
+  Infinite Mode loads); `BL-0112` (Infinite Mode run-end trigger); `BL-0097` (Medium, routed to
+  `09-content-review` already); `BL-0130` (catalog text missing `FR-4320`).
+- **Backlog:** 147 entries. New this run: `BL-0145` (Medium, research gap, `SCHEDULED`).
+  `BL-0133` → `SCHEDULED` (rides the next `02-research-*` pass). `BL-0144`/`BL-0139` →
+  `IN PIPELINE` (`IP-9180`/`IP-9170` both `COMPLETE`). `BL-0127`/`BL-0128` `DONE`.
+- **Next step:** `02-research-game-design` on the combat-mode design-convention gap (`BL-0145`),
+  then `02-research-gbc-hardware` on the hardware-feasibility half — both needed before
+  `03-architecture-design-synthesis` can return to `ADS-002` with real grounding. Independently, a
+  fresh session can run `09-package-verification` on `IP-9170` then `IP-9180` (both implemented
+  this session, same-session independence still blocks it here).
+- **Open gates:** **none.** No authorization or GO decision is pending. The combat increment is
+  blocked on research (an executable next step, not a user decision) and `IP-9170`/`IP-9180`'s
+  verification is blocked on session freshness (also not a user decision).
 
 ## Run log
 
@@ -285,3 +279,4 @@
 | 220 | 2026-07-17 | advance (same session) | `07-implementation-planning` | `BL-0144` (Infinite Mode HUD target-digit convention, now user-decided) | ✅ Packaged **`IP-9180`** — extends `IP-9170`'s own `GAME_MODE` branch in `update_status_disp` with the Infinite Mode half (writes `RUNNING_TREASURE_COUNT`'s low byte mod 10 to the same `0x9804` cell), hard-sequenced after `IP-9170`'s own branch structure. Single-digit-cell constraint named explicitly as an accepted approximation (mirrors `IP-9170`'s own scoping), not a defect to work around. TWBS section added; Master Build Plan + `packages/INDEX.md` rows added; `BL-0144` → `IN PIPELINE`. `NOT STARTED`, not authorized. | Gate check — G3 needed on `IP-9180` before `08-code-implementation` can run it; independently, `11-release-readiness` is also runnable per the user's own "run it now" answer |
 | 221 | 2026-07-17 | advance (same session) | `11-release-readiness` | Infinite Mode + nine biome-family identities + procedural music (12 packages) | ✅ **GO** ([release-assessment-infinite-mode-and-nine-biome-family-delta.md](../reviews/release-assessment-infinite-mode-and-nine-biome-family-delta.md)). Reconstructed the promise from both integration reviews (the earlier Infinite Mode tranche review, this session's own nine-biome-family/procgen-music review) since neither `FEAT-10000` nor `FEAT-7100` had a scheduled bucket in `01-release-plan.md` — both sat in Future, "ready the moment the project owner decides to schedule." Scope audit: 5+4+2+1+1 = 12 packages, all `VERIFIED`, each with a named VR; zero silently dropped. Three deviations recorded with their authorization trails (the `ADR-0020` re-plan, the two remediations riding this window, `IP-1111`'s interface re-plan) — none unauthorized drift. Residual risks named, none blocking (`NFR-1400` `NOT MET` accepted/pre-existing; `BL-0112` open design question; four Low/Medium doc findings from this session's own integration review). **User confirmed GO** (batched with the `IP-9180` G3 question). Baseline flipped: `01-release-plan.md` (`FEAT-10000`/`FEAT-7100`/the `FR-4320` delta move Future → Release 2 as a third addendum), `ROADMAP.md` (`FP-01`/`RV-RELEASE` rows), `Claude.md` (status line + Known Good Behavior header) — all three now agree. | `08-code-implementation` on `IP-9180` (now authorized in the same batched answer); after that, `00-pipeline-manager` should survey the tree fresh — the increment this delta closed is done, and `03-architecture-design-synthesis`'s next combat-mode pass is the only open increment left |
 | 222 | 2026-07-17 | advance (same session) | `08-code-implementation` | `IP-9180` (Infinite Mode HUD treasure-count digit) | ✅ **COMPLETE — 326/326 suite passes.** Confirmed `IP-9170` shipped and re-derived `update_status_disp`'s exact branch structure before extending it (drift check, clean). Implemented exactly per the package: `usd_infinite_target` branch reads `RUNNING_TREASURE_COUNT`'s low byte, reduces mod 10 via repeated subtraction (mirroring `inf_mod9`'s own established technique, bound 10 instead of 9), writes the digit to `0x9804`. First full-suite run caught the same class of self-introduced regression `IP-9170` hit: `T8.10e`'s own prior assertion ("Infinite Mode col 4 unaffected") was now stale by design — this package deliberately changes that cell — rewrote it plus added `T8.10f` (mod-10 wrap correctness, 13→3) and `T8.10g` (finite-mode non-regression). ROM 31390/32768 (unchanged — fit inside existing alignment slack). Docs: `FR-9161` Notes extended with the Infinite Mode convention. Ledgers → `COMPLETE`; `BL-0144` → `IN PIPELINE`. No drift beyond the one self-caught, expected test update. | `09-package-verification` on both `IP-9170` and `IP-9180` — needs a fresh session for genuine independence (this session implemented both); `03-architecture-design-synthesis` on `ADS-002`'s next combat-mode pass is the only other open increment |
+| 223 | 2026-07-17 | advance (same session, "Iterate pipeline skill") | `03-architecture-design-synthesis` | `BL-0133`/`ADS-002` — fuller pass now that C11 exists | ✅ Marked Open Question 1 resolved (`MSTR-001` v4.0's C11 answers the Vision-tone tension). Before committing to concrete mob/projectile/health entity shapes or a gating mechanism, searched the research encyclopedia (grep across every R1xx/R2xx/R3xx topic for combat/enemy/mob/projectile/weapon/health/damage) and found **zero substantive grounding** — `R204` only mentions HUD health-bar weighting in passing, `R214` explicitly warns against treating existing combat-focused GBC homebrew as a design template without offering an alternative. Correctly stopped rather than inventing combat-design conventions itself (this skill's own charter: cites research, never originates it). New **Open Question 8** recorded in `ADS-002` naming the exact gap; harvested as **`BL-0145`** (Medium, `SCHEDULED`). `docs/architecture/INDEX.md` updated. No new architecture/FS/FR authored this run beyond the two Decision Log entries and the Open-Question-1 resolution note. | `02-research-game-design` (combat/enemy design conventions, difficulty pacing for an opt-in mode, health/damage HUD conventions) and `02-research-gbc-hardware` (projectile/hit-detection feasibility on SM83, OAM/APU budget) — both needed before `03` can return and commit to real entity shapes; independently, a fresh session can still run `09-package-verification` on `IP-9170`/`IP-9180` |
