@@ -14,39 +14,38 @@
 
 ## Position
 
-- **Updated:** 2026-07-17 (run #226)
-- **Increment:** Four independent arcs closed; a fifth (dual-audience combat) advanced through
-  Vision → research → architecture and now gated on requirements-level user decisions; two small
-  HUD remediations shipped; the biome/music delta assessed and baselined GO. **(1)/(2)**
-  unchanged, closed at runs #167/#168. **(3)/(4)** — all six packages plus two remediations
-  `VERIFIED`, clean integration review, **GO'd** (run #221). **`IP-9170`/`IP-9180`** implemented,
-  `COMPLETE`. **`ADS-002`** cleared its Vision-level blocker (`MSTR-001` C11, run #219), then its
-  research blocker (**`R218`**/**`R115`**, runs #224/#225, closing `BL-0145`), then (run #226)
-  committed to concrete candidate architecture: a 6-slot mob table, a transient projectile slot,
-  a new MODE SELECT "COMBAT MODE" gating option, A-button fire input, poof-defeat + reused
-  heart-tile health HUD. **Still produces no `FS`/`FR`** — four genuine requirements-level
-  questions (economy, ammo/durability, fail-state severity, save persistence) need the user.
-  Bootstrap baseline remains fully closed (01–11 ✅); Release 2 (incl. the new addendum) GO.
+- **Updated:** 2026-07-17 (run #228)
+- **Increment:** Four independent arcs closed; a fifth (dual-audience combat) advanced all the
+  way from Vision through research, architecture, and now a full requirements baseline; two small
+  HUD remediations shipped; the biome/music delta assessed and baselined GO. **(1)/(2)** unchanged
+  (runs #167/#168). **(3)/(4)** — all six packages plus two remediations `VERIFIED`, clean
+  integration review, **GO'd** (run #221). **`IP-9170`/`IP-9180`** implemented, `COMPLETE`.
+  **`ADS-002`** cleared its Vision blocker (`MSTR-001` C11, run #219), its research blocker
+  (`R218`/`R115`, runs #224/#225), committed to concrete architecture (run #226), then the user
+  batch-answered its remaining four Open Questions (run #227) — all eight now closed/committed.
+  **Run #228: `04-requirements-engineering`** baselined **FR-11100**–**FR-11600** +
+  **NFR-1500**/**NFR-4500** against it — clean Requirements Review (finding #23), RTM rows added
+  honestly `UNASSIGNED`. Bootstrap baseline remains fully closed (01–11 ✅); Release 2 GO.
 - **Pipeline state:** Bootstrap stages 01–11 ✅; Release 2 GO. **39 packages `VERIFIED`, two
   `COMPLETE`** (`IP-9170`/`IP-9180`, both own `09-package-verification` passes owed in a fresh
-  session). `ADS-002` is architecturally complete for what this stage can decide — `04-
-  requirements-engineering` cannot baseline real FRs for the combat capability until the user
-  answers Open Questions 2/3/4/7. Standing, non-blocking doc/design work unchanged: the
+  session). The combat sub-mode now has a complete, traceable requirements baseline —
+  `05-feature-decomposition` is the next executable step, but this session is flagging a
+  **checkpoint** rather than auto-advancing: `05`→`06`→`07`→`08` leads toward real production code
+  for a brand-new game mechanic (mobs, projectiles, a weapon, a health HUD, a save-format bump) —
+  a substantially larger body of work than anything else this session touched, and eventually a
+  real G3 authorization ask regardless. Standing, non-blocking doc/design work unchanged: the
   doc-accuracy sweep family (`BL-0136`/`BL-0137`/`BL-0140`–`BL-0143`); `BL-0118` (`NFR-1400`
   cycle-budget gap); `BL-0123` (`try_load_save` unneeded finite-mode work); `BL-0112` (Infinite
   Mode run-end trigger); `BL-0097` (Medium, routed already); `BL-0130` (catalog text gap).
-- **Backlog:** 147 entries. `BL-0145` `DONE` (both research halves closed). `BL-0133` →
-  `NEEDS-USER` (Open Questions 2/3/4/7, batched below). `BL-0144`/`BL-0139` → `IN PIPELINE`.
-  `BL-0127`/`BL-0128` `DONE`.
-- **Next step:** The user's answers to `ADS-002`'s four remaining Open Questions (is treasure
-  *spent* on healing or does it merely *trigger* healing; does the weapon have ammo/durability;
-  what severity is the fail state — real game-over vs. non-lethal setback; does combat
-  state persist across save/load) are what unblocks `04-requirements-engineering` on this
-  capability. Independently, a fresh session can run `09-package-verification` on `IP-9170` then
-  `IP-9180` (both implemented this session).
-- **Open gates:** **one.** `BL-0133`'s four remaining Open Questions — a genuine user decision,
-  not an executable step. `IP-9170`/`IP-9180`'s verification is blocked on session freshness, not
-  a decision.
+- **Backlog:** 147 entries. `BL-0133` → `IN PIPELINE` (requirements baselined, run #228).
+  `BL-0145` `DONE`. `BL-0144`/`BL-0139` → `IN PIPELINE`. `BL-0127`/`BL-0128` `DONE`.
+- **Next step:** `05-feature-decomposition` on `FR-11100`–`11600` (fold into one or more Feature
+  Catalog entries) is unGated and technically runnable now — but this run recommends checking
+  with the user before continuing further into the combat increment, given its scope. A fresh
+  session can independently run `09-package-verification` on `IP-9170` then `IP-9180`.
+- **Open gates:** **none formally.** The combat increment's next step (`05`) needs no
+  authorization to run, but this session is deliberately pausing there rather than assuming the
+  user wants the full remaining pipeline (through eventual G3-gated code) run unattended.
 
 ## Run log
 
@@ -283,3 +282,4 @@
 | 225 | 2026-07-17 | advance (same session) | `02-research-gbc-hardware` | `BL-0145` — projectile/hit-detection/OAM/APU feasibility | ✅ Authored **R115** (combat sub-mode hardware feasibility): confirmed no hardware collision detection exists on GBC (software point-in-box only, reusing `check_collisions`' own established asymmetric-tolerance technique); directly counted this project's own current worst-case concurrent OAM use from the shipped code (1 player + up to 8 collectibles = 9 of 40 entries, 31 free/124 bytes) rather than assuming headroom; confirmed APU channels 2–4 entirely unused (only channel 1/`NR1x` in use today), free for combat SFX without contending with the music engine; named the real constraint that new combat-frame cycles must not stack onto `inf_ensure_window`'s own already-accepted `NFR-1400` overage without separate re-measurement. Cross-linked R105/R108. Index + ROADMAP updated. **Both halves of `BL-0145` now closed** — harvested, `BL-0145` → `DONE`. | `03-architecture-design-synthesis` — return to `ADS-002` now fully grounded (R218 design + R115 hardware) and commit to concrete mob/projectile/health entity shapes and the gating mechanism |
 | 226 | 2026-07-17 | advance (same session, "Iterate pipeline skill") | `03-architecture-design-synthesis` | `ADS-002` — fuller pass, now grounded by `R218`/`R115` | ✅ Committed to concrete candidate architecture (no longer sketches-only): a 6-slot mob WRAM table mirroring `COLL_DATA`'s own shape (sized from `R115`'s own measured 31-of-40-entry OAM headroom), a single-slot transient projectile record (mirrors `INF_MZ_RESULT`'s own transient-state precedent), a new MODE SELECT "COMBAT MODE" option as the gating mechanism (new `COMBAT_MODE` WRAM flag, valid only alongside `GAME_MODE=1` per `BL-0133`'s own "on the infinite map" filing text), A-button fire input (confirmed unbound during `PLAYING` by direct code read of `handle_play_input`/`st_playing`), poof-style mob defeat and a heart-tile health HUD reusing already-shipped `TL_HEART_FULL`/`TL_HEART_EMPTY` (zero new art cost). Every concrete claim checked against the live tree before being stated (A-button binding, existing tile constants). Index updated. **Still produces no `FS`/`FR`**: Open Questions 2 (treasure spend-vs-trigger economy), 3 (weapon ammo/durability), 4 (fail-state severity), 7 (save persistence) are genuine requirements-level decisions outside this skill's own authority — harvested onto `BL-0133`'s existing entry, re-dispositioned `NEEDS-USER`. | Gate — the four remaining Open Questions need the user's decision before `04-requirements-engineering` can baseline real FRs for this capability |
 | 227 | 2026-07-17 | advance → gate resolved (same session) | — (gate check) | `ADS-002`'s four remaining Open Questions | ✅ **User answered all four in one batched round**: treasure is *spent* on healing (not merely triggering it); the weapon fires freely, treasure funds power/upgrade tier only, no ammo/durability; the fail state is a non-lethal setback (no real game-over, consistent with `A5` holding inside `C11`'s carve-out); combat state (mobs, weapon tier, health) persists across save/load via a new `SAVE_VERSION_VAL` bump. Recorded in `ADS-002`'s own Open Questions/Decision Log; index status flipped to ✅ (all eight questions resolved/committed). `BL-0133` → `IN PIPELINE`. | `04-requirements-engineering` — baseline real `FR-xxxx`s for the combat sub-mode capability against `ADS-002`'s now-complete architecture |
+| 228 | 2026-07-17 | advance (same session, "Iterate pipeline skill") | `04-requirements-engineering` | Combat sub-mode FR/NFR baseline against `ADS-002` | ✅ Baselined **FR-11100**–**FR-11600** (gated MODE SELECT entry; mob materialization + non-graphic defeat; ranged weapon fire/hit resolution; player health + non-lethal setback; treasure-spent healing economy, decrementing the same `RUNNING_TREASURE_COUNT` `FR-10300`/`FR-10400` already read, not a second ledger; combat state save persistence via a new `SAVE_VERSION_VAL` bump) plus **NFR-1500** (per-frame cycle budget, states the bar against `NFR-1400`'s own accepted overage rather than assuming fresh headroom) and **NFR-4500** (ROM/OAM budget, sized against `R115`'s own directly-measured 1,378-byte/31-entry headroom — the 6-mob default traces to the same figure in both the FR and the NFR, not two different numbers for one fact). Every leaf cross-checked against the user's four batched decisions (spent economy, no ammo/durability, non-lethal setback, save persistence) — none softened or generalized away from what was actually decided. Confirmed the FR-11xxx range was unused before this delta (no ID collision). Requirements Review **finding #23** confirms internal consistency, no conflict with `FR-9000`/`FR-10000`, both new NFRs correctly state the bar without assuming compliance. RTM rows added, honestly `UNASSIGNED` for Module/FS/IP/Test (nothing has reached `05`/`06`/`07`/`08` yet). `ROADMAP.md` delta notes added to all four RQ rows. | `05-feature-decomposition` — fold `FR-11100`–`11600` into one or more Feature Catalog entries (`ADS-002`'s own Risks section already flags this likely needs more than one `FEAT-xxxx` given its entity count, larger than the entire Infinite Mode epic). **Checkpoint recommended here**: the next stages (05→06→07→08) lead toward real production code for a brand-new game mechanic (mobs, projectiles, weapon, health HUD, save-format bump) — a substantially larger and more consequential body of work than anything else this session touched, worth the user's explicit go-ahead before continuing, per this pipeline's own "spending judgment the user reserved" gate-check clause. |
