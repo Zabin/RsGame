@@ -14,33 +14,34 @@
 
 ## Position
 
-- **Updated:** 2026-07-18 (run #240)
-- **Increment:** Same as run #239, plus: **`09-package-verification` on `IP-1121`** (fresh
-  session, independent of run #238's own implementation) — `VERIFIED`, 336/336 suite,
-  byte-identical rebuild, all DoD/checklist items direct-code-read-confirmed, own independent
-  live drive through the real production call chain at a non-fixture seed/region, oracle-exact.
-  No findings. Report:
-  [VR-1121](../implementation/verification/VR-1121-infinite-mode-combat-mob-materialization-and-rendering.md).
-- **Pipeline state:** Bootstrap stages 01–11 ✅; Release 2 GO. 43 packages `VERIFIED`.
-  `IP-1122`/`IP-1123`/`IP-1120` all now `READY` (every dependency `VERIFIED`) and already
-  `AUTHORIZED` (G3, "Build all six," run #234) — no further gate needed before `08` picks any of
-  them up. `IP-1124` remains `NOT STARTED`, still blocked on `IP-1122`/`IP-1123`. `IP-1125`'s own
-  `09-content-review` is done (clean, one Low finding, run #239). Standing, non-blocking
-  doc/design work unchanged: the doc-accuracy sweep family (`BL-0136`/`BL-0137`/`BL-0140`–
-  `BL-0143`); `BL-0118` (`NFR-1400` cycle-budget gap); `BL-0123` (`try_load_save` unneeded
-  finite-mode work); `BL-0112` (Infinite Mode run-end trigger); `BL-0097` (Medium, routed
-  already); `BL-0130` (catalog text gap); `BL-0147`/`BL-0148` (ride a future `04`/`06` touch);
-  `BL-0149`/`BL-0150` (both Low, `SCHEDULED` riding a future `07` touch on `IP-1125`/`IP-1121`).
-- **Backlog:** 150 entries, unchanged this run (no new findings surfaced by `VR-1121`). `BL-0133`
-  still `IN PIPELINE` (G3 granted, build in progress — `IP-1121` of six now `VERIFIED`).
-- **Next step:** `08-code-implementation` on `IP-1122` (Weapon Fire & Hit Resolution) — critical
-  path (`IP-1125`→`IP-1121`→`IP-1122`→`IP-1124`), `READY`, already `AUTHORIZED`. `IP-1123`/
-  `IP-1120` are also `READY`/`AUTHORIZED` and could run in parallel/either order; `IP-1122` is
-  picked first as the critical-path node. The backlog's other open entries are all
-  `SCHEDULED`/`DEFERRED`, non-blocking, riding named future touches — none ripe to act on
-  standalone this run.
-- **Open gates:** **none.** G3 already covers `IP-1120`–`1125` in full (run #234) — the next
-  three eligible packages need no fresh authorization.
+- **Updated:** 2026-07-18 (run #241)
+- **Increment:** Same as run #240, plus: **`08-code-implementation` on `IP-1122`** — `COMPLETE`,
+  342/342 suite, ROM net +0 used bytes. `PROJ_*`/`WEAPON_TIER` WRAM, A-button fire branch,
+  `inf_projectile_update`/`inf_projectile_hittest` (reuses `check_collisions` verbatim). Named
+  deviation (`PROJ_DIR` is 2-value not 4-value, per `PLAYER_DIR`'s own real encoding) and a
+  test-harness footgun (stale-ROM-vs-fresh-labels hang) both harvested and documented, not
+  silently routed around.
+- **Pipeline state:** Bootstrap stages 01–11 ✅; Release 2 GO. 43 packages `VERIFIED`, one
+  `COMPLETE` (`IP-1122`, verification owed — needs a fresh session, implemented this session).
+  `IP-1123`/`IP-1120` both `READY`/`AUTHORIZED`, do **not** depend on `IP-1122`, so this session
+  can still build one of them without the fresh-session independence constraint. `IP-1124`
+  remains `NOT STARTED` (blocked on `IP-1122`/`IP-1123`, neither yet `VERIFIED`). `IP-1125`'s own
+  `09-content-review` is done. Standing, non-blocking doc/design work unchanged: the doc-accuracy
+  sweep family (`BL-0136`/`BL-0137`/`BL-0140`–`BL-0143`/`BL-0151`); `BL-0118` (`NFR-1400`
+  cycle-budget gap); `BL-0123` (`try_load_save` unneeded finite-mode work); `BL-0112` (Infinite
+  Mode run-end trigger); `BL-0097` (Medium, routed already); `BL-0130` (catalog text gap);
+  `BL-0147`/`BL-0148` (ride a future `04`/`06` touch); `BL-0149`/`BL-0150`/`BL-0152` (all Low,
+  `SCHEDULED`/`DEFERRED`, non-blocking).
+- **Backlog:** 152 entries. `BL-0151` (Low, doc-accuracy on `IP-1122` §6) and `BL-0152` (Low,
+  test-harness rebuild-discipline recommendation) added, both `DEFERRED`. `BL-0133` still
+  `IN PIPELINE` (G3 granted, build in progress — 2 of six now shipped, `IP-1121` `VERIFIED` +
+  `IP-1122` `COMPLETE`).
+- **Next step:** `08-code-implementation` on `IP-1123` (Player Health, Setback & Healing
+  Economy) — `READY`, `AUTHORIZED`, depends only on `IP-1121` (`VERIFIED`), so buildable this
+  same session. `IP-1120` is the other parallel-eligible option; `IP-1123` picked as the other
+  critical-path-feeding branch off `IP-1121`. `IP-1122`'s own `09-package-verification` still
+  needs a fresh session (this session implemented it) — not this session's next step.
+- **Open gates:** **none.** G3 already covers `IP-1120`–`1125` in full (run #234).
 
 ## Run log
 
@@ -290,3 +291,4 @@
 | 238 | 2026-07-18 | advance (same session) | `08-code-implementation` | `IP-1121` (Infinite Mode Combat: Mob Materialization, Rendering & Defeat) | ✅ **`COMPLETE`.** `COMBAT_MODE`/`MOB_COUNT`/`MOB_DATA` (`0xC6B5`–`0xC6D4`) defined; `inf_materialize_mobs` hooked into `inf_ensure_window`'s existing center-cell recompute (own decorrelated reseed, XOR-salted column input, avoiding the exact biome-correlation defect `worldgen.py`'s own `materialize_region` docstring already documents catching once); `inf_mob_render` hooked into `update_oam` (required changing `COLL_COUNT==0`'s early `RET_Z` to a `JR_Z` past the collectible loop so mobs still render on a treasure-less region — necessary, not scope creep); `inf_mob_defeat` defined/exposed for `IP-1122`. **Own defect caught and fixed during implementation** (not routed around): `inf_mob_render` was originally gated on `MOB_COUNT` (mirroring `COLL_COUNT`), but `MOB_COUNT` is decremented by `inf_mob_defeat` — a `MOB_COUNT`-gated render would stop scanning before a later still-active slot and never re-hide a defeated slot's own stale OAM entry; caught by the new `T29.e`, fixed by gating on `COMBAT_MODE` instead and always scanning all 6 fixed slots. Design deviation from the package's own "next free slot" phrasing, named explicitly in the ledger: writes all 6 candidates at fixed 1:1 indices (not front-compaction) — functionally equivalent, avoids compaction-order fragility. **336/336 suite passes** (new suite `T29`, 6 checks: determinism, oracle/SM83 lockstep against new `worldgen.materialize_mobs`, `COMBAT_MODE`-off no-op, mob-count ceiling, defeat/no-stale-OAM, OAM budget static audit). ROM 31646/32768 (+256 bytes, within the 1,378-byte headroom). Live-driven via PyBoy: forced `COMBAT_MODE`/`MOB_DATA` state during real `PLAYING`, confirmed mobs render through the real per-frame `update_oam` call path — screenshot confirms three distinct purple mob sprites on-screen. `FR-11200` → Implemented; RTM row filled; `FS-112`/`GDS-07` §7i documentation updated. Own `09-package-verification` pass needs a fresh session (implemented this session). | `09-content-review` on `IP-1125`'s sprite art (independent of the fresh-session constraint) — then a fresh session's `09-package-verification` on `IP-1121` is the sole remaining step before `IP-1122`/`IP-1123`/`IP-1120`/`IP-1124` can build |
 | 239 | 2026-07-18 | advance → queue empty (same session) | `09-content-review` | `IP-1125` (Combat Sub-Mode sprite art) | ✅ **Clean**, one Low finding (`BL-0150`: mob placement has no minimum-separation guarantee — sampled `worldgen.materialize_mobs` across 9,800 `(seed, row, col)` combinations, 547 regions drew 2+ active mobs, 17 (≈3%) placed two at the exact same cell) and one non-blocking observation (projectile/star palette overlap — checked and confirmed the two sprites are never co-reachable in any real game state, so no actual readability risk; noted, not filed). Screenshots captured: mob+projectile side by side, three mobs simultaneously rendered. `ROADMAP.md` RV-CONTENT row updated. **This exhausts every step this session can run without a fresh-session independence boundary** — `IP-1121`'s own `09-package-verification` is the sole remaining step, and it cannot be done with genuine independence in the same session that implemented it (run #238). Every other open backlog entry is `SCHEDULED`/`DEFERRED`, non-blocking, riding a named future touch — none ripe to act on standalone. | Fresh session: `09-package-verification` on `IP-1121` — the sole step that unblocks `IP-1122`/`IP-1123`/`IP-1120`/`IP-1124` |
 | 240 | 2026-07-18 | advance (fresh session, "Run pipeline skill") | `09-package-verification` | `IP-1121` (Infinite Mode Combat: Mob Materialization, Rendering & Defeat) | ✅ **`IP-1121` → VERIFIED** ([VR-1121](../implementation/verification/VR-1121-infinite-mode-combat-mob-materialization-and-rendering.md)): rebuilt ROM (32768 bytes, valid header, byte-identical to checked-in `BunnyQuest.gbc`), full suite 336/336 (fresh `pyboy` install this session), all DoD/Verification-Checklist items re-derived from the tree by direct code read — `inf_materialize_mobs`/`inf_mob_render`'s `COMBAT_MODE` gate confirmed to be each routine's first instruction, the mob-draw PRNG chain confirmed structurally decorrelated (own `inf_region_seed0` reseed, `XOR 0x5A` column salt) from the biome/treasure chain. §9 documentation deltas all confirmed applied (FR-11200 status, RTM row, FS-112 metadata, `07-data-model.md` WRAM rows). Diff scope (commit `e7c829f`) confirmed exactly `asm_game.py`/`worldgen.py`, matching the package's own declared file set — no excursion. **Independent live drive** (this skill's own tunable-parameter rule): drove the real production call chain directly — `inf_ensure_window` (not the suite's `T29` direct-invoke helper) then `update_oam` (not `T29.e`'s direct `inf_mob_render` call) — at a non-fixture `(SEED=314159, row=12, col=-7)`; mob slot materialization came back byte-for-byte identical to `worldgen.materialize_mobs`'s own independent Python oracle, and the resulting shadow-OAM entry (Y=80, X=144, tile=`TL_MOB`, palette 4) exactly matched the drawn slot. No findings. `IP-1122`/`IP-1123`/`IP-1120` → `READY` (all dependencies now `VERIFIED`); `IP-1124` remains `NOT STARTED` (still depends on `IP-1122`/`IP-1123`, neither yet built). Master Build Plan, `packages/INDEX.md`, verification `INDEX.md` updated. | `08-code-implementation` on `IP-1122` (Weapon Fire & Hit Resolution — critical-path next after `IP-1121`, `READY`, already `AUTHORIZED` under "Build all six") |
+| 241 | 2026-07-18 | advance (same session) | `08-code-implementation` | `IP-1122` (Infinite Mode Combat: Weapon Fire & Hit Resolution) | ✅ **`COMPLETE`.** `PROJ_ACTIVE`/`PROJ_X`/`PROJ_Y`/`PROJ_DIR`/`WEAPON_TIER` (`0xC6D5`–`0xC6D9`) defined; `handle_play_input` gains a `COMBAT_MODE`-gated A-button fire branch; `inf_projectile_update` hooked into `st_playing`'s per-frame chain; `inf_projectile_hittest` reuses `check_collisions`' own asymmetric point-in-box technique verbatim (unmodified) against `MOB_DATA`, subtracting `WEAPON_TIER` from a hit mob's health (floored at 0, calling `IP-1121`'s `inf_mob_defeat` at zero), always stopping the projectile on any hit; `update_oam` extended with a `PROJ_ACTIVE`-gated OAM entry. **Named deviation, documented explicitly** (harvested as `BL-0151`, Low, `DEFERRED`): `PROJ_DIR` mirrors `PLAYER_DIR`'s own real 2-value encoding (0=right/1=left) — direct code read confirmed `PLAYER_DIR` is written only by RIGHT/LEFT, never UP/DOWN, so the package's own "0-3" phrasing was wrong about this codebase's actual facing-direction concept; `FR-11300`'s own Notes delegate the exact mechanism to `06`/`08` discretion, so this is a named implementation decision, not a blocker — the projectile moves horizontally only. **342/342 suite passes** (new suite `T30`, 6 checks: fire spawn, no double-fire, hit resolution + defeat, non-lethal-hit spot check, miss/terminal boundary, `COMBAT_MODE`-off no-op). ROM 31646/32768 (net +0 used bytes — new code fit inside existing `0x100`-alignment padding slack). **Outstanding Issue, harvested as `BL-0152`** (Low, `DEFERRED`): this run's first full-suite attempt hung (100% CPU, zero progress) because the checked-in `BunnyQuest.gbc` had not yet been rebuilt from the edited source before running `test_rom.py` — the harness resolves labels fresh from source but boots the stale on-disk ROM, so PC-hijack tests jumped to addresses valid in the new source but not the old binary; diagnosed via a minimal repro + `ps aux` (confirmed genuine CPU-bound execution, not a wait), resolved by `python3 build_rom.py`. `FR-11300` → Implemented; RTM row updated; `FS-112`/`GDS-07` §7j documentation added. `BL-0147` (`WEAPON_TIER` funding-mechanism gap) remains open, unaffected. Own `09-package-verification` pass needs a fresh session (implemented this session). Master Build Plan, `packages/INDEX.md` updated. | `08-code-implementation` on `IP-1123` (Player Health, Setback & Healing Economy — `READY`, `AUTHORIZED`, does not depend on `IP-1122`, so buildable this same session without the fresh-session independence constraint) or `IP-1120` (also `READY`/`AUTHORIZED`, parallel) — either is legitimate; `IP-1123` picked next as the other critical-path-feeding branch off `IP-1121` |
