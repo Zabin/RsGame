@@ -313,3 +313,41 @@ def materialize_region(seed, row, col):
     return region_byte, treasure_present
 
     return treasure
+
+
+def materialize_mobs(seed, row, col):
+    """
+    Deterministically (re)materializes all 6 combat-sub-mode mob slots for
+    one region as a pure function of (seed, row, col) -- mirrors
+    inf_materialize_mobs (IP-1121) step-for-step.
+
+    Own independent reseed, decorrelated from materialize_region's own
+    biome/connectivity/treasure chain for this exact (row, col): a fresh,
+    unsalted _region_seed0(seed, row, col) would reproduce that chain's
+    identical first-drawn bytes and correlate mob presence with biome --
+    exactly the defect this file's own materialize_region docstring
+    documents catching once already. Salting the column input (XOR 0x5A)
+    before reseeding makes the resulting state diverge completely.
+
+    Each of the 6 candidate slots draws exactly 4 values unconditionally
+    (presence, x, y, species), matching inf_materialize_mobs's own
+    fixed-length-per-slot chain (not "next free slot" compaction) -- every
+    candidate maps 1:1 to its own MOB_DATA slot index.
+
+    Returns a list of exactly 6 (x, y, species, health, active) tuples.
+    """
+    x = _region_seed0(seed, row, col ^ 0x5A)
+    slots = []
+    for _ in range(6):
+        x = _step(x)
+        present = ((x & 0xFF) & 0x0F) == 0
+        x = _step(x)
+        mob_x = (((x & 0xFF) & 0x0F) << 3) + 24
+        x = _step(x)
+        mob_y = (((x & 0xFF) & 0x07) << 3) + 32
+        x = _step(x)
+        species = (x & 0xFF) & 0x00   # SPECIES_COUNT=1 today
+        health = 1
+        active = 1 if present else 0
+        slots.append((mob_x, mob_y, species, health, active))
+    return slots

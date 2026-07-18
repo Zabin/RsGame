@@ -9,7 +9,8 @@
 > reserve now fully claimed; delta 2026-07-16 (cont'd) — §7g/§7h, Infinite Mode ledger WRAM
 > working copy (`IP-1104`, `BL-0119` amendment, `C419`–`C69A`) and SRAM save shape (`A0C1`–`A34F`,
 > `SAVE_VERSION_VAL` `0x05`) — this closes the Infinite Mode tranche's own GDS-07 delta set in
-> full).** Owned by
+> full; delta 2026-07-18 — §7i, Combat Sub-Mode mob entities WRAM confirmed by `IP-1121`,
+> `C6B5`–`C6D4`).** Owned by
 > `03-architecture-design-synthesis`.
 > Builds on [GDS-06](06-non-functional-requirements.md); the next level,
 > [GDS-08 Presentation Architecture](08-presentation-architecture.md), builds on this one.
@@ -469,6 +470,29 @@ field order, same sizes — so `save_to_sram`/`try_load_save` move the whole led
 fifth bump since ship, extending `IP-9110`'s own strictly-monotonic sequence, §3). No region's
 biome or connectivity is ever persisted here — every field is position/collected-state/score
 data only, confirmed by direct byte audit (`T27.b`).
+
+### 7i. Combat Sub-Mode: mob entities WRAM — `IP-1121` (confirmed 2026-07-18)
+
+First unclaimed bytes past `MUSIC_BASE_HI`'s own end (`0xC6B4`, §7g). Valid only alongside
+`GAME_MODE == 1` — `COMBAT_MODE` is meaningless in finite mode, boot-cleared to 0 by default.
+Session-local, transient — never persisted to SRAM (`ADS-002`'s own Domain Model framing, "mobs
+are session-local per materialized region," confirmed as-implemented: `inf_materialize_mobs`
+freshly rewrites the whole block on every `inf_ensure_window` center-cell recompute, not
+accumulated).
+
+| Address | Name | Size | Purpose |
+|---|---|---|---|
+| `C6B5` | `COMBAT_MODE` | 1 byte | 0=off (default), 1=on. Set by `IP-1120`'s own gating screen (not yet built) |
+| `C6B6` | `MOB_COUNT` | 1 byte | number of the 6 `MOB_DATA` slots currently present (0-6) |
+| `C6B7`–`C6D4` | `MOB_DATA` | 30 bytes | 6 slots × 5 bytes: `x` (1), `y` (1), `species` (1, always 0 today — room for future variety per `R218`), `health` (1, fixed default 1 at materialization), `active` (1, 0/1) |
+
+`inf_materialize_mobs` (hooked into `inf_ensure_window`, immediately after the existing
+treasure-presence write) and `inf_mob_render` (hooked into `update_oam`, gated on `COMBAT_MODE`
+rather than `MOB_COUNT` — see the routine's own comment for why a `MOB_COUNT`-gated render loop
+would fail to hide a defeated mob's stale OAM entry) both operate on this block exclusively.
+`inf_mob_defeat` is defined and exposed here (clears one slot's `active` byte, decrements
+`MOB_COUNT`) but has no call site yet — `IP-1122`'s own hit-resolution logic is the real future
+caller. 32 bytes total, comfortably inside the confirmed bank-0 headroom.
 
 ### 8. Tile index map implication (cross-reference only — GDS-08 decides the actual strategy)
 

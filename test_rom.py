@@ -3736,6 +3736,161 @@ check("T28.e Timing: the sub-theme repoint lands with the redraw itself (within 
 pb.stop()
 wipe_save()
 
+print("\n=== T29: Combat Sub-Mode — Mob Materialization & Rendering (IP-1121) ===")
+
+COMBAT_MODE_ADDR = 0xC6B5; MOB_COUNT_ADDR = 0xC6B6; MOB_DATA_ADDR = 0xC6B7
+IMM_ADDR = _gw_rom.labels['inf_materialize_mobs']
+
+def invoke_inf_materialize_mobs(pb, seed, row, col, combat_mode=1):
+    """
+    T29 (IP-1121): directly invoke inf_materialize_mobs (asm_game.py) —
+    the real call site is inf_ensure_window's own center-cell recompute
+    (T24/T26 already exercise that indirectly); this harness mirrors
+    invoke_inf_materialize_region's own PC/SP-hijack + self-loop-trap
+    technique for a direct, isolated invocation. Sets SEED/INF_ROW/INF_COL/
+    COMBAT_MODE, ticks until the trap fires, returns the 6 (x, y, species,
+    health, active) tuples read back from MOB_DATA, or None if the trap was
+    never reached within budget.
+    """
+    pb.memory[SEED] = seed & 0xFF
+    pb.memory[SEED + 1] = (seed >> 8) & 0xFF
+    r = row & 0xFFFF; c = col & 0xFFFF
+    pb.memory[INF_ROW] = r & 0xFF; pb.memory[INF_ROW + 1] = (r >> 8) & 0xFF
+    pb.memory[INF_COL] = c & 0xFF; pb.memory[INF_COL + 1] = (c >> 8) & 0xFF
+    pb.memory[COMBAT_MODE_ADDR] = combat_mode
+    pb.memory[GW_TRAP_ADDR] = 0x18; pb.memory[GW_TRAP_ADDR + 1] = 0xFE  # JR -2
+    sp = (pb.register_file.SP - 2) & 0xFFFF
+    pb.memory[sp] = GW_TRAP_ADDR & 0xFF
+    pb.memory[sp + 1] = (GW_TRAP_ADDR >> 8) & 0xFF
+    pb.register_file.SP = sp
+    pb.register_file.PC = IMM_ADDR
+    for _ in range(400):
+        pb.tick()
+        if pb.register_file.PC == GW_TRAP_ADDR:
+            slots = []
+            for i in range(6):
+                base = MOB_DATA_ADDR + i * 5
+                slots.append(tuple(pb.memory[base + k] for k in range(5)))
+            return pb.memory[MOB_COUNT_ADDR], slots
+    return None
+
+pb = fresh_boot(180)
+advance_to_playing(pb)
+
+# T29.a — determinism: materializing the same region twice (COMBAT_MODE on)
+# produces byte-identical mob presence/type/position both times.
+_t29_seed, _t29_row, _t29_col = 4242, 3, -2
+_t29_r1 = invoke_inf_materialize_mobs(pb, _t29_seed, _t29_row, _t29_col)
+_t29_r2 = invoke_inf_materialize_mobs(pb, _t29_seed, _t29_row, _t29_col)
+check("T29.a Determinism: materializing the same region twice produces byte-identical mob slots",
+      _t29_r1 is not None and _t29_r1 == _t29_r2, f"r1={_t29_r1} r2={_t29_r2}")
+
+# T29.b — oracle-vs-SM83 lockstep: worldgen.materialize_mobs vs. the live
+# ROM's inf_materialize_mobs, 0 mismatches required across a small corpus
+# (incl. negative coordinates, per this codebase's own two's-complement
+# convention for INF_ROW/INF_COL).
+_t29_corpus = [(1, 0, 0), (4242, 3, -2), (999, -5, 7), (2026, 100, -100), (0, -1, -1)]
+_t29_mismatches = []
+for _s, _r, _c in _t29_corpus:
+    _got_count, _got_slots = invoke_inf_materialize_mobs(pb, _s, _r, _c)
+    _exp_slots = worldgen.materialize_mobs(_s, _r, _c)
+    _exp_count = sum(1 for slot in _exp_slots if slot[4] == 1)
+    if _got_count != _exp_count or _got_slots != _exp_slots:
+        _t29_mismatches.append((_s, _r, _c, _got_count, _exp_count, _got_slots, _exp_slots))
+check("T29.b Oracle-vs-SM83 lockstep: worldgen.materialize_mobs matches inf_materialize_mobs exactly",
+      len(_t29_mismatches) == 0, f"mismatches={_t29_mismatches}")
+
+# T29.c — COMBAT_MODE off: a region materialized with the flag forced to 0
+# shows MOB_COUNT==0 and leaves every MOB_DATA slot completely untouched by
+# this call (the top-of-routine RET_Z fires before any write) -- confirms
+# this capability is additive, not a fork of the generation algorithm.
+pb.memory[MOB_COUNT_ADDR] = 0
+_t29_before_slots = [tuple(pb.memory[MOB_DATA_ADDR + i * 5 + k] for k in range(5))
+                      for i in range(6)]
+_t29_offcount, _t29_offslots = invoke_inf_materialize_mobs(pb, 555, 9, 9, combat_mode=0)
+check("T29.c COMBAT_MODE off: MOB_COUNT stays 0 and MOB_DATA is left untouched (no-op, additive only)",
+      _t29_offcount == 0 and _t29_offslots == _t29_before_slots,
+      f"count={_t29_offcount} slots={_t29_offslots} prior={_t29_before_slots}")
+
+# T29.d — mob-count ceiling: across the corpus above (COMBAT_MODE on),
+# MOB_COUNT never exceeds 6 -- true by construction (exactly 6 candidate
+# slots are ever drawn), confirmed directly rather than merely assumed.
+_t29_ceiling_bad = []
+for _s, _r, _c in _t29_corpus:
+    _cnt, _ = invoke_inf_materialize_mobs(pb, _s, _r, _c)
+    if _cnt > 6: _t29_ceiling_bad.append((_s, _r, _c, _cnt))
+check("T29.d Mob-count ceiling: MOB_COUNT never exceeds 6 across the corpus",
+      len(_t29_ceiling_bad) == 0, f"bad={_t29_ceiling_bad}")
+
+# T29.e — defeat: force an active mob slot, call inf_mob_defeat, confirm
+# the slot's active flag clears, MOB_COUNT decrements, and no OAM entry is
+# written for it on the next inf_mob_render call (no persistent corpse).
+IMD_ADDR = _gw_rom.labels['inf_mob_defeat']
+IMR2_ADDR = _gw_rom.labels['inf_mob_render']
+OAM_BUF = 0xC300   # shadow OAM buffer base (update_oam's own write target)
+
+def invoke_inf_mob_defeat(pb, slot):
+    pb.register_file.B = slot
+    pb.memory[GW_TRAP_ADDR] = 0x18; pb.memory[GW_TRAP_ADDR + 1] = 0xFE
+    sp = (pb.register_file.SP - 2) & 0xFFFF
+    pb.memory[sp] = GW_TRAP_ADDR & 0xFF
+    pb.memory[sp + 1] = (GW_TRAP_ADDR >> 8) & 0xFF
+    pb.register_file.SP = sp
+    pb.register_file.PC = IMD_ADDR
+    for _ in range(60):
+        pb.tick()
+        if pb.register_file.PC == GW_TRAP_ADDR:
+            return True
+    return False
+
+def invoke_inf_mob_render(pb):
+    pb.memory[GW_TRAP_ADDR] = 0x18; pb.memory[GW_TRAP_ADDR + 1] = 0xFE
+    sp = (pb.register_file.SP - 2) & 0xFFFF
+    pb.memory[sp] = GW_TRAP_ADDR & 0xFF
+    pb.memory[sp + 1] = (GW_TRAP_ADDR >> 8) & 0xFF
+    pb.register_file.SP = sp
+    pb.register_file.HL = OAM_BUF
+    pb.register_file.PC = IMR2_ADDR
+    for _ in range(60):
+        pb.tick()
+        if pb.register_file.PC == GW_TRAP_ADDR:
+            return True
+    return False
+
+# Force exactly one active mob at slot 0 (MOB_COUNT=1), everything else
+# inactive. inf_mob_render gates on COMBAT_MODE (not MOB_COUNT, see its
+# own comment) -- set explicitly since T29.c's last call left it 0.
+pb.memory[COMBAT_MODE_ADDR] = 1
+pb.memory[MOB_COUNT_ADDR] = 1
+for _i in range(6):
+    _base = MOB_DATA_ADDR + _i * 5
+    pb.memory[_base] = 80; pb.memory[_base + 1] = 60
+    pb.memory[_base + 2] = 0; pb.memory[_base + 3] = 1
+    pb.memory[_base + 4] = 1 if _i == 0 else 0
+_t29e_defeated = invoke_inf_mob_defeat(pb, 0)
+_t29e_active_after = pb.memory[MOB_DATA_ADDR + 4]
+_t29e_count_after = pb.memory[MOB_COUNT_ADDR]
+for _k in range(160): pb.memory[OAM_BUF + _k] = 0xAA   # poison the buffer first
+invoke_inf_mob_render(pb)
+_t29e_oam_slot0 = [pb.memory[OAM_BUF + k] for k in range(4)]
+check("T29.e Defeat: active flag clears, MOB_COUNT decrements, no OAM entry written for the defeated slot",
+      _t29e_defeated and _t29e_active_after == 0 and _t29e_count_after == 0 and
+      _t29e_oam_slot0 == [0, 0, 0, 0],
+      f"active_after={_t29e_active_after} count_after={_t29e_count_after} oam={_t29e_oam_slot0}")
+
+# T29.f — OAM budget static audit (Inspection, NFR-4500): worst-case
+# concurrent OAM entry count (1 player + up to 8 collectibles [finite
+# mode's own worst case, R115] + 6 mobs) stays at or below the 40-entry
+# hardware table -- Infinite Mode's own COLL_COUNT is always <= 1
+# (szc_infinite spawns exactly one treasure), so this is a conservative
+# combined bound across both modes, not the real Infinite-Mode-combat
+# worst case (1 + 1 + 6 = 8).
+check("T29.f OAM budget static audit: 1 player + up to 8 collectibles + 6 mobs <= 40 entries (NFR-4500)",
+      1 + 8 + 6 <= 40, f"total={1 + 8 + 6}")
+
+pb.stop()
+wipe_save()
+
 print("\n=== T34: Combat Sub-Mode — Sprite Content (IP-1125) ===")
 
 import build_rom as _build_rom_mod
