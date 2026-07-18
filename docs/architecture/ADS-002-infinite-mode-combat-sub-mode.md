@@ -136,10 +136,11 @@ mob-spawn draw would most naturally hook into.
 
 ## Open Questions
 
-1. **(Vision-level, blocking)** Does `MSTR-001`'s **C9** ("child-friendly collect-goal") tolerate
-   an adversarial combat mechanic at all, and if so, in what tone (e.g. Zelda-style bloodless
-   "poof" defeats vs. anything grimmer)? This is the one question this ADS cannot answer on its
-   own authority — routed to `01-vision`.
+1. **(Vision-level, blocking) — RESOLVED 2026-07-17.** Does `MSTR-001`'s **C9** ("child-friendly
+   collect-goal") tolerate an adversarial combat mechanic at all, and if so, in what tone?
+   Answered by `MSTR-001` v4.0's new **C11**: yes, via a narrow, opt-in carve-out — a gated
+   combat sub-mode intended for a parent/adult player may be tonally grimmer; the base game's own
+   child-friendly commitment is unchanged. See `01-vision`'s run for the full record.
 2. Is treasure *spent* on healing (reducing the win/high-score count) or does it trigger healing
    without being consumed? Changes the entire economy model.
 3. Does the weapon have ammo/durability, or is "upgraded... healed... by the treasure" its only
@@ -152,6 +153,16 @@ mob-spawn draw would most naturally hook into.
 6. Concurrent mob count and spawn density — a first-order OAM/ROM-budget-shaping decision.
 7. Does mob/weapon-tier state persist across save/load (a new SRAM version bump, mirroring
    `IP-1010`/`IP-1050`/`IP-1104`'s own precedent), or is it session-only?
+8. **(Research-level, blocking a fuller architecture pass) — NEW 2026-07-17.** No R1xx/R2xx/R3xx
+   research topic covers combat/enemy design conventions, hardware-feasible projectile/hit-
+   detection techniques on SM83, or health/damage HUD conventions. Committing to concrete mob/
+   projectile/health entity shapes (the System Architecture sketch above stays a sketch, not a
+   decision) needs this grounding first — routed to `02-research-game-design` (design
+   conventions: enemy AI patterns, difficulty pacing for an opt-in "parent mode," health/damage
+   HUD conventions on GBC-era titles) and `02-research-gbc-hardware` (hardware feasibility:
+   projectile movement/collision cost on SM83, OAM budget for concurrent mob+projectile sprites,
+   whether a second APU channel is needed for combat SFX — this project currently uses only
+   channel 1).
 
 ## Decision Log
 
@@ -159,6 +170,7 @@ mob-spawn draw would most naturally hook into.
 |---|---|---|
 | 2026-07-17 | This ADS stops short of producing an `FS-xxx` or any `FR-xxxx` — the Vision-level tension (Open Question 1) is judged blocking, not merely informative, because every downstream requirement's shape depends on its answer. | This skill's own charter: it names tensions and routes genuine domain gaps upstream rather than inventing a resolution; a vision-level tonal question is exactly the class `01-vision` exists to own, not `03`. |
 | 2026-07-17 | Treasure's dual-purpose-economy question (Open Question 2) and the weapon's ammo/durability question (Open Question 3) are recorded as open rather than assumed, per the owner's own 2026-07-17 clarification narrowing but not closing them. | Direct owner statement, quoted in `BL-0133`'s own backlog entry. |
+| 2026-07-17 | **A second stop, found on this same day's follow-up pass** (after Open Question 1 resolved): before committing to concrete mob/projectile/health entity designs or a gating mechanism, this skill searched the research encyclopedia for any grounding on combat/enemy/damage design and found **none** — a genuine domain-knowledge gap, not a small detail. `R204` mentions HUD health-bar *weighting* in passing (not combat design); `R214` explicitly warns *against* treating existing combat-focused GBC homebrew (Azure Dreams/Dragon Crystal) as design templates for *this* project, without offering an alternative. No R1xx/R2xx/R3xx topic covers enemy AI patterns, projectile/hitscan feasibility on SM83, sprite-based hit-detection conventions, or health/damage HUD conventions for a GBC title. This pass stops here rather than inventing combat-design conventions itself — that would be exactly the kind of research-origination this skill's own charter forbids. | Direct search of `docs/research/encyclopedia/` (grep for combat/enemy/mob/projectile/weapon/health/damage across every R1xx/R2xx/R3xx topic) — confirmed empty beyond the two tangential mentions above. |
 
 ## What this ADS does NOT do
 
