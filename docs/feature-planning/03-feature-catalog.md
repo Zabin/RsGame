@@ -895,7 +895,13 @@
 > Criteria (AC-3/AC-6, renumbered), Verification Plan, and a new Open Question 4 (`BL-0159`, does
 > an already-adjacent mob keep re-attempting movement) all updated in that same pass. Neither leaf
 > is packaged yet — `07-implementation-planning` is next, subject to a fresh G3 authorization
-> (new scope beyond the original "build all six" go-ahead).
+> (new scope beyond the original "build all six" go-ahead). **Delta 2026-07-19 (cont'd):** two
+> more new sub-leaves baselined by `04-requirements-engineering` — `FR-11310` (movement-based
+> multi-directional weapon fire, `BL-0157`, grounded by `ADS-002`'s "Weapon Directionality
+> Delta"/`ADR-0021`/`R220`) and `FR-11510` (treasure-spent weapon-tier funding economy,
+> `BL-0147`/`BL-0155`, grounded by `R219`) — both folded into this same Feature (no new capability
+> boundary; see this entry's own Description/Included Requirements below). Neither leaf is
+> specified into `FS-112` or packaged yet.
 
 - **Feature ID:** FEAT-11000
 - **Title:** Infinite Mode Combat Sub-Mode
@@ -910,15 +916,19 @@
   (adjustable default); mobs move toward the player at an adjustable speed/update-rate once
   materialized (`FR-11210`, `BL-0156` — mobs previously held their static materialized position
   only); a single-slot ranged projectile fired on player input, resolved against mob hitboxes via
-  `check_collisions`' own established point-in-box technique; a player health value displayed via
-  the existing heart-tile art, with a non-lethal setback (never a `GAMESTATE` game-over) on
-  reaching zero, protected from immediate re-triggering by a combined invincibility-frame/
-  knockback/per-mob-cooldown mechanism (`FR-11410`, `BL-0158` — closes a real, confirmed gap
-  where sustained contact resolved a full health-loss-and-reset cycle in 3-4 frames, too fast to
-  perceive); a treasure-spent healing economy that decrements the same `RUNNING_TREASURE_COUNT`
-  `FEAT-10000`'s own win/high-score logic reads, not a second ledger; and combat state (mob
-  state, weapon tier, player health) persisted across save/load via a new `SAVE_VERSION_VAL`
-  bump, mirroring `FEAT-10000`'s/`FEAT-5100`'s own established version-byte pattern.
+  `check_collisions`' own established point-in-box technique, firing in all eight compass
+  directions derived from the player's own movement rather than left/right only (`FR-11310`,
+  `BL-0157`); a player health value displayed via the existing heart-tile art, with a non-lethal
+  setback (never a `GAMESTATE` game-over) on reaching zero, protected from immediate re-triggering
+  by a combined invincibility-frame/knockback/per-mob-cooldown mechanism (`FR-11410`, `BL-0158` —
+  closes a real, confirmed gap where sustained contact resolved a full health-loss-and-reset cycle
+  in 3-4 frames, too fast to perceive); a treasure-spent healing economy that decrements the same
+  `RUNNING_TREASURE_COUNT` `FEAT-10000`'s own win/high-score logic reads, not a second ledger,
+  plus a sibling treasure-spent weapon-tier funding economy sharing the same currency
+  (`FR-11510`, `BL-0147`/`BL-0155` — closes the gap where `WEAPON_TIER` shipped as a permanently
+  fixed stat); and combat state (mob state, weapon tier, player health) persisted across save/load
+  via a new `SAVE_VERSION_VAL` bump, mirroring `FEAT-10000`'s/`FEAT-5100`'s own established
+  version-byte pattern.
 - **Scope:** The complete combat sub-mode as one cohesive capability — gating, mob
   materialization/defeat, weapon fire/hit resolution, player health/setback, the healing economy,
   and save persistence are kept together here (nothing has been implemented yet to reveal a clean
@@ -930,8 +940,8 @@
   by this Feature, per `ADS-002`'s own Open Question 5 confirming this capability is additive and
   Infinite-Mode-exclusive — and the entire finite mode (`FEAT-9000`/`FEAT-4100`/`FEAT-5300`),
   confirmed unaffected by the same Open Question.
-- **Included Requirements:** FR-11100, FR-11200, FR-11210, FR-11300, FR-11400, FR-11410,
-  FR-11500, FR-11600; NFR-1500, NFR-4500.
+- **Included Requirements:** FR-11100, FR-11200, FR-11210, FR-11300, FR-11310, FR-11400,
+  FR-11410, FR-11500, FR-11510, FR-11600; NFR-1500, NFR-4500.
 - **Excluded Requirements:** FR-10100–FR-10600 (base Infinite Mode — `FEAT-10000`, unamended);
   FR-9100–FR-9200/FR-9160/FR-9161 (finite mode's own generation/treasure/win-condition group —
   `FEAT-9000`, confirmed unaffected).
@@ -970,7 +980,14 @@
   not-yet-measured pieces of per-frame combat logic** (per-mob movement recomputation; per-mob
   invincibility/cooldown state checks) inheriting the same `NFR-1500` obligation — the risk level
   is unchanged (already Medium-High for the cycle-budget reason alone), but the surface area that
-  obligation now covers has grown.
+  obligation now covers has grown. **`FR-11310`/`FR-11510` (2026-07-19, second delta this date)
+  add two more pieces to the same still-`UNCONFIRMED` surface** (a direction-decode in
+  `handle_play_input`; a second per-frame projectile axis step) — again unchanged risk level, more
+  surface owed to the same standing measurement obligation. Both new leaves also each name an
+  unresolved input-binding gap for their own action, the same open class `BL-0148` already tracks
+  for `FR-11500`'s heal-spend — a real, growing UI-surface question (this Feature now has three
+  distinct spend/direction actions competing for the same small set of unclaimed buttons) worth a
+  future `06`/`07` pass consolidating them, not a blocker to cataloging.
 - **Suggested Verification Strategy:** Test — oracle/SM83 lockstep for mob materialization
   determinism (mirroring `FEAT-10000`'s own established methodology), direct-force integration
   checks for weapon hit/miss and defeat presentation, a save/load round-trip harness mirroring
