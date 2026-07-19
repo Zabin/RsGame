@@ -4193,6 +4193,153 @@ check("T31.g BL-0154 regression: initial-entry COMBAT_ENTRY_X/Y match the player
 pb31g.stop()
 wipe_save()
 
+# ══════════════════════════════════════════════════════
+# T32 — Combat Sub-Mode: Save Persistence (IP-1124)
+# ══════════════════════════════════════════════════════
+print("\n=== T32: Combat Sub-Mode — Save Persistence (IP-1124) ===")
+
+SRAM_COMBAT_MODE_ADDR = 0xA350; SRAM_MOB_COUNT_ADDR = 0xA351
+SRAM_MOB_DATA_ADDR = 0xA352; SRAM_WEAPON_TIER_ADDR = 0xA370
+SRAM_PLAYER_HEALTH_ADDR = 0xA371
+
+# T32.a — round trip: force a known combat state (two distinct mob slots,
+# a non-default WEAPON_TIER, a non-max PLAYER_HEALTH) placed well clear of
+# the player's own hitbox and with MOB_MOVE_TIMER pinned high (so neither
+# inf_mob_move nor inf_mob_contact_check can perturb the forced state in
+# the few real per-frame ticks the SAVE menu itself requires), save via
+# the real SAVE screen, reload in a fresh instance, confirm every field
+# restores exactly.
+wipe_save()
+pb = fresh_boot(200)
+enter_infinite_mode(pb, 555)
+pb.memory[COMBAT_MODE_ADDR] = 1
+pb.memory[0xC6DE] = 8   # MOB_MOVE_TIMER, pinned above 0 -- no movement this window
+pb.memory[MOB_COUNT_ADDR] = 2
+_t32a_mob0 = (20, 20, 1, 2, 1)     # x, y, species, health, active
+_t32a_mob1 = (140, 120, 2, 1, 1)
+for _i, _slot in enumerate([_t32a_mob0, _t32a_mob1]):
+    _base = MOB_DATA_ADDR + _i * 5
+    for _k, _v in enumerate(_slot): pb.memory[_base + _k] = _v
+for _i in range(2, 6):
+    _base = MOB_DATA_ADDR + _i * 5
+    for _k in range(5): pb.memory[_base + _k] = 0
+pb.memory[WEAPON_TIER_ADDR] = 2
+pb.memory[PLAYER_HEALTH_ADDR] = 1
+pb.button('start'); [pb.tick() for _ in range(40)]
+pb.button('a'); [pb.tick() for _ in range(40)]   # SAVE: A (save)
+pb.stop()
+
+pb2 = PyBoy(ROM_PATH, window='null', sound_emulated=False)
+pb2.set_emulation_speed(0)
+for _ in range(180): pb2.tick()
+# IP-1124 own test note: read back immediately (a handful of frames, not
+# T27.a2's own 60-tick settle) -- try_load_save's own restore is a single-
+# frame, synchronous jump straight to PLAYING (not an animated menu), and
+# once there with COMBAT_MODE now correctly restored to 1, inf_mob_move
+# runs automatically every frame with no further input needed -- waiting
+# a full 60 ticks (nearly 8x MOB_MOVE_INTERVAL) would let it genuinely
+# move the just-restored mobs before this check ever reads them, a
+# test-only timing gap (T35.i's own established "force, then check
+# promptly" discipline), not a product defect.
+pb2.button('a'); [pb2.tick() for _ in range(6)]   # MAIN MENU: continue
+_t32a_mob0_after = tuple(pb2.memory[MOB_DATA_ADDR + k] for k in range(5))
+_t32a_mob1_after = tuple(pb2.memory[MOB_DATA_ADDR + 5 + k] for k in range(5))
+check("T32.a Save/load round trip: mob state, weapon tier, and player health all restore exactly",
+      pb2.memory[GAMESTATE] == 2 and pb2.memory[COMBAT_MODE_ADDR] == 1 and
+      pb2.memory[MOB_COUNT_ADDR] == 2 and _t32a_mob0_after == _t32a_mob0 and
+      _t32a_mob1_after == _t32a_mob1 and pb2.memory[WEAPON_TIER_ADDR] == 2 and
+      pb2.memory[PLAYER_HEALTH_ADDR] == 1,
+      f"GS={pb2.memory[GAMESTATE]} combat_mode={pb2.memory[COMBAT_MODE_ADDR]} "
+      f"mob_count={pb2.memory[MOB_COUNT_ADDR]} mob0={_t32a_mob0_after} mob1={_t32a_mob1_after} "
+      f"tier={pb2.memory[WEAPON_TIER_ADDR]} health={pb2.memory[PLAYER_HEALTH_ADDR]}")
+pb2.stop()
+wipe_save()
+
+# T32.b — projectile not persisted: force an active projectile alongside
+# a real combat state, save, reload, confirm PROJ_ACTIVE is 0 after load
+# (mirrors IP-1101's own transient-state non-persistence precedent).
+pb = fresh_boot(200)
+enter_infinite_mode(pb, 555)
+pb.memory[COMBAT_MODE_ADDR] = 1
+pb.memory[PROJ_ACTIVE_ADDR] = 1
+pb.memory[PROJ_X_ADDR] = 100; pb.memory[PROJ_Y_ADDR] = 80
+pb.button('start'); [pb.tick() for _ in range(40)]
+pb.button('a'); [pb.tick() for _ in range(40)]
+pb.stop()
+
+pb2 = PyBoy(ROM_PATH, window='null', sound_emulated=False)
+pb2.set_emulation_speed(0)
+for _ in range(180): pb2.tick()
+pb2.button('a'); [pb2.tick() for _ in range(60)]
+check("T32.b Projectile not persisted: PROJ_ACTIVE is 0 after load",
+      pb2.memory[PROJ_ACTIVE_ADDR] == 0, f"proj_active={pb2.memory[PROJ_ACTIVE_ADDR]}")
+pb2.stop()
+wipe_save()
+
+# T32.c — pre-combat-mode save compatibility: a synthetic SAVE_VERSION_VAL
+# == 0x05 fixture (the immediately-prior, post-Infinite-Mode-but-pre-
+# combat value), with garbage (0xFF) at every new combat SRAM address,
+# mirrors T11.d's/T27.d's own established synthetic-fixture pattern.
+# Version 0x05 != the current 0x06, so this is treated as absent for
+# "continue" purposes (ADR-0010, same as T27.d's 0x04 case) -- confirms
+# the garbage combat bytes are never read at all, and a fresh new-game
+# session's own COMBAT_MODE holds its correct boot-cleared default (0),
+# not any garbage byte from the stale fixture.
+fixture32c = bytearray(8192)
+fixture32c[0:4] = bytes([0x42, 0x55, 0x4E, 0x59])
+fixture32c[SRAM_CUR_ZONE - 0xA000] = 0
+fixture32c[SRAM_PLAYER_X - 0xA000] = 76
+fixture32c[SRAM_PLAYER_Y - 0xA000] = 80
+fixture32c[SRAM_GAME_MODE - 0xA000] = 1
+fixture32c[SAVE_VERSION_ADDR - 0xA000] = 0x05
+for _i in range(81): fixture32c[SRAM_SCOREITEM - 0xA000 + _i] = 0xFF
+for _addr in (SRAM_COMBAT_MODE_ADDR, SRAM_MOB_COUNT_ADDR, SRAM_WEAPON_TIER_ADDR,
+              SRAM_PLAYER_HEALTH_ADDR):
+    fixture32c[_addr - 0xA000] = 0xFF
+for _i in range(30):
+    fixture32c[SRAM_MOB_DATA_ADDR - 0xA000 + _i] = 0xFF
+with open(RAM_PATH, 'wb') as _f:
+    _f.write(bytes(fixture32c))
+pb = PyBoy(ROM_PATH, window='null', sound_emulated=False)
+pb.set_emulation_speed(0)
+for _ in range(180): pb.tick()
+check("T32.c1 Boot with a version=0x05 (pre-combat) save -> MAIN MENU",
+      pb.memory[GAMESTATE] == 6, f"GS={pb.memory[GAMESTATE]}")
+check("T32.c2 Version-0x05 save -> CONTINUE absent (ADR-0010, mirrors T27.d)",
+      not continue_offered(pb), "")
+advance_to_playing(pb)
+check("T32.c3 New game reaches PLAYING cleanly; COMBAT_MODE holds its correct boot-cleared default (0), never reads the fixture's own garbage bytes",
+      pb.memory[GAMESTATE] == 2 and pb.memory[COMBAT_MODE_ADDR] == 0,
+      f"GS={pb.memory[GAMESTATE]} combat_mode={pb.memory[COMBAT_MODE_ADDR]}")
+pb.stop()
+wipe_save()
+
+# T32.d — COMBAT_MODE off at save time: force COMBAT_MODE=0 (default,
+# never entered combat), save, confirm the combat-state DATA block
+# (MOB_COUNT/MOB_DATA/WEAPON_TIER/PLAYER_HEALTH) is skipped -- left at
+# its zero-initialized default, never written -- while SRAM_COMBAT_MODE
+# itself is still written as 0 (the flag, mirroring SRAM_GAME_MODE's own
+# always-written precedent). Reads the raw .ram file directly: a reload
+# alone can't distinguish "restored as the correct default" from "never
+# written, still zero-initialized" since both read back as the same
+# boot-time defaults -- WEAPON_TIER's real default (1) and PLAYER_HEALTH's
+# real default (3) are both nonzero, so any wrongly-written SRAM byte
+# would show up directly in the raw file.
+pb = fresh_boot(200)
+enter_infinite_mode(pb, 555)   # COMBAT_MODE stays 0 (confirms default "N")
+pb.button('start'); [pb.tick() for _ in range(40)]
+pb.button('a'); [pb.tick() for _ in range(40)]
+pb.stop()
+with open(RAM_PATH, 'rb') as _f:
+    _t32d_sram = _f.read()
+_t32d_combat_mode = _t32d_sram[SRAM_COMBAT_MODE_ADDR - 0xA000]
+_t32d_tier = _t32d_sram[SRAM_WEAPON_TIER_ADDR - 0xA000]
+_t32d_health = _t32d_sram[SRAM_PLAYER_HEALTH_ADDR - 0xA000]
+check("T32.d COMBAT_MODE off at save time: SRAM_COMBAT_MODE written as 0 (the flag), MOB/tier/health data left unwritten (still zero-initialized)",
+      _t32d_combat_mode == 0 and _t32d_tier == 0 and _t32d_health == 0,
+      f"sram_combat_mode={_t32d_combat_mode} sram_tier={_t32d_tier} sram_health={_t32d_health}")
+wipe_save()
+
 print("\n=== T33: Combat Sub-Mode — Mode Gating & UI (IP-1120) ===")
 
 CMC_CURSOR_ADDR = 0xC6DD

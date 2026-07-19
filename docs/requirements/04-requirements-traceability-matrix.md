@@ -130,8 +130,8 @@
 | FR-11400 | Player health and non-lethal setback (Implemented — 2026-07-18, region-entry-point ordering fixed 2026-07-19, `BL-0154`) | R218 | ADS-002 §Domain Model | — | `asm_game.py` | FS-112 | IP-1123 | T31.a-c, T31.f-g |
 | FR-11410 | Post-contact player protection: invincibility, knockback, cooldown (delta 2026-07-19, `BL-0158` — Should, direct user decision, planned, not yet implemented) | — | — | — | `asm_game.py` | FS-112 | IP-1127 | T36 (planned) |
 | FR-11500 | Treasure-spent healing economy (Implemented — 2026-07-18) | — | ADS-002 §Domain Model | — | `asm_game.py` | FS-112 | IP-1123 | T31.d, T31.d2, T31.e, T31.f |
-| FR-11510 | Treasure-spent weapon-tier funding economy (delta 2026-07-19, `BL-0147`/`BL-0155` — Should, Implemented `IP-1129` 2026-07-19, save/load half pending FR-11600) | R219 | ADS-002 §Domain Model | — | `asm_game.py` | FS-112 | IP-1129 | T38.a–e |
-| FR-11600 | Combat state save persistence | — | ADS-002 (Open Question 7) | — | `asm_game.py` (prospective) | UNASSIGNED | UNASSIGNED | UNASSIGNED |
+| FR-11510 | Treasure-spent weapon-tier funding economy (delta 2026-07-19, `BL-0147`/`BL-0155` — Should, Implemented `IP-1129` 2026-07-19, save/load half now closed by FR-11600/IP-1124) | R219 | ADS-002 §Domain Model | — | `asm_game.py` | FS-112 | IP-1129 | T38.a–e |
+| FR-11600 | Combat state save persistence (Must, Implemented `IP-1124` 2026-07-19) | — | ADS-002 (Open Question 7) | — | `asm_game.py` | FS-112 | IP-1124 | T32.a–d |
 
 ## Non-Functional Requirements
 

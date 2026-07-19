@@ -374,9 +374,9 @@ PROJ_STEP_Y     = 0xC6E1  # 1 byte -- the projectile's own transient Y-axis step
                             # validity, like every other projectile field.
 
 SAVE_VERSION_ADDR = 0xA012   # save-format version guard (FR-5220 / Design Decision 2)
-SAVE_VERSION_VAL  = 0x05     # bumped 0x04->0x05 (IP-1104, fifth bump since ship — the
+SAVE_VERSION_VAL  = 0x06     # bumped 0x05->0x06 (IP-1124, sixth bump since ship — the
                               # value sequence is strictly monotonic, never reused). A single
-                              # version guard covers both save shapes; GAME_MODE (restored
+                              # version guard covers all save shapes; GAME_MODE (restored
                               # first on load) selects which fields are meaningful.
 SRAM_SEED          = 0xA01C  # 2 bytes, A01C-A01D — SEED mirror (IP-1050)
 SRAM_WORLD_SCALE   = 0xA01E  # 1 byte — WORLD_SCALE mirror (IP-1050)
@@ -406,6 +406,23 @@ SRAM_LEDGER        = 0xA0D0  # 640 bytes, A0D0-A34F -- mirrors LEDGER, identical
                           # per-entry format. SRAM_LEDGER_COUNT/SRAM_LEDGER_CURSOR/
                           # SRAM_LEDGER form one contiguous 642-byte block (A0CE-A34F),
                           # the exact SRAM mirror of LEDGER_COUNT/LEDGER_CURSOR/LEDGER above.
+
+# IP-1124 (FR-11600): Infinite Mode Combat save shape, nested inside the
+# existing GAME_MODE-gated region (combat is a sub-mode of Infinite Mode).
+# First unclaimed bytes past SRAM_LEDGER's own end (0xA34F).
+SRAM_COMBAT_MODE   = 0xA350  # 1 byte -- mirrors COMBAT_MODE, always written/restored
+                          # (like SRAM_GAME_MODE above), regardless of its own value --
+                          # the flag itself must never go stale, since save_to_sram/
+                          # try_load_save both use it to decide whether the four fields
+                          # below are meaningful (see their own gates).
+SRAM_MOB_COUNT     = 0xA351  # 1 byte -- mirrors MOB_COUNT
+SRAM_MOB_DATA      = 0xA352  # 30 bytes, A352-A36F -- mirrors MOB_DATA, identical
+                          # 5-byte-per-slot format.
+SRAM_WEAPON_TIER   = 0xA370  # 1 byte -- mirrors WEAPON_TIER
+SRAM_PLAYER_HEALTH = 0xA371  # 1 byte -- mirrors PLAYER_HEALTH. PROJ_* fields are
+                          # deliberately NOT persisted here (mirrors INF_MZ_RESULT's
+                          # own transient, generation-time-only precedent) -- a loaded
+                          # save always resumes with no projectile in flight.
 
 J_A=0; J_B=1; J_SELECT=2; J_START=3; J_RIGHT=4; J_LEFT=5; J_UP=6; J_DOWN=7
 
@@ -4035,6 +4052,37 @@ def build_game_asm(rom: ROM) -> dict:
     # per the amendment's own mirror-layout design).
     rom.LD_DE_nn(LEDGER_COUNT); rom.LD_HL_nn(SRAM_LEDGER_COUNT); rom.LD_BC_nn(642)
     rom.CALL('memcpy')
+    # IP-1124 (FR-11600): Infinite Mode Combat state, nested inside this
+    # same GAME_MODE==1 gate (combat is a sub-mode of Infinite Mode).
+    # SRAM_COMBAT_MODE is always written here, unconditionally, mirroring
+    # SRAM_GAME_MODE's own "always written" flag precedent immediately
+    # above -- try_load_save's own matching restore depends on this flag
+    # never going stale. MOB_COUNT/MOB_DATA/WEAPON_TIER/PLAYER_HEALTH are
+    # additionally gated on COMBAT_MODE itself: a session that never
+    # entered combat mode leaves these four fields at their own correct
+    # boot-time defaults (PLAYER_HEALTH=3, WEAPON_TIER=1, MOB_COUNT=0) --
+    # writing them here regardless would be harmless to WRAM (source, not
+    # destination) but would let a stale/never-written SRAM range get
+    # trusted as real data by a later load; the matching restore-side gate
+    # (try_load_save, below) is what actually depends on this. MOB_COUNT
+    # copied directly (1 byte), MOB_DATA via a 30-byte memcpy, then
+    # WEAPON_TIER/PLAYER_HEALTH via a second, separate 2-byte memcpy --
+    # NOT one contiguous transfer spanning the whole COMBAT_MODE..
+    # PLAYER_HEALTH range (the package's own §6 framing, corrected here):
+    # PROJ_ACTIVE/PROJ_X/PROJ_Y/PROJ_STEP_X (IP-1122/IP-1128) sit between
+    # MOB_DATA's own end and WEAPON_TIER, deliberately excluded from
+    # persistence (see SRAM_PLAYER_HEALTH's own comment above) -- a single
+    # memcpy spanning that full range would either under-read (stopping
+    # short of WEAPON_TIER/PLAYER_HEALTH, since the real span is 38 bytes
+    # not 34) or wrongly persist the transient projectile fields.
+    rom.LD_A_nn(COMBAT_MODE); rom.LD_nn_A(SRAM_COMBAT_MODE)
+    rom.OR_A(); rom.JR_Z('sts_combat_skip')
+    rom.LD_A_nn(MOB_COUNT); rom.LD_nn_A(SRAM_MOB_COUNT)
+    rom.LD_DE_nn(MOB_DATA); rom.LD_HL_nn(SRAM_MOB_DATA); rom.LD_BC_nn(30)
+    rom.CALL('memcpy')
+    rom.LD_DE_nn(WEAPON_TIER); rom.LD_HL_nn(SRAM_WEAPON_TIER); rom.LD_BC_nn(2)
+    rom.CALL('memcpy')
+    rom.label('sts_combat_skip')
     rom.label('sts_inf_skip')
     # TOP_SCORE_TABLE: always written, both modes -- the persistent high
     # score, distinct from per-run state (ADR-0017 point 4).
@@ -4140,7 +4188,39 @@ def build_game_asm(rom: ROM) -> dict:
     # BL-0119 amendment) also re-populates INF_TREASURE_HERE correctly
     # from the just-restored WRAM ledger via inf_ensure_window's own
     # cross-reference -- no separate restore-path lookup needed here.
+    # IP-1124: deliberately called BEFORE COMBAT_MODE is restored below --
+    # inf_ensure_window's own center-cell recompute unconditionally calls
+    # inf_materialize_mobs (COMBAT_MODE-gated internally), which would
+    # otherwise immediately overwrite the real MOB_DATA/MOB_COUNT this
+    # package is about to restore from SRAM with a freshly re-materialized
+    # (and generally different) mob set. Running this call while
+    # COMBAT_MODE is still its pre-restore value (0) keeps
+    # inf_materialize_mobs correctly inert, exactly as it already is for
+    # every non-combat Infinite Mode load.
     rom.CALL('inf_ensure_window')
+    # IP-1124 (FR-11600): restore Infinite Mode Combat state, matching
+    # save_to_sram's own gate exactly (see its comment above for the full
+    # rationale). SRAM_COMBAT_MODE is restored unconditionally -- it was
+    # always written, so it never holds a stale value. MOB_COUNT/MOB_DATA/
+    # WEAPON_TIER/PLAYER_HEALTH are restored only when the just-restored
+    # COMBAT_MODE is nonzero: a non-combat Infinite Mode save never wrote
+    # real data into this SRAM range, so restoring it unconditionally here
+    # would overwrite these four fields' own correct boot-time defaults
+    # (PLAYER_HEALTH=3, WEAPON_TIER=1, MOB_COUNT=0) with stale/never-
+    # written SRAM bytes -- a real defect a later same-session combat-mode
+    # entry would then start from wrong values, not merely a cosmetic gap.
+    # Restored AFTER inf_ensure_window (see its own comment above) but
+    # BEFORE inf_record_combat_entry below, which also reads COMBAT_MODE
+    # (a no-op otherwise, silently failing to record the restored position
+    # as the new combat-entry point).
+    rom.LD_A_nn(SRAM_COMBAT_MODE); rom.LD_nn_A(COMBAT_MODE)
+    rom.OR_A(); rom.JR_Z('tls_combat_skip')
+    rom.LD_A_nn(SRAM_MOB_COUNT); rom.LD_nn_A(MOB_COUNT)
+    rom.LD_DE_nn(SRAM_MOB_DATA); rom.LD_HL_nn(MOB_DATA); rom.LD_BC_nn(30)
+    rom.CALL('memcpy')
+    rom.LD_DE_nn(SRAM_WEAPON_TIER); rom.LD_HL_nn(WEAPON_TIER); rom.LD_BC_nn(2)
+    rom.CALL('memcpy')
+    rom.label('tls_combat_skip')
     rom.CALL('inf_record_combat_entry')  # IP-1123: PLAYER_X/Y already restored above
     rom.label('tls_inf_skip')
     # TOP_SCORE_TABLE: always restored, both modes (persistent high score,

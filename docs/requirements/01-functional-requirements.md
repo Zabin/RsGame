@@ -2761,11 +2761,11 @@ none of FR-10000's own leaves are amended by this group. `FR-9000`'s finite mode
   `inf_heal_spend`'s own exact structure) decrements `RUNNING_TREASURE_COUNT` by exactly 1 treasure
   per tier (1-for-1, matching `FR-11500`'s own precedent) and increases `WEAPON_TIER` by 1, capped
   at 3 — spending even at the cap, not a no-op, per this leaf's own Postconditions. No new WRAM.
-  Verified by `T38.a`–`e` (`test_rom.py`). The save/load half of this leaf's own Acceptance
-  Criteria is **not yet verifiable**: `FR-11600` (combat state save persistence) is still
-  unimplemented, and direct code read confirms `WEAPON_TIER` has no SRAM mirror yet — `T38.e`
-  verifies only the in-session (mob-contact-setback) persistence half, named explicitly rather than
-  silently assumed; the save/load half remains open pending `FR-11600`.
+  Verified by `T38.a`–`e` (`test_rom.py`). **`FR-11600`'s own delta (`IP-1124`, 2026-07-19) closes
+  the save/load half of this leaf's own Acceptance Criteria**: `WEAPON_TIER` now has a real SRAM
+  mirror (`SRAM_WEAPON_TIER`, `0xA370`), verified by `T32.a`. `T38.e` itself still verifies only
+  the in-session (mob-contact-setback) persistence half, unchanged — the save/load half is now
+  covered by `IP-1124`'s own `T32.a`, not a gap in this leaf's own test suite.
 - **Notes:** The exact tier-spend input/rate (how much treasure per tier increase — `FR-11500`'s
   own precedent is 1-for-1) was a `06-feature-specification` decision, following this project's own
   established "adjustable default" convention — resolved above (1-for-1). **Input-binding gap,
@@ -2789,7 +2789,7 @@ none of FR-10000's own leaves are amended by this group. `FR-9000`'s finite mode
   `SAVE_VERSION_VAL` bump, the same versioning discipline `IP-1010`/`IP-1050`/`IP-1104` already
   established.
 - **Rationale:** `ADS-002` Open Question 7; user decision 2026-07-17 (persists, not session-only).
-- **Priority:** Must (target — not yet implemented)
+- **Priority:** Must (delta 2026-07-19 — Implemented `IP-1124`)
 - **Inputs:** Combat sub-mode state at save time.
 - **Outputs:** Restored combat sub-mode state after load.
 - **Preconditions:** `COMBAT_MODE` active; a save is performed.
@@ -2803,8 +2803,16 @@ none of FR-10000's own leaves are amended by this group. `FR-9000`'s finite mode
 - **Verification Method:** Test (mirroring `IP-1104`'s own save/load round-trip methodology).
 - **Source Documents:** `ADS-002` Open Question 7; direct user decision, 2026-07-17.
 - **Related ADRs:** None.
-- **Notes:** The exact SRAM layout for this new state is `GDS-07`/`07-implementation-planning`'s
-  own scope, not fixed here.
+- **Notes:** `SAVE_VERSION_VAL` bumped `0x05`→`0x06` (sixth bump since ship, extending
+  `IP-1010`→`IP-1050`→`IP-9110`→`IP-1104`→`IP-1124`'s own monotonic sequence). New SRAM
+  `0xA350`–`0xA371` (`SRAM_COMBAT_MODE`/`SRAM_MOB_COUNT`/`SRAM_MOB_DATA`/`SRAM_WEAPON_TIER`/
+  `SRAM_PLAYER_HEALTH`); `PROJ_*` fields deliberately not persisted (mirrors `INF_MZ_RESULT`'s own
+  transient, generation-time-only precedent). `SRAM_COMBAT_MODE` is always written/restored as a
+  flag (mirrors `SRAM_GAME_MODE`'s own established pattern); the four data fields are additionally
+  gated on `COMBAT_MODE` itself, both to save (§6's own literal one-memcpy framing was corrected
+  during implementation — see `IP-1124`'s own Implementation Summary) and to load (restoring them
+  unconditionally would overwrite their own correct boot-time defaults with stale/never-written
+  SRAM bytes whenever a non-combat Infinite Mode save is loaded).
 
 ## Candidate Requirements
 

@@ -1,4 +1,4 @@
-BunnyQuest ROM Tests  PASS=387/387  FAIL=0
+BunnyQuest ROM Tests  PASS=393/393  FAIL=0
 ==================================================
 [PASS] T1.1 ROM size = 32768  (32768)
 [PASS] T1.2 Entry = NOP; JP
@@ -346,6 +346,12 @@ BunnyQuest ROM Tests  PASS=387/387  FAIL=0
 [PASS] T31.e Heal-spend at zero treasure is a no-op (no change to RUNNING_TREASURE_COUNT or PLAYER_HEALTH)  (ok=True rtc=0 health=1)
 [PASS] T31.f COMBAT_MODE off: no row-1 HUD write, mob-contact/heal-spend logic never executes  (health=3 rtc=5 row1=[170, 170, 170])
 [PASS] T31.g BL-0154 regression: initial-entry COMBAT_ENTRY_X/Y match the player's real spawn position  (gs=2 combat_mode=1 player=(76,80) entry=(76,80))
+[PASS] T32.a Save/load round trip: mob state, weapon tier, and player health all restore exactly  (GS=2 combat_mode=1 mob_count=2 mob0=(20, 20, 1, 2, 1) mob1=(140, 120, 2, 1, 1) tier=2 health=1)
+[PASS] T32.b Projectile not persisted: PROJ_ACTIVE is 0 after load  (proj_active=0)
+[PASS] T32.c1 Boot with a version=0x05 (pre-combat) save -> MAIN MENU  (GS=6)
+[PASS] T32.c2 Version-0x05 save -> CONTINUE absent (ADR-0010, mirrors T27.d)
+[PASS] T32.c3 New game reaches PLAYING cleanly; COMBAT_MODE holds its correct boot-cleared default (0), never reads the fixture's own garbage bytes  (GS=2 combat_mode=0)
+[PASS] T32.d COMBAT_MODE off at save time: SRAM_COMBAT_MODE written as 0 (the flag), MOB/tier/health data left unwritten (still zero-initialized)  (sram_combat_mode=0 sram_tier=0 sram_health=0)
 [PASS] T33.a0 Reaches COMBAT MODE CONFIRM (GS=12)  (GS=12)
 [PASS] T33.a0b CMC_CURSOR defaults to 0 (N)  (cursor=0)
 [PASS] T33.a Off by default: A at default N cursor leaves COMBAT_MODE == 0  (combat_mode=0)

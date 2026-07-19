@@ -112,7 +112,7 @@ Confirmed directly against `try_load_save`/the save routine:
 | `A007` | `CARROTS_COUNT` |
 | `A008` | `SCORE` |
 | `A009`–`A011` | `CARROT_FLAGS` (9 bytes) |
-| `A012` | Save-format version guard ([FR-5220](../requirements/01-functional-requirements.md); `SAVE_VERSION_VAL = 0x05`) — added 2026-07-07 by [IP-1010](../implementation/packages/IP-1010-per-zone-scoreitem-persistence.md) at `0x01`; bumped to `0x02` by [IP-1050](../implementation/packages/IP-1050-generated-world-save-persistence.md) (seed/scale/`REGION_GRAPH`-regen/`KEYITEM_FLAGS` fields); bumped to `0x03` by [IP-9070](../implementation/packages/IP-9070-cur-zone-indexed-structures-generalization.md), 2026-07-11 (`SRAM_SCOREITEM` relocation/widening below); bumped to `0x04` by [IP-9110](../implementation/packages/IP-9110-gw-prng-step-mixing-step-repair.md), 2026-07-11 (`gw_prng_step` mixing-step repair — excludes a pre-fix save from "continue"); bumped to `0x05` by [IP-1104](../implementation/packages/IP-1104-infinite-mode-ledger-save-persistence.md), 2026-07-16 (Infinite Mode save shape, §7h below). A save whose version byte doesn't match the current value is treated as pre-upgrade: every version-guarded field loads as its fresh-new-game default rather than trusting stale/relocated SRAM bytes. |
+| `A012` | Save-format version guard ([FR-5220](../requirements/01-functional-requirements.md); `SAVE_VERSION_VAL = 0x06`) — added 2026-07-07 by [IP-1010](../implementation/packages/IP-1010-per-zone-scoreitem-persistence.md) at `0x01`; bumped to `0x02` by [IP-1050](../implementation/packages/IP-1050-generated-world-save-persistence.md) (seed/scale/`REGION_GRAPH`-regen/`KEYITEM_FLAGS` fields); bumped to `0x03` by [IP-9070](../implementation/packages/IP-9070-cur-zone-indexed-structures-generalization.md), 2026-07-11 (`SRAM_SCOREITEM` relocation/widening below); bumped to `0x04` by [IP-9110](../implementation/packages/IP-9110-gw-prng-step-mixing-step-repair.md), 2026-07-11 (`gw_prng_step` mixing-step repair — excludes a pre-fix save from "continue"); bumped to `0x05` by [IP-1104](../implementation/packages/IP-1104-infinite-mode-ledger-save-persistence.md), 2026-07-16 (Infinite Mode save shape, §7h below); bumped to `0x06` by [IP-1124](../implementation/packages/IP-1124-infinite-mode-combat-save-persistence.md), 2026-07-19 (Combat Sub-Mode save shape, §7o below). A save whose version byte doesn't match the current value is treated as pre-upgrade: every version-guarded field loads as its fresh-new-game default rather than trusting stale/relocated SRAM bytes. |
 | `A070`–`A0C0` | `SRAM_SCOREITEM` — `SCOREITEM_FLAGS` mirror, **up to 81 bytes**. Originally 9 bytes at `A013`–`A01B` ([IP-1010](../implementation/packages/IP-1010-per-zone-scoreitem-persistence.md)); relocated by [IP-9070](../implementation/packages/IP-9070-cur-zone-indexed-structures-generalization.md) to immediately after `SRAM_KEYITEM_FLAGS`'s own end, leaving `SRAM_SEED`/`SRAM_WORLD_SCALE`/`SRAM_KEYITEM_FLAGS`'s addresses untouched. |
 
 **This updates `BL-0018`'s prior field-set finding** ([GDS-04](04-domain-model.md)): per-zone
@@ -648,6 +648,55 @@ the unmodified `inf_projectile_hittest`. 3 bytes total.
 also prospectively claims `0xC6DF`–`0xC6E0` for its own fields — a normal consequence of parallel
 implementation planning, to be resolved at build time by whichever package ships first (not a
 defect in either package's own plan).
+
+### 7o. Combat Sub-Mode: SRAM save shape — `IP-1124` (confirmed 2026-07-19, `FR-11600`)
+
+First unclaimed bytes past `SRAM_LEDGER`'s own end (`0xA34F`, §7h). Nested inside the existing
+`GAME_MODE == 1`-gated SRAM region (§7h) — combat is a sub-mode of Infinite Mode, so this state is
+meaningless outside it.
+
+| Address | Name | Size | Purpose |
+|---|---|---|---|
+| `A350` | `SRAM_COMBAT_MODE` | 1 byte | mirrors `COMBAT_MODE`; always written/restored, both combat states — the flag itself must never go stale, since it gates whether the four fields below are meaningful |
+| `A351` | `SRAM_MOB_COUNT` | 1 byte | mirrors `MOB_COUNT`; `COMBAT_MODE != 0`-gated |
+| `A352`–`A36F` | `SRAM_MOB_DATA` | 30 bytes | mirrors `MOB_DATA`, identical 5-byte-per-slot format; `COMBAT_MODE != 0`-gated |
+| `A370` | `SRAM_WEAPON_TIER` | 1 byte | mirrors `WEAPON_TIER`; `COMBAT_MODE != 0`-gated |
+| `A371` | `SRAM_PLAYER_HEALTH` | 1 byte | mirrors `PLAYER_HEALTH`; `COMBAT_MODE != 0`-gated |
+
+`SAVE_VERSION_VAL` bumped `0x05`→`0x06` (the sixth bump since ship, extending `IP-1104`'s own
+strictly-monotonic sequence, §7h). `PROJ_ACTIVE`/`PROJ_X`/`PROJ_Y`/`PROJ_STEP_X`/`PROJ_STEP_Y` are
+deliberately **not** persisted (mirrors `INF_MZ_RESULT`'s own transient, generation-time-only
+precedent, §7d) — a loaded save always resumes with no projectile in flight.
+
+**`SRAM_COMBAT_MODE` is an always-written flag (mirrors `SRAM_GAME_MODE`'s own §7h precedent);
+the four data fields are additionally gated on `COMBAT_MODE` itself, both to save and to load.**
+This asymmetry versus a single uniform gate is deliberate, not an oversight: `save_to_sram` writes
+`SRAM_COMBAT_MODE` unconditionally so the byte never goes stale, then gates the four data fields
+on `COMBAT_MODE != 0` (a non-combat Infinite Mode save has nothing meaningful to write there —
+these four fields simply hold their own correct boot-time defaults in WRAM). `try_load_save`
+mirrors this exactly: `SRAM_COMBAT_MODE` restores unconditionally, and the four data fields
+restore only when the just-restored `COMBAT_MODE` is nonzero — restoring them unconditionally
+would overwrite `PLAYER_HEALTH`/`WEAPON_TIER`/`MOB_COUNT`'s own correct boot-time defaults with
+stale, never-written SRAM bytes whenever a non-combat Infinite Mode save is loaded, corrupting a
+later same-session combat-mode entry.
+
+**Two implementation-time corrections, found and fixed, not silently patched over:**
+
+1. **The five persisted WRAM fields are not one contiguous span.** `COMBAT_MODE`/`MOB_COUNT`/
+   `MOB_DATA` (`0xC6B5`–`0xC6D4`) are contiguous, but `PROJ_ACTIVE`/`PROJ_X`/`PROJ_Y`/`PROJ_STEP_X`
+   (`0xC6D5`–`0xC6D8`, §7j/§7n) sit between `MOB_DATA`'s own end and `WEAPON_TIER`/`PLAYER_HEALTH`
+   (`0xC6D9`–`0xC6DA`) — deliberately excluded from persistence. `save_to_sram`/`try_load_save`
+   each use two separate transfers (a 30-byte `MOB_DATA` block, then a 2-byte `WEAPON_TIER`+
+   `PLAYER_HEALTH` block) rather than one spanning the full range.
+2. **Restore ordering versus `inf_ensure_window`.** `try_load_save`'s own post-load
+   `inf_ensure_window` call (§7h, re-derives the 3×3 working set) unconditionally invokes
+   `inf_materialize_mobs` as part of its center-cell recompute — a no-op only while `COMBAT_MODE`
+   reads 0. The combat-state restore above therefore runs **after** `inf_ensure_window` (so
+   `inf_materialize_mobs` stays correctly inert against the still-pre-restore `COMBAT_MODE`) but
+   **before** `inf_record_combat_entry` (so that routine, which also gates on `COMBAT_MODE`,
+   correctly records the just-restored player position as the new combat-entry point). Restoring
+   `COMBAT_MODE` before `inf_ensure_window` would have let a fresh `inf_materialize_mobs` call
+   immediately overwrite the just-restored `MOB_DATA`/`MOB_COUNT`.
 
 ### 8. Tile index map implication (cross-reference only — GDS-08 decides the actual strategy)
 
