@@ -14,35 +14,36 @@
 
 ## Position
 
-- **Updated:** 2026-07-19 (run #248)
-- **Increment:** Same as run #247, plus: **`09-package-verification` on `IP-1123`** (fresh
-  session) — `RETURNED` ([VR-1123](../implementation/verification/VR-1123-infinite-mode-combat-player-health-and-economy.md)).
-  363/363 suite passes, but an independent live drive through the real UI path found the
-  "initial Infinite Mode entry" `inf_record_combat_entry` call site records `COMBAT_ENTRY_X`/`Y`
-  *before* `st_intro` sets the player's real spawn position — a session's first zero-health
-  setback teleports the player to `(0,0)` instead of their real entry point. Isolated single-site
-  ordering defect (the other five recording sites are correct); harvested as **`BL-0154`**
-  (Medium, `SCHEDULED` to ride `IP-1123`'s own immediate `08` re-run). `IP-1123` → `IN PROGRESS`.
+- **Updated:** 2026-07-19 (run #249)
+- **Increment:** Same as run #248, plus: **`08-code-implementation` on `IP-1123`** (remediation
+  re-run, same session) — `COMPLETE`. Moved the "initial Infinite Mode entry"
+  `inf_record_combat_entry` call from `st_infinite_seed_entry`'s own A-confirm handler into
+  `st_intro`'s own A-press handler, immediately after the real `PLAYER_X`/`PLAYER_Y` write —
+  single-site fix, exactly as `BL-0154` recommended. New regression check `T31.g` drives the real
+  `MODE SELECT`→`COMBAT MODE CONFIRM`(Y)→`INFINITE SEED ENTRY`→`INTRO`→`PLAYING` path (not a
+  direct-invoke force) and confirms `COMBAT_ENTRY_X`/`Y` match the real spawn position. 364/364
+  suite passes, ROM unchanged 32158/32768. `GDS-07` §7k, RTM `FR-11400`, Master Build Plan,
+  `packages/INDEX.md` all updated.
 - **Pipeline state:** Bootstrap stages 01–11 ✅; Release 2 GO. 45 packages `VERIFIED`, `IP-1123`
-  `IN PROGRESS` (returned, fix identified and scoped, not yet applied). `IP-1124` remains
-  `NOT STARTED` (blocked on `IP-1123` reaching `VERIFIED`). `IP-1120`/`IP-1121`/`IP-1122`/`IP-1125`
-  `VERIFIED`. Standing, non-blocking doc/design work unchanged: the doc-accuracy sweep family
-  (`BL-0136`/`BL-0137`/`BL-0140`–`BL-0143`/`BL-0151`); `BL-0118` (`NFR-1400` cycle-budget gap);
-  `BL-0123` (`try_load_save` unneeded finite-mode work); `BL-0112` (Infinite Mode run-end
-  trigger); `BL-0097` (Medium, routed already); `BL-0130` (catalog text gap); `BL-0147`/`BL-0148`
-  (ride a future `04`/`06` touch); `BL-0149`/`BL-0150`/`BL-0152` (all Low, `SCHEDULED`/
-  `DEFERRED`, non-blocking).
-- **Backlog:** 154 entries. **`BL-0154` (new, Medium, `SCHEDULED`)** — `IP-1123`'s region-entry-
-  point ordering defect, rides its own immediate `08-code-implementation` re-run. `BL-0133` still
-  `IN PIPELINE` (G3 granted — `IP-1120`/`IP-1121`/`IP-1122`/`IP-1125` `VERIFIED`, `IP-1123`
-  `IN PROGRESS` (returned), `IP-1124` `NOT STARTED`).
-- **Next step:** `08-code-implementation` on `IP-1123`, re-run against `VR-1123`'s finding
-  (`BL-0154`) — move the "initial entry" `inf_record_combat_entry` call from
-  `st_infinite_seed_entry`'s A-confirm handler into `st_intro`'s own A-press handler, after the
-  real `PLAYER_X`/`PLAYER_Y` write. Already within `IP-1123`'s own standing G3 authorization
-  ("Yes, build all six," 2026-07-17) — a remediation of already-authorized scope, not new work,
-  so no fresh gate ask is needed (same precedent as `IP-1120`'s own `BL-0153` re-plan).
-- **Open gates:** **none.** G3 already covers `IP-1120`–`1125` in full (run #234).
+  `COMPLETE` (fix applied, own `09-package-verification` Pass 2 owed — **needs a fresh session**,
+  implemented this session). `IP-1124` remains `NOT STARTED` (blocked on `IP-1123` reaching
+  `VERIFIED`). `IP-1120`/`IP-1121`/`IP-1122`/`IP-1125` `VERIFIED`. Standing, non-blocking
+  doc/design work unchanged: the doc-accuracy sweep family (`BL-0136`/`BL-0137`/`BL-0140`–
+  `BL-0143`/`BL-0151`); `BL-0118` (`NFR-1400` cycle-budget gap); `BL-0123` (`try_load_save`
+  unneeded finite-mode work); `BL-0112` (Infinite Mode run-end trigger); `BL-0097` (Medium,
+  routed already); `BL-0130` (catalog text gap); `BL-0147`/`BL-0148` (ride a future `04`/`06`
+  touch); `BL-0149`/`BL-0150`/`BL-0152` (all Low, `SCHEDULED`/`DEFERRED`, non-blocking).
+- **Backlog:** 154 entries. **`BL-0154`** — fix applied this run, `IN PIPELINE` (closes once
+  `09-package-verification` Pass 2 confirms independently). `BL-0133` still `IN PIPELINE` (G3
+  granted — `IP-1120`/`IP-1121`/`IP-1122`/`IP-1125` `VERIFIED`, `IP-1123` `COMPLETE` (fix
+  applied, verification-owed), `IP-1124` `NOT STARTED`).
+- **Next step:** **This session's queue is now genuinely empty.** Fresh session:
+  `09-package-verification` on `IP-1123` (Pass 2) — the sole remaining step before `IP-1124`
+  (the tranche's last package) becomes eligible. No other backlog entry is ripe to act on
+  standalone.
+- **Open gates:** **none.** G3 already covers `IP-1120`–`1125` in full (run #234). The
+  fresh-session requirement on `IP-1123`'s own Pass 2 is a session-boundary constraint, not a
+  human decision gate, but it is the reason this run stops here.
 
 ## Run log
 
@@ -300,3 +301,4 @@
 | 246 | 2026-07-19 | advance | `09-package-verification` | `IP-1120` (Infinite Mode Combat: Mode Gating & UI) | ✅ **`VERIFIED`** ([VR-1120](../implementation/verification/VR-1120-infinite-mode-combat-mode-gating.md); fresh session, independent of `IP-1120`'s own 2026-07-18 implementation — `pyboy`/`Pillow` installed clean for this run). 363/363 suite reconfirmed, ROM rebuilds byte-identical (32158/32768). Every DoD/Verification-Checklist item audited against the tree directly: `ms_infinite`'s retarget confirmed the sole touch to already-shipped `IP-1100` code (`ms_check_a`'s finite branch and `st_infinite_seed_entry`'s own body both byte-for-byte unchanged by direct diff of the implementing commit `ad473eb`); `tilemaps.py` confirmed untouched (0 diff lines, no `cmc`/`combat_mode_confirm` references, `ALL_SCREENS` length unchanged); `patches['cmc_t']`/`['cmc_a']` confirmed resolving to the identical `screen_addrs['mode_select']` pair `'ms_t'`/`'ms_a'` already use; all five documentation deltas (FR-11100, RTM, `FS-112` Open Question 1, `GDS-07` §7l, Master-Build-Plan/`packages/INDEX.md`) confirmed applied. Independently re-driven live via a standalone PyBoy script (own screenshots, not reusing the implementing commit's or the suite's own harness): `COMBAT MODE CONFIRM` renders "COMBAT MODE?"/"NO"/"YES" with the cursor toggling correctly between them, and `MODE SELECT` confirmed uncorrupted (still "BUNNY QUEST"/"FINITE"/"INFINITE") after a visit. No findings. Master Build Plan + `packages/INDEX.md` + verification `INDEX.md` updated `COMPLETE`→`VERIFIED`. | `09-package-verification` on `IP-1122` (fresh-session independence still holds this session — `IP-1122` was not touched this session) |
 | 247 | 2026-07-19 | advance | `09-package-verification` | `IP-1122` (Infinite Mode Combat: Weapon Fire & Hit Resolution) | ✅ **`VERIFIED`** ([VR-1122](../implementation/verification/VR-1122-infinite-mode-combat-weapon-fire-and-hit-resolution.md); fresh session, independent of `IP-1122`'s own 2026-07-18 implementation). 363/363 suite reconfirmed, ROM byte-identical. `check_collisions` confirmed unmodified by direct diff of the implementing commit `072af1b` (zero touched lines); `inf_projectile_hittest` confirmed a wholly new, separate routine reusing the same asymmetric point-in-box technique verbatim. `T30.a`/`b`/`c`/`c2`/`d`/`e` (6 checks) all reconfirmed passing. Both named deviations independently confirmed already tracked, not re-filed: `PROJ_DIR`'s 2-value (not 4-value) encoding as `BL-0151`; `WEAPON_TIER`'s funding-mechanism gap as `BL-0147`. **Independently re-driven live via PyBoy through the real production per-frame call chain** (real button press → `handle_play_input`'s fire branch → `inf_projectile_update` → `inf_projectile_hittest` → `inf_mob_defeat`), deliberately distinct from `T30`'s own PC-hijack direct-invoke technique — fire/movement/hit/defeat all reproduced end-to-end via real ticks (mob health 1→0, `MOB_COUNT` 1→0, `PROJ_ACTIVE` cleared on hit). No findings. Master Build Plan + `packages/INDEX.md` + verification `INDEX.md` updated `COMPLETE`→`VERIFIED`; `IP-1124`'s dependency row updated to reflect `IP-1122 (VERIFIED)`. | `09-package-verification` on `IP-1123` (fresh-session independence still holds — the last remaining pre-`IP-1124` verification) |
 | 248 | 2026-07-19 | advance → defect found | `09-package-verification` | `IP-1123` (Infinite Mode Combat: Player Health, Setback & Healing Economy) | ⛔ **`RETURNED`** ([VR-1123](../implementation/verification/VR-1123-infinite-mode-combat-player-health-and-economy.md); fresh session, independent of `IP-1123`'s own 2026-07-18 implementation). 363/363 suite passes and all 7 `T31` checks pass, but every one of them force-writes `COMBAT_ENTRY_X`/`COMBAT_ENTRY_Y` directly rather than exercising the real six recording call sites the package's own §5 Interfaces names — a `BL-0055`-class fixture-coverage gap. **Independent live drive through the real `MODE SELECT`→`COMBAT MODE CONFIRM`→`INFINITE SEED ENTRY`→`INTRO`→`PLAYING` UI path found a genuine defect**: the "initial Infinite Mode entry" `inf_record_combat_entry` call (`asm_game.py` lines 928-929, inside `st_infinite_seed_entry`'s A-confirm) fires *before* `st_intro`'s own later A-press handler sets `PLAYER_X`/`PLAYER_Y` to their real spawn value `(76, 80)` (line 614-615) — so `COMBAT_ENTRY_X`/`Y` record `(0, 0)` for a session's first region. Reproduced end-to-end via real per-frame mob contact (not a direct-invoke hijack): three real frames of contact dropped `PLAYER_HEALTH` to 0, the setback correctly restored health to 3 and left `GAMESTATE` unchanged, but repositioned the player to `(0, 0)` instead of their real entry point `(76, 80)`. Confirmed isolated to this one call site — all four `czt_infinite` direction branches and the post-load-restore path correctly update `PLAYER_X`/`Y` before recording. Harvested as **`BL-0154`** (Medium — real, common repro window; no crash/corruption; single-site, well-scoped fix). Master Build Plan + `packages/INDEX.md` + verification `INDEX.md` updated `COMPLETE`→`IN PROGRESS`, pointing to `VR-1123`. | `08-code-implementation` on `IP-1123`, re-run against `BL-0154` — move the "initial entry" `inf_record_combat_entry` call into `st_intro`'s own A-press handler, after the real `PLAYER_X`/`PLAYER_Y` write; already within `IP-1123`'s own standing G3 authorization, no fresh gate ask needed |
+| 249 | 2026-07-19 | advance → queue empty (same session) | `08-code-implementation` | `IP-1123` (remediation re-run against `BL-0154`) | ✅ **`COMPLETE`.** Moved the "initial Infinite Mode entry" `inf_record_combat_entry` call from `st_infinite_seed_entry`'s own A-confirm handler into `st_intro`'s own A-press handler, immediately after `PLAYER_X`/`PLAYER_Y` are set to `(76, 80)` — the exact single-site fix `BL-0154`/`VR-1123` recommended, no other call site touched. Updated `inf_record_combat_entry`'s own header comment to describe the corrected six-site ordering. New regression check **`T31.g`**: drives the real `MODE SELECT`→`COMBAT MODE CONFIRM` (confirm "Y")→`INFINITE SEED ENTRY`→`INTRO`→`PLAYING` path (not a direct-invoke force — the only way to exercise the actual call-site ordering) and confirms `COMBAT_ENTRY_X`/`Y` exactly match the player's real spawn position `(76, 80)` on first arrival at `PLAYING`. **364/364 suite passes** (363 + `T31.g`), ROM unchanged 32158/32768 (net-zero: one `CALL` removed, one added elsewhere — same alignment slack). `GDS-07` §7k, RTM `FR-11400` (Test cell → `T31.a-c, T31.f-g`), Master Build Plan, `packages/INDEX.md` all updated. `IP-1123` → `COMPLETE`; `BL-0154` → `IN PIPELINE` (fix applied, closes once independently re-verified). **This session's queue of unblocked work is now genuinely empty**: the sole remaining actionable step, `09-package-verification` Pass 2 on `IP-1123`, needs a fresh session (implemented this session) — nothing left this session can advance standalone. | Fresh session: `09-package-verification` on `IP-1123` (Pass 2) — the sole remaining step before `IP-1124` (the tranche's last package) becomes eligible |
