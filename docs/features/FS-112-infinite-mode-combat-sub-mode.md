@@ -77,6 +77,15 @@
 > elaborates their behavior; `07-implementation-planning` is the next stage that would package
 > them, still subject to a fresh G3 authorization since they are new scope beyond the original
 > "build all six" go-ahead.
+>
+> **Planned 2026-07-19** (`07-implementation-planning`, same session) — two new packages,
+> [IP-1126](../implementation/packages/IP-1126-infinite-mode-combat-mob-movement.md) (mob
+> movement, `READY` — sole dependency `IP-1121` already `VERIFIED` — resolves this document's own
+> Open Question 4, holds still once coincident with the player) and
+> [IP-1127](../implementation/packages/IP-1127-infinite-mode-combat-post-contact-protection.md)
+> (post-contact protection, `BLOCKED` on `IP-1123` reaching `VERIFIED`). **Neither authorized** —
+> both are new scope beyond the original "build all six" go-ahead and need a fresh, explicit user
+> go-ahead before `08-code-implementation` can pick either up.
 
 [↑ Features index](INDEX.md) · [Feature Catalog](../feature-planning/03-feature-catalog.md) ·
 [Epic Catalog](../feature-planning/02-epic-catalog.md)

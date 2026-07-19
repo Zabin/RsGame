@@ -1762,3 +1762,96 @@ touched. See the re-planned package's own §5/§6/§13 for the full mechanism.
 **Supersession-sweep note:** this re-plan does not retire or generalize any existing model — it
 narrows `IP-1120`'s own original design to avoid a cost the original design didn't need to pay,
 with no change to any other package's own interface or assumption. No sweep re-run needed.
+
+## Infinite Mode Combat Sub-Mode delta — mob movement + post-contact protection (`FS-112`/`FEAT-11000`/`EP-6000`, `FR-11210`/`FR-11410`, `BL-0156`/`BL-0158`, planned 2026-07-19)
+
+Two new leaves baselined this same session, both closing user-filed `00-intake` gaps found by
+direct play rather than upstream architecture/research drift: `FR-11210` (mobs currently never
+move once materialized) and `FR-11410` (sustained mob contact re-triggered the existing damage
+decrement every frame with no separation mechanic, resolving a full health-loss-and-setback cycle
+in 3-4 real frames — imperceptibly fast). Both folded into `FS-112`'s own field set
+(`06-feature-specification`, same session) rather than a new spec. `FS-112`'s own **Open
+Question 4** (does an already-adjacent mob keep re-attempting movement) is resolved by this
+planning pass, not left open into `08` — see the work-unit notes below.
+
+### Verb inventory (mandatory)
+
+| Verb | Owner | Notes |
+|---|---|---|
+| **Act** (mob movement toward the player, per-frame recomputation) | [IP-1126](packages/IP-1126-infinite-mode-combat-mob-movement.md) | New verb this delta introduces — mobs previously had no per-frame behavior of their own once materialized. |
+| **Act** (post-contact invincibility, knockback, per-mob cooldown) | [IP-1127](packages/IP-1127-infinite-mode-combat-post-contact-protection.md) | Extends the existing contact-damage `Act` verb `IP-1123` already owns, rather than being folded into it — see split rationale below. |
+| **Generate / Render / Persist / Gate / Review** | Unchanged from the original six-package tranche — none of these verbs are touched by this delta. Mob *generation* (`IP-1121`) and *rendering* (`IP-1121`) are unaffected: movement only changes a materialized mob's position field after the fact, not how it is drawn (`inf_mob_render` already reads whatever `MOB_DATA` currently holds). Combat-state *persistence* (`IP-1124`, `NOT STARTED`) is unaffected in scope — mob position was already going to be part of its own save-format bump; this delta does not add a new persistence obligation, only a new writer of the same field. |
+
+### A design-level ambiguity resolved by this pass, not left to `08` (`FS-112` Open Question 4)
+
+`FS-112`'s own Open Question 4 named a genuine ambiguity: does an already-adjacent mob keep
+re-attempting movement (a jitter risk) or hold still once contact is established? Per this
+skill's own charter, an FS-level Open Question that resolves to an "either answer satisfies the
+Acceptance Criteria" implementation-level choice is exactly this stage's own act to make (`FS-112`
+§19 itself names `07-implementation-planning` as the resolving stage). **Decided: a mob holds
+still once its position exactly equals the player's own position** (checked before each
+recomputation — if already coincident, skip the step) — the simpler, lower-risk choice: it avoids
+any visual jitter, costs strictly less per-frame work than always-recompute, and composes cleanly
+with `IP-1127`'s own knockback (a knocked-back player is, by construction, no longer coincident
+with the mob, so movement resumes naturally on the next recomputation without any special-case
+code). Recorded in `IP-1126`'s own §6/§10; `FS-112`'s Open Question 4 should be marked resolved
+when this package ships.
+
+### Supersession sweep
+
+Neither package retires or widens an existing model. **`IP-1126` swept for every site touching
+`MOB_DATA`'s own x/y fields** (`inf_materialize_mobs`, `inf_mob_render`, `inf_projectile_hittest`,
+`inf_mob_contact_check`) — confirmed none of them assume a mob's position is write-once-at-
+materialization; all four already re-read `MOB_DATA`'s own current bytes fresh each frame/call
+rather than caching a stale copy, so a second writer (this delta's own movement routine) is safe
+to add without touching any of the four. **`IP-1127` swept for every site touching
+`inf_mob_contact_check`/`PLAYER_HEALTH`** (only `inf_mob_contact_check` itself and
+`inf_health_setback`, both `IP-1123`) — confirmed clean; no other routine reads `PLAYER_HEALTH` or
+decrements it, so gating the existing decrement is a local change with no distant side effect.
+**Deliberately avoided a supersession risk, not just checked for one:** `IP-1127`'s own per-mob
+contact-tracking state is a *new, parallel* table (`MOB_CONTACT_FLAGS`, one bit per slot, same
+indexing as `MOB_DATA`) rather than widening `MOB_DATA`'s own existing 5-byte-per-slot stride —
+widening the stride would require re-deriving the slot-advance arithmetic in `IP-1121`/`IP-1122`/
+`IP-1123`'s own already-`VERIFIED`/`COMPLETE` code (each currently assumes exactly 5 bytes per
+slot via fixed `INC_HL` counts), a real, broad, avoidable risk this design sidesteps entirely by
+construction rather than by a sweep proving it's safe after the fact.
+
+### Work units and package cut
+
+| Work unit | Package | Owner | Depends on |
+|---|---|---|---|
+| Per-frame mob movement recomputation (grid-aligned single-step, adjustable speed/interval, holds still once coincident with the player) | [IP-1126](packages/IP-1126-infinite-mode-combat-mob-movement.md) | `08-code-implementation` | `IP-1121` (`VERIFIED` — the `MOB_DATA` table this reads/writes) |
+| Post-contact invincibility + knockback + per-mob cooldown, combined | [IP-1127](packages/IP-1127-infinite-mode-combat-post-contact-protection.md) | `08-code-implementation` | `IP-1121` (`VERIFIED` — `MOB_DATA`); `IP-1123` (**`COMPLETE`, not yet `VERIFIED`** — `inf_mob_contact_check`/`PLAYER_HEALTH` this package modifies) |
+
+**Split rationale:** two packages, not one, despite both being small and both extending the same
+combat sub-mode. **Considered and rejected: one combined package.** Rejected because the two
+work units have genuinely different dependency-readiness today — `IP-1126` depends only on
+`IP-1121` (`VERIFIED`, nothing blocking) while `IP-1127` depends additionally on `IP-1123`, which
+is `COMPLETE` but not yet `VERIFIED` (`09-package-verification` Pass 2 owed, blocked this session
+by the same-session-independence rule). Folding them into one package would make the whole thing
+`BLOCKED` on `IP-1123`'s own verification even though `IP-1126`'s own work has no real
+dependency on it — an avoidable coupling. The two units are also conceptually distinct (mob *AI*
+vs. player *defense*), consistent with the original tranche's own verb-inventory discipline
+(`Act`-mob-materialization/rendering and `Act`-weapon-fire were kept separate for the identical
+reason — different concerns sharing a frame, not one mechanism).
+
+**Critical path:** `IP-1126` is immediately `READY` once authorized (single dependency,
+`VERIFIED`). `IP-1127` is `BLOCKED` until `IP-1123` reaches `VERIFIED` (Pass 2, next session) —
+not on `IP-1126`; the two packages are independent of each other and may build/ship in either
+order or in parallel once both are unblocked.
+
+**ROM budget:** both are small, code-only additions (a handful of new subroutines + WRAM
+constants, no new tile/screen/music data) — expected modest growth, re-affirmed at build time per
+this project's own standing discipline (610 bytes headroom as of the last build, `IP-1123`'s own
+`BL-0154` remediation).
+
+**WRAM budget:** next free byte is `0xC6DE` (past `CMC_CURSOR`'s own end, `IP-1120`). `IP-1126`
+claims 1 byte (`0xC6DE`); `IP-1127` claims 2 bytes (`0xC6DF`–`0xC6E0`) — see each package's own
+§6 for the exact layout.
+
+**Authorization:** **NOT AUTHORIZED.** Both packages are new scope beyond the original "Yes,
+build all six" go-ahead (2026-07-17, `IP-1120`–`1125` only) — that authorization does not extend
+to `FR-11210`/`FR-11410`, baselined two days later in direct response to user-filed gaps. Neither
+package may be picked up by `08-code-implementation` until the user gives an explicit go-ahead,
+per this skill's own charter (a package being fully specified, even `READY`, is not authorization
+to build).
