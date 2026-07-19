@@ -67,6 +67,16 @@
 > sub-mode packages to at least `COMPLETE` — `IP-1121` `VERIFIED`, `IP-1122`/`IP-1123`/`IP-1120`
 > `COMPLETE` (own `09` passes owed), `IP-1124` still `NOT STARTED` (blocked on `IP-1122`/
 > `IP-1123` reaching `VERIFIED`), `IP-1125` `VERIFIED`.
+>
+> **Delta 2026-07-19** (`06-feature-specification`) — two new requirements baselined this same
+> session, `FR-11210` (mob movement toward the player, `BL-0156`) and `FR-11410` (post-contact
+> player protection — invincibility frames + knockback + a per-mob cooldown, combined, per the
+> user's own direct decision on `BL-0158`'s live-drive finding), folded into this specification's
+> own field set (`05-feature-decomposition` finding #13 already confirmed both belong to
+> `FEAT-11000`, no new Feature/FS document). Neither is implemented yet — this delta only
+> elaborates their behavior; `07-implementation-planning` is the next stage that would package
+> them, still subject to a fresh G3 authorization since they are new scope beyond the original
+> "build all six" go-ahead.
 
 [↑ Features index](INDEX.md) · [Feature Catalog](../feature-planning/03-feature-catalog.md) ·
 [Epic Catalog](../feature-planning/02-epic-catalog.md)
@@ -114,10 +124,10 @@ is known (e.g. mob AI vs. weapon/hit-resolution vs. HUD).
 
 ## 5. Requirements Implemented
 
-FR-11100, FR-11200, FR-11300, FR-11400, FR-11500, FR-11600; NFR-1500, NFR-4500 — the exact set
-FEAT-11000 owns, no more, no fewer (cross-checked against
+FR-11100, FR-11200, FR-11210, FR-11300, FR-11400, FR-11410, FR-11500, FR-11600; NFR-1500,
+NFR-4500 — the exact set FEAT-11000 owns, no more, no fewer (cross-checked against
 [03-feature-catalog.md](../feature-planning/03-feature-catalog.md#feat-11000--infinite-mode-combat-sub-mode-new--not-yet-implemented)'s
-Included Requirements).
+Included Requirements, now 10 IDs following the 2026-07-19 delta that added `FR-11210`/`FR-11410`).
 
 ## 6. User Workflows
 
@@ -144,9 +154,18 @@ Included Requirements).
 3. When the player defeats a mob (Workflow C), it disappears via a brief, non-graphic
    presentation sequence (mirroring how a collected `ScoreItem` already deactivates today) — no
    persistent corpse sprite.
-4. Re-materializing the same region with the same seed reproduces identical mob
-   presence/type/position; a region materialized with `COMBAT_MODE` inactive shows zero mobs and
-   is otherwise byte-for-byte identical to today's shipped Infinite Mode.
+4. **(FR-11210, delta 2026-07-19)** Once materialized, each active mob periodically recomputes a
+   single grid-aligned step toward the player's current position — a step's distance and the
+   number of frames between recomputations are both independently adjustable defaults, mirroring
+   §6 Workflow C step 2's own "adjustable default" framing for the projectile cap. A mob
+   materialized with `COMBAT_MODE` inactive never moves (§7 edge case, `FR-11200`'s own strict-
+   additivity guarantee unweakened).
+5. Re-materializing the same region with the same seed reproduces identical mob
+   presence/type/position at the moment of materialization; a region materialized with
+   `COMBAT_MODE` inactive shows zero mobs and is otherwise byte-for-byte identical to today's
+   shipped Infinite Mode. (Movement per step 4 is deterministic given the mob's own position
+   history and the player's position at each recomputation — not itself part of the
+   materialization-determinism guarantee, which concerns only the mob's initial spawn state.)
 
 **Workflow C — Ranged weapon fire and hit resolution** (FR-11300):
 
@@ -163,15 +182,30 @@ Included Requirements).
    deactivates; if it instead reaches a terminal boundary (window/screen edge) without a hit, it
    deactivates without effect.
 
-**Workflow D — Player health, setback, and the healing economy** (FR-11400, FR-11500):
+**Workflow D — Player health, setback, and the healing economy** (FR-11400, FR-11410, FR-11500):
 
 1. Mob contact/attack reduces the player's health value, displayed via a persistent HUD element
    reusing the already-shipped `TL_HEART_FULL`/`TL_HEART_EMPTY` tiles (`tiles.py`) — zero new art
    cost.
-2. The player may choose to spend collected treasure (`RUNNING_TREASURE_COUNT`, the same count
+2. **(FR-11410, delta 2026-07-19)** Immediately following a contact-damage event, three
+   mechanisms combine, per the user's own direct decision on `BL-0158`'s finding (a live-drive
+   investigation that found sustained contact re-triggered step 1 every single frame, resolving a
+   full health-loss-and-setback cycle in 3-4 real frames — too fast to perceive, so the mechanic
+   was effectively invisible):
+   a. **Invincibility** — for an adjustable-default duration, the player takes no further contact
+      damage from *any* mob, regardless of continued overlap.
+   b. **Knockback** — the player is displaced an adjustable-default distance away from the
+      triggering mob, along whichever grid axis separates them fastest (mirrors Workflow B step
+      4's own grid-aligned movement model).
+   c. **Per-mob cooldown** — independent of and outlasting (a) and (b), the *specific* mob that
+      caused the contact cannot cause another contact-damage event against the player until
+      overlap between them has genuinely broken and then resumed — a floor guarantee against the
+      exact repeated-single-frame-overlap failure mode `BL-0158` found, regardless of whether (a)
+      or (b) alone would have been sufficient in a given encounter.
+3. The player may choose to spend collected treasure (`RUNNING_TREASURE_COUNT`, the same count
    `FS-110` Workflow C reads for the win/high-score comparison) to restore health — spending
    decrements that same count; no second, independent ledger is created.
-3. If player health reaches zero, a non-lethal setback triggers (e.g. returning the player to the
+4. If player health reaches zero, a non-lethal setback triggers (e.g. returning the player to the
    last region entered, with treasure/health partially restored) — never a `GAMESTATE` transition
    to a game-over state, consistent with `MSTR-001` A5's fail-state-free base design holding
    inside `C11`'s own carve-out. The run continues in `PLAYING` afterward.
@@ -206,6 +240,21 @@ projectile terminates.
 spending treasure to heal):** not yet defined — whether damage and a heal-spend can resolve in
 the same frame, and in what order, is genuinely undecided (Open Question 3).
 
+**Edge case — an already-adjacent/overlapping mob's own movement recomputation (delta
+2026-07-19, `FR-11210`):** not yet defined — whether a mob that has already reached the player's
+position keeps attempting to recompute a further step each interval (a potential visual jitter
+case) or holds still once contact is established is genuinely undecided (Open Question 4,
+harvested at the requirements-review stage as `BL-0159`).
+
+**Edge case — invincibility/knockback/cooldown interacting with mob movement (delta 2026-07-19,
+`FR-11210`/`FR-11410`):** during the post-contact invincibility window, a moving mob (Workflow B
+step 4) may continue advancing toward the player's now-knocked-back position — whether the
+mob's own movement should pause during the player's invincibility window, or continue
+unconditionally (simply failing to land a second hit because invincibility/cooldown block it
+regardless of proximity), is not decided here; either satisfies `FR-11410`'s own Acceptance
+Criteria as written, so this is named but not resolved (Open Question 4, same as the jitter case
+above — both are the same underlying "does mob movement pause near/at the player" question).
+
 **Edge case — player health reaching zero while treasure remains unspent:** the setback (§6
 Workflow D step 3) fires regardless of remaining treasure — treasure is a player *choice* to
 spend proactively, not an automatic save-from-death mechanic, per the user's own "spent," not
@@ -221,10 +270,13 @@ implementation exists yet to measure it.
 Per GDS-03's module decomposition, extended by `ADS-002`'s own module framing (no new module):
 
 - **`asm_game.py`** — the mob-presence/type draw (hooked into `inf_ensure_window`'s existing
-  per-region materialization), mob AI/defeat logic, the fire-input handler and projectile-update
-  routine, player-health tracking and the non-lethal setback, the treasure-spend healing
-  subroutine, the MODE SELECT gating extension (`GS_MODE_SELECT`), the health HUD write, and the
-  save-write/load-restore extension. None of this code exists yet.
+  per-region materialization), mob movement/AI/defeat logic (**delta 2026-07-19**: movement
+  toward the player, `FR-11210`, is now a concrete named behavior here, not just the generic "AI"
+  placeholder this field originally carried), the fire-input handler and projectile-update
+  routine, player-health tracking and the non-lethal setback, **post-contact protection —
+  invincibility/knockback/per-mob-cooldown (delta 2026-07-19, `FR-11410`)**, the treasure-spend
+  healing subroutine, the MODE SELECT gating extension (`GS_MODE_SELECT`), the health HUD write,
+  and the save-write/load-restore extension. None of this code exists yet.
 - **`worldgen.py`** (prospective) — the Python reference-generator-oracle mirror for the
   mob-presence draw, per `ADS-002`'s own reseed-chain discipline, mirroring `FS-110`'s own
   identical obligation for its per-region routine.
@@ -262,6 +314,11 @@ No module outside this set is touched.
   value in the established strictly-monotonic sequence would be `0x06`, but the exact bump is
   `07-implementation-planning`'s/`08`'s own act, not asserted here (mirrors `FS-110`'s own
   identical framing for its own version bump, Open Question 7 there).
+- **The player's own existing grid-aligned movement model** (**delta 2026-07-19**, `handle_play_
+  input`'s existing single-axis-step-per-frame pattern, unchanged) — `FR-11210`'s mob movement
+  and `FR-11410`'s knockback both reuse the same step shape (one axis at a time, whole-tile-
+  agnostic pixel steps) rather than inventing free-angle or sub-pixel motion, per each FR's own
+  explicit framing. This Feature does not modify the player's own movement handling itself.
 
 ## 10. Data Model Changes
 
@@ -273,14 +330,24 @@ conceptual entities `ADS-002`'s own Domain Model already names:
   variety-within-tone framing), health (1 byte), active flag. A fixed-size table, six concurrent
   slots (an adjustable default, `ADS-002`/`R115`), mirroring `COLL_DATA`/`COLL_COUNT`'s own
   established shape. No eviction/FIFO scheme needed — mobs are session-local per materialized
-  region, not an ever-growing history.
+  region, not an ever-growing history. **Delta 2026-07-19 (`FR-11210`):** movement toward the
+  player requires the routine to read the mob's own current position each recomputation interval
+  — no additional persistent per-mob field is implied by movement itself (the existing x/y pair
+  is simply written more than once now, not read-only after materialization as originally
+  described); a shared, non-per-mob recomputation-interval counter is a plausible implementation
+  shape but not fixed here (`07`'s own act).
 - **`Projectile`** — origin, direction, active flag — a single transient WRAM record, mirroring
   `INF_MZ_RESULT`'s own "transient, generation-time-only, never persisted" precedent. A design
   needing more than one in-flight projectile is a future extension, not this Feature's own
   default.
 - **`PlayerHealth`** — a new player-state field; today the player has no health/damage concept at
   all (`check_collisions` only ever adds to score/treasure counts). Presented via the reused
-  heart-tile HUD.
+  heart-tile HUD. **Delta 2026-07-19 (`FR-11410`):** post-contact protection implies at least two
+  further pieces of transient state — an invincibility-window countdown (global, not per-mob) and
+  a per-mob "still in unbroken contact" flag or equivalent (to detect the overlap-must-break-then-
+  resume condition the per-mob cooldown requires) — neither named as a specific WRAM field here,
+  since the exact shape (a per-mob bit in the existing `Mob` table vs. a separate small table) is
+  `07-implementation-planning`'s own data-model act, not decided at this specification level.
 - **`Weapon`** — a stat model with at least one upgrade-tier axis, funded by treasure; explicitly
   no ammo/durability field, per the user's own decision (`ADS-002` Open Question 3).
 - **`COMBAT_MODE`** — a new 1-byte WRAM flag, valid only alongside `GAME_MODE=1` (Infinite Mode).
@@ -317,8 +384,10 @@ the current catalog.
   boundary and deactivates without effect (§7 edge case).
 - **Spending treasure to heal with `RUNNING_TREASURE_COUNT` at zero:** the heal-spend action has
   no effect (FR-11500's own Precondition, `RUNNING_TREASURE_COUNT > 0`) — not a crash or an
-  underflow; the exact player-visible feedback (a no-op vs. a disabled-menu-option cue) is Open
-  Question 4.
+  underflow; the exact player-visible feedback (a no-op vs. a disabled-menu-option cue) is
+  **Open Question 3** (found mis-cited as "Open Question 4" here prior to this delta — corrected
+  in the same pass as adding the genuinely new Open Question 4 below, to avoid a duplicate
+  number; §19's own Open Question 3 already resolved this as a silent no-op, `IP-1123`/`T31.e`).
 - **A pre-combat-mode save loaded after this Feature ships:** mirrors `FS-110`'s own
   version-guard precedent (a version-mismatched-for-this-field save simply lacks the combat
   fields, not offered garbage data) — the exact version value is not fixed here (§9).
@@ -330,7 +399,11 @@ the current catalog.
   whether a frame where combat logic and region materialization coincide would compound
   `NFR-1400`'s own already-`NOT MET` overage — is not confirmed by any evidence this specification
   can cite. `R115` names the risk directly but does not treat it as settled. This Feature's own
-  Acceptance Criteria (§15) states the bar; it does not claim compliance.
+  Acceptance Criteria (§15) states the bar; it does not claim compliance. **Delta 2026-07-19:**
+  `FR-11210`'s per-mob movement recomputation and `FR-11410`'s per-mob cooldown-state check both
+  add real, unmeasured per-frame cost on top of the pieces already named here — `NFR-1500`'s own
+  text was updated at the requirements stage to name both explicitly as inheriting its existing
+  measurement obligation, not a new/separate NFR.
 - **NFR-4500** (ROM/OAM budget): `R115`'s own direct measurement (post-`IP-9170`/`IP-9180`) found
   1,378 bytes of ROM headroom and 31 of 40 shadow-OAM entries free (9 used: 1 player + up to 8
   collectibles). The 6-mob-slot default (7 new entries including the projectile) leaves 24 free —
@@ -356,50 +429,79 @@ the current catalog.
 2. For a corpus of `(SEED, row, col)` triples with `COMBAT_MODE` active, materializing the same
    region twice produces byte-identical mob presence/type/position both times; the same region
    materialized with `COMBAT_MODE` inactive shows zero mobs and is otherwise unaffected (FR-11200).
-3. Firing while no projectile is active spawns one; firing while one is already active has no
+3. **(delta 2026-07-19)** With `COMBAT_MODE` active, an active mob's own recorded position
+   changes over successive recomputation intervals such that its distance to the player strictly
+   decreases (absent an intervening defeat or reaching the player's own position); the distance
+   moved per recomputation and the frame interval between recomputations both match their
+   configured adjustable-default values exactly; with `COMBAT_MODE` inactive, mob position is
+   never read or written by this logic at all (FR-11210).
+4. Firing while no projectile is active spawns one; firing while one is already active has no
    additional effect; a projectile that reaches an active mob's hitbox reduces its health and
    deactivates; a projectile that reaches a terminal boundary without a hit deactivates without
    effect (FR-11300).
-4. Player health decreases on mob contact/attack, reflected in the HUD within a frame budget
+5. Player health decreases on mob contact/attack, reflected in the HUD within a frame budget
    mirroring the existing HUD-update timing; reaching zero health triggers the defined setback
    and the run continues in `PLAYING`, never a game-over state (FR-11400).
-5. Spending treasure to heal reduces `RUNNING_TREASURE_COUNT` by exactly the spent amount; the
+6. **(delta 2026-07-19)** A contact-damage event followed immediately by continued overlap with
+   the same mob produces exactly one health decrement, not a cascading repeat; the player's
+   position changes by the configured knockback distance in the expected direction immediately
+   following a contact-damage event; no contact-damage event of any kind registers for the
+   configured invincibility-frame duration after the prior one; the specific mob that caused a
+   contact event causes no further contact damage until the player's hitbox has first stopped,
+   then resumed, overlapping it — verified independently of whether the invincibility window has
+   already elapsed (FR-11410).
+7. Spending treasure to heal reduces `RUNNING_TREASURE_COUNT` by exactly the spent amount; the
    same count is what the win/high-score comparison reads at run's end — no separate ledger
    exists (FR-11500).
-6. A save/load round trip reproduces identical mob state, weapon tier, and player health; a
+8. A save/load round trip reproduces identical mob state, weapon tier, and player health; a
    pre-combat-mode save loads cleanly without this state (FR-11600).
-7. Static inspection of the mob-presence draw finds no read of `DIV` or any WRAM address not
+9. Static inspection of the mob-presence draw finds no read of `DIV` or any WRAM address not
    explicitly derived from `SEED`/`(row, col)` (mirrors NFR-2300's own audit shape).
-8. **Not yet a checkable criterion** — NFR-1500's cycle-budget bar has no fixed numeric target to
-   check against until an implementation exists to measure it; this specification names the bar
-   (§13) without asserting compliance.
+10. **Not yet a checkable criterion** — NFR-1500's cycle-budget bar has no fixed numeric target to
+    check against until an implementation exists to measure it; this specification names the bar
+    (§13) without asserting compliance. **Delta 2026-07-19:** the bar now also covers `FR-11210`'s
+    movement-recomputation cost and `FR-11410`'s cooldown-state-check cost, per NFR-1500's own
+    updated text — still not measurable until an implementation exists.
 
 ## 16. Verification Plan
 
 Per FR-11100–11600's own Verification Methods (Test) and NFR-1500 (Analysis) / NFR-4500
 (Inspection, once implemented) — no `test_rom.py` suite exists yet for this Feature (no code
-exists to test):
+exists to test). **AC numbering renumbered 2026-07-19** to insert the two new criteria
+(`FR-11210`/`FR-11410`) in requirement order rather than appending them out of sequence:
 
 - **Combat sub-mode entry (AC-1):** drive the MODE SELECT flow once Open Question 1 resolves a
   concrete UI shape; confirm the sub-mode is off by default and fixed once chosen.
 - **Mob materialization determinism (AC-2):** property test across a `(SEED, row, col)` corpus,
   mirroring `FS-110`'s own T22/T24 determinism-test shape (fresh-instance comparison plus
   oracle-vs-SM83 comparison), extended to mob presence/type/position.
-- **Weapon fire/hit resolution (AC-3):** direct-force integration checks mirroring `IP-9100`'s
+- **Mob movement toward the player (AC-3, delta 2026-07-19):** direct-force position/distance
+  assertions across multiple recomputation intervals (mirroring the property-test discipline
+  `FS-110`'s own T22 already established where a deterministic mirror is feasible); a live PyBoy
+  drive through the real per-frame chain, mirroring the independent-verification discipline
+  `VR-1121`/`VR-1122` already established for this Feature, to confirm the real production call
+  path (not just a direct-invoke harness) moves mobs correctly.
+- **Weapon fire/hit resolution (AC-4):** direct-force integration checks mirroring `IP-9100`'s
   own established hitbox-test methodology — force a mob into range, fire, confirm health
   reduction and projectile deactivation; force a miss, confirm clean deactivation without effect.
-- **Player health/setback (AC-4):** direct-force integration checks — force mob contact, confirm
+- **Player health/setback (AC-5):** direct-force integration checks — force mob contact, confirm
   HUD reflects the reduction; force health to zero, confirm the setback fires and `GAMESTATE`
   remains `PLAYING`.
-- **Healing economy (AC-5):** direct-force integration check — force a known `RUNNING_TREASURE_COUNT`,
+- **Post-contact protection (AC-6, delta 2026-07-19):** the exact `BL-0158` live-drive repro
+  (sustained overlap via held input, or a stationary player with an adjacent mob once `FR-11210`
+  ships) re-run against the fixed behavior, confirming exactly one decrement rather than a
+  cascade; direct-force assertions for each of the three mechanisms (invincibility, knockback,
+  per-mob cooldown) independently, including the cooldown's own overlap-break-and-resume
+  condition verified past the invincibility window's own expiry.
+- **Healing economy (AC-7):** direct-force integration check — force a known `RUNNING_TREASURE_COUNT`,
   trigger a heal-spend, confirm the exact decrement and the resulting health increase.
-- **Save/load (AC-6):** two-instance save/reload harness, mirroring `IP-1104`'s own T27 pattern,
+- **Save/load (AC-8):** two-instance save/reload harness, mirroring `IP-1104`'s own T27 pattern,
   extended to mob state/weapon tier/player health.
-- **Determinism static audit (AC-7):** Inspection — direct code read of the mob-presence draw,
+- **Determinism static audit (AC-9):** Inspection — direct code read of the mob-presence draw,
   mirroring `FS-110`'s own T22.h-equivalent precedent.
-- **Cycle budget (AC-8):** Analysis — direct cycle-counting against a real per-frame call context
-  including the coincident-materialization case (NFR-1500), not possible until an implementation
-  exists to measure.
+- **Cycle budget (AC-10):** Analysis — direct cycle-counting against a real per-frame call context
+  including the coincident-materialization case (NFR-1500), now also covering `FR-11210`/
+  `FR-11410`'s own per-frame cost, not possible until an implementation exists to measure.
 
 **Corpus:** not yet defined — depends on the mob-slot count (an adjustable default, `ADS-002`)
 and the mob-presence density constant, neither fixed by this specification.
@@ -421,12 +523,23 @@ checked against `NFR-1400`'s own already-`NOT MET` region-materialization cost, 
 frame ceiling alone — a compounding-cost risk `R115` names directly); `NFR-4500`'s ROM/OAM budget
 is real but favorable, not yet confirmed against a real implementation's actual footprint.
 
-**Additional risk surfaced by this specification, not named at the Feature-catalog level:** three
-genuinely open questions (below) touch UI shape, edge-case sequencing, and setback feedback —
-fewer than `FS-110`'s own eight, but still enough that whoever picks this Feature up next should
-weigh routing some upstream (Open Question 1, an architecture-level UI-shape choice) before
-`07-implementation-planning` attempts a package, versus letting `07` resolve the others as
-implementation-level choices, mirroring `FS-110`'s own precedent for exactly this judgment call.
+**Additional risk surfaced by this specification, not named at the Feature-catalog level:** four
+genuinely open questions (below) touch UI shape, edge-case sequencing, setback feedback, and
+(delta 2026-07-19) mob-movement-near-the-player sequencing — fewer than `FS-110`'s own eight, but
+still enough that whoever picks this Feature up next should weigh routing some upstream (Open
+Question 1, an architecture-level UI-shape choice) before `07-implementation-planning` attempts a
+package, versus letting `07` resolve the others as implementation-level choices, mirroring
+`FS-110`'s own precedent for exactly this judgment call.
+
+**Delta 2026-07-19 — two new leaves added late in this Feature's own lifecycle, after five of six
+packages already shipped:** unlike every requirement this specification originally elaborated,
+`FR-11210`/`FR-11410` were baselined *after* `IP-1120`–`1125` were planned/mostly implemented, in
+response to user-filed gaps found by playing the shipped build, not upstream architecture
+sequencing. This is a genuinely different provenance from this Feature's own original six
+requirements — worth naming as its own risk category: any future `07-implementation-planning`
+package for these two leaves must account for the state five sibling packages have already
+committed to (WRAM layout, `SAVE_VERSION_VAL`, existing test suites `T29`–`T31`/`T33`), not plan
+against a clean slate the way the original six packages could.
 
 ## 19. Open Questions
 
@@ -447,6 +560,18 @@ implementation-level choices, mirroring `FS-110`'s own precedent for exactly thi
    possible as a future presentation-layer touch but is not required by `FR-11500`; this
    subroutine has no real input binding yet regardless (`BL-0148`), so the no-op is not yet
    player-reachable either way.
+4. **(New, delta 2026-07-19, `BL-0159`) Whether an already-adjacent/overlapping mob keeps
+   re-attempting movement or holds still once contact is established is not decided.** `FR-11210`
+   requires distance-to-player to strictly decrease over recomputation intervals but explicitly
+   allows "the mob reaching the player's own position" as a valid terminal condition — it does not
+   state what happens on the *next* interval after that point is reached. The same question
+   determines whether `FR-11410`'s own post-contact knockback interacts cleanly with continued
+   mob movement (does a knocked-back player immediately have the mob start closing distance again,
+   or does the mob's own movement pause during the target's invincibility window). Named at the
+   Requirements Review stage (`03-requirements-review.md` finding #24) rather than invented here.
+   Resolves at: `07-implementation-planning`, as an implementation-level sequencing choice —
+   either answer satisfies `FR-11210`/`FR-11410`'s own Acceptance Criteria as written, so this
+   does not require a requirements or architecture change either way.
 
 ## 20. Related ADRs
 

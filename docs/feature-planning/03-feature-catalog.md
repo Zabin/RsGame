@@ -890,8 +890,12 @@
 > `FR-11410` (post-contact player protection — invincibility frames + knockback + a per-mob
 > cooldown, combined, `BL-0158`) — both user-filed gaps found by direct play, folded into this
 > same Feature (no new capability boundary; see this entry's own Description/Included
-> Requirements below). Neither is specified in `FS-112` yet — that's `06-feature-specification`'s
-> own next touch on this Feature.
+> Requirements below). **Folded into `FS-112` (2026-07-19, `06-feature-specification`)** —
+> Workflows B/D, System Behaviour, Module Responsibilities, Interfaces, Data Model, Acceptance
+> Criteria (AC-3/AC-6, renumbered), Verification Plan, and a new Open Question 4 (`BL-0159`, does
+> an already-adjacent mob keep re-attempting movement) all updated in that same pass. Neither leaf
+> is packaged yet — `07-implementation-planning` is next, subject to a fresh G3 authorization
+> (new scope beyond the original "build all six" go-ahead).
 
 - **Feature ID:** FEAT-11000
 - **Title:** Infinite Mode Combat Sub-Mode
