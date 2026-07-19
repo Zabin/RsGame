@@ -14,8 +14,27 @@
 
 ## Position
 
-- **Updated:** 2026-07-19 (run #265 — iterate mode; this fresh session's
-  `09-package-verification` drain of the four `COMPLETE` packages is now complete)
+- **Updated:** 2026-07-19 (run #266 — iterate mode; loop stops here on two simultaneously-ripe
+  conditions, session-boundary + G3)
+- **Increment (run #266):** **`08-code-implementation`** on **`IP-1124` → `COMPLETE`**. Extended
+  `save_to_sram`/`try_load_save` with combat-state SRAM persistence (`0xA350`–`0xA371`,
+  `SAVE_VERSION_VAL` `0x05`→`0x06`). Two genuine planning-gap corrections found and fixed during
+  implementation (not silently patched over): (1) the package's own §6 wrongly claimed the five
+  persisted WRAM fields were one contiguous 34-byte span for a single `memcpy` — `PROJ_ACTIVE`/
+  `PROJ_X`/`PROJ_Y`/`PROJ_STEP_X` actually sit between `MOB_DATA` and `WEAPON_TIER`, so it's two
+  separate transfers; (2) the combat-state restore had to move to *after* `try_load_save`'s
+  existing `inf_ensure_window` call (not before), since that call's own `inf_materialize_mobs`
+  side effect — inert only while `COMBAT_MODE` is still 0 — would otherwise immediately clobber
+  the just-restored mob data (caught live by `T32.a`'s own first failing run). One test-only fix
+  (not a product defect): `T32.a`'s first draft read state after a 60-tick post-load settle,
+  matching `T27.a2`'s own precedent for *static* fields — but `MOB_DATA` is live-mutated every
+  frame by `inf_mob_move` once restored, so the settle window let the just-restored mobs actually
+  move before the check read them; fixed by reading back after 6 ticks. New suite `T32` (4
+  checks). **393/393 suite passes.** ROM 32768 bytes (32414 used, unchanged). `FR-11600` →
+  Implemented; RTM filled; `FR-11510`'s own stale note corrected; `FS-112`/`GDS-07` §7o updated.
+  **Closes the original six-package combat sub-mode critical path in full.** Harvested one Low
+  doc-defect (`BL-0163`, `GDS-07` §7n names the wrong package in its own collision note — cosmetic,
+  triaged `SCHEDULED`).
 - **Increment (run #265):** **`09-package-verification`** on **`IP-1129` → `VERIFIED`**
   ([VR-1129](../implementation/verification/VR-1129-infinite-mode-combat-weapon-tier-funding.md)).
   ROM rebuild (32768 bytes); full suite **387/387**; `T38.a`-`e` (5 checks) reconfirmed.
@@ -146,38 +165,38 @@
   Also carries forward from run #254 (unchanged this run): `IP-1126` built to `COMPLETE`
   (`inf_mob_move`, new WRAM `MOB_MOVE_TIMER`, suite `T35`, 373/373 passes, `FS-112` Open Question 4
   resolved); `BL-0160` (sound effects) filed and triaged `SCHEDULED` for a future `03` pass.
-- **Pipeline state:** Bootstrap stages 01–11 ✅; Release 2 GO. 49 packages `VERIFIED` (was 45 at
-  the start of this session; `IP-1123`, `IP-1126`, `IP-1128`, `IP-1129` all joined this run —
-  **zero `COMPLETE`-but-unverified packages remain**). `IP-1124` is **`READY`** (all three
-  dependencies `IP-1121`/`IP-1122`/`IP-1123` `VERIFIED`) — `AUTHORIZED` already (G3, "Yes, build
-  all six," 2026-07-17), so its own `08-code-implementation` needs no fresh ask; this is now the
-  only unblocked, pre-authorized build in the tranche. `IP-1120`/`IP-1121`/`IP-1122`/`IP-1123`/
-  `IP-1125`/`IP-1126`/`IP-1128`/`IP-1129` `VERIFIED`. `IP-1127` structurally unblocked (`IP-1123`
-  now `VERIFIED`) but still `NOT AUTHORIZED` (its own prospective WRAM claim, `0xC6DF`–`0xC6E0`,
-  is stale against `IP-1128`'s own real, independently-confirmed claim of the same range — must
-  re-derive at build time; G3 not yet asked, not ripe until this package is actually picked up).
-  Standing, non-blocking doc/design work unchanged: the doc-accuracy sweep family (`BL-0136`/
-  `BL-0137`/`BL-0140`–`BL-0143`/`BL-0151`); `BL-0118` (`NFR-1400` cycle-budget gap); `NFR-1500`
-  (combat-sub-mode cycle budget, still `UNCONFIRMED`); `BL-0123` (`try_load_save` unneeded
-  finite-mode work); `BL-0112` (Infinite Mode run-end trigger); `BL-0097` (Medium, routed
-  already); `BL-0130` (catalog text gap); `BL-0148`/`BL-0149`/`BL-0150`/`BL-0152`/`BL-0159`
-  (remaining half)/`BL-0160`/`BL-0161`/`BL-0162` (all Low/Low-Medium, `SCHEDULED`/`DEFERRED`,
-  non-blocking).
-- **Backlog:** 162 entries. `BL-0147`/`BL-0155` (weapon-tier funding — traceability finding +
-  research-gap, both `IP-1129`'s own originating threads) flipped to **`DONE`** this run —
-  `VR-1129` closed both entries' last-owed clause. `BL-0157`/`BL-0156` (flipped `DONE` runs
-  #264/#263), `BL-0148`/`BL-0161`/`BL-0133` unchanged. `BL-0154` (`IP-1123`'s own
-  region-entry-point defect, closed by run #262's `VR-1123` Pass 2) remains queued for the same
-  `DONE` flip at the next full triage pass, not flipped inline mid-iteration (harvest-then-triage
-  separation).
-- **Next step:** **`08-code-implementation` on `IP-1124`** (save persistence) — the session's
-  entire `09-package-verification` backlog is now drained to zero, and `IP-1124` is `READY` and
-  pre-`AUTHORIZED` (G3, "Yes, build all six," 2026-07-17) — the last unbuilt node on the original
-  critical path, no fresh gate needed.
-- **Open gates:** none newly opened this run. **G3 still needed on `IP-1127`** (post-contact
-  protection, structurally unblocked but not yet asked — not ripe until the package is next
-  picked up for actual implementation). `IP-1124` needs no fresh gate — already `AUTHORIZED`
-  under the original "build all six" grant.
+- **Pipeline state:** Bootstrap stages 01–11 ✅; Release 2 GO. 49 packages `VERIFIED` (unchanged
+  this run — `IP-1124` reached `COMPLETE`, not yet `VERIFIED`). `IP-1120`/`IP-1121`/`IP-1122`/
+  `IP-1123`/`IP-1125`/`IP-1126`/`IP-1128`/`IP-1129` `VERIFIED`. **`IP-1124` now `COMPLETE`** —
+  closes the original six-package combat sub-mode critical path in full; own
+  `09-package-verification` pass owed (fresh session, for genuine independence). `IP-1127`
+  structurally unblocked (`IP-1123` `VERIFIED` since run #262) but still `NOT AUTHORIZED` — its
+  own G3 ask is ripe for the first time this session (not asked at runs #262–265 since it wasn't
+  the chosen next step then). Standing, non-blocking doc/design work: the doc-accuracy sweep
+  family (`BL-0136`/`BL-0137`/`BL-0140`–`BL-0143`/`BL-0151`/`BL-0163` — new this run); `BL-0118`
+  (`NFR-1400` cycle-budget gap); `NFR-1500` (combat-sub-mode cycle budget, still `UNCONFIRMED`);
+  `BL-0123` (`try_load_save` unneeded finite-mode work); `BL-0112` (Infinite Mode run-end
+  trigger); `BL-0097` (Medium, routed already); `BL-0130` (catalog text gap); `BL-0148`/`BL-0149`/
+  `BL-0150`/`BL-0152`/`BL-0159` (remaining half)/`BL-0160`/`BL-0161`/`BL-0162` (all Low/
+  Low-Medium, `SCHEDULED`/`DEFERRED`, non-blocking).
+- **Backlog:** 163 entries (was 162; new **`BL-0163`** filed and triaged `SCHEDULED` this run —
+  `GDS-07` §7n's own collision-note mislabel, `IP-1129`→should read `IP-1127`). `BL-0147`/
+  `BL-0155`/`BL-0157`/`BL-0156`/`BL-0148`/`BL-0161`/`BL-0133` all unchanged. `BL-0154` (`IP-1123`'s
+  own region-entry-point defect, closed run #262) remains queued for its own `DONE` flip at the
+  next full triage pass.
+- **Next step:** **Loop stops here — two conditions ripe simultaneously, neither resumable
+  without the user.** (1) `IP-1124`'s own `09-package-verification` needs a fresh session for
+  genuine independence — same class of stop the manager already treated as genuine at runs
+  #254/#260/#261. (2) `IP-1127`'s own G3 ask is now ripe (structurally unblocked since run #262,
+  not yet asked). **Ask the user**: authorize `IP-1127` (post-contact protection — invincibility +
+  knockback + per-mob cooldown, combined, per the user's own 2026-07-19 decision on `BL-0158`) for
+  `08-code-implementation`? If yes, its own stale prospective WRAM addresses (`0xC6DF`–`0xC6E0`)
+  must be re-derived to the next free byte(s) past `IP-1124`'s own new claim (`0xA371`'s WRAM-side
+  counterpart, i.e. `MOB_MOVE_TIMER`/`PLAYER_FACING_X`/`Y`/`PROJ_STEP_Y`'s own `0xC6DE`–`0xC6E1`
+  range is already claimed — next free WRAM byte is `0xC6E2`) before it can be built.
+- **Open gates:** **G3 ripe on `IP-1127`** (not yet asked this run — see Next step). `IP-1124`
+  needs no gate for its own implementation (already `AUTHORIZED`); its `09-package-verification`
+  is a session-boundary constraint, not a human-decision gate.
 
 ## Run log
 
@@ -453,3 +472,4 @@
 | 263 | 2026-07-19 | advance (iterate) | `09-package-verification` | `IP-1126` | ✅ **`VERIFIED`** ([VR-1126](../implementation/verification/VR-1126-infinite-mode-combat-mob-movement.md)). Rebuilt ROM (32768 bytes), full suite **387/387 passed**; `T35.a`-`i` (9 checks) reconfirmed. Direct code read confirmed the dominant-axis/tie-break logic (X wins on `\|dx\|==\|dy\|`), the coincident hold-still case, and `COMBAT_MODE`/inactive-slot gating all match the package's own §6/§10 exactly. Implementing commit `3412be8`'s own `asm_game.py` diff confirmed **purely additive** (`grep -E '^-[^-]'` on the diff returns nothing) — `inf_mob_render`/`inf_projectile_hittest`/`inf_mob_contact_check` and `MOB_DATA`'s own stride all confirmed untouched, satisfying that DoD item without needing a separate direct-diff spot-check. `MOB_MOVE_INTERVAL`/`MOB_MOVE_STEP` are compile-time constants, not a runtime-tunable parameter in the `BL-0055` sense, so no non-default live drive was owed beyond `T35.i`'s own existing real-chain drive (reconfirmed). No scope excursion, no findings. Master Build Plan/`packages/INDEX.md`/verification `INDEX.md` updated: `IP-1126` → `VERIFIED`. No dependent package names `IP-1126`, so no other readiness changes. No backlog triage needed (0 `NEW` entries). | `09-package-verification` again — `IP-1128` next (weapon directionality), then `IP-1129` (weapon-tier funding), then `08-code-implementation` on `IP-1124` (now `READY` and pre-`AUTHORIZED`). |
 | 264 | 2026-07-19 | advance (iterate) | `09-package-verification` | `IP-1128` | ✅ **`VERIFIED`** ([VR-1128](../implementation/verification/VR-1128-infinite-mode-combat-weapon-directionality.md)). ROM rebuild (32768 bytes); full suite **387/387**; `T37.a`-`i` (9 checks) reconfirmed; `T30.a`/`b`/`c`/`c2`/`d` corrections confirmed **legitimate re-encodings, not weakened assertions** (e.g. `T30.a` now asserts `dir==0xFF` for a leftward fire under the new raw-signed-step encoding — the correct value for the new scheme, matches the package's own §7 supersession-sweep note verbatim). Direct diff inspection confirmed `inf_projectile_hittest`'s own label body appears in no changed hunk (byte-for-byte untouched) and `PLAYER_DIR`'s own two write sites are unchanged (new `PLAYER_FACING_X`/`Y` writes sit alongside them as pure additions). Y-axis boundary arithmetic (reused `PLAYER_Y`'s own 8/129 clamp pair) and the X-axis underflow-via-wraparound technique both independently re-derived from the assembly, not trusted from the Implementation Summary. No scope excursion, no findings. Master Build Plan/`packages/INDEX.md`/verification `INDEX.md` updated: `IP-1128` → `VERIFIED`. No dependent package names `IP-1128`. No backlog triage needed (0 `NEW` entries). | `09-package-verification` on `IP-1129` (weapon-tier funding) — last of the four session-boundary-blocked packages — then `08-code-implementation` on `IP-1124`. |
 | 265 | 2026-07-19 | advance (iterate) | `09-package-verification` | `IP-1129` | ✅ **`VERIFIED`** ([VR-1129](../implementation/verification/VR-1129-infinite-mode-combat-weapon-tier-funding.md)). ROM rebuild (32768 bytes); full suite **387/387**; `T38.a`-`e` (5 checks) reconfirmed. Implementing commit `95391e5`'s own `asm_game.py` diff confirmed **purely additive** (0 removed/modified lines); `inf_tier_spend` quoted and compared line-for-line against `inf_heal_spend`'s own already-`VERIFIED` body — confirmed a byte-for-byte structural mirror (identical 16-bit-borrow decrement, identical `SCORE_DIRTY`-then-cap-check ordering). `inf_projectile_hittest`/`WEAPON_TIER`'s own boot-init both confirmed untouched. No player-reachable call site exists yet (`BL-0148`-class gap, unresolved, unchanged by this run) — direct-invoke testing is the correct method for this class of gap, not a shortfall. No scope excursion, no findings. Master Build Plan/`packages/INDEX.md`/verification `INDEX.md` updated: `IP-1129` → `VERIFIED`. No dependent package names `IP-1129`. **This closes the session's entire four-package `09-package-verification` backlog** (`IP-1123`/`IP-1126`/`IP-1128`/`IP-1129` all now `VERIFIED`, 0 `COMPLETE`-but-unverified packages remaining). No backlog triage needed beyond flipping `BL-0147`'s own last-owed clause. | `08-code-implementation` on `IP-1124` (save persistence) — `READY`, pre-`AUTHORIZED`, last node on the original critical path. |
+| 266 | 2026-07-19 | advance (iterate) | `08-code-implementation` | `IP-1124` | ✅ **`COMPLETE`.** Extended `save_to_sram`/`try_load_save` (single existing MBC1 bracket) with combat state under `SAVE_VERSION_VAL` `0x05`→`0x06`; new SRAM `0xA350`–`0xA371`. `SRAM_COMBAT_MODE` always written/restored as a flag (mirrors `SRAM_GAME_MODE`); `MOB_COUNT`/`MOB_DATA`/`WEAPON_TIER`/`PLAYER_HEALTH` additionally gated on `COMBAT_MODE` both ways. **Two genuine planning-gap corrections found and fixed during implementation, not silently patched over**: (1) the package's own §6 claimed one 34-byte contiguous WRAM span for a single `memcpy` — direct code read proved this false (`PROJ_ACTIVE`/`PROJ_X`/`PROJ_Y`/`PROJ_STEP_X` sit between `MOB_DATA` and `WEAPON_TIER`) — implemented as two separate transfers instead; (2) first-draft ordering restored `COMBAT_MODE` *before* the existing `inf_ensure_window` call, which immediately triggered `inf_materialize_mobs` and clobbered the just-restored mob data (caught by `T32.a`'s own first run, `[FAIL]`) — fixed by moving the restore to *after* `inf_ensure_window` but *before* `inf_record_combat_entry`. **One test-only fix, not a product defect**: `T32.a`'s own first draft read post-load state after a 60-tick settle (mirroring `T27.a2`'s own precedent) — but unlike `T27`'s static fields, `MOB_DATA` is live-mutated every frame by `inf_mob_move` once `COMBAT_MODE=1`, so the settle window let the just-restored mobs actually move before the check read them; fixed by reading back after 6 ticks instead. New suite `T32` (4 checks: `T32.a` real two-instance round trip, `T32.b` projectile non-persistence, `T32.c` pre-combat (`0x05`) compatibility mirroring `T27.d`, `T32.d` `COMBAT_MODE`-off non-write read directly from the raw `.ram` file). **393/393 suite passes.** ROM 32768 bytes (32414 used, unchanged — fit existing padding slack). `FR-11600` → Implemented; RTM row filled; `FR-11510`'s own stale "save/load half pending" note corrected (now closed); `FS-112` metadata + `GDS-07` new §7o added. **This closes the original six-package combat sub-mode critical path in full.** Harvested one Low doc-defect while reading `GDS-07` §7n incidentally (unrelated to this package's own diff): the collision-note paragraph names `IP-1129` where it means `IP-1127` — filed as **`BL-0163`**, triaged `SCHEDULED` (rides the standing doc-accuracy sweep family, not fixed here — out of this package's own scope). | **Session-boundary + gate, both ripe simultaneously.** `IP-1124`'s own `09-package-verification` needs a fresh session for genuine independence (same class of stop the manager already treated as genuine at runs #254/#260/#261) — not resumable this session. Separately, `IP-1127` (post-contact protection) is now structurally unblocked (`IP-1123` `VERIFIED` since run #262) but still `NOT AUTHORIZED` — its own G3 ask is now ripe for the first time this session. Ending the loop here per both. |
