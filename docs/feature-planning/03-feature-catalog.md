@@ -6,7 +6,10 @@
 > adjacency, `FEAT-2100` maze-aware transition-edge signaling — for `ADR-0012`'s post-ship
 > remediation, `BL-0064`/`0065`/`0067`); delta 2026-07-17 (new `FEAT-11000`, Infinite Mode combat
 > sub-mode, 82 requirements total, this project's first `FR-11xxx` Feature, `BL-0133`/`ADS-002`/
-> `MSTR-001` C11).** Owned by
+> `MSTR-001` C11); delta 2026-07-19 (`FEAT-11000`'s own Included Requirements grows by two —
+> `FR-11210` mob movement, `FR-11410` post-contact protection — both user-filed gaps found by
+> direct play, folded into the existing Feature per this document's own Step-1 cohesion rule, no
+> new `FEAT-xxxx` opened, no Epic/graph/release-bucket change, `BL-0156`/`BL-0158`).** Owned by
 > `05-feature-decomposition`. Derives from the closed
 > [RQ-01](../requirements/01-functional-requirements.md)/
 > [RQ-02](../requirements/02-non-functional-requirements.md) baseline, now 36 bootstrap `FR-xxxx`/
@@ -882,7 +885,13 @@
 > [FS-112](../features/FS-112-infinite-mode-combat-sub-mode.md) (2026-07-17). 3 Open Questions
 > recorded there (gating UI mechanism — architecture-level, may need a `03` round-trip;
 > damage-vs-heal-spend frame ordering; no-op heal-spend feedback), all routed to
-> `07-implementation-planning`.
+> `07-implementation-planning`. **Delta 2026-07-19:** two new sub-leaves baselined by
+> `04-requirements-engineering` — `FR-11210` (mob movement toward the player, `BL-0156`) and
+> `FR-11410` (post-contact player protection — invincibility frames + knockback + a per-mob
+> cooldown, combined, `BL-0158`) — both user-filed gaps found by direct play, folded into this
+> same Feature (no new capability boundary; see this entry's own Description/Included
+> Requirements below). Neither is specified in `FS-112` yet — that's `06-feature-specification`'s
+> own next touch on this Feature.
 
 - **Feature ID:** FEAT-11000
 - **Title:** Infinite Mode Combat Sub-Mode
@@ -894,14 +903,18 @@
   (alongside the existing Finite/Infinite toggle) that gates the sub-mode on for a save's entire
   life; per-region mob materialization drawn as a pure function of `(seed, row, col)`, independent
   of and uncorrelated with the region's own biome/treasure draws, up to six concurrent mobs
-  (adjustable default); a single-slot ranged projectile fired on player input, resolved against
-  mob hitboxes via `check_collisions`' own established point-in-box technique; a player health
-  value displayed via the existing heart-tile art, with a non-lethal setback (never a
-  `GAMESTATE` game-over) on reaching zero; a treasure-spent healing economy that decrements the
-  same `RUNNING_TREASURE_COUNT` `FEAT-10000`'s own win/high-score logic reads, not a second
-  ledger; and combat state (mob state, weapon tier, player health) persisted across save/load via
-  a new `SAVE_VERSION_VAL` bump, mirroring `FEAT-10000`'s/`FEAT-5100`'s own established
-  version-byte pattern.
+  (adjustable default); mobs move toward the player at an adjustable speed/update-rate once
+  materialized (`FR-11210`, `BL-0156` — mobs previously held their static materialized position
+  only); a single-slot ranged projectile fired on player input, resolved against mob hitboxes via
+  `check_collisions`' own established point-in-box technique; a player health value displayed via
+  the existing heart-tile art, with a non-lethal setback (never a `GAMESTATE` game-over) on
+  reaching zero, protected from immediate re-triggering by a combined invincibility-frame/
+  knockback/per-mob-cooldown mechanism (`FR-11410`, `BL-0158` — closes a real, confirmed gap
+  where sustained contact resolved a full health-loss-and-reset cycle in 3-4 frames, too fast to
+  perceive); a treasure-spent healing economy that decrements the same `RUNNING_TREASURE_COUNT`
+  `FEAT-10000`'s own win/high-score logic reads, not a second ledger; and combat state (mob
+  state, weapon tier, player health) persisted across save/load via a new `SAVE_VERSION_VAL`
+  bump, mirroring `FEAT-10000`'s/`FEAT-5100`'s own established version-byte pattern.
 - **Scope:** The complete combat sub-mode as one cohesive capability — gating, mob
   materialization/defeat, weapon fire/hit resolution, player health/setback, the healing economy,
   and save persistence are kept together here (nothing has been implemented yet to reveal a clean
@@ -913,8 +926,8 @@
   by this Feature, per `ADS-002`'s own Open Question 5 confirming this capability is additive and
   Infinite-Mode-exclusive — and the entire finite mode (`FEAT-9000`/`FEAT-4100`/`FEAT-5300`),
   confirmed unaffected by the same Open Question.
-- **Included Requirements:** FR-11100, FR-11200, FR-11300, FR-11400, FR-11500, FR-11600;
-  NFR-1500, NFR-4500.
+- **Included Requirements:** FR-11100, FR-11200, FR-11210, FR-11300, FR-11400, FR-11410,
+  FR-11500, FR-11600; NFR-1500, NFR-4500.
 - **Excluded Requirements:** FR-10100–FR-10600 (base Infinite Mode — `FEAT-10000`, unamended);
   FR-9100–FR-9200/FR-9160/FR-9161 (finite mode's own generation/treasure/win-condition group —
   `FEAT-9000`, confirmed unaffected).
@@ -949,7 +962,11 @@
   favorable (`R115` measured 1,378 bytes ROM headroom and 31 of 40 free OAM entries before this
   Feature's own implementation) — flagged honestly rather than assumed safe, per this catalog's
   own established discipline (`FEAT-10000`'s own Risk field set the precedent for naming
-  `UNCONFIRMED`/`NOT YET SIZED` NFRs directly).
+  `UNCONFIRMED`/`NOT YET SIZED` NFRs directly). **`FR-11210`/`FR-11410` (2026-07-19) add two more
+  not-yet-measured pieces of per-frame combat logic** (per-mob movement recomputation; per-mob
+  invincibility/cooldown state checks) inheriting the same `NFR-1500` obligation — the risk level
+  is unchanged (already Medium-High for the cycle-budget reason alone), but the surface area that
+  obligation now covers has grown.
 - **Suggested Verification Strategy:** Test — oracle/SM83 lockstep for mob materialization
   determinism (mirroring `FEAT-10000`'s own established methodology), direct-force integration
   checks for weapon hit/miss and defeat presentation, a save/load round-trip harness mirroring
@@ -959,7 +976,11 @@
   Questions are all resolved or committed as adjustable defaults (2026-07-17), and this stage
   invents no new ones. The exact mob species/count-per-region distribution, fire-input binding
   confirmation, setback mechanic details, and heal-spend rate are all named in the source FRs'
-  own Notes fields as `06`/`08` decisions, not open at this stage.
+  own Notes fields as `06`/`08` decisions, not open at this stage. **2026-07-19:** one more
+  sequencing point named at the requirements-review stage (`BL-0159`, `FR-11210`'s own Rationale)
+  — whether an already-adjacent mob keeps re-attempting movement or holds still once contact is
+  established — not blocking this stage either, routed the same way as the pre-existing Notes
+  fields, to `06`/`07`.
 
 ## FEAT-7100 — Procedural Music Generation (new — not yet implemented)
 
