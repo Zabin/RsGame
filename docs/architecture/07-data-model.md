@@ -509,8 +509,8 @@ package).
 |---|---|---|---|
 | `C6D5` | `PROJ_ACTIVE` | 1 byte | 0=no projectile in flight (default), 1=active |
 | `C6D6` | `PROJ_X` | 1 byte | projectile's own X, independent of `PLAYER_X` once fired |
-| `C6D7` | `PROJ_Y` | 1 byte | projectile's own Y, fixed at its spawn value (horizontal-only movement, see `PROJ_DIR`) |
-| `C6D8` | `PROJ_DIR` | 1 byte | 0=right, 1=left — mirrors `PLAYER_DIR`'s own real 2-value encoding (see note below) |
+| `C6D7` | `PROJ_Y` | 1 byte | projectile's own Y position (was fixed at spawn value under `IP-1122`; now steps per-frame — see `IP-1128`, §7n) |
+| `C6D8` | `PROJ_STEP_X` (was `PROJ_DIR`, renamed+redefined by `IP-1128`, §7n) | 1 byte | raw signed per-frame X step (two's-complement byte, directly `ADD`-able): `0x01`=+1, `0x00`=0, `0xFF`=−1 |
 | `C6D9` | `WEAPON_TIER` | 1 byte | damage dealt per hit, default 1, range 1-3 (persisted stat; funding mechanism not yet built) |
 
 **Named deviation from `IP-1122` §6's own phrasing:** the package's Files-to-Modify text
@@ -526,6 +526,14 @@ moves purely horizontally. `handle_play_input`'s new fire branch (A-button-just-
 `check_collisions`' own asymmetric point-in-box technique verbatim (unmodified) against
 `MOB_DATA`, subtracting `WEAPON_TIER` from a hit mob's health (floored at 0, calling
 `inf_mob_defeat` at zero) and always stopping the projectile on any hit. 5 bytes total.
+
+**Superseded by `IP-1128`, §7n (2026-07-19):** the horizontal-only firing/movement scheme
+documented in this paragraph is the original `IP-1122` as-built behavior. `IP-1128` replaces it
+with real eight-direction firing/motion — `PROJ_DIR` is renamed+redefined to `PROJ_STEP_X` in
+place (table above already reflects this) and `PROJ_Y` now steps per-frame instead of staying
+fixed at spawn. `inf_projectile_hittest` itself is unchanged (confirmed byte-for-byte identical by
+direct diff) — it already only ever read `PROJ_X`/`PROJ_Y`, so it is axis-agnostic without
+modification.
 
 ### 7k. Combat Sub-Mode: player health & economy WRAM — `IP-1123` (confirmed 2026-07-18, `COMBAT_ENTRY_X`/`Y` recording-order fixed 2026-07-19, `BL-0154`)
 
@@ -607,6 +615,39 @@ their values, not to where they live. No `MOB_DATA` layout change: `inf_mob_move
 the existing x/y bytes of an active slot (§7i, unchanged 5-byte-per-slot stride), moving one axis
 at a time toward the player, mirroring the player's own single-axis-per-frame D-pad movement
 shape (not the routine itself). 1 byte total.
+
+### 7n. Combat Sub-Mode: weapon directionality WRAM — `IP-1128` (confirmed 2026-07-19, `FR-11310`/`ADR-0021`)
+
+First unclaimed byte past `MOB_MOVE_TIMER`'s own end (`0xC6DE`, §7m).
+
+| Address | Name | Size | Purpose |
+|---|---|---|---|
+| `C6DF` | `PLAYER_FACING_X` | 1 byte | raw signed X step recording the player's last-held horizontal direction; boot-initialized to `0x01` (right), per `ADR-0021`'s default-rightward-shot decision |
+| `C6E0` | `PLAYER_FACING_Y` | 1 byte | raw signed Y step recording the player's last-held vertical direction; boot-initialized to `0x00` (no vertical bias) |
+| `C6E1` | `PROJ_STEP_Y` | 1 byte | the projectile's own transient per-frame Y step, copied from `PLAYER_FACING_Y` at fire time (mirrors `PROJ_STEP_X`/`PLAYER_FACING_X`, §7j) |
+
+**Design per `ADR-0021` Decision 1:** a new parallel field (`PLAYER_FACING_X`/`Y`), not a widening
+of `PLAYER_DIR` in place — `PLAYER_DIR` has an established external consumer (OAM X-flip render)
+that a 4/8-direction encoding would have broken, while the internal-only `PROJ_DIR` (exactly 2
+production-code consumers, both rewritten by this package's own supersession sweep) was safe to
+repurpose. All three new/renamed fields share the same raw-signed-step encoding (`0x01`/`0x00`/
+`0xFF`), chosen so movement and projectile code can do a plain register `ADD` with no decode step
+— appropriate for the SM83's lack of a multiply instruction.
+
+`handle_play_input`'s RIGHT/LEFT/UP/DOWN branches now each additionally write `PLAYER_FACING_X`/
+`Y` (in addition to their existing `PLAYER_X`/`Y`/`PLAYER_DIR` writes, all left otherwise
+unchanged); its fire branch copies `PLAYER_FACING_X`/`Y` into `PROJ_STEP_X`/`Y` at spawn time
+instead of reading `PLAYER_DIR`. `inf_projectile_update` steps both `PROJ_X` and `PROJ_Y`
+independently by their respective `PROJ_STEP_*` value the same frame (simultaneous per-axis
+stepping — the same "diagonal is faster than cardinal" property the player's own existing D-pad
+movement already has), checking the X boundary (`>= 153`, unchanged) and a new Y boundary
+(`< 8` or `>= 129`, mirroring `handle_play_input`'s own UP/DOWN clamp constants) before calling
+the unmodified `inf_projectile_hittest`. 3 bytes total.
+
+**Named planning-time WRAM collision:** `IP-1129` (still `BLOCKED`, unbuilt as of this package)
+also prospectively claims `0xC6DF`–`0xC6E0` for its own fields — a normal consequence of parallel
+implementation planning, to be resolved at build time by whichever package ships first (not a
+defect in either package's own plan).
 
 ### 8. Tile index map implication (cross-reference only — GDS-08 decides the actual strategy)
 

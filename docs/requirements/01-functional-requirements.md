@@ -2535,14 +2535,22 @@ none of FR-10000's own leaves are amended by this group. `FR-9000`'s finite mode
 - **Source Documents:** Direct user request, 2026-07-19 (`BL-0157`); `ADS-002`'s "Weapon
   Directionality Delta" (2026-07-19); `ADR-0021`; `R220`.
 - **Related ADRs:** `ADR-0021` (weapon-direction representation).
-- **Notes:** Not yet implemented. The exact bit-encoding of the new facing concept and its WRAM
-  address are `07-implementation-planning`'s own decision (`ADR-0021` names this explicitly as
-  not fixed at the architecture level). Whether the new facing value is written on every frame a
-  direction is held, or only on a transition, is also an implementation-level decision this FR
-  does not fix — either satisfies the "moving, else last-faced" semantics as an observable
-  behavior contract. `NFR-1500`'s own still-`UNCONFIRMED` per-frame cycle budget is a named
-  constraint (a second per-frame axis step in `inf_projectile_update`, plus a direction-decode in
-  `handle_play_input`), not resolved here. Does not require or imply new player sprite art
+- **Status:** Implemented (`IP-1128`, 2026-07-19). `PLAYER_FACING_X`/`PLAYER_FACING_Y` (WRAM
+  `0xC6DF`/`0xC6E0`) hold a raw signed per-frame step (`0x01`/`0x00`/`0xFF`), written every frame
+  `handle_play_input`'s own RIGHT/LEFT/UP/DOWN branches run (not only on a transition — an
+  implementation-level choice this FR left open, per the note below). `PROJ_STEP_X` (renamed in
+  place from `PROJ_DIR`, WRAM `0xC6D8`) and the new `PROJ_STEP_Y` (`0xC6E1`) copy that facing at
+  fire time; `inf_projectile_update` steps both axes independently every frame. Verified by
+  `T37.a`–`i` (`test_rom.py`).
+- **Notes:** The exact bit-encoding of the new facing concept and its WRAM address were
+  `07-implementation-planning`'s own decision (`ADR-0021` names this explicitly as not fixed at
+  the architecture level) — resolved above. Whether the new facing value is written on every
+  frame a direction is held, or only on a transition, was also an implementation-level decision
+  this FR left open — resolved above (every frame). `NFR-1500`'s own still-`UNCONFIRMED`
+  per-frame cycle budget was a named constraint (a second per-frame axis step in
+  `inf_projectile_update`, plus the extra facing writes in `handle_play_input`) — no budget
+  regression observed; `NFR-1500` itself remains `UNCONFIRMED` pending its own dedicated
+  measurement, unaffected by this leaf. Does not require or imply new player sprite art
   (`ADR-0021`'s own Decision 4) — the player's rendered sprite is unaffected by this leaf.
 
 ### FR-11400 — Player health and non-lethal setback

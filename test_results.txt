@@ -1,4 +1,4 @@
-BunnyQuest ROM Tests  PASS=373/373  FAIL=0
+BunnyQuest ROM Tests  PASS=382/382  FAIL=0
 ==================================================
 [PASS] T1.1 ROM size = 32768  (32768)
 [PASS] T1.2 Entry = NOP; JP
@@ -332,7 +332,7 @@ BunnyQuest ROM Tests  PASS=373/373  FAIL=0
 [PASS] T29.d Mob-count ceiling: MOB_COUNT never exceeds 6 across the corpus  (bad=[])
 [PASS] T29.e Defeat: active flag clears, MOB_COUNT decrements, no OAM entry written for the defeated slot  (active_after=0 count_after=0 oam=[0, 0, 0, 0])
 [PASS] T29.f OAM budget static audit: 1 player + up to 8 collectibles + 6 mobs <= 40 entries (NFR-4500)  (total=15)
-[PASS] T30.a Fire spawns a projectile at the player's own position/facing  (ok=True active=1 x=80 y=60 dir=1)
+[PASS] T30.a Fire spawns a projectile at the player's own position/facing  (ok=True active=1 x=80 y=60 dir=255)
 [PASS] T30.b No double-fire: pressing A while a projectile is active leaves its state unchanged  (ok=True active=1 x=40 y=90 dir=0)
 [PASS] T30.c Hit resolution: mob health reduced by WEAPON_TIER, defeated at zero (inf_mob_defeat's own effects), projectile stops  (ok=True health=0 active=0 count=0 proj_active=0)
 [PASS] T30.c2 Spot: a non-lethal hit reduces health by WEAPON_TIER without defeating the mob  (ok=True health=3 active=1 count=1 proj_active=0)
@@ -373,3 +373,12 @@ BunnyQuest ROM Tests  PASS=373/373  FAIL=0
 [PASS] T35.g COMBAT_MODE off: inf_mob_move is a complete no-op (mob position and MOB_MOVE_TIMER unchanged across multiple ticks)  (slot=(100, 60, 0, 1, 1) timer=1)
 [PASS] T35.h An inactive MOB_DATA slot is never moved (only active slots' positions change)  (ok=True slots=[(99, 60, 0, 1, 1), (100, 60, 0, 1, 0), (99, 60, 0, 1, 1), (100, 60, 0, 1, 0), (99, 60, 0, 1, 1), (100, 60, 0, 1, 0)])
 [PASS] T35.i Independent live drive: a real mob moves the expected total distance/direction toward the real player over several real recomputation intervals  (gs=2 player=(76,80) mob0=116 final=(113, 80, 0, 1, 1) expected_x=113 frames=17)
+[PASS] T37.a Firing while moving right spawns a projectile stepping (+1, 0)  (ok=True active=1 step=(1, 0))
+[PASS] T37.b Firing while moving up spawns a projectile stepping (0, -1)  (ok=True active=1 step=(0, -1))
+[PASS] T37.c Firing while moving diagonally (RIGHT+UP) spawns a projectile stepping (+1, -1)  (ok=True active=1 step=(1, -1))
+[PASS] T37.d All eight compass directions reachable, each producing its own correct (step_x, step_y)  (bad=[])
+[PASS] T37.e Firing while stationary uses the most recently held movement direction  (ok=True active=1 step=(0, -1))
+[PASS] T37.f A fresh, never-moved session fires rightward by default (not a directionless (0,0) shot)  (ok=True active=1 step=(1, 0))
+[PASS] T37.g Y-axis boundary: projectile deactivates cleanly on exiting the window vertically  (proj_active=0 steps=3)
+[PASS] T37.h Hit resolution works correctly for a non-cardinal (diagonal) projectile  (ok=True health=0 active=0 proj_active=0)
+[PASS] T37.i Independent live drive: a real diagonally-fired projectile moves on both axes over several real ticks  (gs=2 proj_active=1 player0=(76,80) proj0=(78,78) proj1=(83,73))

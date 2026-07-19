@@ -126,7 +126,7 @@
 | FR-11200 | Mob presence, materialization, and non-graphic defeat (Implemented — 2026-07-18) | R218, R115 | ADS-002 §System Architecture, §Domain Model | ADR-0007 | `asm_game.py`, `worldgen.py` | FS-112 | IP-1121 | T29.a-f |
 | FR-11210 | Mob movement toward the player (delta 2026-07-19, `BL-0156` — Implemented 2026-07-19) | — | — | — | `asm_game.py` | FS-112 | IP-1126 | T35.a-i |
 | FR-11300 | Ranged weapon fire and hit resolution (Implemented — 2026-07-18) | R115 | ADS-002 §System Architecture | — | `asm_game.py` | FS-112 | IP-1122 | T30.a-e, T30.c2 |
-| FR-11310 | Movement-based multi-directional weapon fire (delta 2026-07-19, `BL-0157` — Should, planned, not yet implemented) | R220 | ADS-002 "Weapon Directionality Delta" | ADR-0021 | `asm_game.py` | FS-112 | IP-1128 | T37 (planned) |
+| FR-11310 | Movement-based multi-directional weapon fire (delta 2026-07-19, `BL-0157` — Should, Implemented `IP-1128` 2026-07-19) | R220 | ADS-002 "Weapon Directionality Delta" | ADR-0021 | `asm_game.py` | FS-112 | IP-1128 | T37.a–i |
 | FR-11400 | Player health and non-lethal setback (Implemented — 2026-07-18, region-entry-point ordering fixed 2026-07-19, `BL-0154`) | R218 | ADS-002 §Domain Model | — | `asm_game.py` | FS-112 | IP-1123 | T31.a-c, T31.f-g |
 | FR-11410 | Post-contact player protection: invincibility, knockback, cooldown (delta 2026-07-19, `BL-0158` — Should, direct user decision, planned, not yet implemented) | — | — | — | `asm_game.py` | FS-112 | IP-1127 | T36 (planned) |
 | FR-11500 | Treasure-spent healing economy (Implemented — 2026-07-18) | — | ADS-002 §Domain Model | — | `asm_game.py` | FS-112 | IP-1123 | T31.d, T31.d2, T31.e, T31.f |
