@@ -2366,8 +2366,7 @@ none of FR-10000's own leaves are amended by this group. `FR-9000`'s finite mode
   inactive generally, shall not move — mirroring `FR-11200`'s own strict-additivity postcondition.
 - **Rationale:** User request, 2026-07-19 (`BL-0156`, filed via `00-intake`): mobs currently never
   move once materialized, which the user identified directly by playing the shipped build.
-- **Priority:** Should (a real, user-requested gap — not yet implemented, no existing Acceptance
-  Criterion required it, so its absence is not a defect against any prior baseline).
+- **Priority:** Should (Implemented — 2026-07-19, `IP-1126`).
 - **Inputs:** The mob's own current position (`FR-11200`); the player's current position.
 - **Outputs:** An updated mob position, applied at the adjustable recomputation interval.
 - **Preconditions:** `COMBAT_MODE` active; the mob slot is active (`FR-11200`).
@@ -2397,13 +2396,23 @@ none of FR-10000's own leaves are amended by this group. `FR-9000`'s finite mode
   recomputation, even at a reduced update rate, adds real cost on top of `IP-1121`/`IP-1122`'s
   own already-unmeasured combat-mode frame cost), not a blocker on baselining the requirement
   itself.
-- **Notes:** Not yet implemented — `07-implementation-planning` inherits the obligation to
-  measure `NFR-1500` against this leaf's own real per-frame cost once built, per that NFR's
-  existing Acceptance Criteria (it already requires measurement "before the owning implementation
-  package is considered `COMPLETE`," and does not distinguish which combat-mode leaf caused the
-  cost). Concrete numeric defaults for speed/update-rate are `06`/`07`'s own decision, same as
-  `FR-11200`'s own mob-count/species distribution — this FR fixes only that both must be
-  independently tunable, not their specific values.
+- **Notes:** **2026-07-19 (`IP-1126`):** implemented as `inf_mob_move` (per-frame, hooked into
+  `st_playing` alongside `inf_projectile_update`/`inf_mob_contact_check`), gated on `COMBAT_MODE`.
+  Concrete adjustable-default values chosen: `MOB_MOVE_INTERVAL = 8` (frames between recomputation
+  ticks) and `MOB_MOVE_STEP = 1` (pixels moved per tick on the dominant axis) — both plain
+  Python-level tuning constants in `asm_game.py`, not WRAM, per this FR's own "independently
+  adjustable defaults, not fixed architectural constants" framing. A new WRAM byte,
+  `MOB_MOVE_TIMER` (`0xC6DE`), holds the per-mob-move countdown. Dominant-axis tie (`|dx| ==
+  |dy|`) favors X, an implementation-level tiebreak this FR did not itself constrain. A mob
+  already exactly coincident with the player (`dx == 0` and `dy == 0`) holds still rather than
+  jittering — `FS-112` Open Question 4's own resolution. `T35.a`–`i` verify per-axis movement,
+  cadence, the coincident case, `COMBAT_MODE`-off, inactive-slot exclusion, and (`T35.i`) the real
+  per-frame chain via live `PyBoy` drive. **Outstanding:** `NFR-1500`'s own direct per-frame
+  cycle-count measurement remains `UNCONFIRMED` — this package adds new per-frame cost
+  (`inf_mob_move`'s own six-slot walk) on top of `IP-1121`/`IP-1122`/`IP-1123`'s own
+  already-unmeasured combat-mode cost, but performing that measurement is outside this
+  implementation package's own named scope (`NFR-1500` is a pre-existing tracked gap spanning the
+  whole combat sub-mode, not created by this leaf) and remains owed.
 
 ### FR-11300 — Ranged weapon fire and hit resolution
 

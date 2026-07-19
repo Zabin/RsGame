@@ -593,6 +593,21 @@ overlay" technique `draw_sse_digits`/`draw_ise_digits` already use for their own
 content. `tilemaps.py`/`ALL_SCREENS` are not touched by this package at all. Net ROM growth:
 ~256 bytes (measured), against the original design's ~1,408 bytes.
 
+### 7m. Combat Sub-Mode: mob movement WRAM — `IP-1126` (confirmed 2026-07-19, `FR-11210`/`BL-0156`)
+
+First unclaimed byte past `CMC_CURSOR`'s own end (`0xC6DD`, §7l).
+
+| Address | Name | Size | Purpose |
+|---|---|---|---|
+| `C6DE` | `MOB_MOVE_TIMER` | 1 byte | per-mob-move countdown, gates `inf_mob_move`'s own `MOB_MOVE_INTERVAL`-frame cadence; boot-cleared to 0, which is harmless — a 0 timer moves immediately on the first eligible frame rather than waiting a full interval |
+
+`MOB_MOVE_INTERVAL` (= 8) and `MOB_MOVE_STEP` (= 1) are plain Python-level tuning constants in
+`asm_game.py`, not WRAM — `FR-11210`'s own "independently adjustable defaults" framing applies to
+their values, not to where they live. No `MOB_DATA` layout change: `inf_mob_move` only ever writes
+the existing x/y bytes of an active slot (§7i, unchanged 5-byte-per-slot stride), moving one axis
+at a time toward the player, mirroring the player's own single-axis-per-frame D-pad movement
+shape (not the routine itself). 1 byte total.
+
 ### 8. Tile index map implication (cross-reference only — GDS-08 decides the actual strategy)
 
 **ADR-0009**'s biome-family `Region` identity (GDS-04's delta) needs tile budget per family,

@@ -347,6 +347,14 @@ COMBAT_ENTRY_Y  = 0xC6DC  # 1 byte -- PLAYER_Y at the last region-entry event.
 # state entry (cmc_on_entry), the same convention MM_CURSOR itself uses.
 CMC_CURSOR = 0xC6DD  # 1 byte -- this state's own Y/N cursor: 0="N" (default), nonzero="Y".
 
+# IP-1126: per-frame countdown to the next mob movement tick (FR-11210). Boot-cleared to 0,
+# which is harmless -- inf_mob_move simply recomputes/resets it on the first eligible frame.
+MOB_MOVE_TIMER = 0xC6DE  # 1 byte -- counts down from MOB_MOVE_INTERVAL to 0 each combat frame.
+
+# IP-1126 adjustable defaults (FR-11210) -- not WRAM, plain Python-level tuning constants.
+MOB_MOVE_INTERVAL = 8  # frames between mob movement ticks (lower = faster-updating mobs)
+MOB_MOVE_STEP = 1      # pixels a mob moves per tick, on its dominant axis toward the player
+
 SAVE_VERSION_ADDR = 0xA012   # save-format version guard (FR-5220 / Design Decision 2)
 SAVE_VERSION_VAL  = 0x05     # bumped 0x04->0x05 (IP-1104, fifth bump since ship — the
                               # value sequence is strictly monotonic, never reused). A single
@@ -483,6 +491,10 @@ def build_game_asm(rom: ROM) -> dict:
     # state). MOB_DATA's own 30 bytes need no boot clear -- MOB_COUNT == 0
     # gates validity, the same convention LEDGER/COLL_DATA already use.
     rom.XOR_A(); rom.LD_nn_A(COMBAT_MODE); rom.LD_nn_A(MOB_COUNT)
+
+    # Clear MOB_MOVE_TIMER (IP-1126) -- harmless at 0, inf_mob_move recomputes/
+    # resets it on the first eligible frame (see the WRAM comment above).
+    rom.XOR_A(); rom.LD_nn_A(MOB_MOVE_TIMER)
 
     # Clear PROJ_ACTIVE, init WEAPON_TIER to 1 (IP-1122) -- same targeted-
     # clear rationale as COMBAT_MODE/MOB_COUNT immediately above. PROJ_X/Y/
@@ -631,6 +643,7 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_nn(NEED_REDRAW); rom.OR_A()
     rom.JP_NZ('end_frame')
     rom.CALL('check_collisions')
+    rom.CALL('inf_mob_move')           # IP-1126: no-op unless COMBAT_MODE
     rom.CALL('inf_projectile_update')  # IP-1122: no-op unless COMBAT_MODE/PROJ_ACTIVE
     rom.CALL('inf_mob_contact_check')  # IP-1123: no-op unless COMBAT_MODE
     rom.CALL('check_zone_transition')
@@ -3398,6 +3411,128 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_nn(MOB_COUNT); rom.OR_A(); rom.JR_Z('imd_done')
     rom.DEC_A(); rom.LD_nn_A(MOB_COUNT)
     rom.label('imd_done')
+    rom.RET()
+
+    # ── inf_mob_move (IP-1126, FR-11210) ────────────────────
+    # Called once per frame from st_playing (gated on COMBAT_MODE -- a
+    # no-op call otherwise, matching every other combat-sub-mode routine's
+    # own additive discipline). MOB_MOVE_TIMER gates the cadence: a timer
+    # already at 0 (the boot value, or freshly wrapped) moves immediately
+    # without decrementing first -- this is what makes a boot-cleared timer
+    # "recompute on the very first eligible frame" (this file's own WRAM
+    # comment on MOB_MOVE_TIMER); a nonzero timer decrements once, and if
+    # that decrement itself reaches 0, the move happens on this same frame
+    # too (so forcing the timer to 1 and ticking one frame moves the mob,
+    # not merely counts down to 0 -- T35.a). Either way, reaching 0 resets
+    # the timer to MOB_MOVE_INTERVAL, giving a clean MOB_MOVE_INTERVAL-frame
+    # gap between one move and the next. On a move, every active MOB_DATA
+    # slot takes one MOB_MOVE_STEP-pixel step toward the player on its
+    # dominant axis (|dx| vs |dy| -- ties favor X), holding still when the
+    # mob is already exactly coincident with the player (dx==0 and dy==0,
+    # resolving FS-112's own Open Question 4). Direction is recomputed on
+    # the winning axis only rather than stashed for both, a deliberate
+    # register-pressure tradeoff. Reuses inf_mob_contact_check's own
+    # slot-walk/PUSH_BC+PUSH_HL discipline verbatim. Clobbers A/B/C/D/E/H/L.
+    rom.label('inf_mob_move')
+    rom.LD_A_nn(COMBAT_MODE); rom.OR_A(); rom.RET_Z()
+
+    rom.LD_A_nn(MOB_MOVE_TIMER); rom.OR_A(); rom.JR_Z('imv_move_reset')
+    rom.DEC_A(); rom.JR_Z('imv_move_reset')
+    rom.LD_nn_A(MOB_MOVE_TIMER)
+    rom.RET()
+    rom.label('imv_move_reset')
+    rom.LD_A_n(MOB_MOVE_INTERVAL); rom.LD_nn_A(MOB_MOVE_TIMER)
+
+    rom.label('imv_move_pass')
+    rom.LD_HL_nn(MOB_DATA)
+    rom.LD_B_n(0)
+    rom.label('imv_loop')
+    rom.LD_E_HL(); rom.INC_HL()     # E = mob x, HL -> y
+    rom.LD_D_HL(); rom.INC_HL()     # D = mob y, HL -> species
+    rom.INC_HL()                     # skip species, HL -> health
+    rom.INC_HL()                     # skip health, HL -> active
+    rom.LD_A_HL()                    # A = active (HL still -> active byte)
+    rom.PUSH_BC(); rom.PUSH_HL()
+    rom.OR_A(); rom.JR_Z('imv_skip')
+
+    # ax = |mob_x - PLAYER_X| -> C
+    rom.LD_A_nn(PLAYER_X); rom.LD_H_A()
+    rom.LD_A_E(); rom.emit(0xBC)     # CP H: mob_x vs player_x
+    rom.JR_Z('imv_ax_zero')
+    rom.JR_C('imv_ax_neg')
+    rom.LD_A_E(); rom.emit(0x94)     # SUB H: A = mob_x - player_x
+    rom.JR('imv_ax_done')
+    rom.label('imv_ax_neg')
+    rom.LD_A_H(); rom.SUB_E()        # A = player_x - mob_x
+    rom.JR('imv_ax_done')
+    rom.label('imv_ax_zero')
+    rom.XOR_A()
+    rom.label('imv_ax_done')
+    rom.LD_C_A()
+
+    # ay = |mob_y - PLAYER_Y| -> L
+    rom.LD_A_nn(PLAYER_Y); rom.LD_H_A()
+    rom.LD_A_D(); rom.emit(0xBC)     # CP H: mob_y vs player_y
+    rom.JR_Z('imv_ay_zero')
+    rom.JR_C('imv_ay_neg')
+    rom.LD_A_D(); rom.emit(0x94)     # SUB H: A = mob_y - player_y
+    rom.JR('imv_ay_done')
+    rom.label('imv_ay_neg')
+    rom.LD_A_H(); rom.SUB_D()        # A = player_y - mob_y
+    rom.JR('imv_ay_done')
+    rom.label('imv_ay_zero')
+    rom.XOR_A()
+    rom.label('imv_ay_done')
+    rom.LD_L_A()
+
+    # coincident (ax==0 and ay==0) -> hold still
+    rom.LD_A_C(); rom.OR_A(); rom.JR_NZ('imv_pick_axis')
+    rom.LD_A_L(); rom.OR_A(); rom.JR_Z('imv_skip')
+
+    # dominant axis: X if ax >= ay, else Y (winner's magnitude is always
+    # nonzero here -- the only both-zero case was just handled above)
+    rom.label('imv_pick_axis')
+    rom.LD_A_C(); rom.emit(0xBD)     # CP L: ax vs ay; carry set if ax<ay
+    rom.JR_C('imv_axis_y')
+
+    rom.label('imv_axis_x')
+    rom.LD_A_nn(PLAYER_X); rom.LD_H_A()
+    rom.LD_A_E(); rom.emit(0xBC)     # CP H: mob_x vs player_x
+    rom.JR_C('imv_x_inc')
+    rom.POP_HL()                     # HL -> active byte; walk back to x
+    rom.DEC_HL(); rom.DEC_HL(); rom.DEC_HL(); rom.DEC_HL()
+    rom.LD_A_HL(); rom.SUB_n(MOB_MOVE_STEP); rom.LD_HL_A()
+    rom.INC_HL(); rom.INC_HL(); rom.INC_HL(); rom.INC_HL()
+    rom.JR('imv_advance')
+    rom.label('imv_x_inc')
+    rom.POP_HL()
+    rom.DEC_HL(); rom.DEC_HL(); rom.DEC_HL(); rom.DEC_HL()
+    rom.LD_A_HL(); rom.ADD_A_n(MOB_MOVE_STEP); rom.LD_HL_A()
+    rom.INC_HL(); rom.INC_HL(); rom.INC_HL(); rom.INC_HL()
+    rom.JR('imv_advance')
+
+    rom.label('imv_axis_y')
+    rom.LD_A_nn(PLAYER_Y); rom.LD_H_A()
+    rom.LD_A_D(); rom.emit(0xBC)     # CP H: mob_y vs player_y
+    rom.JR_C('imv_y_inc')
+    rom.POP_HL()                     # HL -> active byte; walk back to y
+    rom.DEC_HL(); rom.DEC_HL(); rom.DEC_HL()
+    rom.LD_A_HL(); rom.SUB_n(MOB_MOVE_STEP); rom.LD_HL_A()
+    rom.INC_HL(); rom.INC_HL(); rom.INC_HL()
+    rom.JR('imv_advance')
+    rom.label('imv_y_inc')
+    rom.POP_HL()
+    rom.DEC_HL(); rom.DEC_HL(); rom.DEC_HL()
+    rom.LD_A_HL(); rom.ADD_A_n(MOB_MOVE_STEP); rom.LD_HL_A()
+    rom.INC_HL(); rom.INC_HL(); rom.INC_HL()
+    rom.JR('imv_advance')
+
+    rom.label('imv_skip')
+    rom.POP_HL()
+    rom.label('imv_advance')
+    rom.INC_HL()
+    rom.POP_BC(); rom.INC_B()
+    rom.LD_A_B(); rom.CP_n(6); rom.JP_C('imv_loop')  # JP: body exceeds JR's +-127 range
     rom.RET()
 
     # ── inf_projectile_update (IP-1122, FR-11300) ──────────

@@ -115,6 +115,7 @@ from pyboy import PyBoy
 # what build_rom.py's real build produces for the same source.
 from gbc_lib import ROM as _ROM
 from asm_game import build_game_asm as _build_game_asm
+from asm_game import MOB_MOVE_STEP, MOB_MOVE_INTERVAL
 import worldgen
 _gw_rom = _ROM()
 _build_game_asm(_gw_rom)
@@ -4365,6 +4366,174 @@ check("T34.c Distinctness: mob/projectile art is visually distinct (byte-for-byt
 check("T34.d Palette budget: OBJ_PALETTES table still holds exactly 8 fixed-size entries (mob/projectile reuse the two previously-placeholder 'unused/white' slots, no new slot added)",
       len(_build_rom_mod.OBJ_PALETTES) == 8 and all(len(p) == 4 for p in _build_rom_mod.OBJ_PALETTES),
       f"count={len(_build_rom_mod.OBJ_PALETTES)}")
+
+print("\n=== T35: Combat Sub-Mode — Mob Movement (IP-1126) ===")
+
+MOB_MOVE_TIMER_ADDR = 0xC6DE
+IMV_ADDR = _gw_rom.labels['inf_mob_move']
+
+def t35_reset(pb, combat_mode=1, timer=0):
+    pb.memory[GAME_MODE] = 1
+    pb.memory[COMBAT_MODE_ADDR] = combat_mode
+    pb.memory[MOB_COUNT_ADDR] = 0
+    for i in range(6):
+        base = MOB_DATA_ADDR + i * 5
+        for k in range(5): pb.memory[base + k] = 0
+    pb.memory[MOB_MOVE_TIMER_ADDR] = timer
+
+def t35_set_slot(pb, slot, x, y, species=0, health=1, active=1):
+    base = MOB_DATA_ADDR + slot * 5
+    pb.memory[base + 0] = x; pb.memory[base + 1] = y
+    pb.memory[base + 2] = species; pb.memory[base + 3] = health
+    pb.memory[base + 4] = active
+
+def t35_slot(pb, slot):
+    base = MOB_DATA_ADDR + slot * 5
+    return tuple(pb.memory[base + k] for k in range(5))
+
+pb = fresh_boot(180)
+advance_to_playing(pb)
+
+# T35.a — a mob directly right of the player moves left by exactly
+# MOB_MOVE_STEP after one recomputation interval elapses (timer forced to
+# 1 -- decrementing to 0 this same frame moves it, per inf_mob_move's own
+# "reaches 0 this frame" rule, not merely counting down to 0 unmoved).
+t35_reset(pb, timer=1)
+pb.memory[PLAYER_X] = 80; pb.memory[PLAYER_Y] = 60
+t35_set_slot(pb, 0, 100, 60)
+_t35a_ok = invoke_no_arg(pb, IMV_ADDR)
+_t35a_slot = t35_slot(pb, 0)
+check("T35.a A mob directly right of the player moves left by exactly MOB_MOVE_STEP after one recomputation interval elapses",
+      _t35a_ok and _t35a_slot[0] == 100 - MOB_MOVE_STEP and _t35a_slot[1] == 60,
+      f"ok={_t35a_ok} slot={_t35a_slot}")
+
+# T35.b — the Y-axis counterpart: a mob directly below the player moves up.
+t35_reset(pb, timer=1)
+pb.memory[PLAYER_X] = 80; pb.memory[PLAYER_Y] = 60
+t35_set_slot(pb, 0, 80, 100)
+_t35b_ok = invoke_no_arg(pb, IMV_ADDR)
+_t35b_slot = t35_slot(pb, 0)
+check("T35.b A mob directly below the player moves up by exactly MOB_MOVE_STEP (dominant-axis choice is not X-only)",
+      _t35b_ok and _t35b_slot[1] == 100 - MOB_MOVE_STEP and _t35b_slot[0] == 80,
+      f"ok={_t35b_ok} slot={_t35b_slot}")
+
+# T35.c — diagonal offset with |dx| > |dy|: moves only on X this interval.
+t35_reset(pb, timer=1)
+pb.memory[PLAYER_X] = 80; pb.memory[PLAYER_Y] = 60
+t35_set_slot(pb, 0, 100, 70)   # dx=20, dy=10
+_t35c_ok = invoke_no_arg(pb, IMV_ADDR)
+_t35c_slot = t35_slot(pb, 0)
+check("T35.c Diagonal offset (|dx|>|dy|) moves only on the X axis this interval, Y unchanged",
+      _t35c_ok and _t35c_slot[0] == 100 - MOB_MOVE_STEP and _t35c_slot[1] == 70,
+      f"ok={_t35c_ok} slot={_t35c_slot}")
+
+# T35.d — the symmetric case: |dy| > |dx| moves only on the Y axis.
+t35_reset(pb, timer=1)
+pb.memory[PLAYER_X] = 80; pb.memory[PLAYER_Y] = 60
+t35_set_slot(pb, 0, 90, 100)   # dx=10, dy=40
+_t35d_ok = invoke_no_arg(pb, IMV_ADDR)
+_t35d_slot = t35_slot(pb, 0)
+check("T35.d Symmetric case (|dy|>|dx|) moves only on the Y axis",
+      _t35d_ok and _t35d_slot[1] == 100 - MOB_MOVE_STEP and _t35d_slot[0] == 90,
+      f"ok={_t35d_ok} slot={_t35d_slot}")
+
+# T35.e — a mob already coincident with the player does not move on a
+# recomputation interval (FS-112 Open Question 4's own resolution).
+t35_reset(pb, timer=1)
+pb.memory[PLAYER_X] = 80; pb.memory[PLAYER_Y] = 60
+t35_set_slot(pb, 0, 80, 60)
+_t35e_ok = invoke_no_arg(pb, IMV_ADDR)
+_t35e_slot = t35_slot(pb, 0)
+check("T35.e A mob already coincident with the player does not move on a recomputation interval",
+      _t35e_ok and _t35e_slot[0] == 80 and _t35e_slot[1] == 60,
+      f"ok={_t35e_ok} slot={_t35e_slot}")
+
+# T35.f — no movement occurs before MOB_MOVE_TIMER reaches 0: force the
+# timer above 1, tick one frame, confirm no movement and the timer
+# decremented by exactly 1.
+t35_reset(pb, timer=5)
+pb.memory[PLAYER_X] = 80; pb.memory[PLAYER_Y] = 60
+t35_set_slot(pb, 0, 100, 60)
+_t35f_ok = invoke_no_arg(pb, IMV_ADDR)
+_t35f_slot = t35_slot(pb, 0)
+_t35f_timer = pb.memory[MOB_MOVE_TIMER_ADDR]
+check("T35.f No movement occurs before MOB_MOVE_TIMER reaches 0; timer decremented by exactly 1",
+      _t35f_ok and _t35f_slot[0] == 100 and _t35f_slot[1] == 60 and _t35f_timer == 4,
+      f"ok={_t35f_ok} slot={_t35f_slot} timer={_t35f_timer}")
+
+# T35.g — COMBAT_MODE off: inf_mob_move is a complete no-op, mob position
+# and MOB_MOVE_TIMER both unchanged across multiple ticks.
+t35_reset(pb, combat_mode=0, timer=1)
+pb.memory[PLAYER_X] = 80; pb.memory[PLAYER_Y] = 60
+t35_set_slot(pb, 0, 100, 60)
+for _ in range(3): invoke_no_arg(pb, IMV_ADDR)
+_t35g_slot = t35_slot(pb, 0)
+_t35g_timer = pb.memory[MOB_MOVE_TIMER_ADDR]
+check("T35.g COMBAT_MODE off: inf_mob_move is a complete no-op (mob position and MOB_MOVE_TIMER unchanged across multiple ticks)",
+      _t35g_slot[0] == 100 and _t35g_slot[1] == 60 and _t35g_timer == 1,
+      f"slot={_t35g_slot} timer={_t35g_timer}")
+
+# T35.h — an inactive MOB_DATA slot is never moved: alternate active/
+# inactive slots at the same relative offset from the player, confirm only
+# the active ones move.
+t35_reset(pb, timer=1)
+pb.memory[PLAYER_X] = 80; pb.memory[PLAYER_Y] = 60
+for i in range(6):
+    t35_set_slot(pb, i, 100, 60, active=(1 if i % 2 == 0 else 0))
+_t35h_ok = invoke_no_arg(pb, IMV_ADDR)
+_t35h_slots = [t35_slot(pb, i) for i in range(6)]
+_t35h_expect = all(
+    (_t35h_slots[i][0] == 100 - MOB_MOVE_STEP if i % 2 == 0 else _t35h_slots[i][0] == 100)
+    and _t35h_slots[i][1] == 60
+    for i in range(6)
+)
+check("T35.h An inactive MOB_DATA slot is never moved (only active slots' positions change)",
+      _t35h_ok and _t35h_expect, f"ok={_t35h_ok} slots={_t35h_slots}")
+
+pb.stop()
+wipe_save()
+
+# T35.i — independent live drive through the real production per-frame
+# chain (not a direct-invoke force), mirroring VR-1121/VR-1122's own
+# established independent-verification discipline: drive the real MODE
+# SELECT -> COMBAT MODE CONFIRM (Y) -> INFINITE SEED ENTRY -> INTRO ->
+# PLAYING path, force a real mob a known distance right of the real player,
+# let several real recomputation intervals elapse via real pb.tick() calls
+# (st_playing's own per-frame chain, not invoke_no_arg), and confirm the
+# mob's own recorded position moved the expected total distance/direction.
+# Per inf_mob_move's corrected timer semantics (see its own header comment),
+# a timer forced to 0 moves immediately, then every MOB_MOVE_INTERVAL frames
+# thereafter -- moves land at frames 1, 1+MOB_MOVE_INTERVAL, 1+2*MOB_MOVE_INTERVAL, ...
+pb35i = fresh_boot(180)
+pb35i.button('a'); [pb35i.tick() for _ in range(40)]        # MAIN MENU -> MODE SELECT
+pb35i.button('down'); [pb35i.tick() for _ in range(40)]     # toggle infinite
+pb35i.button('a'); [pb35i.tick() for _ in range(40)]        # confirm -> COMBAT MODE CONFIRM
+pb35i.button('up'); [pb35i.tick() for _ in range(40)]       # toggle to "Y"
+pb35i.button('a'); [pb35i.tick() for _ in range(40)]        # confirm Y -> INFINITE SEED ENTRY
+enter_infinite_seed(pb35i, [4, 2, 0, 0, 0])
+pb35i.button('a'); [pb35i.tick() for _ in range(100)]       # confirm seed -> INTRO
+pb35i.button('a'); [pb35i.tick() for _ in range(40)]        # INTRO -> PLAYING
+
+_t35i_px = pb35i.memory[PLAYER_X]; _t35i_py = pb35i.memory[PLAYER_Y]
+pb35i.memory[MOB_COUNT_ADDR] = 1
+for i in range(6):
+    base = MOB_DATA_ADDR + i * 5
+    for k in range(5): pb35i.memory[base + k] = 0
+pb35i.memory[PROJ_ACTIVE_ADDR] = 0   # clear any menu-navigation A-press latched into a stray fire
+_t35i_mob_x0 = _t35i_px + 40
+t35_set_slot(pb35i, 0, _t35i_mob_x0, _t35i_py)
+pb35i.memory[MOB_MOVE_TIMER_ADDR] = 0
+
+_t35i_frames = 1 + 2 * MOB_MOVE_INTERVAL   # exactly 3 moves land within this many frames
+for _ in range(_t35i_frames): pb35i.tick()
+_t35i_final = t35_slot(pb35i, 0)
+_t35i_expected_x = _t35i_mob_x0 - 3 * MOB_MOVE_STEP
+check("T35.i Independent live drive: a real mob moves the expected total distance/direction toward the real player over several real recomputation intervals",
+      pb35i.memory[GAMESTATE] == 2 and _t35i_final[0] == _t35i_expected_x and _t35i_final[1] == _t35i_py,
+      f"gs={pb35i.memory[GAMESTATE]} player=({_t35i_px},{_t35i_py}) mob0={_t35i_mob_x0} "
+      f"final={_t35i_final} expected_x={_t35i_expected_x} frames={_t35i_frames}")
+pb35i.stop()
+wipe_save()
 
 # ══════════════════════════════════════════════════════
 # SUMMARY

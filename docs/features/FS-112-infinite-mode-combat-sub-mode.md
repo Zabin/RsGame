@@ -250,10 +250,9 @@ spending treasure to heal):** not yet defined — whether damage and a heal-spen
 the same frame, and in what order, is genuinely undecided (Open Question 3).
 
 **Edge case — an already-adjacent/overlapping mob's own movement recomputation (delta
-2026-07-19, `FR-11210`):** not yet defined — whether a mob that has already reached the player's
-position keeps attempting to recompute a further step each interval (a potential visual jitter
-case) or holds still once contact is established is genuinely undecided (Open Question 4,
-harvested at the requirements-review stage as `BL-0159`).
+2026-07-19, `FR-11210`).** **Resolved (`IP-1126`, 2026-07-19):** a mob exactly coincident with
+the player (`dx == 0` and `dy == 0`) holds still rather than re-attempting a further step each
+interval — no visual jitter (Open Question 4, `T35.e`).
 
 **Edge case — invincibility/knockback/cooldown interacting with mob movement (delta 2026-07-19,
 `FR-11210`/`FR-11410`):** during the post-contact invincibility window, a moving mob (Workflow B
@@ -261,8 +260,10 @@ step 4) may continue advancing toward the player's now-knocked-back position —
 mob's own movement should pause during the player's invincibility window, or continue
 unconditionally (simply failing to land a second hit because invincibility/cooldown block it
 regardless of proximity), is not decided here; either satisfies `FR-11410`'s own Acceptance
-Criteria as written, so this is named but not resolved (Open Question 4, same as the jitter case
-above — both are the same underlying "does mob movement pause near/at the player" question).
+Criteria as written, so this remains named but not resolved, owed to `IP-1127`. This is a
+distinct condition from the coincident-jitter case just above (mere contact-box adjacency/overlap
+is not the same as `dx==0, dy==0` exact coincidence), so `IP-1126`'s own resolution above does not
+settle it.
 
 **Edge case — player health reaching zero while treasure remains unspent:** the setback (§6
 Workflow D step 3) fires regardless of remaining treasure — treasure is a player *choice* to
@@ -569,18 +570,17 @@ against a clean slate the way the original six packages could.
    possible as a future presentation-layer touch but is not required by `FR-11500`; this
    subroutine has no real input binding yet regardless (`BL-0148`), so the no-op is not yet
    player-reachable either way.
-4. **(New, delta 2026-07-19, `BL-0159`) Whether an already-adjacent/overlapping mob keeps
-   re-attempting movement or holds still once contact is established is not decided.** `FR-11210`
-   requires distance-to-player to strictly decrease over recomputation intervals but explicitly
-   allows "the mob reaching the player's own position" as a valid terminal condition — it does not
-   state what happens on the *next* interval after that point is reached. The same question
-   determines whether `FR-11410`'s own post-contact knockback interacts cleanly with continued
-   mob movement (does a knocked-back player immediately have the mob start closing distance again,
-   or does the mob's own movement pause during the target's invincibility window). Named at the
+4. **Resolved (`IP-1126`, 2026-07-19): a mob exactly coincident with the player holds still.**
+   `FR-11210` requires distance-to-player to strictly decrease over recomputation intervals but
+   explicitly allows "the mob reaching the player's own position" as a valid terminal condition —
+   it did not state what happens on the *next* interval after that point is reached. `inf_mob_move`
+   resolves it as: when a mob's `dx == 0` and `dy == 0` relative to the player, the mob does not
+   re-attempt movement that interval — it does not jitter (`T35.e`). This does not by itself
+   resolve `FR-11410`'s own adjacent question (whether mob movement pauses during the player's
+   post-contact invincibility window) — that remains `IP-1127`'s own open sequencing choice, since
+   coincidence (`dx==0, dy==0`) and mere adjacency/overlap (a nonzero-but-in-contact-range
+   distance, `FR-11400`'s own `0<=dx<=7, 0<=dy<=15` box) are not the same condition. Named at the
    Requirements Review stage (`03-requirements-review.md` finding #24) rather than invented here.
-   Resolves at: `07-implementation-planning`, as an implementation-level sequencing choice —
-   either answer satisfies `FR-11210`/`FR-11410`'s own Acceptance Criteria as written, so this
-   does not require a requirements or architecture change either way.
 
 ## 20. Related ADRs
 
