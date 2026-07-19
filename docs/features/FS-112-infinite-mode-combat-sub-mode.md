@@ -241,10 +241,11 @@ and, later the same date, `FR-11310`/`FR-11510`).
 3a. **(FR-11510, delta 2026-07-19, second this date)** The player may, independently of step 3,
     choose to spend the same `RUNNING_TREASURE_COUNT` to permanently increase `WEAPON_TIER` by
     one, up to its own existing maximum — a sibling spend action sharing step 3's own currency,
-    not a second ledger. Spending at the maximum tier is a no-op (mirrors step 3's own
-    spend-at-max-health handling). Per `R219`'s grounded recommendation, a purchased tier increase
-    is permanent — not decremented by step 4's own setback or any other event, mirroring step 3's
-    own healing-spend permanence.
+    not a second ledger. Spending at the maximum tier still decrements `RUNNING_TREASURE_COUNT`,
+    just does not push `WEAPON_TIER` past its own cap — mirroring step 3's own shipped, tested
+    spend-at-max-health precedent exactly (`T31.d2`: the treasure is still spent, not a no-op).
+    Per `R219`'s grounded recommendation, a purchased tier increase is permanent — not decremented
+    by step 4's own setback or any other event, mirroring step 3's own healing-spend permanence.
 4. If player health reaches zero, a non-lethal setback triggers (e.g. returning the player to the
    last region entered, with treasure/health partially restored) — never a `GAMESTATE` transition
    to a game-over state, consistent with `MSTR-001` A5's fail-state-free base design holding
@@ -452,10 +453,13 @@ the current catalog.
 - **A pre-combat-mode save loaded after this Feature ships:** mirrors `FS-110`'s own
   version-guard precedent (a version-mismatched-for-this-field save simply lacks the combat
   fields, not offered garbage data) — the exact version value is not fixed here (§9).
-- **Spending treasure to upgrade the weapon with `RUNNING_TREASURE_COUNT` at zero, or with
-  `WEAPON_TIER` already at its own maximum (delta 2026-07-19, second this date):** the tier-spend
-  action has no effect in either case (FR-11510's own Preconditions) — not a crash or an
-  underflow, mirroring the existing heal-spend-at-zero-treasure precedent immediately above.
+- **Spending treasure to upgrade the weapon with `RUNNING_TREASURE_COUNT` at zero (delta
+  2026-07-19, second this date):** the tier-spend action has no effect (FR-11510's own
+  Precondition) — not a crash or an underflow, mirroring the existing heal-spend-at-zero-treasure
+  precedent immediately above. **Spending with `WEAPON_TIER` already at its own maximum:** unlike
+  the zero-treasure case, this is *not* a no-op — `RUNNING_TREASURE_COUNT` still decreases by the
+  spent amount, mirroring `FR-11500`'s own shipped, tested spend-at-max-health precedent exactly
+  (`T31.d2`); only the tier increase itself is floored at the maximum.
 
 ## 13. Performance Considerations
 
@@ -533,8 +537,9 @@ applied once this date for `FR-11210`/`FR-11410`:
    exists (FR-11500).
 9. **(delta 2026-07-19, second this date)** Spending treasure to upgrade the weapon reduces
    `RUNNING_TREASURE_COUNT` by exactly the spent amount and increases `WEAPON_TIER` by exactly 1,
-   up to but never past its own maximum; spending at the maximum tier is a no-op (spends nothing,
-   changes nothing), mirroring AC-8's own heal-at-max-health precedent; the same
+   up to but never past its own maximum; spending at the maximum tier still reduces
+   `RUNNING_TREASURE_COUNT` by the spent amount but does not push `WEAPON_TIER` past its cap,
+   mirroring AC-8's own heal-at-max-health precedent exactly (not itself a no-op); the same
    `RUNNING_TREASURE_COUNT` is spent from — no separate ledger; a purchased tier increase survives
    a mob-contact setback and a save/load round trip unchanged (FR-11510).
 10. A save/load round trip reproduces identical mob state, weapon tier, and player health; a
@@ -588,8 +593,8 @@ more criteria (`FR-11310`/`FR-11510`) in requirement order:
 - **Weapon-tier funding economy (AC-9, delta 2026-07-19, second this date):** direct-force
   integration check mirroring AC-8's own established methodology — force a known
   `RUNNING_TREASURE_COUNT`/`WEAPON_TIER`, trigger a tier-spend, confirm the exact decrement and
-  tier increase; spot-check spending at max tier is a no-op; confirm persistence across a
-  mob-contact setback and a save/load round trip.
+  tier increase; spot-check spending at max tier still decrements treasure without exceeding the
+  tier cap; confirm persistence across a mob-contact setback and a save/load round trip.
 - **Save/load (AC-10):** two-instance save/reload harness, mirroring `IP-1104`'s own T27 pattern,
   extended to mob state/weapon tier/player health.
 - **Determinism static audit (AC-11):** Inspection — direct code read of the mob-presence draw,

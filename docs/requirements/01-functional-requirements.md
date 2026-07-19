@@ -57,8 +57,9 @@
   persistent-purchase funding mechanism (grounded by `R219`'s survey of Contra's pickup-drop/
   full-reset model vs. Zelda's own currency-spent/never-lost shop-upgrade model, recommending the
   latter since this project's non-lethal setback has no "death" event for the former to hook
-  into), sharing `FR-11500`'s own `RUNNING_TREASURE_COUNT` currency and its "spend at cap is a
-  no-op" convention. Neither leaf is implemented yet; both name `NFR-1500`'s still-`UNCONFIRMED`
+  into), sharing `FR-11500`'s own `RUNNING_TREASURE_COUNT` currency and its "spends even at cap,
+  floored at the maximum" convention (`T31.d2`'s own precedent — not a no-op). Neither leaf is
+  implemented yet; both name `NFR-1500`'s still-`UNCONFIRMED`
   cycle budget as a constraint; both name an unresolved input-binding gap for their own spend/fire
   actions, mirroring `FR-11500`'s own still-open `BL-0148`.
 - **2026-07-19 — Two new sub-function leaves under the FR-11000 group, both closing user-filed
@@ -2724,26 +2725,27 @@ none of FR-10000's own leaves are amended by this group. `FR-9000`'s finite mode
 - **Inputs:** A tier-spend action; the current `RUNNING_TREASURE_COUNT`; the current `WEAPON_TIER`.
 - **Outputs:** An increased `WEAPON_TIER` (capped at its own existing maximum, 3); a reduced
   `RUNNING_TREASURE_COUNT`.
-- **Preconditions:** `COMBAT_MODE` active; `RUNNING_TREASURE_COUNT` > 0; `WEAPON_TIER` < its own
-  maximum (an at-max weapon has nothing left to spend on, mirroring `FR-11500`'s own
-  spend-at-max-health handling — `T31.d2`'s own precedent: spending is a no-op, not an error, once
-  the target is already at its cap).
-- **Postconditions:** `RUNNING_TREASURE_COUNT` decreases by the amount spent; `WEAPON_TIER`
-  increases correspondingly, never exceeding its own maximum; a purchased tier increase persists
-  indefinitely — no event in this feature's own model reduces `WEAPON_TIER` once raised.
+- **Preconditions:** `COMBAT_MODE` active; `RUNNING_TREASURE_COUNT` > 0.
+- **Postconditions:** `RUNNING_TREASURE_COUNT` decreases by the amount spent — including when
+  `WEAPON_TIER` is already at its own maximum, mirroring `FR-11500`'s own shipped, tested
+  precedent that a heal-spend at max health still spends the treasure (`T31.d2`), not a no-op;
+  `WEAPON_TIER` increases correspondingly, never exceeding its own maximum; a purchased tier
+  increase persists indefinitely — no event in this feature's own model reduces `WEAPON_TIER`
+  once raised.
 - **Acceptance Criteria:** Spending treasure to upgrade the weapon reduces `RUNNING_TREASURE_COUNT`
   by exactly the spent amount and increases `WEAPON_TIER` by exactly 1, up to but never past 3;
-  spending at `WEAPON_TIER == 3` still spends nothing and changes nothing (a no-op, mirroring
-  `FR-11500`'s own heal-at-max-health precedent); the same `RUNNING_TREASURE_COUNT`
-  `FR-10400`'s own top-score comparison reads is what this leaf spends from — no separate ledger;
-  a purchased tier increase survives a mob-contact setback (`FR-11400`) and a save/load round trip
-  (`FR-11600`) unchanged.
+  spending at `WEAPON_TIER == 3` still reduces `RUNNING_TREASURE_COUNT` by the spent amount but
+  does not push `WEAPON_TIER` past 3 (mirroring `FR-11500`'s own heal-at-max-health precedent
+  exactly, `T31.d2` — spends, does not exceed the cap, is not itself a no-op); the same
+  `RUNNING_TREASURE_COUNT` `FR-10400`'s own top-score comparison reads is what this leaf spends
+  from — no separate ledger; a purchased tier increase survives a mob-contact setback
+  (`FR-11400`) and a save/load round trip (`FR-11600`) unchanged.
 - **Dependencies:** `FR-11300` (the `WEAPON_TIER` stat this leaf funds); `FR-10300`/`FR-10400`
   (the treasure count this leaf spends from); `FR-11500` (the sibling economy leaf this shares its
-  currency and its "spend is a no-op at cap" convention with); `FR-11600` (this leaf's own
-  permanence claim depends on `WEAPON_TIER` already being a persisted, save-format field, which it
-  is as of `IP-1122`).
-- **Verification Method:** Test (direct-force spend/no-op-at-cap/persistence scenarios, mirroring
+  currency and its "spends even at cap, floored at the maximum" convention with); `FR-11600`
+  (this leaf's own permanence claim depends on `WEAPON_TIER` already being a persisted,
+  save-format field, which it is as of `IP-1122`).
+- **Verification Method:** Test (direct-force spend/spend-at-cap/persistence scenarios, mirroring
   `FR-11500`'s own established test methodology, `T31.d`/`T31.d2`/`T31.e`).
 - **Source Documents:** `ADS-002` §Domain Model; `BL-0147`; `R219`.
 - **Related ADRs:** None.
