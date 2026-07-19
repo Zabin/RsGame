@@ -14,38 +14,44 @@
 
 ## Position
 
-- **Updated:** 2026-07-19 (run #251)
-- **Increment:** Same as run #250, plus: **`05-feature-decomposition`** confirmed `FR-11210`/
-  `FR-11410` fold into the existing `FEAT-11000` catalog entry — no new Feature/Epic opened, no
-  structural change to Dependencies/Epic-membership/release-bucket (all cross-checked, not
-  assumed unaffected). Included Requirements grows 8→10. Feature Review finding #13 confirmed the
-  delta clean. Incremental update only (Feature Catalog + Feature Review touched; Epic Catalog,
-  Dependency Graph, Release Plan all confirmed unchanged, correctly left untouched).
+- **Updated:** 2026-07-19 (run #252)
+- **Increment:** Same as run #251, plus: **`06-feature-specification`** folded `FR-11210`/
+  `FR-11410` into `FS-112`'s own field set (Workflows/System Behaviour/Modules/Interfaces/Data
+  Model/Acceptance Criteria [renumbered 1→10]/Verification Plan all updated; new Open Question 4,
+  `BL-0159`). Found and fixed a pre-existing §12 citation error (mis-cited "Open Question 4" for
+  the already-resolved Open Question 3) while inserting the genuinely new one, named explicitly
+  rather than silently changed. `docs/features/INDEX.md` and `FEAT-11000`'s own forward-reference
+  metadata updated.
 - **Pipeline state:** Bootstrap stages 01–11 ✅; Release 2 GO. 45 packages `VERIFIED`, `IP-1123`
   `COMPLETE` (fix applied, own `09-package-verification` Pass 2 owed — **needs a fresh session**,
   implemented in run #249, same session as this run). `IP-1124` remains `NOT STARTED` (blocked on
   `IP-1123` reaching `VERIFIED`). `IP-1120`/`IP-1121`/`IP-1122`/`IP-1125` `VERIFIED`. `FR-11210`/
-  `FR-11410` baselined and cataloged (`FEAT-11000`) but unimplemented — `06-feature-specification`
-  owed next to fold both into `FS-112`. Standing, non-blocking doc/design work unchanged: the
-  doc-accuracy sweep family (`BL-0136`/`BL-0137`/`BL-0140`–`BL-0143`/`BL-0151`); `BL-0118`
-  (`NFR-1400` cycle-budget gap); `BL-0123` (`try_load_save` unneeded finite-mode work); `BL-0112`
-  (Infinite Mode run-end trigger); `BL-0097` (Medium, routed already); `BL-0130` (catalog text
-  gap); `BL-0147`/`BL-0148` (ride a future `04`/`06` touch); `BL-0149`/`BL-0150`/`BL-0152`/
-  `BL-0155`/`BL-0157`/`BL-0159` (all Low/unstated-priority, `SCHEDULED`, non-blocking).
-- **Backlog:** 159 entries, unchanged this run (`05`'s own review found no new defect — finding
-  #13 clean). `BL-0156`/`BL-0158` — notes updated to record the `05` fold-in, still `IN PIPELINE`,
-  next `06-feature-specification`. `BL-0154` still `IN PIPELINE` (fix applied run #249, `09` Pass
-  2 owed). `BL-0133` still `IN PIPELINE` (G3 granted — `IP-1120`/`IP-1121`/`IP-1122`/`IP-1125`
-  `VERIFIED`, `IP-1123` `COMPLETE` (fix applied, verification-owed), `IP-1124` `NOT STARTED`).
+  `FR-11410` baselined, cataloged (`FEAT-11000`), and now specified (`FS-112`) but unimplemented —
+  `07-implementation-planning` owed next to author package(s); no package can reach `08` without
+  a fresh G3 ask (new scope beyond the original "build all six" go-ahead). Standing, non-blocking
+  doc/design work unchanged: the doc-accuracy sweep family (`BL-0136`/`BL-0137`/`BL-0140`–
+  `BL-0143`/`BL-0151`); `BL-0118` (`NFR-1400` cycle-budget gap); `BL-0123` (`try_load_save`
+  unneeded finite-mode work); `BL-0112` (Infinite Mode run-end trigger); `BL-0097` (Medium,
+  routed already); `BL-0130` (catalog text gap); `BL-0147`/`BL-0148` (ride a future `04`/`06`
+  touch); `BL-0149`/`BL-0150`/`BL-0152`/`BL-0155`/`BL-0157`/`BL-0159` (all Low/unstated-priority,
+  `SCHEDULED`, non-blocking).
+- **Backlog:** 159 entries, unchanged this run (no new finding — the citation-error fix was
+  self-contained and documented inline in `FS-112`/the commit, not a standalone backlog item).
+  `BL-0156`/`BL-0158` still `IN PIPELINE`, next `07-implementation-planning`. `BL-0159` now also
+  cross-referenced as `FS-112`'s own Open Question 4. `BL-0154` still `IN PIPELINE` (fix applied
+  run #249, `09` Pass 2 owed). `BL-0133` still `IN PIPELINE` (G3 granted — `IP-1120`/`IP-1121`/
+  `IP-1122`/`IP-1125` `VERIFIED`, `IP-1123` `COMPLETE` (fix applied, verification-owed), `IP-1124`
+  `NOT STARTED`).
 - **Next step:** Two independent, parallel-eligible threads, neither blocking the other:
   (1) Fresh session: `09-package-verification` on `IP-1123` (Pass 2) — the sole remaining step
-  before `IP-1124` becomes eligible. (2) `06-feature-specification` on `FS-112`, folding in
-  `FR-11210`/`FR-11410`'s own new field content (no session-boundary constraint, can run this
-  session or a fresh one). No `NEEDS-USER` entry is currently ripe.
-- **Open gates:** **none.** G3 already covers `IP-1120`–`1125` in full (run #234); `FR-11210`/
-  `FR-11410` are requirements/spec-stage only, not yet packages, so G3 doesn't apply to them yet.
-  The fresh-session requirement on `IP-1123`'s own Pass 2 is a session-boundary constraint, not a
-  human decision gate.
+  before `IP-1124` becomes eligible. (2) `07-implementation-planning` on `FS-112`'s two new
+  leaves — authoring is not itself a G3 act, so this can proceed now; **the resulting package(s)
+  will need a fresh G3 authorization before `08-code-implementation` can pick them up**, since
+  they are new scope beyond the original "build all six" go-ahead — that will be the next genuine
+  gate. No `NEEDS-USER` entry is currently ripe.
+- **Open gates:** **none yet.** G3 already covers `IP-1120`–`1125` in full (run #234); `FR-11210`/
+  `FR-11410` remain planning-stage only. The fresh-session requirement on `IP-1123`'s own Pass 2
+  is a session-boundary constraint, not a human decision gate.
 
 ## Run log
 
@@ -306,3 +312,4 @@
 | 249 | 2026-07-19 | advance → queue empty (same session) | `08-code-implementation` | `IP-1123` (remediation re-run against `BL-0154`) | ✅ **`COMPLETE`.** Moved the "initial Infinite Mode entry" `inf_record_combat_entry` call from `st_infinite_seed_entry`'s own A-confirm handler into `st_intro`'s own A-press handler, immediately after `PLAYER_X`/`PLAYER_Y` are set to `(76, 80)` — the exact single-site fix `BL-0154`/`VR-1123` recommended, no other call site touched. Updated `inf_record_combat_entry`'s own header comment to describe the corrected six-site ordering. New regression check **`T31.g`**: drives the real `MODE SELECT`→`COMBAT MODE CONFIRM` (confirm "Y")→`INFINITE SEED ENTRY`→`INTRO`→`PLAYING` path (not a direct-invoke force — the only way to exercise the actual call-site ordering) and confirms `COMBAT_ENTRY_X`/`Y` exactly match the player's real spawn position `(76, 80)` on first arrival at `PLAYING`. **364/364 suite passes** (363 + `T31.g`), ROM unchanged 32158/32768 (net-zero: one `CALL` removed, one added elsewhere — same alignment slack). `GDS-07` §7k, RTM `FR-11400` (Test cell → `T31.a-c, T31.f-g`), Master Build Plan, `packages/INDEX.md` all updated. `IP-1123` → `COMPLETE`; `BL-0154` → `IN PIPELINE` (fix applied, closes once independently re-verified). **This session's queue of unblocked work is now genuinely empty**: the sole remaining actionable step, `09-package-verification` Pass 2 on `IP-1123`, needs a fresh session (implemented this session) — nothing left this session can advance standalone. | Fresh session: `09-package-verification` on `IP-1123` (Pass 2) — the sole remaining step before `IP-1124` (the tranche's last package) becomes eligible |
 | 250 | 2026-07-19 | advance (same session) | `04-requirements-engineering` | `FS-112`/`FEAT-11000` delta — `BL-0156` (mob movement) + `BL-0158` (post-contact protection) | ✅ **Baselined two new sub-leaves.** `FR-11210` (mob movement toward the player, two independently adjustable-default parameters: distance per recomputation, recomputation interval) and `FR-11410` (post-contact player protection — invincibility frames + knockback + a per-mob cooldown, all three combined per the user's own direct 2026-07-19 decision on `BL-0158`'s own live-drive finding: sustained mob contact re-triggered `FR-11400`'s damage decrement every frame with no separation mechanic, resolving a full 3-hit death-and-reset cycle in 3-4 real frames — imperceptibly fast, explaining the reported "no damage" symptom exactly). Both correctly follow the `FR-10200`/`FR-10210` sub-leaf numbering precedent (previously unused IDs, confirmed by direct grep). Requirements Review finding #24: no ID collision, no duplicate, no conflict with `FR-11200`/`FR-11300`/`FR-11400`'s existing text (both leaves extend rather than contradict); `NFR-1500`'s still-`UNCONFIRMED` cycle budget named as a constraint on both, its own Notes updated to reference them; no WRAM address/opcode leaked into either leaf (data-model ownership correctly deferred to `07`/`GDS-07`). One genuine open sequencing point named, not resolved unilaterally (does an already-adjacent mob keep re-attempting movement) — harvested as **`BL-0159`**. RTM rows added with every forward column honestly `UNASSIGNED` (Feature Spec filled `FS-112` — same feature, no new capability boundary — but Module/Implementation Package/Test all `UNASSIGNED`, neither leaf implemented). Delta-scoped throughout — only the affected FR/NFR/Review/RTM content touched, no wholesale regeneration, per this skill's own workflow rules. Also triaged all four newly `00-intake`-filed entries from earlier in this session: `BL-0155` (research-gap, weapon-upgrade progression) and `BL-0157` (feature, weapon directionality) both dispositioned `SCHEDULED` against their own future `02`/`03` passes, not yet actioned this run. | Two parallel-eligible next steps: fresh session `09-package-verification` on `IP-1123` (Pass 2, session-boundary blocked this session); or `05-feature-decomposition` to confirm `FR-11210`/`FR-11410` fold into `FEAT-11000` (no session-boundary constraint) |
 | 251 | 2026-07-19 | advance (same session) | `05-feature-decomposition` | `FEAT-11000` — fold in `FR-11210`/`FR-11410` | ✅ **Confirmed both new leaves fold into the existing `FEAT-11000` catalog entry, no new Feature/Epic.** Neither introduces a dependency `FEAT-11000` doesn't already carry (`FR-11210` depends only on `FR-11200`, `FR-11410` only on `FR-11400`, both already owned by this Feature) — per the "maintain incrementally" workflow rule, only `03-feature-catalog.md` (Description, Included Requirements 8→10, Risk, Open Questions) and `05-feature-review.md` (finding #13) were touched; `02-epic-catalog.md`/`04-feature-dependency-graph.md`/`01-release-plan.md` all confirmed structurally unaffected (Epic `EP-6000` membership, the three existing Dependencies, and the `Future` release bucket all verified unchanged by direct re-read, not assumed) and correctly left untouched. Finding #13: clean, no new defect, requirement assignment confirmed not double-assigned anywhere else in the catalog. `BL-0156`/`BL-0158` notes updated to record the fold-in. | `06-feature-specification` on `FS-112`, folding `FR-11210`/`FR-11410`'s own behavior into that spec's field set — same Feature, no new `FS-xxx` document. In parallel (session-boundary permitting): fresh-session `09-package-verification` Pass 2 on `IP-1123`. |
+| 252 | 2026-07-19 | advance (same session) | `06-feature-specification` | `FS-112` — fold in `FR-11210`/`FR-11410` | ✅ **Amended `FS-112`'s own field set** (not a new spec): Workflows B (mob movement, step 4) and D (post-contact protection, step 2, three combined mechanisms a/b/c) extended; System Behaviour gained two new edge cases plus a new **Open Question 4** (`BL-0159` — does an already-adjacent mob keep re-attempting movement); Module Responsibilities/Interfaces Used/Data Model Changes/Performance Considerations all updated; Acceptance Criteria renumbered 1→10 to insert the two new criteria (AC-3 mob movement, AC-6 post-contact protection) in requirement order rather than appended out of sequence; Verification Plan extended to match. **Found and fixed a pre-existing citation error while inserting the new Open Question 4**: §12 mis-cited "Open Question 4" for what was actually the already-resolved Open Question 3 (heal-spend feedback) — corrected in the same pass to avoid a duplicate number, named explicitly in the commit rather than silently changed. `docs/features/INDEX.md` row and `FEAT-11000`'s own forward-reference metadata (not its content) updated. Neither leaf packaged yet. | `07-implementation-planning` on `FS-112`'s two new leaves — authoring a package is not itself a G3 authorization, so this can proceed; the eventual `08-code-implementation` step is where a fresh G3 ask becomes necessary (new scope beyond the original "build all six" go-ahead). In parallel (session-boundary permitting): fresh-session `09-package-verification` Pass 2 on `IP-1123`. |
