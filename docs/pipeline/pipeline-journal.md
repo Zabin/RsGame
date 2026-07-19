@@ -14,9 +14,19 @@
 
 ## Position
 
-- **Updated:** 2026-07-19 (run #262 — iterate mode, fresh session; the session-boundary block
-  run #261 recorded is resolved, `09-package-verification` now eligible on all four `COMPLETE`
-  packages)
+- **Updated:** 2026-07-19 (run #263 — iterate mode, continuing this fresh session's
+  `09-package-verification` drain of the four `COMPLETE` packages)
+- **Increment (run #263):** **`09-package-verification`** on **`IP-1126` → `VERIFIED`**
+  ([VR-1126](../implementation/verification/VR-1126-infinite-mode-combat-mob-movement.md)).
+  ROM rebuild (32768 bytes); full suite **387/387**; `T35.a`-`i` (9 checks) reconfirmed. Direct
+  code read confirmed the dominant-axis/tie-break logic, coincident hold-still, and
+  `COMBAT_MODE`/inactive-slot gating all match §6/§10 exactly; implementing commit `3412be8`'s
+  own `asm_game.py` diff confirmed **purely additive** (no line removed/modified anywhere) —
+  `inf_mob_render`/`inf_projectile_hittest`/`inf_mob_contact_check` and `MOB_DATA`'s stride all
+  confirmed untouched by that single check. `MOB_MOVE_INTERVAL`/`STEP` are compile-time constants
+  (not a `BL-0055`-class runtime-tunable), so `T35.i`'s own existing real-chain live drive
+  sufficed, reconfirmed. No findings, no scope excursion. No dependent package names `IP-1126`,
+  so no other readiness changes. No backlog triage action needed (0 `NEW` entries this run).
 - **Increment (run #262):** **`09-package-verification`** on **`IP-1123` (Pass 2) → `VERIFIED`**
   ([VR-1123 Pass 2](../implementation/verification/VR-1123-infinite-mode-combat-player-health-and-economy-pass2.md)).
   Chosen first (critical-path first — unblocks `IP-1124`, the last critical-path node, and
@@ -116,15 +126,15 @@
   Also carries forward from run #254 (unchanged this run): `IP-1126` built to `COMPLETE`
   (`inf_mob_move`, new WRAM `MOB_MOVE_TIMER`, suite `T35`, 373/373 passes, `FS-112` Open Question 4
   resolved); `BL-0160` (sound effects) filed and triaged `SCHEDULED` for a future `03` pass.
-- **Pipeline state:** Bootstrap stages 01–11 ✅; Release 2 GO. 46 packages `VERIFIED` (was 45;
-  `IP-1123` joined this run). Three packages remain `COMPLETE`, each awaiting its own
-  `09-package-verification` pass: `IP-1126` (mob movement), `IP-1128` (weapon directionality,
-  built run #261), `IP-1129` (weapon-tier funding, built run #261) — the fresh-session
-  independence convention is now satisfied for all three (this session has performed no prior
-  work on any of them). `IP-1124` is now **`READY`** (all three dependencies `IP-1121`/`IP-1122`/
+- **Pipeline state:** Bootstrap stages 01–11 ✅; Release 2 GO. 47 packages `VERIFIED` (was 45 at
+  the start of this session; `IP-1123` and `IP-1126` both joined this run). Two packages remain
+  `COMPLETE`, each awaiting its own `09-package-verification` pass: `IP-1128` (weapon
+  directionality, built run #261), `IP-1129` (weapon-tier funding, built run #261) — the
+  fresh-session independence convention is satisfied for both (this session has performed no
+  prior work on either). `IP-1124` is **`READY`** (all three dependencies `IP-1121`/`IP-1122`/
   `IP-1123` `VERIFIED`) — `AUTHORIZED` already (G3, "Yes, build all six," 2026-07-17), so its own
-  `08-code-implementation` needs no fresh ask. `IP-1120`/`IP-1121`/`IP-1122`/`IP-1123`/`IP-1125`
-  `VERIFIED`. `IP-1127` structurally unblocked (`IP-1123` now `VERIFIED`) but still
+  `08-code-implementation` needs no fresh ask. `IP-1120`/`IP-1121`/`IP-1122`/`IP-1123`/`IP-1125`/
+  `IP-1126` `VERIFIED`. `IP-1127` structurally unblocked (`IP-1123` now `VERIFIED`) but still
   `NOT AUTHORIZED` (its own prospective WRAM claim, `0xC6DF`–`0xC6E0`, is stale against
   `IP-1128`'s real claim — must re-derive at build time; G3 not yet asked, not ripe until this
   package is actually picked up). Standing, non-blocking doc/design work unchanged: the
@@ -134,22 +144,20 @@
   trigger); `BL-0097` (Medium, routed already); `BL-0130` (catalog text gap); `BL-0148`/`BL-0149`/
   `BL-0150`/`BL-0152`/`BL-0159` (remaining half)/`BL-0160`/`BL-0161`/`BL-0162` (all Low/
   Low-Medium, `SCHEDULED`/`DEFERRED`, non-blocking).
-- **Backlog:** 162 entries, unchanged in count this run (0 `NEW` findings from `VR-1123` Pass 2).
-  `BL-0154` (the region-entry-point defect this VR re-confirmed fixed) remains `IN PIPELINE` —
-  its own disposition already named "own `09` pass owed"; that pass is now done and passed, but
-  the entry's own lifecycle (closing to `DONE`) is deferred to the next backlog triage rather than
-  flipped inline mid-iteration, per this skill's own harvest-then-triage separation. `BL-0147`/
-  `BL-0155`/`BL-0157`/`BL-0148`/`BL-0161`/`BL-0156`/`BL-0133` all unchanged.
-- **Next step:** **`09-package-verification` on `IP-1126`** (mob movement) — next of the three
-  remaining `COMPLETE` packages, oldest by build date. Per the pipeline's own "per-package: 08→09"
-  drain pattern, clearing verification debt on already-`COMPLETE` packages takes priority over
-  starting `IP-1124`'s new `08-code-implementation` build, even though `IP-1124` is now `READY`
-  and pre-authorized — draining `COMPLETE`→`VERIFIED` first keeps the tree in the state
-  `08-refactoring`'s own scheduling conditions already treat as the safe default ("no `COMPLETE`-
-  but-unverified package" pile-up). After `IP-1126`: `IP-1128`, `IP-1129` (any order, both
-  independent), then `08-code-implementation` on `IP-1124`.
+- **Backlog:** 162 entries. `BL-0156` (mob movement, `IP-1126`'s own originating feature request)
+  flipped to **`DONE`** this run — `VR-1126` closed its last-owed clause ("own `09` pass owed").
+  `BL-0147`/`BL-0155`/`BL-0157`/`BL-0148`/`BL-0161`/`BL-0133` unchanged. `BL-0154` (`IP-1123`'s
+  own region-entry-point defect, closed by run #262's `VR-1123` Pass 2) remains queued for the
+  same `DONE` flip at the next full triage pass, not flipped inline this run (harvest-then-triage
+  separation).
+- **Next step:** **`09-package-verification` on `IP-1128`** (weapon directionality) — next of the
+  two remaining `COMPLETE` packages. Per the pipeline's own "per-package: 08→09" drain pattern,
+  clearing verification debt on already-`COMPLETE` packages takes priority over starting
+  `IP-1124`'s new `08-code-implementation` build, even though `IP-1124` is `READY` and
+  pre-authorized. After `IP-1128`: `IP-1129` (independent, either order), then
+  `08-code-implementation` on `IP-1124`.
 - **Open gates:** none newly opened this run. **G3 still needed on `IP-1127`** (post-contact
-  protection, now structurally unblocked but not yet asked — not ripe until the package is next
+  protection, structurally unblocked but not yet asked — not ripe until the package is next
   picked up for actual implementation). `IP-1124` needs no fresh gate — already `AUTHORIZED`
   under the original "build all six" grant.
 
@@ -424,3 +432,4 @@
 
 | 261 | 2026-07-19 | sync (reconciling `08-code-implementation` x2, run directly per the pipeline's own workflow rather than via a formal manager Step-5 invocation) | — | `IP-1128`, `IP-1129` | ✅ **Reconciled both implementations into the journal/backlog.** User answered run #260's G3 ask with "Authorize both" (no don't-iterate caveat); `08-code-implementation` then ran on `IP-1128` (8-directional weapon fire — `COMPLETE`, new suite `T37`, 9 checks) and `IP-1129` (weapon-tier funding — `COMPLETE`, new suite `T38`, 5 checks). Full suite 387/387 passing; ROM 32768 bytes. Both packages' own §9 Documentation Updates applied in full (FR status, RTM rows, `GDS-07` §7n, Master Build Plan/`packages/INDEX.md` → `COMPLETE`). Harvested: `BL-0147`/`BL-0155`/`BL-0157` updated (still `IN PIPELINE`, `09` owed); `BL-0148` cross-referenced (`IP-1129` shares its input-binding gap); new `BL-0162` filed and triaged `SCHEDULED` (a stale-on-disk-ROM tooling gap found and root-caused mid-run — not a code defect, fully resolved before the final test/commit). No drift beyond the expected "work done outside a formal manager Step-5" gap, now corrected. Checked for further unblocked steps (Step 3): none found — every remaining thread needs either a fresh session (`09-package-verification` on four `COMPLETE` packages) or `IP-1123` reaching `VERIFIED` first (itself needing the same fresh session). `BL-0160` (sound effects) remains actionable but is out of this run's own user-scoped "mob and weapon related items" instruction. **Session-boundary stop — genuinely nothing left to advance this session.** | Fresh session: `09-package-verification` on `IP-1126`, `IP-1123` (Pass 2), `IP-1128`, `IP-1129` (four independent packages, any order) — unblocks `IP-1124` (once `IP-1123` VERIFIED) and `IP-1127`'s own G3 ask (once `IP-1123` VERIFIED). |
 | 262 | 2026-07-19 | advance (iterate, fresh session — the session-boundary block from run #261 is resolved) | `09-package-verification` | `IP-1123` (Pass 2) | ✅ **`VERIFIED`** ([VR-1123 Pass 2](../implementation/verification/VR-1123-infinite-mode-combat-player-health-and-economy-pass2.md)). Chose `IP-1123` first of the four session-boundary-blocked packages (critical-path first — it unblocks `IP-1124`, the last critical-path node, and `IP-1127`'s own eligibility). `pyboy` was not preinstalled in this session's environment; installed via `pip install pyboy` before running gates. Rebuilt ROM (32768 bytes, byte-identical to checked-in — no diff), full suite **387/387 passed**. Direct code read confirmed the `BL-0154` remediation (`inf_record_combat_entry`'s "initial entry" call site moved from `st_infinite_seed_entry` into `st_intro`, after the real `PLAYER_X`/`PLAYER_Y` write); `T31.a`-`g` reconfirmed passing. **Went beyond the new `T31.g` regression check**: ran an independent standalone PyBoy live drive reproducing Pass 1's own exact end-to-end repro (real UI path to `PLAYING`, real per-frame mob contact driving health to 0, real `inf_health_setback` firing) and confirmed the player now lands at `(76, 80)` — their real spawn point — not `(0, 0)`. No scope excursion (diff limited to `asm_game.py`'s two call sites + declared doc files). No findings. Master Build Plan/`packages/INDEX.md`/verification `INDEX.md` updated: `IP-1123` → `VERIFIED`; `IP-1124` → `READY` (all three dependencies now `VERIFIED`); `IP-1127` → structurally unblocked, still `NOT AUTHORIZED` (G3 owed separately, unchanged). No backlog triage needed (0 `NEW` entries; all standing entries' dispositions unchanged by this step). | `09-package-verification` again — `IP-1126` next (oldest remaining `COMPLETE` package awaiting verification; per "per-package: 08→09" draining, verification debt drains before `IP-1124`'s new `08` build starts), then `IP-1128`/`IP-1129`, then `08-code-implementation` on `IP-1124`. |
+| 263 | 2026-07-19 | advance (iterate) | `09-package-verification` | `IP-1126` | ✅ **`VERIFIED`** ([VR-1126](../implementation/verification/VR-1126-infinite-mode-combat-mob-movement.md)). Rebuilt ROM (32768 bytes), full suite **387/387 passed**; `T35.a`-`i` (9 checks) reconfirmed. Direct code read confirmed the dominant-axis/tie-break logic (X wins on `\|dx\|==\|dy\|`), the coincident hold-still case, and `COMBAT_MODE`/inactive-slot gating all match the package's own §6/§10 exactly. Implementing commit `3412be8`'s own `asm_game.py` diff confirmed **purely additive** (`grep -E '^-[^-]'` on the diff returns nothing) — `inf_mob_render`/`inf_projectile_hittest`/`inf_mob_contact_check` and `MOB_DATA`'s own stride all confirmed untouched, satisfying that DoD item without needing a separate direct-diff spot-check. `MOB_MOVE_INTERVAL`/`MOB_MOVE_STEP` are compile-time constants, not a runtime-tunable parameter in the `BL-0055` sense, so no non-default live drive was owed beyond `T35.i`'s own existing real-chain drive (reconfirmed). No scope excursion, no findings. Master Build Plan/`packages/INDEX.md`/verification `INDEX.md` updated: `IP-1126` → `VERIFIED`. No dependent package names `IP-1126`, so no other readiness changes. No backlog triage needed (0 `NEW` entries). | `09-package-verification` again — `IP-1128` next (weapon directionality), then `IP-1129` (weapon-tier funding), then `08-code-implementation` on `IP-1124` (now `READY` and pre-`AUTHORIZED`). |
