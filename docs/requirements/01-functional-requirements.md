@@ -26,7 +26,11 @@
 > Infinite Mode combat sub-mode, `BL-0133`/`ADS-002`/`MSTR-001` C11** — this project's first use
 > of the FR-11xxx range, gated on `ADS-002`'s own now-fully-resolved Open Questions and a batch
 > of direct user decisions (treasure-spent healing, no weapon ammo/durability, non-lethal
-> setback, save persistence) — see Changelog).**
+> setback, save persistence); **delta 2026-07-19 — FR-11210/FR-11410 baselined** (`BL-0156`/
+> `BL-0158`, mob movement + post-contact protection); **delta 2026-07-19 (cont'd) — FR-11310/
+> FR-11510 baselined** (`BL-0157`/`BL-0147`+`BL-0155`, movement-based multi-directional weapon
+> fire grounded by `ADS-002`'s "Weapon Directionality Delta"/`ADR-0021`/`R220`, and a
+> treasure-spent weapon-tier funding economy grounded by `R219`) — see Changelog).**
 > Owned by `04-requirements-engineering`.
 > Derives from [GDS-05](../architecture/05-functional-requirements.md)'s six capability groupings
 > (C1–C6) — this document formalizes each into numbered, testable `FR-xxxx` requirements per
@@ -39,6 +43,42 @@
 
 ## Changelog
 
+- **2026-07-19 (second delta this date) — Two more sub-function leaves under the FR-11000 group,
+  both grounded by newly-authored `02-research-game-design`/`03-architecture-design-synthesis`
+  passes, not implemented yet.** **`FR-11310`** (`BL-0157`): the shipped weapon fires only
+  left/right because `PROJ_DIR` mirrors `PLAYER_DIR`'s own 2-state encoding — this leaf widens
+  firing to all eight compass directions, derived from the player's own movement ("moving
+  direction, else last-faced direction," per `R220`'s Link's-Awakening-grounded recommendation),
+  with diagonal projectile motion via simultaneous independent per-axis stepping (`ADS-002`'s
+  "Weapon Directionality Delta"/`ADR-0021`) rather than new vector math. A new, separate WRAM
+  facing concept carries this — `PLAYER_DIR` itself is untouched (`ADR-0021`'s own Decision 1).
+  **`FR-11510`** (`BL-0147`/`BL-0155`): `WEAPON_TIER` shipped in `IP-1122` as a stat with no way
+  to ever change it — this leaf closes that traceability gap with a treasure-spent,
+  persistent-purchase funding mechanism (grounded by `R219`'s survey of Contra's pickup-drop/
+  full-reset model vs. Zelda's own currency-spent/never-lost shop-upgrade model, recommending the
+  latter since this project's non-lethal setback has no "death" event for the former to hook
+  into), sharing `FR-11500`'s own `RUNNING_TREASURE_COUNT` currency and its "spends even at cap,
+  floored at the maximum" convention (`T31.d2`'s own precedent — not a no-op). Neither leaf is
+  implemented yet; both name `NFR-1500`'s still-`UNCONFIRMED`
+  cycle budget as a constraint; both name an unresolved input-binding gap for their own spend/fire
+  actions, mirroring `FR-11500`'s own still-open `BL-0148`.
+- **2026-07-19 — Two new sub-function leaves under the FR-11000 group, both closing user-filed
+  `00-intake` gaps found by direct play/investigation, not upstream document drift.**
+  **`FR-11210`** (`BL-0156`): mobs currently never move once materialized (`FR-11200` fixes only
+  their static starting position) — this leaf requires movement toward the player at two
+  independently adjustable defaults (distance per recomputation, recomputation interval),
+  mirroring `FR-11200`/`FR-11300`'s own established "adjustable default" convention; not yet
+  implemented, `NFR-1500`'s still-`UNCONFIRMED` cycle budget named as a constraint the eventual
+  implementation must measure against. **`FR-11410`** (`BL-0158`): a live PyBoy drive through the
+  real game (not the test suite's own fixtures) found sustained mob contact re-triggers
+  `FR-11400`'s own damage decrement every single frame with nothing separating player and mob
+  afterward, resolving a full 3-hit death-and-reset cycle in 3-4 real frames — imperceptibly fast,
+  so the reported symptom ("touching a mob does not appear to subtract from the player's life")
+  was actually "it does, just too fast and too fully-reversed to see." User decided directly,
+  2026-07-19, on being given the three candidate mechanisms: invincibility frames, knockback, and
+  a per-mob cooldown, combined (not any one alone) — this leaf baselines that combination's own
+  Postconditions/Acceptance Criteria; concrete durations/distances remain `06`/`07`'s own
+  decision, per the same adjustable-default convention. Neither leaf is implemented yet.
 - **2026-07-17 — New FR-11000 group (FR-11100–11600), Infinite Mode combat sub-mode** (`BL-0133`,
   `ADS-002`, `MSTR-001` C11). This project's first use of the FR-11xxx range. Formalizes: entry
   gating via a new MODE SELECT option (`FR-11100`); mob materialization/defeat, independent-
@@ -2332,6 +2372,71 @@ none of FR-10000's own leaves are amended by this group. `FR-9000`'s finite mode
   (`test_rom.py` `T29.a`/`b`). Defeat (`inf_mob_defeat`) is defined and exposed here but has no
   call site yet — `FR-11300`/`IP-1122`'s own scope.
 
+### FR-11210 — Mob movement toward the player (delta 2026-07-19, `BL-0156`)
+
+- **ID:** FR-11210
+- **Title:** When the combat sub-mode is active, an active mob shall move toward the player's
+  current position, at an adjustable speed and update rate.
+- **Description:** `FR-11200` fixes only a mob's *materialized* position — this leaf adds motion.
+  Each active mob shall periodically recompute a single step toward the player's current
+  position (the shortest available step along whichever axis needs it most, mirroring this
+  project's own established grid-aligned movement model rather than inventing free-angle motion)
+  and apply that step. Both the **distance moved per recomputation** and the **recomputation
+  interval** (how many frames elapse between recomputations) are independently adjustable
+  defaults, not fixed architectural constants — mirroring `FR-11200`'s own "up to six mobs, not a
+  hard ceiling" framing and `FR-11300`'s own "at most one projectile, an adjustable default"
+  framing. A mob materialized with the combat sub-mode inactive, or while `COMBAT_MODE` is
+  inactive generally, shall not move — mirroring `FR-11200`'s own strict-additivity postcondition.
+- **Rationale:** User request, 2026-07-19 (`BL-0156`, filed via `00-intake`): mobs currently never
+  move once materialized, which the user identified directly by playing the shipped build.
+- **Priority:** Should (Implemented — 2026-07-19, `IP-1126`).
+- **Inputs:** The mob's own current position (`FR-11200`); the player's current position.
+- **Outputs:** An updated mob position, applied at the adjustable recomputation interval.
+- **Preconditions:** `COMBAT_MODE` active; the mob slot is active (`FR-11200`).
+- **Postconditions:** A mob's position converges toward the player's own position over time, at
+  the configured speed/interval; a materialized region with `COMBAT_MODE` inactive remains
+  byte-for-byte identical to today's shipped Infinite Mode, exactly as `FR-11200` already
+  requires — this leaf does not weaken that guarantee.
+- **Acceptance Criteria:** With the combat sub-mode active, an active mob's recorded position
+  changes over successive recomputation intervals such that the player-mob distance strictly
+  decreases (absent an intervening defeat or the mob reaching the player's own position); the
+  distance moved per recomputation and the number of frames between recomputations both match
+  their configured adjustable-default values exactly; a mob's position is unchanged between
+  recomputations (motion is not continuous/sub-step); with `COMBAT_MODE` inactive, mob position
+  is never read or written by this leaf's own logic at all.
+- **Dependencies:** `FR-11200` (the mob entity and its materialized starting position this leaf
+  moves); `FR-11400`/`FR-11410` (mob movement is what makes sustained player-mob contact newly
+  reachable without the player initiating it, so the post-contact protection `FR-11410` adds is a
+  direct consequence of this leaf existing, not an independent concern).
+- **Verification Method:** Test (direct-force position/distance assertions across multiple
+  recomputation intervals, mirroring `FR-11200`'s own oracle/SM83-lockstep-adjacent discipline
+  where a deterministic mirror is feasible; a live PyBoy drive to confirm the real per-frame
+  chain, mirroring the discipline `VR-1121`/`VR-1122` already established for this feature).
+- **Source Documents:** Direct user request, 2026-07-19 (`BL-0156`); `FR-11200`/`FR-11300` (the
+  "adjustable default" convention this leaf's own two parameters follow).
+- **Related ADRs:** None yet — `NFR-1500`'s own still-`UNCONFIRMED` per-frame cycle budget is a
+  named constraint on this leaf's eventual implementation (six mobs' worth of per-frame movement
+  recomputation, even at a reduced update rate, adds real cost on top of `IP-1121`/`IP-1122`'s
+  own already-unmeasured combat-mode frame cost), not a blocker on baselining the requirement
+  itself.
+- **Notes:** **2026-07-19 (`IP-1126`):** implemented as `inf_mob_move` (per-frame, hooked into
+  `st_playing` alongside `inf_projectile_update`/`inf_mob_contact_check`), gated on `COMBAT_MODE`.
+  Concrete adjustable-default values chosen: `MOB_MOVE_INTERVAL = 8` (frames between recomputation
+  ticks) and `MOB_MOVE_STEP = 1` (pixels moved per tick on the dominant axis) — both plain
+  Python-level tuning constants in `asm_game.py`, not WRAM, per this FR's own "independently
+  adjustable defaults, not fixed architectural constants" framing. A new WRAM byte,
+  `MOB_MOVE_TIMER` (`0xC6DE`), holds the per-mob-move countdown. Dominant-axis tie (`|dx| ==
+  |dy|`) favors X, an implementation-level tiebreak this FR did not itself constrain. A mob
+  already exactly coincident with the player (`dx == 0` and `dy == 0`) holds still rather than
+  jittering — `FS-112` Open Question 4's own resolution. `T35.a`–`i` verify per-axis movement,
+  cadence, the coincident case, `COMBAT_MODE`-off, inactive-slot exclusion, and (`T35.i`) the real
+  per-frame chain via live `PyBoy` drive. **Outstanding:** `NFR-1500`'s own direct per-frame
+  cycle-count measurement remains `UNCONFIRMED` — this package adds new per-frame cost
+  (`inf_mob_move`'s own six-slot walk) on top of `IP-1121`/`IP-1122`/`IP-1123`'s own
+  already-unmeasured combat-mode cost, but performing that measurement is outside this
+  implementation package's own named scope (`NFR-1500` is a pre-existing tracked gap spanning the
+  whole combat sub-mode, not created by this leaf) and remains owed.
+
 ### FR-11300 — Ranged weapon fire and hit resolution
 
 - **ID:** FR-11300
@@ -2378,6 +2483,76 @@ none of FR-10000's own leaves are amended by this group. `FR-9000`'s finite mode
   ships as a persisted, fixed-default (1) stat — its own treasure-funded upgrade mechanism remains
   the known gap tracked by `BL-0147`, unresolved by this package.
 
+### FR-11310 — Movement-based multi-directional weapon fire (delta 2026-07-19, `BL-0157`)
+
+- **ID:** FR-11310
+- **Title:** When the combat sub-mode is active, the fired projectile's direction shall be
+  derived from the player's own movement, across all eight compass directions, not limited to
+  left/right.
+- **Description:** `FR-11300` fixes only that firing spawns a projectile "in the player's current
+  facing direction," which the shipped implementation resolved as `PLAYER_DIR`'s own real 2-value
+  (left/right) encoding — the projectile cannot fire up, down, or diagonally at all (`FR-11300`'s
+  own Notes name this as a known deviation, tracked by `BL-0151`). This leaf widens that: the
+  system shall derive the projectile's own firing direction from a fuller, 8-directional facing
+  concept, computed as **the player's current movement direction while moving, or the player's
+  last movement direction while idle** (`ADS-002`'s "Weapon Directionality Delta,"
+  2026-07-19/`ADR-0021` — grounded by `R220`'s survey of movement-based aiming conventions,
+  recommending this exact semantics). A fired projectile whose facing has a nonzero component on
+  both axes (a diagonal direction) shall move along both axes simultaneously, mirroring this
+  project's own established single-axis-at-a-time integer-stepping movement idiom applied to two
+  axes at once, not free-angle/vector motion (`ADR-0021`'s own Decision 3).
+- **Rationale:** User request, 2026-07-19 (`BL-0157`, filed via `00-intake`): "the weapon only
+  fires left and right not up or down or diagonal... add directionality to the weapon based on
+  movement." Architecture-level shape decided by `ADS-002`'s own delta / `ADR-0021`, grounded by
+  `R220`.
+- **Priority:** Should (a real, user-requested gap; not a defect against `FR-11300`'s own written
+  Acceptance Criteria, which never claimed multi-directional fire — see `FR-11300`'s own Notes,
+  which named the 2-state limitation as a documentation-accuracy deviation, `BL-0151`, not a bug).
+- **Inputs:** The player's current and most recent D-pad movement input (the same joypad state
+  `handle_play_input` already reads every frame); the fire input (`FR-11300`).
+- **Outputs:** A projectile whose direction of travel matches the derived 8-directional facing at
+  the moment of firing.
+- **Preconditions:** `COMBAT_MODE` active; `GAMESTATE == PLAYING`; the fire input is pressed with
+  no projectile already active (`FR-11300`'s own existing preconditions, unchanged).
+- **Postconditions:** The projectile's per-frame movement steps its position along every axis its
+  derived facing has a nonzero component on (one or both of X/Y); a projectile fired while the
+  player is stationary but was previously moving travels in that last movement direction, not a
+  default/undefined one.
+- **Acceptance Criteria:** Firing while moving in a cardinal direction (up/down/left/right) spawns
+  a projectile that moves along that single axis only; firing while moving diagonally (two D-pad
+  directions held simultaneously) spawns a projectile that moves along both axes simultaneously;
+  firing while stationary uses the most recently held movement direction, not a fixed default;
+  every one of the eight compass directions is reachable, not merely the two `FR-11300` shipped
+  with.
+- **Dependencies:** `FR-11300` (the projectile/fire mechanism this leaf widens the direction axis
+  of); `ADS-002`'s "Weapon Directionality Delta" / `ADR-0021` (the direction-representation shape:
+  a new, separate facing concept, not a widened `PLAYER_DIR` — see that ADR for why `PLAYER_DIR`
+  itself is untouched).
+- **Verification Method:** Test (direct-force facing/movement scenarios across all eight
+  directions, mirroring `FR-11300`'s own established hit/miss test methodology; a live PyBoy drive
+  through the real per-frame chain for at least one non-cardinal case, mirroring the discipline
+  `VR-1121`/`VR-1122`/`T35.i` already established for this feature).
+- **Source Documents:** Direct user request, 2026-07-19 (`BL-0157`); `ADS-002`'s "Weapon
+  Directionality Delta" (2026-07-19); `ADR-0021`; `R220`.
+- **Related ADRs:** `ADR-0021` (weapon-direction representation).
+- **Status:** Implemented (`IP-1128`, 2026-07-19). `PLAYER_FACING_X`/`PLAYER_FACING_Y` (WRAM
+  `0xC6DF`/`0xC6E0`) hold a raw signed per-frame step (`0x01`/`0x00`/`0xFF`), written every frame
+  `handle_play_input`'s own RIGHT/LEFT/UP/DOWN branches run (not only on a transition — an
+  implementation-level choice this FR left open, per the note below). `PROJ_STEP_X` (renamed in
+  place from `PROJ_DIR`, WRAM `0xC6D8`) and the new `PROJ_STEP_Y` (`0xC6E1`) copy that facing at
+  fire time; `inf_projectile_update` steps both axes independently every frame. Verified by
+  `T37.a`–`i` (`test_rom.py`).
+- **Notes:** The exact bit-encoding of the new facing concept and its WRAM address were
+  `07-implementation-planning`'s own decision (`ADR-0021` names this explicitly as not fixed at
+  the architecture level) — resolved above. Whether the new facing value is written on every
+  frame a direction is held, or only on a transition, was also an implementation-level decision
+  this FR left open — resolved above (every frame). `NFR-1500`'s own still-`UNCONFIRMED`
+  per-frame cycle budget was a named constraint (a second per-frame axis step in
+  `inf_projectile_update`, plus the extra facing writes in `handle_play_input`) — no budget
+  regression observed; `NFR-1500` itself remains `UNCONFIRMED` pending its own dedicated
+  measurement, unaffected by this leaf. Does not require or imply new player sprite art
+  (`ADR-0021`'s own Decision 4) — the player's rendered sprite is unaffected by this leaf.
+
 ### FR-11400 — Player health and non-lethal setback
 
 - **ID:** FR-11400
@@ -2415,6 +2590,86 @@ none of FR-10000's own leaves are amended by this group. `FR-9000`'s finite mode
   the user's 2026-07-17 decision and `ADS-002` both settled on a pure position/health reset with
   no treasure penalty; `T31.c` verifies the shipped behavior.
 
+### FR-11410 — Post-contact player protection (delta 2026-07-19, `BL-0158`)
+
+- **ID:** FR-11410
+- **Title:** After a mob-contact damage event, the system shall protect the player from
+  immediately repeated damage from the same encounter via a combination of invincibility frames,
+  a knockback separation, and a per-mob cooldown.
+- **Description:** `FR-11400` fixes that contact reduces health and that zero health triggers a
+  non-lethal setback, but states nothing about *repeated* contact within the same encounter.
+  Direct investigation (`BL-0158`: a live PyBoy drive through the real game, not the test suite's
+  own fixtures) found the shipped behavior re-evaluates contact and decrements health on **every
+  single frame** of continued overlap, with nothing separating the player from the mob afterward
+  — a sustained overlap resolves a full 3-hit death-and-reset cycle (health 3→2→1→0, immediately
+  triggering `FR-11400`'s own setback) in 3-4 real frames, faster than a human can perceive, so
+  the net visible outcome is "health unchanged, player relocated" — indistinguishable from no
+  damage at all. The user decided directly (2026-07-19, in response to this finding) that the fix
+  is **all three** of the following, combined, not any one alone:
+  1. **Invincibility frames** — for an adjustable-default duration immediately after a contact
+     damage event, the player takes no further contact damage from *any* mob, regardless of
+     overlap.
+  2. **Knockback** — immediately after a contact damage event, the player is displaced an
+     adjustable-default distance away from the mob that caused the contact, along whichever axis
+     separates them fastest (mirroring `FR-11210`'s own grid-aligned movement model rather than
+     inventing free-angle displacement).
+  3. **Per-mob cooldown** — independent of and outlasting the invincibility window, the *specific*
+     mob that caused a contact event shall not cause another contact-damage event against the
+     same player until the player's hitbox has stopped overlapping that mob's hitbox for at least
+     one frame and then re-approaches it — a floor guarantee against the exact repeated-single-
+     frame-overlap failure mode `BL-0158` found, independent of whether knockback fully separates
+     them or the invincibility window has already expired.
+- **Rationale:** Direct user decision, 2026-07-19, in response to `BL-0158`'s own investigation
+  (a live-drive finding, not a design document) — the user was given the three candidate
+  mechanisms (invincibility frames / knockback / cooldown) and one open question ("which, or what
+  combination"), and answered "a combination of all three."
+- **Priority:** Should (closes a real, confirmed player-experience gap; not itself a defect
+  against any prior written Acceptance Criterion, since none existed for repeated contact before
+  this delta — see `FR-11400`'s own unchanged Acceptance Criteria, which this leaf extends rather
+  than supersedes).
+- **Inputs:** A contact-damage event (`FR-11400`); the mob that caused it; the player's and that
+  mob's current positions.
+- **Outputs:** The player's health remains protected from re-triggering (invincibility); the
+  player's position is displaced (knockback); the specific mob's own ability to cause further
+  contact damage is suspended until contact genuinely breaks and resumes (cooldown).
+- **Preconditions:** `COMBAT_MODE` active; a contact-damage event has just occurred (`FR-11400`).
+- **Postconditions:** No second contact-damage event registers within the invincibility window
+  regardless of source mob; the player's position after knockback no longer overlaps the
+  triggering mob's hitbox (barring an unavoidable obstruction, e.g. a screen/window edge — this
+  leaf does not guarantee knockback succeeds against every possible obstruction, only that it is
+  attempted); the triggering mob specifically cannot cause a second contact-damage event until
+  overlap has genuinely broken and resumed, even after the invincibility window and any
+  knockback-driven separation have both elapsed/succeeded.
+- **Acceptance Criteria:** A contact-damage event followed immediately by continued overlap with
+  the same mob (the exact `BL-0158` repro) produces exactly one health decrement, not a cascading
+  three; the player's recorded position changes by the configured knockback distance in the
+  expected direction immediately following a contact-damage event; no contact-damage event of any
+  kind registers for the configured invincibility-frame duration after the prior one; the
+  triggering mob specifically causes no further contact damage until the player's hitbox has
+  first stopped, then resumed, overlapping it — verified independently of the invincibility
+  window's own expiry (i.e. even if the invincibility window has already elapsed, the same mob
+  still cannot re-trigger without a genuine break-and-resume).
+- **Dependencies:** `FR-11400` (the contact-damage event this leaf protects against repetition
+  of); `FR-11210` (mob movement — without it, the player-initiated-contact-only case this leaf
+  also covers already had a natural pause between approaches; with mob movement now requestable,
+  sustained contact becomes reachable without any player input at all, which is what makes this
+  leaf's own cooldown guarantee load-bearing rather than a corner case).
+- **Verification Method:** Test (the exact `BL-0158` live-drive repro — sustained overlap via
+  held input, or a stationary player with an adjacent mob once `FR-11210` ships — re-run against
+  the fixed behavior; direct-force assertions for each of the three mechanisms independently).
+- **Source Documents:** Direct user decision, 2026-07-19, on `BL-0158` (filed via `00-intake`,
+  itself grounded in a live PyBoy drive through the real UI path, not the test suite's own
+  direct-invoke fixtures).
+- **Related ADRs:** None.
+- **Notes:** Not yet implemented. Concrete numeric defaults (invincibility-frame count, knockback
+  distance, and the exact overlap-break-and-resume detection mechanics for the per-mob cooldown)
+  are `06`/`07`'s own decision, following this project's established "adjustable default"
+  convention (`FR-11200`'s mob count, `FR-11300`'s single-projectile cap, `FR-11210`'s own
+  speed/update-rate) — this FR fixes only that all three mechanisms must exist and combine, not
+  their specific tuned values. `NFR-1500`'s own still-`UNCONFIRMED` per-frame cycle budget is a
+  named constraint the eventual implementation must account for (per-mob cooldown state adds a
+  small but real per-mob per-frame check), not resolved here.
+
 ### FR-11500 — Treasure-spent healing economy
 
 - **ID:** FR-11500
@@ -2448,6 +2703,81 @@ none of FR-10000's own leaves are amended by this group. `FR-9000`'s finite mode
   **Not yet player-reachable**: the heal-spend action has no free input button (`BL-0148`,
   unresolved) — this subroutine is defined, exposed, and directly force-tested, mirroring
   `IP-1121`'s own "defined and exposed, no call site yet" precedent for `inf_mob_defeat`.
+
+### FR-11510 — Treasure-spent weapon-tier funding economy (delta 2026-07-19, `BL-0147`/`BL-0155`)
+
+- **ID:** FR-11510
+- **Title:** When the combat sub-mode is active, treasure collection shall be consumable to
+  permanently increase the weapon's own power tier, reducing the running treasure count that also
+  drives the win/high-score system and `FR-11500`'s own healing spend.
+- **Description:** `WEAPON_TIER` shipped in `IP-1122` as a persisted stat (default 1, range 1-3)
+  with no way to ever change it — `ADS-002` §Domain Model and `FR-11300`'s own Notes both name a
+  treasure-funded weapon-power axis as the intended direction (per the 2026-07-17 user decision:
+  "treasure funds power only, no ammo/durability"), but no leaf ever formalized the funding
+  mechanism itself (`BL-0147`). This leaf closes that gap: the system shall let the player choose
+  to spend collected treasure (`RUNNING_TREASURE_COUNT`, the same running count `FR-11500` already
+  spends from — no second currency) to increase `WEAPON_TIER` by one, up to its own existing
+  maximum (3). `R219` (ranged-weapon upgrade/progression conventions, newly authored) grounds the
+  shape: a **currency-spent, persistent-purchase** model (mirroring the *Zelda* series' own
+  quiver/bomb-bag shop-upgrade convention — bought outright, never lost) rather than *Contra*'s
+  pickup-drop/full-reset-on-death model, since this project's own non-lethal setback (`FR-11400`)
+  has no "death" event for a full-reset convention to hook into. `WEAPON_TIER` is **not**
+  decremented by the post-contact setback or by any other event — once purchased, an upgrade is
+  permanent, mirroring `FR-11500`'s own healing-spend permanence (a spent heal is not later
+  "un-healed").
+- **Rationale:** `ADS-002` §Domain Model (the weapon-power axis originally named, never
+  formalized); `BL-0147` (the traceability gap this leaf closes); `R219` (the currency-spent,
+  persistent-purchase shape this leaf adopts, over the pickup-drop/full-reset alternative).
+- **Priority:** Should (closes a real, tracked traceability gap; `WEAPON_TIER` already ships as a
+  stat, but permanently stuck at its own default — this leaf is what makes it reachable at all).
+- **Inputs:** A tier-spend action; the current `RUNNING_TREASURE_COUNT`; the current `WEAPON_TIER`.
+- **Outputs:** An increased `WEAPON_TIER` (capped at its own existing maximum, 3); a reduced
+  `RUNNING_TREASURE_COUNT`.
+- **Preconditions:** `COMBAT_MODE` active; `RUNNING_TREASURE_COUNT` > 0.
+- **Postconditions:** `RUNNING_TREASURE_COUNT` decreases by the amount spent — including when
+  `WEAPON_TIER` is already at its own maximum, mirroring `FR-11500`'s own shipped, tested
+  precedent that a heal-spend at max health still spends the treasure (`T31.d2`), not a no-op;
+  `WEAPON_TIER` increases correspondingly, never exceeding its own maximum; a purchased tier
+  increase persists indefinitely — no event in this feature's own model reduces `WEAPON_TIER`
+  once raised.
+- **Acceptance Criteria:** Spending treasure to upgrade the weapon reduces `RUNNING_TREASURE_COUNT`
+  by exactly the spent amount and increases `WEAPON_TIER` by exactly 1, up to but never past 3;
+  spending at `WEAPON_TIER == 3` still reduces `RUNNING_TREASURE_COUNT` by the spent amount but
+  does not push `WEAPON_TIER` past 3 (mirroring `FR-11500`'s own heal-at-max-health precedent
+  exactly, `T31.d2` — spends, does not exceed the cap, is not itself a no-op); the same
+  `RUNNING_TREASURE_COUNT` `FR-10400`'s own top-score comparison reads is what this leaf spends
+  from — no separate ledger; a purchased tier increase survives a mob-contact setback
+  (`FR-11400`) and a save/load round trip (`FR-11600`) unchanged.
+- **Dependencies:** `FR-11300` (the `WEAPON_TIER` stat this leaf funds); `FR-10300`/`FR-10400`
+  (the treasure count this leaf spends from); `FR-11500` (the sibling economy leaf this shares its
+  currency and its "spends even at cap, floored at the maximum" convention with); `FR-11600`
+  (this leaf's own permanence claim depends on `WEAPON_TIER` already being a persisted,
+  save-format field, which it is as of `IP-1122`).
+- **Verification Method:** Test (direct-force spend/spend-at-cap/persistence scenarios, mirroring
+  `FR-11500`'s own established test methodology, `T31.d`/`T31.d2`/`T31.e`).
+- **Source Documents:** `ADS-002` §Domain Model; `BL-0147`; `R219`.
+- **Related ADRs:** None.
+- **Status:** Implemented (`IP-1129`, 2026-07-19). `inf_tier_spend` (new subroutine, mirroring
+  `inf_heal_spend`'s own exact structure) decrements `RUNNING_TREASURE_COUNT` by exactly 1 treasure
+  per tier (1-for-1, matching `FR-11500`'s own precedent) and increases `WEAPON_TIER` by 1, capped
+  at 3 — spending even at the cap, not a no-op, per this leaf's own Postconditions. No new WRAM.
+  Verified by `T38.a`–`e` (`test_rom.py`). The save/load half of this leaf's own Acceptance
+  Criteria is **not yet verifiable**: `FR-11600` (combat state save persistence) is still
+  unimplemented, and direct code read confirms `WEAPON_TIER` has no SRAM mirror yet — `T38.e`
+  verifies only the in-session (mob-contact-setback) persistence half, named explicitly rather than
+  silently assumed; the save/load half remains open pending `FR-11600`.
+- **Notes:** The exact tier-spend input/rate (how much treasure per tier increase — `FR-11500`'s
+  own precedent is 1-for-1) was a `06-feature-specification` decision, following this project's own
+  established "adjustable default" convention — resolved above (1-for-1). **Input-binding gap,
+  named not resolved**: like `FR-11500`'s own heal-spend action (`BL-0148`, still unresolved), this
+  leaf's own spend action has no obviously free input button either — every existing button is
+  already claimed (D-pad movement, A now claimed by fire, B the universal cancel, START/SELECT both
+  claimed by existing menus). `inf_tier_spend` is defined and exposed, directly force-testable, but
+  has no call site anywhere, mirroring `inf_heal_spend`'s own identical situation. A future `06`/`07`
+  pass may resolve both `FR-11500`'s and this leaf's own spend actions with a single shared UI
+  (e.g. a spend menu reachable via SELECT, mirroring `IP-1090`'s own SELECT-menu-confirmation
+  precedent) rather than inventing two separate bindings — named as a recommendation, not decided
+  here.
 
 ### FR-11600 — Combat state save persistence
 

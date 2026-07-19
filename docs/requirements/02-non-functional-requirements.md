@@ -263,7 +263,15 @@
 - **Source Documents:** `R115` §Implementation Guidance; `ADS-002` §System Architecture.
 - **Related ADRs:** None.
 - **Notes:** Whichever stage-08 package implements combat's per-frame logic owns this
-  measurement, per `NFR-1400`'s own precedent — not resolved or assumed here.
+  measurement, per `NFR-1400`'s own precedent — not resolved or assumed here. **2026-07-19
+  delta:** two new leaves, `FR-11210` (mob movement toward the player) and `FR-11410` (post-
+  contact invincibility/knockback/cooldown), both name this NFR's own still-`UNCONFIRMED` status
+  as a constraint their eventual implementations must measure against — neither is implemented
+  yet, so this NFR's own measurement obligation is unchanged, just now explicitly inherited by
+  two more not-yet-built pieces of combat per-frame logic. **2026-07-19 delta (cont'd):** two more
+  new leaves, `FR-11310` (movement-based multi-directional weapon fire) and `FR-11510`
+  (treasure-spent weapon-tier funding), likewise name this NFR's own still-`UNCONFIRMED` status —
+  neither implemented yet, same inherited-not-newly-created obligation.
 
 ## Reliability
 

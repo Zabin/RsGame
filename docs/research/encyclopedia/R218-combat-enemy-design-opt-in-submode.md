@@ -123,3 +123,8 @@ R201 (collect-a-thon goal design — the base loop this sub-mode is strictly add
 mode), R211 (comparative GBC-era visual design case studies — a future content-authoring pass for
 mob sprites should consult this alongside R218), R214 (the existing warning against Azure
 Dreams/Dragon Crystal as templates — this topic is the alternative that warning called for).
+
+**Extended by (2026-07-19):** R219 (ranged-weapon upgrade/progression conventions, grounding
+`WEAPON_TIER`'s own funding mechanism) and R220 (movement-based multi-directional weapon aiming
+conventions, grounding a future `PLAYER_DIR` widening) — both declare this topic as a dependency
+and extend its weapon/projectile axis specifically, filed via `BL-0155`/`BL-0157`.

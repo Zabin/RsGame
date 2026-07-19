@@ -301,21 +301,21 @@ MOB_DATA       = 0xC6B7  # 30 bytes, C6B7-C6D4 -- 6 slots x 5 bytes: x (1),
 PROJ_ACTIVE    = 0xC6D5  # 1 byte -- 0=no projectile in flight (default), 1=active.
 PROJ_X         = 0xC6D6  # 1 byte -- projectile's own X, independent of PLAYER_X
                           # once fired (copied from it only at fire time).
-PROJ_Y         = 0xC6D7  # 1 byte -- projectile's own Y, fixed at its spawn value
-                          # for this package's own horizontal-only movement (see
-                          # PROJ_DIR below).
-PROJ_DIR       = 0xC6D8  # 1 byte -- 0=right, 1=left. Mirrors PLAYER_DIR's own
-                          # REAL encoding, not the "0-3" range IP-1122's own §6
-                          # assumed: direct code read confirms PLAYER_DIR is
-                          # written only by handle_play_input's RIGHT/LEFT
-                          # branches (never UP/DOWN) -- this codebase's own
-                          # established "facing direction" concept is 2-state,
-                          # not 4-state. FR-11300's own Notes explicitly leave
-                          # the exact facing-direction mechanism to 06/08
-                          # discretion, so this is a named implementation
-                          # decision (not a blocker), harvested as a low-severity
-                          # doc-accuracy finding against IP-1122 §6's phrasing.
-                          # The projectile therefore moves purely horizontally.
+PROJ_Y         = 0xC6D7  # 1 byte -- projectile's own Y, independent of PLAYER_Y
+                          # once fired (copied from it only at fire time).
+PROJ_STEP_X    = 0xC6D8  # 1 byte -- IP-1128 (FR-11310): raw signed per-frame X
+                          # step (0x01=+1, 0x00=0, 0xFF=-1), copied from
+                          # PLAYER_FACING_X at fire time. Same address as
+                          # IP-1122's own original PROJ_DIR (0xC6D8) -- redefined
+                          # in place, not widened elsewhere: PROJ_DIR's own
+                          # 2-value (0=right/1=left) shape had exactly two
+                          # consumers (the fire-time copy, inf_projectile_
+                          # update's own read), both rewritten by this package;
+                          # confirmed by direct grep no third site reads it, so
+                          # reusing the byte is safe (ADR-0021's own Decision 1
+                          # -- PLAYER_DIR itself, unlike this internal-only
+                          # field, is NOT touched, since it has an established
+                          # external consumer, the OAM X-flip render).
 WEAPON_TIER    = 0xC6D9  # 1 byte -- damage dealt per hit, default 1, range 1-3
                           # (persisted stat; no player-facing way to raise it
                           # yet -- the funding mechanism gap named above).
@@ -346,6 +346,32 @@ COMBAT_ENTRY_Y  = 0xC6DC  # 1 byte -- PLAYER_Y at the last region-entry event.
 # No boot clear needed -- reset via MM_JUST_ENTERED on every genuine
 # state entry (cmc_on_entry), the same convention MM_CURSOR itself uses.
 CMC_CURSOR = 0xC6DD  # 1 byte -- this state's own Y/N cursor: 0="N" (default), nonzero="Y".
+
+# IP-1126: per-frame countdown to the next mob movement tick (FR-11210). Boot-cleared to 0,
+# which is harmless -- inf_mob_move simply recomputes/resets it on the first eligible frame.
+MOB_MOVE_TIMER = 0xC6DE  # 1 byte -- counts down from MOB_MOVE_INTERVAL to 0 each combat frame.
+
+# IP-1126 adjustable defaults (FR-11210) -- not WRAM, plain Python-level tuning constants.
+MOB_MOVE_INTERVAL = 8  # frames between mob movement ticks (lower = faster-updating mobs)
+MOB_MOVE_STEP = 1      # pixels a mob moves per tick, on its dominant axis toward the player
+
+# IP-1128 (FR-11310, ADR-0021): weapon directionality. First unclaimed bytes past
+# MOB_MOVE_TIMER's own end (0xC6DE). PLAYER_FACING_X/Y are the player's own persistent
+# facing, stored as a raw signed step already ready for direct addition (0x01=+1,
+# 0x00=0, 0xFF=-1) -- written only inside handle_play_input's own RIGHT/LEFT/UP/DOWN
+# branches (mirroring PLAYER_DIR's own "only written on press, never reset elsewhere"
+# convention, extended to two independent axes), so a stationary player keeps firing
+# in their last-held direction rather than defaulting. Boot-*initialized* (outside the
+# 0xC000-C2FF blanket clear), not simply cleared: PLAYER_FACING_X starts at 1 (facing
+# right, matching PLAYER_DIR's own default-right shape) so a fresh session that has
+# never moved still fires a sane rightward shot rather than a directionless (0,0) one.
+PLAYER_FACING_X = 0xC6DF  # 1 byte -- raw signed X step, default 1 (right).
+PLAYER_FACING_Y = 0xC6E0  # 1 byte -- raw signed Y step, default 0 (no vertical bias).
+PROJ_STEP_Y     = 0xC6E1  # 1 byte -- the projectile's own transient Y-axis step,
+                            # copied from PLAYER_FACING_Y at fire time, mirroring
+                            # PROJ_X/PROJ_Y's own "transient copy taken at fire time"
+                            # pattern. No boot-init needed -- PROJ_ACTIVE==0 gates its
+                            # validity, like every other projectile field.
 
 SAVE_VERSION_ADDR = 0xA012   # save-format version guard (FR-5220 / Design Decision 2)
 SAVE_VERSION_VAL  = 0x05     # bumped 0x04->0x05 (IP-1104, fifth bump since ship — the
@@ -484,6 +510,16 @@ def build_game_asm(rom: ROM) -> dict:
     # gates validity, the same convention LEDGER/COLL_DATA already use.
     rom.XOR_A(); rom.LD_nn_A(COMBAT_MODE); rom.LD_nn_A(MOB_COUNT)
 
+    # Clear MOB_MOVE_TIMER (IP-1126) -- harmless at 0, inf_mob_move recomputes/
+    # resets it on the first eligible frame (see the WRAM comment above).
+    rom.XOR_A(); rom.LD_nn_A(MOB_MOVE_TIMER)
+
+    # Init PLAYER_FACING_X/Y (IP-1128) -- NOT simply cleared: X defaults to 1
+    # (facing right), not 0, so a fresh session that has never moved still
+    # fires a sane rightward shot rather than a directionless (0,0) one.
+    rom.LD_A_n(1); rom.LD_nn_A(PLAYER_FACING_X)
+    rom.XOR_A(); rom.LD_nn_A(PLAYER_FACING_Y)
+
     # Clear PROJ_ACTIVE, init WEAPON_TIER to 1 (IP-1122) -- same targeted-
     # clear rationale as COMBAT_MODE/MOB_COUNT immediately above. PROJ_X/Y/
     # DIR need no boot clear (PROJ_ACTIVE==0 gates their validity).
@@ -613,6 +649,14 @@ def build_game_asm(rom: ROM) -> dict:
     rom.label('si_clr2'); rom.LD_HLI_A(); rom.DEC_B(); rom.JR_NZ('si_clr2')
     rom.LD_A_n(76); rom.LD_nn_A(PLAYER_X)
     rom.LD_A_n(80); rom.LD_nn_A(PLAYER_Y)
+    # IP-1123's own initial-entry combat-entry-point recording (BL-0154
+    # remediation, moved from st_infinite_seed_entry's own A-confirm
+    # handler, which ran before PLAYER_X/Y were set to their real spawn
+    # value above -- recording it there captured the wrong coordinate).
+    # inf_record_combat_entry self-gates on COMBAT_MODE, so this is a
+    # no-op for finite-mode games (COMBAT_MODE is never set outside
+    # Infinite Mode Combat).
+    rom.CALL('inf_record_combat_entry')
     rom.LD_A_n(GS_PLAYING); rom.LD_nn_A(TRANSITION_TO)
     rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW)
     rom.JP('end_frame')
@@ -623,6 +667,7 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_nn(NEED_REDRAW); rom.OR_A()
     rom.JP_NZ('end_frame')
     rom.CALL('check_collisions')
+    rom.CALL('inf_mob_move')           # IP-1126: no-op unless COMBAT_MODE
     rom.CALL('inf_projectile_update')  # IP-1122: no-op unless COMBAT_MODE/PROJ_ACTIVE
     rom.CALL('inf_mob_contact_check')  # IP-1123: no-op unless COMBAT_MODE
     rom.CALL('check_zone_transition')
@@ -926,7 +971,12 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_nn_A(INF_ROW); rom.LD_nn_A(INF_ROW + 1)
     rom.LD_nn_A(INF_COL); rom.LD_nn_A(INF_COL + 1)
     rom.CALL('inf_ensure_window')
-    rom.CALL('inf_record_combat_entry')  # IP-1123: initial region-entry point
+    # IP-1123's own combat-entry-point recording moved to st_intro (BL-0154
+    # remediation) -- PLAYER_X/Y are not yet set to their real spawn
+    # position here, so recording it at this point captured the wrong
+    # coordinate (whatever PLAYER_X/Y held before spawn, 0 on a fresh
+    # session) instead of the position the player actually enters the
+    # region at.
     rom.LD_A_n(GS_INTRO); rom.LD_nn_A(TRANSITION_TO)
     rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW)
     rom.JP('end_frame')
@@ -1050,7 +1100,8 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_n(1); rom.LD_nn_A(PROJ_ACTIVE)
     rom.LD_A_nn(PLAYER_X); rom.LD_nn_A(PROJ_X)
     rom.LD_A_nn(PLAYER_Y); rom.LD_nn_A(PROJ_Y)
-    rom.LD_A_nn(PLAYER_DIR); rom.LD_nn_A(PROJ_DIR)
+    rom.LD_A_nn(PLAYER_FACING_X); rom.LD_nn_A(PROJ_STEP_X)
+    rom.LD_A_nn(PLAYER_FACING_Y); rom.LD_nn_A(PROJ_STEP_Y)
     rom.label('hpi_no_fire')
 
     rom.LD_A_nn(JOY_CUR); rom.LD_B_A()
@@ -1063,6 +1114,7 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_nn_A(PLAYER_X)
     rom.label('mv_skip_r')
     rom.XOR_A(); rom.LD_nn_A(PLAYER_DIR)
+    rom.LD_A_n(1); rom.LD_nn_A(PLAYER_FACING_X)  # IP-1128: facing right
     rom.LD_A_n(1); rom.LD_nn_A(TMP1)
     rom.label('mv_nr')
 
@@ -1071,6 +1123,7 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_nn(PLAYER_X); rom.OR_A(); rom.JR_Z('mv_nl')
     rom.DEC_A(); rom.LD_nn_A(PLAYER_X)
     rom.LD_A_n(1); rom.LD_nn_A(PLAYER_DIR)
+    rom.LD_A_n(0xFF); rom.LD_nn_A(PLAYER_FACING_X)  # IP-1128: facing left (-1)
     rom.LD_A_n(1); rom.LD_nn_A(TMP1)
     rom.label('mv_nl')
 
@@ -1079,6 +1132,7 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_nn(PLAYER_Y); rom.CP_n(8); rom.JR_C('mv_skip_u')
     rom.JR_Z('mv_skip_u'); rom.DEC_A(); rom.LD_nn_A(PLAYER_Y)
     rom.label('mv_skip_u')
+    rom.LD_A_n(0xFF); rom.LD_nn_A(PLAYER_FACING_Y)  # IP-1128: facing up (-1)
     rom.LD_A_n(1); rom.LD_nn_A(TMP1)
     rom.label('mv_nu')
 
@@ -1088,6 +1142,7 @@ def build_game_asm(rom: ROM) -> dict:
     rom.CP_n(129); rom.JR_NC('mv_skip_d')
     rom.LD_nn_A(PLAYER_Y)
     rom.label('mv_skip_d')
+    rom.LD_A_n(1); rom.LD_nn_A(PLAYER_FACING_Y)  # IP-1128: facing down (+1)
     rom.LD_A_n(1); rom.LD_nn_A(TMP1)
     rom.label('mv_nd')
 
@@ -3387,32 +3442,159 @@ def build_game_asm(rom: ROM) -> dict:
     rom.label('imd_done')
     rom.RET()
 
-    # ── inf_projectile_update (IP-1122, FR-11300) ──────────
+    # ── inf_mob_move (IP-1126, FR-11210) ────────────────────
+    # Called once per frame from st_playing (gated on COMBAT_MODE -- a
+    # no-op call otherwise, matching every other combat-sub-mode routine's
+    # own additive discipline). MOB_MOVE_TIMER gates the cadence: a timer
+    # already at 0 (the boot value, or freshly wrapped) moves immediately
+    # without decrementing first -- this is what makes a boot-cleared timer
+    # "recompute on the very first eligible frame" (this file's own WRAM
+    # comment on MOB_MOVE_TIMER); a nonzero timer decrements once, and if
+    # that decrement itself reaches 0, the move happens on this same frame
+    # too (so forcing the timer to 1 and ticking one frame moves the mob,
+    # not merely counts down to 0 -- T35.a). Either way, reaching 0 resets
+    # the timer to MOB_MOVE_INTERVAL, giving a clean MOB_MOVE_INTERVAL-frame
+    # gap between one move and the next. On a move, every active MOB_DATA
+    # slot takes one MOB_MOVE_STEP-pixel step toward the player on its
+    # dominant axis (|dx| vs |dy| -- ties favor X), holding still when the
+    # mob is already exactly coincident with the player (dx==0 and dy==0,
+    # resolving FS-112's own Open Question 4). Direction is recomputed on
+    # the winning axis only rather than stashed for both, a deliberate
+    # register-pressure tradeoff. Reuses inf_mob_contact_check's own
+    # slot-walk/PUSH_BC+PUSH_HL discipline verbatim. Clobbers A/B/C/D/E/H/L.
+    rom.label('inf_mob_move')
+    rom.LD_A_nn(COMBAT_MODE); rom.OR_A(); rom.RET_Z()
+
+    rom.LD_A_nn(MOB_MOVE_TIMER); rom.OR_A(); rom.JR_Z('imv_move_reset')
+    rom.DEC_A(); rom.JR_Z('imv_move_reset')
+    rom.LD_nn_A(MOB_MOVE_TIMER)
+    rom.RET()
+    rom.label('imv_move_reset')
+    rom.LD_A_n(MOB_MOVE_INTERVAL); rom.LD_nn_A(MOB_MOVE_TIMER)
+
+    rom.label('imv_move_pass')
+    rom.LD_HL_nn(MOB_DATA)
+    rom.LD_B_n(0)
+    rom.label('imv_loop')
+    rom.LD_E_HL(); rom.INC_HL()     # E = mob x, HL -> y
+    rom.LD_D_HL(); rom.INC_HL()     # D = mob y, HL -> species
+    rom.INC_HL()                     # skip species, HL -> health
+    rom.INC_HL()                     # skip health, HL -> active
+    rom.LD_A_HL()                    # A = active (HL still -> active byte)
+    rom.PUSH_BC(); rom.PUSH_HL()
+    rom.OR_A(); rom.JR_Z('imv_skip')
+
+    # ax = |mob_x - PLAYER_X| -> C
+    rom.LD_A_nn(PLAYER_X); rom.LD_H_A()
+    rom.LD_A_E(); rom.emit(0xBC)     # CP H: mob_x vs player_x
+    rom.JR_Z('imv_ax_zero')
+    rom.JR_C('imv_ax_neg')
+    rom.LD_A_E(); rom.emit(0x94)     # SUB H: A = mob_x - player_x
+    rom.JR('imv_ax_done')
+    rom.label('imv_ax_neg')
+    rom.LD_A_H(); rom.SUB_E()        # A = player_x - mob_x
+    rom.JR('imv_ax_done')
+    rom.label('imv_ax_zero')
+    rom.XOR_A()
+    rom.label('imv_ax_done')
+    rom.LD_C_A()
+
+    # ay = |mob_y - PLAYER_Y| -> L
+    rom.LD_A_nn(PLAYER_Y); rom.LD_H_A()
+    rom.LD_A_D(); rom.emit(0xBC)     # CP H: mob_y vs player_y
+    rom.JR_Z('imv_ay_zero')
+    rom.JR_C('imv_ay_neg')
+    rom.LD_A_D(); rom.emit(0x94)     # SUB H: A = mob_y - player_y
+    rom.JR('imv_ay_done')
+    rom.label('imv_ay_neg')
+    rom.LD_A_H(); rom.SUB_D()        # A = player_y - mob_y
+    rom.JR('imv_ay_done')
+    rom.label('imv_ay_zero')
+    rom.XOR_A()
+    rom.label('imv_ay_done')
+    rom.LD_L_A()
+
+    # coincident (ax==0 and ay==0) -> hold still
+    rom.LD_A_C(); rom.OR_A(); rom.JR_NZ('imv_pick_axis')
+    rom.LD_A_L(); rom.OR_A(); rom.JR_Z('imv_skip')
+
+    # dominant axis: X if ax >= ay, else Y (winner's magnitude is always
+    # nonzero here -- the only both-zero case was just handled above)
+    rom.label('imv_pick_axis')
+    rom.LD_A_C(); rom.emit(0xBD)     # CP L: ax vs ay; carry set if ax<ay
+    rom.JR_C('imv_axis_y')
+
+    rom.label('imv_axis_x')
+    rom.LD_A_nn(PLAYER_X); rom.LD_H_A()
+    rom.LD_A_E(); rom.emit(0xBC)     # CP H: mob_x vs player_x
+    rom.JR_C('imv_x_inc')
+    rom.POP_HL()                     # HL -> active byte; walk back to x
+    rom.DEC_HL(); rom.DEC_HL(); rom.DEC_HL(); rom.DEC_HL()
+    rom.LD_A_HL(); rom.SUB_n(MOB_MOVE_STEP); rom.LD_HL_A()
+    rom.INC_HL(); rom.INC_HL(); rom.INC_HL(); rom.INC_HL()
+    rom.JR('imv_advance')
+    rom.label('imv_x_inc')
+    rom.POP_HL()
+    rom.DEC_HL(); rom.DEC_HL(); rom.DEC_HL(); rom.DEC_HL()
+    rom.LD_A_HL(); rom.ADD_A_n(MOB_MOVE_STEP); rom.LD_HL_A()
+    rom.INC_HL(); rom.INC_HL(); rom.INC_HL(); rom.INC_HL()
+    rom.JR('imv_advance')
+
+    rom.label('imv_axis_y')
+    rom.LD_A_nn(PLAYER_Y); rom.LD_H_A()
+    rom.LD_A_D(); rom.emit(0xBC)     # CP H: mob_y vs player_y
+    rom.JR_C('imv_y_inc')
+    rom.POP_HL()                     # HL -> active byte; walk back to y
+    rom.DEC_HL(); rom.DEC_HL(); rom.DEC_HL()
+    rom.LD_A_HL(); rom.SUB_n(MOB_MOVE_STEP); rom.LD_HL_A()
+    rom.INC_HL(); rom.INC_HL(); rom.INC_HL()
+    rom.JR('imv_advance')
+    rom.label('imv_y_inc')
+    rom.POP_HL()
+    rom.DEC_HL(); rom.DEC_HL(); rom.DEC_HL()
+    rom.LD_A_HL(); rom.ADD_A_n(MOB_MOVE_STEP); rom.LD_HL_A()
+    rom.INC_HL(); rom.INC_HL(); rom.INC_HL()
+    rom.JR('imv_advance')
+
+    rom.label('imv_skip')
+    rom.POP_HL()
+    rom.label('imv_advance')
+    rom.INC_HL()
+    rom.POP_BC(); rom.INC_B()
+    rom.LD_A_B(); rom.CP_n(6); rom.JP_C('imv_loop')  # JP: body exceeds JR's +-127 range
+    rom.RET()
+
+    # ── inf_projectile_update (IP-1122/IP-1128, FR-11300/FR-11310) ─
     # Per-frame projectile movement, called once per frame from st_playing
     # (gated on COMBAT_MODE/PROJ_ACTIVE -- a no-op call otherwise, matching
     # every other combat-sub-mode routine's own additive discipline).
-    # Advances PROJ_X by one pixel per frame in PROJ_DIR; PROJ_Y never
-    # changes post-spawn (horizontal-only movement -- see PROJ_DIR's own
-    # WRAM comment for why: PLAYER_DIR, the only "facing direction" concept
-    # this codebase actually tracks, is a 2-state left/right flag, not the
-    # 4-state range this package's own §6 assumed). Reuses PLAYER_X's own
-    # boundary constants (0/152) as the projectile's terminal edge, the
-    # same coordinate space PROJ_X is copied from at fire time. On a
-    # surviving move, calls inf_projectile_hittest; on reaching the
-    # boundary, clears PROJ_ACTIVE with no hit-test performed. Clobbers A.
+    # IP-1128 (FR-11310): advances PROJ_X by PROJ_STEP_X and PROJ_Y by
+    # PROJ_STEP_Y independently, every frame -- a diagonal projectile
+    # (both steps nonzero) therefore moves on both axes the same frame,
+    # mirroring the player's own existing simultaneous-both-axes D-pad
+    # movement (not a new "faster diagonally" inconsistency this package
+    # introduces). X boundary reuses PLAYER_X's own established 0/152
+    # pair; the add-then-compare-unsigned technique catches both overflow
+    # (>=153) and underflow (a -1 step from 0 wraps to 0xFF, also >=153)
+    # with one check. Y boundary reuses PLAYER_Y's own established 8/128
+    # clamp pair (handle_play_input's own UP/DOWN constants) -- needs two
+    # explicit checks since floor=8 isn't 0, so wraparound alone can't
+    # catch it. Deactivates (no hit-test) if either axis exits its own
+    # bound; on a surviving move, calls inf_projectile_hittest. Clobbers
+    # A/E.
     rom.label('inf_projectile_update')
     rom.LD_A_nn(COMBAT_MODE); rom.OR_A(); rom.RET_Z()
     rom.LD_A_nn(PROJ_ACTIVE); rom.OR_A(); rom.RET_Z()
 
-    rom.LD_A_nn(PROJ_DIR); rom.OR_A(); rom.JR_NZ('ipu_left')
-    rom.LD_A_nn(PROJ_X); rom.INC_A()
+    rom.LD_A_nn(PROJ_STEP_X); rom.LD_E_A()
+    rom.LD_A_nn(PROJ_X); rom.ADD_A_E(); rom.LD_nn_A(PROJ_X)
     rom.CP_n(153); rom.JR_NC('ipu_deactivate')
-    rom.LD_nn_A(PROJ_X)
-    rom.JR('ipu_hittest')
-    rom.label('ipu_left')
-    rom.LD_A_nn(PROJ_X); rom.OR_A(); rom.JR_Z('ipu_deactivate')
-    rom.DEC_A(); rom.LD_nn_A(PROJ_X)
-    rom.label('ipu_hittest')
+
+    rom.LD_A_nn(PROJ_STEP_Y); rom.LD_E_A()
+    rom.LD_A_nn(PROJ_Y); rom.ADD_A_E(); rom.LD_nn_A(PROJ_Y)
+    rom.CP_n(8); rom.JR_C('ipu_deactivate')
+    rom.CP_n(129); rom.JR_NC('ipu_deactivate')
+
     rom.CALL('inf_projectile_hittest')
     rom.RET()
     rom.label('ipu_deactivate')
@@ -3473,13 +3655,17 @@ def build_game_asm(rom: ROM) -> dict:
 
     # ── inf_record_combat_entry (IP-1123) ──────────────────
     # Records the current PLAYER_X/PLAYER_Y as COMBAT_ENTRY_X/Y -- called
-    # from every inf_ensure_window call site (initial Infinite Mode entry,
-    # each of czt_infinite's own four direction branches after their own
-    # PLAYER_X/Y update, and the post-load restore path), each of which is
-    # exactly a "this is now the current region" event. Gated on
-    # COMBAT_MODE -- a no-op call when off, so recording is fully inert
-    # until IP-1120's own gating screen ships (COMBAT_MODE is never set by
-    # any shipped code path today). Clobbers A.
+    # from six sites, each exactly a "this is now the current region, at
+    # this position" event: st_intro's own A-press handler (initial
+    # Infinite Mode entry, AFTER PLAYER_X/Y are set to their real spawn
+    # value there -- BL-0154 remediation, moved out of
+    # st_infinite_seed_entry's own A-confirm handler, which ran before
+    # PLAYER_X/Y held a real position), each of czt_infinite's own four
+    # direction branches after their own PLAYER_X/Y update, and the
+    # post-load restore path. Gated on COMBAT_MODE -- a no-op call when
+    # off, so recording is fully inert until IP-1120's own gating screen
+    # ships (COMBAT_MODE is never set outside Infinite Mode Combat).
+    # Clobbers A.
     rom.label('inf_record_combat_entry')
     rom.LD_A_nn(COMBAT_MODE); rom.OR_A(); rom.RET_Z()
     rom.LD_A_nn(PLAYER_X); rom.LD_nn_A(COMBAT_ENTRY_X)
@@ -3582,6 +3768,36 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_nn(PLAYER_HEALTH); rom.CP_n(3); rom.JR_NC('ihs_done')
     rom.INC_A(); rom.LD_nn_A(PLAYER_HEALTH)
     rom.label('ihs_done')
+    rom.RET()
+
+    # ── inf_tier_spend (IP-1129, FR-11510) ──────────────────
+    # Player-choice weapon-tier funding: gated on COMBAT_MODE and
+    # RUNNING_TREASURE_COUNT > 0 (16-bit, both bytes checked), mirroring
+    # inf_heal_spend's own exact structure field-for-field. Decrements
+    # RUNNING_TREASURE_COUNT by 1 via the identical 16-bit-borrow technique
+    # -- the same shared count, no second ledger. Spends UNCONDITIONALLY:
+    # SCORE_DIRTY is set and the treasure decrement always happens before
+    # the WEAPON_TIER cap check, matching FR-11500's own real shipped
+    # precedent (T31.d2) -- spending at the cap still spends, it is not a
+    # no-op, only the tier increase itself is floored at 3. NOT called from
+    # anywhere in this package's own control flow -- shares inf_heal_spend's
+    # own still-unresolved input-binding gap (BL-0148-class), not invented a
+    # binding for here. Defined and exposed, directly force-testable
+    # (T38.a-d). Clobbers A.
+    rom.label('inf_tier_spend')
+    rom.LD_A_nn(COMBAT_MODE); rom.OR_A(); rom.RET_Z()
+    rom.LD_A_nn(RUNNING_TREASURE_COUNT); rom.OR_A(); rom.JR_NZ('its_have')
+    rom.LD_A_nn(RUNNING_TREASURE_COUNT + 1); rom.OR_A(); rom.RET_Z()
+    rom.label('its_have')
+    rom.LD_A_nn(RUNNING_TREASURE_COUNT); rom.OR_A(); rom.JR_NZ('its_no_borrow')
+    rom.LD_A_nn(RUNNING_TREASURE_COUNT + 1); rom.DEC_A(); rom.LD_nn_A(RUNNING_TREASURE_COUNT + 1)
+    rom.label('its_no_borrow')
+    rom.LD_A_nn(RUNNING_TREASURE_COUNT); rom.DEC_A(); rom.LD_nn_A(RUNNING_TREASURE_COUNT)
+
+    rom.LD_A_n(1); rom.LD_nn_A(SCORE_DIRTY)  # treasure count always changed above
+    rom.LD_A_nn(WEAPON_TIER); rom.CP_n(3); rom.JR_NC('its_done')
+    rom.INC_A(); rom.LD_nn_A(WEAPON_TIER)
+    rom.label('its_done')
     rom.RET()
 
     # ── inf_health_hud_draw (IP-1123) ───────────────────────

@@ -115,6 +115,7 @@ from pyboy import PyBoy
 # what build_rom.py's real build produces for the same source.
 from gbc_lib import ROM as _ROM
 from asm_game import build_game_asm as _build_game_asm
+from asm_game import MOB_MOVE_STEP, MOB_MOVE_INTERVAL
 import worldgen
 _gw_rom = _ROM()
 _build_game_asm(_gw_rom)
@@ -3905,7 +3906,9 @@ wipe_save()
 print("\n=== T30: Combat Sub-Mode — Weapon Fire & Hit Resolution (IP-1122) ===")
 
 PROJ_ACTIVE_ADDR = 0xC6D5; PROJ_X_ADDR = 0xC6D6; PROJ_Y_ADDR = 0xC6D7
-PROJ_DIR_ADDR = 0xC6D8; WEAPON_TIER_ADDR = 0xC6D9
+PROJ_STEP_X_ADDR = 0xC6D8; WEAPON_TIER_ADDR = 0xC6D9   # PROJ_DIR renamed/redefined, IP-1128
+PLAYER_FACING_X_ADDR = 0xC6DF; PLAYER_FACING_Y_ADDR = 0xC6E0  # IP-1128
+PROJ_STEP_Y_ADDR = 0xC6E1                                      # IP-1128
 JOY_CUR_ADDR = 0xC00C; JOY_NEW_ADDR = 0xC00E
 J_A_BIT = 0   # asm_game.py's own J_A=0 encoding
 HPI_ADDR = _gw_rom.labels['handle_play_input']
@@ -3935,7 +3938,12 @@ def t30_reset(pb, combat_mode=1, weapon_tier=1):
         base = MOB_DATA_ADDR + i * 5
         for k in range(5): pb.memory[base + k] = 0
     pb.memory[PROJ_ACTIVE_ADDR] = 0
-    pb.memory[PROJ_X_ADDR] = 0; pb.memory[PROJ_Y_ADDR] = 0; pb.memory[PROJ_DIR_ADDR] = 0
+    pb.memory[PROJ_X_ADDR] = 0; pb.memory[PROJ_Y_ADDR] = 0
+    # IP-1128: default rightward step (1, 0), preserving the pre-IP-1128 tests'
+    # own implicit "projectile moves right by default" assumption for any
+    # check below that doesn't explicitly override the facing/step fields.
+    pb.memory[PROJ_STEP_X_ADDR] = 1; pb.memory[PROJ_STEP_Y_ADDR] = 0
+    pb.memory[PLAYER_FACING_X_ADDR] = 1; pb.memory[PLAYER_FACING_Y_ADDR] = 0
     pb.memory[WEAPON_TIER_ADDR] = weapon_tier
     pb.memory[JOY_CUR_ADDR] = 0; pb.memory[JOY_NEW_ADDR] = 0
 
@@ -3943,14 +3951,20 @@ pb = fresh_boot(180)
 advance_to_playing(pb)
 
 # T30.a — fire spawns a projectile at the player's own position/facing.
+# IP-1128: facing is now PLAYER_FACING_X/Y (not PLAYER_DIR, which no longer
+# feeds fire direction at all -- ADR-0021 Decision 1) -- force a
+# distinguishing non-default facing (left) so the check is a real
+# confirmation, not a coincidental match against the boot default (right).
 t30_reset(pb)
-pb.memory[PLAYER_X] = 80; pb.memory[PLAYER_Y] = 60; pb.memory[PLAYER_DIR] = 1
+pb.memory[PLAYER_X] = 80; pb.memory[PLAYER_Y] = 60
+pb.memory[PLAYER_FACING_X_ADDR] = 0xFF; pb.memory[PLAYER_FACING_Y_ADDR] = 0
 pb.memory[JOY_NEW_ADDR] = 1 << J_A_BIT
 _t30a_ok = invoke_no_arg(pb, HPI_ADDR)
 _t30a_active = pb.memory[PROJ_ACTIVE_ADDR]
-_t30a_x = pb.memory[PROJ_X_ADDR]; _t30a_y = pb.memory[PROJ_Y_ADDR]; _t30a_dir = pb.memory[PROJ_DIR_ADDR]
+_t30a_x = pb.memory[PROJ_X_ADDR]; _t30a_y = pb.memory[PROJ_Y_ADDR]
+_t30a_dir = pb.memory[PROJ_STEP_X_ADDR]
 check("T30.a Fire spawns a projectile at the player's own position/facing",
-      _t30a_ok and _t30a_active == 1 and _t30a_x == 80 and _t30a_y == 60 and _t30a_dir == 1,
+      _t30a_ok and _t30a_active == 1 and _t30a_x == 80 and _t30a_y == 60 and _t30a_dir == 0xFF,
       f"ok={_t30a_ok} active={_t30a_active} x={_t30a_x} y={_t30a_y} dir={_t30a_dir}")
 
 # T30.b — no double-fire: pressing A again while a projectile is already
@@ -3958,15 +3972,16 @@ check("T30.a Fire spawns a projectile at the player's own position/facing",
 # Criterion), even though the player's own position/facing differ this time.
 t30_reset(pb)
 pb.memory[PROJ_ACTIVE_ADDR] = 1
-pb.memory[PROJ_X_ADDR] = 40; pb.memory[PROJ_Y_ADDR] = 90; pb.memory[PROJ_DIR_ADDR] = 0
-pb.memory[PLAYER_X] = 120; pb.memory[PLAYER_Y] = 20; pb.memory[PLAYER_DIR] = 1
+pb.memory[PROJ_X_ADDR] = 40; pb.memory[PROJ_Y_ADDR] = 90; pb.memory[PROJ_STEP_X_ADDR] = 0
+pb.memory[PLAYER_X] = 120; pb.memory[PLAYER_Y] = 20
+pb.memory[PLAYER_FACING_X_ADDR] = 0xFF
 pb.memory[JOY_NEW_ADDR] = 1 << J_A_BIT
 _t30b_ok = invoke_no_arg(pb, HPI_ADDR)
 check("T30.b No double-fire: pressing A while a projectile is active leaves its state unchanged",
       _t30b_ok and pb.memory[PROJ_ACTIVE_ADDR] == 1 and pb.memory[PROJ_X_ADDR] == 40 and
-      pb.memory[PROJ_Y_ADDR] == 90 and pb.memory[PROJ_DIR_ADDR] == 0,
+      pb.memory[PROJ_Y_ADDR] == 90 and pb.memory[PROJ_STEP_X_ADDR] == 0,
       f"ok={_t30b_ok} active={pb.memory[PROJ_ACTIVE_ADDR]} x={pb.memory[PROJ_X_ADDR]} "
-      f"y={pb.memory[PROJ_Y_ADDR]} dir={pb.memory[PROJ_DIR_ADDR]}")
+      f"y={pb.memory[PROJ_Y_ADDR]} dir={pb.memory[PROJ_STEP_X_ADDR]}")
 
 # T30.c — hit resolution: an active projectile that reaches an active mob's
 # hitbox reduces its health by WEAPON_TIER, deactivates the projectile, and
@@ -3979,7 +3994,7 @@ pb.memory[_t30c_mob + 0] = 100; pb.memory[_t30c_mob + 1] = 50
 pb.memory[_t30c_mob + 2] = 0; pb.memory[_t30c_mob + 3] = 1; pb.memory[_t30c_mob + 4] = 1
 pb.memory[WEAPON_TIER_ADDR] = 1
 pb.memory[PROJ_ACTIVE_ADDR] = 1
-pb.memory[PROJ_X_ADDR] = 99; pb.memory[PROJ_Y_ADDR] = 50; pb.memory[PROJ_DIR_ADDR] = 0
+pb.memory[PROJ_X_ADDR] = 99; pb.memory[PROJ_Y_ADDR] = 50; pb.memory[PROJ_STEP_X_ADDR] = 1
 _t30c_ok = invoke_no_arg(pb, IPU_ADDR)
 _t30c_health = pb.memory[_t30c_mob + 3]; _t30c_active = pb.memory[_t30c_mob + 4]
 _t30c_count = pb.memory[MOB_COUNT_ADDR]; _t30c_proj = pb.memory[PROJ_ACTIVE_ADDR]
@@ -3997,7 +4012,7 @@ pb.memory[_t30c2_mob + 0] = 100; pb.memory[_t30c2_mob + 1] = 50
 pb.memory[_t30c2_mob + 2] = 0; pb.memory[_t30c2_mob + 3] = 5; pb.memory[_t30c2_mob + 4] = 1
 pb.memory[WEAPON_TIER_ADDR] = 2
 pb.memory[PROJ_ACTIVE_ADDR] = 1
-pb.memory[PROJ_X_ADDR] = 99; pb.memory[PROJ_Y_ADDR] = 50; pb.memory[PROJ_DIR_ADDR] = 0
+pb.memory[PROJ_X_ADDR] = 99; pb.memory[PROJ_Y_ADDR] = 50; pb.memory[PROJ_STEP_X_ADDR] = 1
 _t30c2_ok = invoke_no_arg(pb, IPU_ADDR)
 check("T30.c2 Spot: a non-lethal hit reduces health by WEAPON_TIER without defeating the mob",
       _t30c2_ok and pb.memory[_t30c2_mob + 3] == 3 and pb.memory[_t30c2_mob + 4] == 1 and
@@ -4011,7 +4026,7 @@ check("T30.c2 Spot: a non-lethal hit reduces health by WEAPON_TIER without defea
 t30_reset(pb)
 pb.memory[MOB_COUNT_ADDR] = 0
 pb.memory[PROJ_ACTIVE_ADDR] = 1
-pb.memory[PROJ_X_ADDR] = 150; pb.memory[PROJ_Y_ADDR] = 60; pb.memory[PROJ_DIR_ADDR] = 0
+pb.memory[PROJ_X_ADDR] = 150; pb.memory[PROJ_Y_ADDR] = 60; pb.memory[PROJ_STEP_X_ADDR] = 1
 _t30d_steps = 0
 while pb.memory[PROJ_ACTIVE_ADDR] == 1 and _t30d_steps < 20:
     invoke_no_arg(pb, IPU_ADDR)
@@ -4150,6 +4165,32 @@ check("T31.f COMBAT_MODE off: no row-1 HUD write, mob-contact/heal-spend logic n
       f"health={pb.memory[PLAYER_HEALTH_ADDR]} rtc={_t31f_rtc} row1={_t31f_row1}")
 
 pb.stop()
+wipe_save()
+
+# T31.g — BL-0154 regression: the "initial Infinite Mode entry" combat-
+# entry-point recording must capture the player's REAL spawn position, not
+# a stale pre-spawn value. Drives the real MODE SELECT -> COMBAT MODE
+# CONFIRM (confirm "Y") -> INFINITE SEED ENTRY -> INTRO -> PLAYING path
+# (not a direct-invoke force -- this is the only way to exercise the
+# actual call-site ordering), confirms COMBAT_ENTRY_X/Y match PLAYER_X/Y
+# exactly on first arrival at PLAYING, rather than the (0,0) VR-1123 found.
+pb31g = fresh_boot(180)
+pb31g.button('a'); [pb31g.tick() for _ in range(40)]        # MAIN MENU -> MODE SELECT
+pb31g.button('down'); [pb31g.tick() for _ in range(40)]     # toggle infinite
+pb31g.button('a'); [pb31g.tick() for _ in range(40)]        # confirm -> COMBAT MODE CONFIRM
+pb31g.button('up'); [pb31g.tick() for _ in range(40)]       # toggle to "Y"
+pb31g.button('a'); [pb31g.tick() for _ in range(40)]        # confirm Y -> INFINITE SEED ENTRY
+enter_infinite_seed(pb31g, [4, 2, 0, 0, 0])
+pb31g.button('a'); [pb31g.tick() for _ in range(100)]       # confirm seed -> INTRO
+pb31g.button('a'); [pb31g.tick() for _ in range(40)]        # INTRO -> PLAYING
+check("T31.g BL-0154 regression: initial-entry COMBAT_ENTRY_X/Y match the player's real spawn position",
+      pb31g.memory[GAMESTATE] == 2 and pb31g.memory[COMBAT_MODE_ADDR] == 1 and
+      pb31g.memory[PLAYER_X] == 76 and pb31g.memory[PLAYER_Y] == 80 and
+      pb31g.memory[COMBAT_ENTRY_X_ADDR] == 76 and pb31g.memory[COMBAT_ENTRY_Y_ADDR] == 80,
+      f"gs={pb31g.memory[GAMESTATE]} combat_mode={pb31g.memory[COMBAT_MODE_ADDR]} "
+      f"player=({pb31g.memory[PLAYER_X]},{pb31g.memory[PLAYER_Y]}) "
+      f"entry=({pb31g.memory[COMBAT_ENTRY_X_ADDR]},{pb31g.memory[COMBAT_ENTRY_Y_ADDR]})")
+pb31g.stop()
 wipe_save()
 
 print("\n=== T33: Combat Sub-Mode — Mode Gating & UI (IP-1120) ===")
@@ -4339,6 +4380,433 @@ check("T34.c Distinctness: mob/projectile art is visually distinct (byte-for-byt
 check("T34.d Palette budget: OBJ_PALETTES table still holds exactly 8 fixed-size entries (mob/projectile reuse the two previously-placeholder 'unused/white' slots, no new slot added)",
       len(_build_rom_mod.OBJ_PALETTES) == 8 and all(len(p) == 4 for p in _build_rom_mod.OBJ_PALETTES),
       f"count={len(_build_rom_mod.OBJ_PALETTES)}")
+
+print("\n=== T35: Combat Sub-Mode — Mob Movement (IP-1126) ===")
+
+MOB_MOVE_TIMER_ADDR = 0xC6DE
+IMV_ADDR = _gw_rom.labels['inf_mob_move']
+
+def t35_reset(pb, combat_mode=1, timer=0):
+    pb.memory[GAME_MODE] = 1
+    pb.memory[COMBAT_MODE_ADDR] = combat_mode
+    pb.memory[MOB_COUNT_ADDR] = 0
+    for i in range(6):
+        base = MOB_DATA_ADDR + i * 5
+        for k in range(5): pb.memory[base + k] = 0
+    pb.memory[MOB_MOVE_TIMER_ADDR] = timer
+
+def t35_set_slot(pb, slot, x, y, species=0, health=1, active=1):
+    base = MOB_DATA_ADDR + slot * 5
+    pb.memory[base + 0] = x; pb.memory[base + 1] = y
+    pb.memory[base + 2] = species; pb.memory[base + 3] = health
+    pb.memory[base + 4] = active
+
+def t35_slot(pb, slot):
+    base = MOB_DATA_ADDR + slot * 5
+    return tuple(pb.memory[base + k] for k in range(5))
+
+pb = fresh_boot(180)
+advance_to_playing(pb)
+
+# T35.a — a mob directly right of the player moves left by exactly
+# MOB_MOVE_STEP after one recomputation interval elapses (timer forced to
+# 1 -- decrementing to 0 this same frame moves it, per inf_mob_move's own
+# "reaches 0 this frame" rule, not merely counting down to 0 unmoved).
+t35_reset(pb, timer=1)
+pb.memory[PLAYER_X] = 80; pb.memory[PLAYER_Y] = 60
+t35_set_slot(pb, 0, 100, 60)
+_t35a_ok = invoke_no_arg(pb, IMV_ADDR)
+_t35a_slot = t35_slot(pb, 0)
+check("T35.a A mob directly right of the player moves left by exactly MOB_MOVE_STEP after one recomputation interval elapses",
+      _t35a_ok and _t35a_slot[0] == 100 - MOB_MOVE_STEP and _t35a_slot[1] == 60,
+      f"ok={_t35a_ok} slot={_t35a_slot}")
+
+# T35.b — the Y-axis counterpart: a mob directly below the player moves up.
+t35_reset(pb, timer=1)
+pb.memory[PLAYER_X] = 80; pb.memory[PLAYER_Y] = 60
+t35_set_slot(pb, 0, 80, 100)
+_t35b_ok = invoke_no_arg(pb, IMV_ADDR)
+_t35b_slot = t35_slot(pb, 0)
+check("T35.b A mob directly below the player moves up by exactly MOB_MOVE_STEP (dominant-axis choice is not X-only)",
+      _t35b_ok and _t35b_slot[1] == 100 - MOB_MOVE_STEP and _t35b_slot[0] == 80,
+      f"ok={_t35b_ok} slot={_t35b_slot}")
+
+# T35.c — diagonal offset with |dx| > |dy|: moves only on X this interval.
+t35_reset(pb, timer=1)
+pb.memory[PLAYER_X] = 80; pb.memory[PLAYER_Y] = 60
+t35_set_slot(pb, 0, 100, 70)   # dx=20, dy=10
+_t35c_ok = invoke_no_arg(pb, IMV_ADDR)
+_t35c_slot = t35_slot(pb, 0)
+check("T35.c Diagonal offset (|dx|>|dy|) moves only on the X axis this interval, Y unchanged",
+      _t35c_ok and _t35c_slot[0] == 100 - MOB_MOVE_STEP and _t35c_slot[1] == 70,
+      f"ok={_t35c_ok} slot={_t35c_slot}")
+
+# T35.d — the symmetric case: |dy| > |dx| moves only on the Y axis.
+t35_reset(pb, timer=1)
+pb.memory[PLAYER_X] = 80; pb.memory[PLAYER_Y] = 60
+t35_set_slot(pb, 0, 90, 100)   # dx=10, dy=40
+_t35d_ok = invoke_no_arg(pb, IMV_ADDR)
+_t35d_slot = t35_slot(pb, 0)
+check("T35.d Symmetric case (|dy|>|dx|) moves only on the Y axis",
+      _t35d_ok and _t35d_slot[1] == 100 - MOB_MOVE_STEP and _t35d_slot[0] == 90,
+      f"ok={_t35d_ok} slot={_t35d_slot}")
+
+# T35.e — a mob already coincident with the player does not move on a
+# recomputation interval (FS-112 Open Question 4's own resolution).
+t35_reset(pb, timer=1)
+pb.memory[PLAYER_X] = 80; pb.memory[PLAYER_Y] = 60
+t35_set_slot(pb, 0, 80, 60)
+_t35e_ok = invoke_no_arg(pb, IMV_ADDR)
+_t35e_slot = t35_slot(pb, 0)
+check("T35.e A mob already coincident with the player does not move on a recomputation interval",
+      _t35e_ok and _t35e_slot[0] == 80 and _t35e_slot[1] == 60,
+      f"ok={_t35e_ok} slot={_t35e_slot}")
+
+# T35.f — no movement occurs before MOB_MOVE_TIMER reaches 0: force the
+# timer above 1, tick one frame, confirm no movement and the timer
+# decremented by exactly 1.
+t35_reset(pb, timer=5)
+pb.memory[PLAYER_X] = 80; pb.memory[PLAYER_Y] = 60
+t35_set_slot(pb, 0, 100, 60)
+_t35f_ok = invoke_no_arg(pb, IMV_ADDR)
+_t35f_slot = t35_slot(pb, 0)
+_t35f_timer = pb.memory[MOB_MOVE_TIMER_ADDR]
+check("T35.f No movement occurs before MOB_MOVE_TIMER reaches 0; timer decremented by exactly 1",
+      _t35f_ok and _t35f_slot[0] == 100 and _t35f_slot[1] == 60 and _t35f_timer == 4,
+      f"ok={_t35f_ok} slot={_t35f_slot} timer={_t35f_timer}")
+
+# T35.g — COMBAT_MODE off: inf_mob_move is a complete no-op, mob position
+# and MOB_MOVE_TIMER both unchanged across multiple ticks.
+t35_reset(pb, combat_mode=0, timer=1)
+pb.memory[PLAYER_X] = 80; pb.memory[PLAYER_Y] = 60
+t35_set_slot(pb, 0, 100, 60)
+for _ in range(3): invoke_no_arg(pb, IMV_ADDR)
+_t35g_slot = t35_slot(pb, 0)
+_t35g_timer = pb.memory[MOB_MOVE_TIMER_ADDR]
+check("T35.g COMBAT_MODE off: inf_mob_move is a complete no-op (mob position and MOB_MOVE_TIMER unchanged across multiple ticks)",
+      _t35g_slot[0] == 100 and _t35g_slot[1] == 60 and _t35g_timer == 1,
+      f"slot={_t35g_slot} timer={_t35g_timer}")
+
+# T35.h — an inactive MOB_DATA slot is never moved: alternate active/
+# inactive slots at the same relative offset from the player, confirm only
+# the active ones move.
+t35_reset(pb, timer=1)
+pb.memory[PLAYER_X] = 80; pb.memory[PLAYER_Y] = 60
+for i in range(6):
+    t35_set_slot(pb, i, 100, 60, active=(1 if i % 2 == 0 else 0))
+_t35h_ok = invoke_no_arg(pb, IMV_ADDR)
+_t35h_slots = [t35_slot(pb, i) for i in range(6)]
+_t35h_expect = all(
+    (_t35h_slots[i][0] == 100 - MOB_MOVE_STEP if i % 2 == 0 else _t35h_slots[i][0] == 100)
+    and _t35h_slots[i][1] == 60
+    for i in range(6)
+)
+check("T35.h An inactive MOB_DATA slot is never moved (only active slots' positions change)",
+      _t35h_ok and _t35h_expect, f"ok={_t35h_ok} slots={_t35h_slots}")
+
+pb.stop()
+wipe_save()
+
+# T35.i — independent live drive through the real production per-frame
+# chain (not a direct-invoke force), mirroring VR-1121/VR-1122's own
+# established independent-verification discipline: drive the real MODE
+# SELECT -> COMBAT MODE CONFIRM (Y) -> INFINITE SEED ENTRY -> INTRO ->
+# PLAYING path, force a real mob a known distance right of the real player,
+# let several real recomputation intervals elapse via real pb.tick() calls
+# (st_playing's own per-frame chain, not invoke_no_arg), and confirm the
+# mob's own recorded position moved the expected total distance/direction.
+# Per inf_mob_move's corrected timer semantics (see its own header comment),
+# a timer forced to 0 moves immediately, then every MOB_MOVE_INTERVAL frames
+# thereafter -- moves land at frames 1, 1+MOB_MOVE_INTERVAL, 1+2*MOB_MOVE_INTERVAL, ...
+pb35i = fresh_boot(180)
+pb35i.button('a'); [pb35i.tick() for _ in range(40)]        # MAIN MENU -> MODE SELECT
+pb35i.button('down'); [pb35i.tick() for _ in range(40)]     # toggle infinite
+pb35i.button('a'); [pb35i.tick() for _ in range(40)]        # confirm -> COMBAT MODE CONFIRM
+pb35i.button('up'); [pb35i.tick() for _ in range(40)]       # toggle to "Y"
+pb35i.button('a'); [pb35i.tick() for _ in range(40)]        # confirm Y -> INFINITE SEED ENTRY
+enter_infinite_seed(pb35i, [4, 2, 0, 0, 0])
+pb35i.button('a'); [pb35i.tick() for _ in range(100)]       # confirm seed -> INTRO
+pb35i.button('a'); [pb35i.tick() for _ in range(40)]        # INTRO -> PLAYING
+
+_t35i_px = pb35i.memory[PLAYER_X]; _t35i_py = pb35i.memory[PLAYER_Y]
+pb35i.memory[MOB_COUNT_ADDR] = 1
+for i in range(6):
+    base = MOB_DATA_ADDR + i * 5
+    for k in range(5): pb35i.memory[base + k] = 0
+pb35i.memory[PROJ_ACTIVE_ADDR] = 0   # clear any menu-navigation A-press latched into a stray fire
+_t35i_mob_x0 = _t35i_px + 40
+t35_set_slot(pb35i, 0, _t35i_mob_x0, _t35i_py)
+pb35i.memory[MOB_MOVE_TIMER_ADDR] = 0
+
+_t35i_frames = 1 + 2 * MOB_MOVE_INTERVAL   # exactly 3 moves land within this many frames
+for _ in range(_t35i_frames): pb35i.tick()
+_t35i_final = t35_slot(pb35i, 0)
+_t35i_expected_x = _t35i_mob_x0 - 3 * MOB_MOVE_STEP
+check("T35.i Independent live drive: a real mob moves the expected total distance/direction toward the real player over several real recomputation intervals",
+      pb35i.memory[GAMESTATE] == 2 and _t35i_final[0] == _t35i_expected_x and _t35i_final[1] == _t35i_py,
+      f"gs={pb35i.memory[GAMESTATE]} player=({_t35i_px},{_t35i_py}) mob0={_t35i_mob_x0} "
+      f"final={_t35i_final} expected_x={_t35i_expected_x} frames={_t35i_frames}")
+pb35i.stop()
+wipe_save()
+
+print("\n=== T37: Combat Sub-Mode — Weapon Directionality (IP-1128) ===")
+
+pb = fresh_boot(180)
+advance_to_playing(pb)
+
+J_RIGHT_BIT = 4; J_LEFT_BIT = 5; J_UP_BIT = 6; J_DOWN_BIT = 7  # asm_game.py's own bit positions
+
+def t37_reset(pb, weapon_tier=1):
+    t30_reset(pb, weapon_tier=weapon_tier)
+    pb.memory[PLAYER_X] = 80; pb.memory[PLAYER_Y] = 60
+
+def fire_with_facing(pb, facing_x, facing_y):
+    """Single invoke_no_arg call (the only proven-reliable pattern -- see
+    T30.a): directly force PLAYER_FACING_X/Y to the value under test (as if
+    a prior frame's movement branch had already set it, per
+    handle_play_input's real ordering: fire copies whatever facing is
+    currently on record) and fire in the same frame."""
+    pb.memory[PLAYER_FACING_X_ADDR] = facing_x & 0xFF
+    pb.memory[PLAYER_FACING_Y_ADDR] = facing_y & 0xFF
+    pb.memory[JOY_CUR_ADDR] = 0; pb.memory[JOY_NEW_ADDR] = 1 << J_A_BIT
+    return invoke_no_arg(pb, HPI_ADDR)
+
+def proj_step(pb):
+    sx = pb.memory[PROJ_STEP_X_ADDR]
+    sy = pb.memory[PROJ_STEP_Y_ADDR]
+    return (sx - 256 if sx > 127 else sx, sy - 256 if sy > 127 else sy)
+
+# T37.a — firing with a right-facing record spawns a projectile whose
+# per-frame step is (+1, 0).
+t37_reset(pb)
+_t37a_ok = fire_with_facing(pb, 1, 0)
+_t37a_step = proj_step(pb)
+check("T37.a Firing while moving right spawns a projectile stepping (+1, 0)",
+      _t37a_ok and pb.memory[PROJ_ACTIVE_ADDR] == 1 and _t37a_step == (1, 0),
+      f"ok={_t37a_ok} active={pb.memory[PROJ_ACTIVE_ADDR]} step={_t37a_step}")
+
+# T37.b — firing with an up-facing record spawns a projectile whose
+# per-frame step is (0, -1).
+t37_reset(pb)
+_t37b_ok = fire_with_facing(pb, 0, -1)
+_t37b_step = proj_step(pb)
+check("T37.b Firing while moving up spawns a projectile stepping (0, -1)",
+      _t37b_ok and pb.memory[PROJ_ACTIVE_ADDR] == 1 and _t37b_step == (0, -1),
+      f"ok={_t37b_ok} active={pb.memory[PROJ_ACTIVE_ADDR]} step={_t37b_step}")
+
+# T37.c — firing with a diagonal (RIGHT+UP) facing record spawns a
+# projectile whose per-frame step is (+1, -1) -- both axes simultaneously.
+t37_reset(pb)
+_t37c_ok = fire_with_facing(pb, 1, -1)
+_t37c_step = proj_step(pb)
+check("T37.c Firing while moving diagonally (RIGHT+UP) spawns a projectile stepping (+1, -1)",
+      _t37c_ok and pb.memory[PROJ_ACTIVE_ADDR] == 1 and _t37c_step == (1, -1),
+      f"ok={_t37c_ok} active={pb.memory[PROJ_ACTIVE_ADDR]} step={_t37c_step}")
+
+# T37.d — all eight compass directions reachable: parameterized corpus.
+_t37d_corpus = [
+    (1, 0, (1, 0)),
+    (-1, 0, (-1, 0)),
+    (0, -1, (0, -1)),
+    (0, 1, (0, 1)),
+    (1, -1, (1, -1)),
+    (1, 1, (1, 1)),
+    (-1, -1, (-1, -1)),
+    (-1, 1, (-1, 1)),
+]
+_t37d_bad = []
+for _fx, _fy, _expected in _t37d_corpus:
+    t37_reset(pb)
+    fire_with_facing(pb, _fx, _fy)
+    _got = proj_step(pb)
+    if _got != _expected:
+        _t37d_bad.append(((_fx, _fy), _expected, _got))
+check("T37.d All eight compass directions reachable, each producing its own correct (step_x, step_y)",
+      _t37d_bad == [], f"bad={_t37d_bad}")
+
+# T37.e — firing while stationary uses the most recently held movement
+# direction, not a fixed default: PLAYER_FACING_Y already holds "up" from a
+# prior frame (t37_reset's own baseline leaves PLAYER_FACING_X/Y untouched
+# by a no-direction-held frame -- movement branches only overwrite facing
+# when their own direction is actually pressed), so forcing it directly and
+# firing with no D-pad bits held reproduces that same real invariant in one
+# call.
+t37_reset(pb)
+pb.memory[PLAYER_FACING_X_ADDR] = 0; pb.memory[PLAYER_FACING_Y_ADDR] = 0xFF
+pb.memory[JOY_CUR_ADDR] = 0; pb.memory[JOY_NEW_ADDR] = 1 << J_A_BIT
+_t37e_ok = invoke_no_arg(pb, HPI_ADDR)
+_t37e_step = proj_step(pb)
+check("T37.e Firing while stationary uses the most recently held movement direction",
+      _t37e_ok and pb.memory[PROJ_ACTIVE_ADDR] == 1 and _t37e_step == (0, -1),
+      f"ok={_t37e_ok} active={pb.memory[PROJ_ACTIVE_ADDR]} step={_t37e_step}")
+
+# T37.f — a fresh session that has never moved (boot default) fires
+# rightward -- confirms the boot-init default (PLAYER_FACING_X=1,
+# PLAYER_FACING_Y=0) produces a sane shot rather than a directionless
+# (0,0) projectile.
+pb37f = fresh_boot(180)
+advance_to_playing(pb37f)
+pb37f.memory[COMBAT_MODE_ADDR] = 1
+pb37f.memory[PROJ_ACTIVE_ADDR] = 0
+pb37f.memory[JOY_NEW_ADDR] = 1 << J_A_BIT
+_t37f_ok = invoke_no_arg(pb37f, HPI_ADDR)
+_t37f_step = proj_step(pb37f)
+check("T37.f A fresh, never-moved session fires rightward by default (not a directionless (0,0) shot)",
+      _t37f_ok and pb37f.memory[PROJ_ACTIVE_ADDR] == 1 and _t37f_step == (1, 0),
+      f"ok={_t37f_ok} active={pb37f.memory[PROJ_ACTIVE_ADDR]} step={_t37f_step}")
+pb37f.stop()
+wipe_save()
+
+# T37.g — Y-axis boundary: force a vertically-moving projectile toward the
+# window's own top edge, confirm clean deactivation (mirrors T30.d's own
+# existing X-boundary test).
+t37_reset(pb)
+pb.memory[MOB_COUNT_ADDR] = 0
+pb.memory[PROJ_ACTIVE_ADDR] = 1
+pb.memory[PROJ_X_ADDR] = 80; pb.memory[PROJ_Y_ADDR] = 10
+pb.memory[PROJ_STEP_X_ADDR] = 0; pb.memory[PROJ_STEP_Y_ADDR] = 0xFF
+_t37g_steps = 0
+while pb.memory[PROJ_ACTIVE_ADDR] == 1 and _t37g_steps < 20:
+    invoke_no_arg(pb, IPU_ADDR)
+    _t37g_steps += 1
+check("T37.g Y-axis boundary: projectile deactivates cleanly on exiting the window vertically",
+      pb.memory[PROJ_ACTIVE_ADDR] == 0 and 0 < _t37g_steps <= 5,
+      f"proj_active={pb.memory[PROJ_ACTIVE_ADDR]} steps={_t37g_steps}")
+
+# T37.h — hit resolution still works correctly for a non-cardinal (diagonal)
+# projectile: force a mob into a diagonal projectile's own path, confirm
+# the hit registers exactly as T30.c already established for the
+# horizontal case -- confirms inf_projectile_hittest's own unmodified code
+# is genuinely axis-agnostic, not merely assumed to be.
+t37_reset(pb)
+pb.memory[MOB_COUNT_ADDR] = 1
+_t37h_mob = MOB_DATA_ADDR
+pb.memory[_t37h_mob + 0] = 100; pb.memory[_t37h_mob + 1] = 50
+pb.memory[_t37h_mob + 2] = 0; pb.memory[_t37h_mob + 3] = 1; pb.memory[_t37h_mob + 4] = 1
+pb.memory[WEAPON_TIER_ADDR] = 1
+pb.memory[PROJ_ACTIVE_ADDR] = 1
+pb.memory[PROJ_X_ADDR] = 99; pb.memory[PROJ_Y_ADDR] = 51
+pb.memory[PROJ_STEP_X_ADDR] = 1; pb.memory[PROJ_STEP_Y_ADDR] = 0xFF
+_t37h_ok = invoke_no_arg(pb, IPU_ADDR)
+_t37h_health = pb.memory[_t37h_mob + 3]; _t37h_active = pb.memory[_t37h_mob + 4]
+check("T37.h Hit resolution works correctly for a non-cardinal (diagonal) projectile",
+      _t37h_ok and _t37h_health == 0 and _t37h_active == 0 and pb.memory[PROJ_ACTIVE_ADDR] == 0,
+      f"ok={_t37h_ok} health={_t37h_health} active={_t37h_active} proj_active={pb.memory[PROJ_ACTIVE_ADDR]}")
+
+pb.stop()
+wipe_save()
+
+# T37.i — independent live PyBoy drive through the real production
+# per-frame chain (not a direct-invoke force), mirroring T35.i's own
+# established discipline: drive the player diagonally via real button
+# input during real PLAYING, fire, confirm the real projectile's own
+# recorded position moves diagonally over several real ticks.
+pb37i = fresh_boot(180)
+pb37i.button('a'); [pb37i.tick() for _ in range(40)]        # MAIN MENU -> MODE SELECT
+pb37i.button('down'); [pb37i.tick() for _ in range(40)]     # toggle infinite
+pb37i.button('a'); [pb37i.tick() for _ in range(40)]        # confirm -> COMBAT MODE CONFIRM
+pb37i.button('up'); [pb37i.tick() for _ in range(40)]       # toggle to "Y"
+pb37i.button('a'); [pb37i.tick() for _ in range(40)]        # confirm Y -> INFINITE SEED ENTRY
+enter_infinite_seed(pb37i, [4, 2, 0, 0, 0])
+pb37i.button('a'); [pb37i.tick() for _ in range(100)]       # confirm seed -> INTRO
+pb37i.button('a'); [pb37i.tick() for _ in range(40)]        # INTRO -> PLAYING
+
+_t37i_px0 = pb37i.memory[PLAYER_X]; _t37i_py0 = pb37i.memory[PLAYER_Y]
+pb37i.memory[MOB_COUNT_ADDR] = 0   # no mobs -- isolate movement, no contact/hit interference
+pb37i.memory[PROJ_ACTIVE_ADDR] = 0
+
+pb37i.button_press('right'); pb37i.button_press('up')
+pb37i.tick()   # hold RIGHT+UP one real frame -> updates PLAYER_FACING_X/Y
+pb37i.button('a')   # fire, still holding RIGHT+UP (button() presses for this tick only)
+pb37i.tick()
+pb37i.button_release('right'); pb37i.button_release('up')
+
+_t37i_proj_x0 = pb37i.memory[PROJ_X_ADDR]; _t37i_proj_y0 = pb37i.memory[PROJ_Y_ADDR]
+for _ in range(5): pb37i.tick()
+_t37i_proj_x1 = pb37i.memory[PROJ_X_ADDR]; _t37i_proj_y1 = pb37i.memory[PROJ_Y_ADDR]
+check("T37.i Independent live drive: a real diagonally-fired projectile moves on both axes over several real ticks",
+      pb37i.memory[GAMESTATE] == 2 and pb37i.memory[PROJ_ACTIVE_ADDR] == 1 and
+      _t37i_proj_x1 > _t37i_proj_x0 and _t37i_proj_y1 < _t37i_proj_y0,
+      f"gs={pb37i.memory[GAMESTATE]} proj_active={pb37i.memory[PROJ_ACTIVE_ADDR]} "
+      f"player0=({_t37i_px0},{_t37i_py0}) proj0=({_t37i_proj_x0},{_t37i_proj_y0}) "
+      f"proj1=({_t37i_proj_x1},{_t37i_proj_y1})")
+pb37i.stop()
+wipe_save()
+
+print("\n=== T38: Combat Sub-Mode — Weapon-Tier Funding Economy (IP-1129) ===")
+
+ITS_ADDR = _gw_rom.labels['inf_tier_spend']
+
+def t38_reset(pb, combat_mode=1, weapon_tier=1, treasure=0):
+    pb.memory[GAME_MODE] = 1
+    pb.memory[COMBAT_MODE_ADDR] = combat_mode
+    pb.memory[WEAPON_TIER_ADDR] = weapon_tier
+    pb.memory[RUNNING_TREASURE_COUNT] = treasure & 0xFF
+    pb.memory[RUNNING_TREASURE_COUNT + 1] = (treasure >> 8) & 0xFF
+
+pb = fresh_boot(180)
+advance_to_playing(pb)
+
+# T38.a — tier-spend decrements the shared count and increases WEAPON_TIER
+# by exactly 1 (mirrors T31.d's own established shape for the sibling
+# healing-spend action).
+t38_reset(pb, weapon_tier=1, treasure=5)
+_t38a_ok = invoke_no_arg(pb, ITS_ADDR)
+_t38a_rtc = pb.memory[RUNNING_TREASURE_COUNT] | (pb.memory[RUNNING_TREASURE_COUNT + 1] << 8)
+check("T38.a Tier-spend decrements RUNNING_TREASURE_COUNT by 1 and increases WEAPON_TIER by 1",
+      _t38a_ok and _t38a_rtc == 4 and pb.memory[WEAPON_TIER_ADDR] == 2,
+      f"ok={_t38a_ok} rtc={_t38a_rtc} tier={pb.memory[WEAPON_TIER_ADDR]}")
+
+# T38.b — spot check: tier-spend at WEAPON_TIER == 3 still decrements
+# RUNNING_TREASURE_COUNT by 1 but does not push WEAPON_TIER past 3 (mirrors
+# T31.d2's own exact precedent -- confirms this is the spend-even-at-cap
+# convention, not a no-op).
+t38_reset(pb, weapon_tier=3, treasure=5)
+_t38b_ok = invoke_no_arg(pb, ITS_ADDR)
+_t38b_rtc = pb.memory[RUNNING_TREASURE_COUNT] | (pb.memory[RUNNING_TREASURE_COUNT + 1] << 8)
+check("T38.b Spot: tier-spend at the cap still spends treasure but does not exceed WEAPON_TIER 3",
+      _t38b_ok and _t38b_rtc == 4 and pb.memory[WEAPON_TIER_ADDR] == 3,
+      f"ok={_t38b_ok} rtc={_t38b_rtc} tier={pb.memory[WEAPON_TIER_ADDR]}")
+
+# T38.c — tier-spend at RUNNING_TREASURE_COUNT == 0 is a genuine no-op:
+# neither field changes (mirrors T31.e's own precondition-failure shape).
+t38_reset(pb, weapon_tier=1, treasure=0)
+_t38c_ok = invoke_no_arg(pb, ITS_ADDR)
+_t38c_rtc = pb.memory[RUNNING_TREASURE_COUNT] | (pb.memory[RUNNING_TREASURE_COUNT + 1] << 8)
+check("T38.c Tier-spend at zero treasure is a no-op (no change to RUNNING_TREASURE_COUNT or WEAPON_TIER)",
+      _t38c_ok and _t38c_rtc == 0 and pb.memory[WEAPON_TIER_ADDR] == 1,
+      f"ok={_t38c_ok} rtc={_t38c_rtc} tier={pb.memory[WEAPON_TIER_ADDR]}")
+
+# T38.d — COMBAT_MODE off: inf_tier_spend is a complete no-op (mirrors
+# T31.f's own established COMBAT_MODE-off pattern).
+t38_reset(pb, combat_mode=0, weapon_tier=1, treasure=5)
+invoke_no_arg(pb, ITS_ADDR)
+_t38d_rtc = pb.memory[RUNNING_TREASURE_COUNT] | (pb.memory[RUNNING_TREASURE_COUNT + 1] << 8)
+check("T38.d COMBAT_MODE off: inf_tier_spend is a complete no-op",
+      _t38d_rtc == 5 and pb.memory[WEAPON_TIER_ADDR] == 1,
+      f"rtc={_t38d_rtc} tier={pb.memory[WEAPON_TIER_ADDR]}")
+
+# T38.e — persistence: a tier increase survives a mob-contact setback
+# (inf_health_setback touches only PLAYER_HEALTH/PLAYER_X/PLAYER_Y, never
+# WEAPON_TIER). No SRAM mirror of WEAPON_TIER exists yet (confirmed by
+# direct code read — no save/load path references it), so this check is
+# scoped to the in-session, non-save-boundary persistence half only, named
+# explicitly per this package's own §8, not silently assumed.
+t38_reset(pb, weapon_tier=1, treasure=5)
+invoke_no_arg(pb, ITS_ADDR)
+_t38e_tier_after_spend = pb.memory[WEAPON_TIER_ADDR]
+pb.memory[PLAYER_HEALTH_ADDR] = 0
+pb.memory[COMBAT_ENTRY_X_ADDR] = 40; pb.memory[COMBAT_ENTRY_Y_ADDR] = 90
+pb.memory[PLAYER_X] = 120; pb.memory[PLAYER_Y] = 20
+_t38e_ok = invoke_no_arg(pb, IHSB_ADDR)
+check("T38.e A tier increase survives a mob-contact setback (in-session persistence half; no SRAM mirror exists yet)",
+      _t38e_ok and _t38e_tier_after_spend == 2 and pb.memory[WEAPON_TIER_ADDR] == 2 and
+      pb.memory[PLAYER_HEALTH_ADDR] == 3,
+      f"ok={_t38e_ok} tier_after_spend={_t38e_tier_after_spend} tier_after_setback={pb.memory[WEAPON_TIER_ADDR]} "
+      f"health={pb.memory[PLAYER_HEALTH_ADDR]}")
+
+pb.stop()
+wipe_save()
 
 # ══════════════════════════════════════════════════════
 # SUMMARY
