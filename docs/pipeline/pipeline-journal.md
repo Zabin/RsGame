@@ -14,44 +14,41 @@
 
 ## Position
 
-- **Updated:** 2026-07-19 (run #252)
-- **Increment:** Same as run #251, plus: **`06-feature-specification`** folded `FR-11210`/
-  `FR-11410` into `FS-112`'s own field set (Workflows/System Behaviour/Modules/Interfaces/Data
-  Model/Acceptance Criteria [renumbered 1→10]/Verification Plan all updated; new Open Question 4,
-  `BL-0159`). Found and fixed a pre-existing §12 citation error (mis-cited "Open Question 4" for
-  the already-resolved Open Question 3) while inserting the genuinely new one, named explicitly
-  rather than silently changed. `docs/features/INDEX.md` and `FEAT-11000`'s own forward-reference
-  metadata updated.
+- **Updated:** 2026-07-19 (run #253)
+- **Increment:** Same as run #252, plus: **`07-implementation-planning`** authored **`IP-1126`**
+  (mob movement, `READY`, sole dependency `IP-1121` `VERIFIED`) and **`IP-1127`** (post-contact
+  protection, `BLOCKED` on `IP-1123` reaching `VERIFIED`) for `FR-11210`/`FR-11410`. `IP-1126`
+  resolves `FS-112` Open Question 4 (mob holds still once coincident with the player). `IP-1127`
+  deliberately uses a new parallel `MOB_CONTACT_FLAGS` table rather than widening `MOB_DATA`'s
+  own stride, avoiding a broad re-derivation risk across three already-shipped packages. **Loop
+  stopped here: neither package is authorized** — both are new scope beyond the original "build
+  all six" go-ahead.
 - **Pipeline state:** Bootstrap stages 01–11 ✅; Release 2 GO. 45 packages `VERIFIED`, `IP-1123`
   `COMPLETE` (fix applied, own `09-package-verification` Pass 2 owed — **needs a fresh session**,
   implemented in run #249, same session as this run). `IP-1124` remains `NOT STARTED` (blocked on
   `IP-1123` reaching `VERIFIED`). `IP-1120`/`IP-1121`/`IP-1122`/`IP-1125` `VERIFIED`. `FR-11210`/
-  `FR-11410` baselined, cataloged (`FEAT-11000`), and now specified (`FS-112`) but unimplemented —
-  `07-implementation-planning` owed next to author package(s); no package can reach `08` without
-  a fresh G3 ask (new scope beyond the original "build all six" go-ahead). Standing, non-blocking
-  doc/design work unchanged: the doc-accuracy sweep family (`BL-0136`/`BL-0137`/`BL-0140`–
-  `BL-0143`/`BL-0151`); `BL-0118` (`NFR-1400` cycle-budget gap); `BL-0123` (`try_load_save`
-  unneeded finite-mode work); `BL-0112` (Infinite Mode run-end trigger); `BL-0097` (Medium,
-  routed already); `BL-0130` (catalog text gap); `BL-0147`/`BL-0148` (ride a future `04`/`06`
-  touch); `BL-0149`/`BL-0150`/`BL-0152`/`BL-0155`/`BL-0157`/`BL-0159` (all Low/unstated-priority,
-  `SCHEDULED`, non-blocking).
-- **Backlog:** 159 entries, unchanged this run (no new finding — the citation-error fix was
-  self-contained and documented inline in `FS-112`/the commit, not a standalone backlog item).
-  `BL-0156`/`BL-0158` still `IN PIPELINE`, next `07-implementation-planning`. `BL-0159` now also
-  cross-referenced as `FS-112`'s own Open Question 4. `BL-0154` still `IN PIPELINE` (fix applied
-  run #249, `09` Pass 2 owed). `BL-0133` still `IN PIPELINE` (G3 granted — `IP-1120`/`IP-1121`/
-  `IP-1122`/`IP-1125` `VERIFIED`, `IP-1123` `COMPLETE` (fix applied, verification-owed), `IP-1124`
-  `NOT STARTED`).
-- **Next step:** Two independent, parallel-eligible threads, neither blocking the other:
-  (1) Fresh session: `09-package-verification` on `IP-1123` (Pass 2) — the sole remaining step
-  before `IP-1124` becomes eligible. (2) `07-implementation-planning` on `FS-112`'s two new
-  leaves — authoring is not itself a G3 act, so this can proceed now; **the resulting package(s)
-  will need a fresh G3 authorization before `08-code-implementation` can pick them up**, since
-  they are new scope beyond the original "build all six" go-ahead — that will be the next genuine
-  gate. No `NEEDS-USER` entry is currently ripe.
-- **Open gates:** **none yet.** G3 already covers `IP-1120`–`1125` in full (run #234); `FR-11210`/
-  `FR-11410` remain planning-stage only. The fresh-session requirement on `IP-1123`'s own Pass 2
-  is a session-boundary constraint, not a human decision gate.
+  `FR-11410` fully planned (`IP-1126` `READY`, `IP-1127` `BLOCKED`) but **neither authorized**.
+  Standing, non-blocking doc/design work unchanged: the doc-accuracy sweep family (`BL-0136`/
+  `BL-0137`/`BL-0140`–`BL-0143`/`BL-0151`); `BL-0118` (`NFR-1400` cycle-budget gap); `BL-0123`
+  (`try_load_save` unneeded finite-mode work); `BL-0112` (Infinite Mode run-end trigger);
+  `BL-0097` (Medium, routed already); `BL-0130` (catalog text gap); `BL-0147`/`BL-0148` (ride a
+  future `04`/`06` touch); `BL-0149`/`BL-0150`/`BL-0152`/`BL-0155`/`BL-0157`/`BL-0159` (all
+  Low/unstated-priority, `SCHEDULED`, non-blocking).
+- **Backlog:** 159 entries, unchanged this run. `BL-0156`/`BL-0158` notes updated to record their
+  own packages (`IP-1126`/`IP-1127`), still `IN PIPELINE`, awaiting G3. `BL-0154` still
+  `IN PIPELINE` (fix applied run #249, `09` Pass 2 owed). `BL-0133` still `IN PIPELINE` (G3
+  granted — `IP-1120`/`IP-1121`/`IP-1122`/`IP-1125` `VERIFIED`, `IP-1123` `COMPLETE` (fix
+  applied, verification-owed), `IP-1124` `NOT STARTED`).
+- **Next step:** **Gated.** `IP-1126` is fully planned and `READY` — it needs only the user's
+  explicit go-ahead to advance to `08-code-implementation`. `IP-1127` additionally needs
+  `IP-1123` to reach `VERIFIED` first (fresh session, `09-package-verification` Pass 2 —
+  independent of the G3 question, can run in parallel). No other backlog entry is ripe to act on
+  standalone.
+- **Open gates:** **G3 — package authorization needed on `IP-1126`** (mob movement) and, once
+  `IP-1123` is `VERIFIED`, on `IP-1127` (post-contact protection) — both new scope beyond the
+  2026-07-17 "build all six" go-ahead, which covered only `IP-1120`–`1125`. The fresh-session
+  requirement on `IP-1123`'s own Pass 2 is a separate, session-boundary constraint, not itself a
+  human decision gate.
 
 ## Run log
 
@@ -313,3 +310,4 @@
 | 250 | 2026-07-19 | advance (same session) | `04-requirements-engineering` | `FS-112`/`FEAT-11000` delta — `BL-0156` (mob movement) + `BL-0158` (post-contact protection) | ✅ **Baselined two new sub-leaves.** `FR-11210` (mob movement toward the player, two independently adjustable-default parameters: distance per recomputation, recomputation interval) and `FR-11410` (post-contact player protection — invincibility frames + knockback + a per-mob cooldown, all three combined per the user's own direct 2026-07-19 decision on `BL-0158`'s own live-drive finding: sustained mob contact re-triggered `FR-11400`'s damage decrement every frame with no separation mechanic, resolving a full 3-hit death-and-reset cycle in 3-4 real frames — imperceptibly fast, explaining the reported "no damage" symptom exactly). Both correctly follow the `FR-10200`/`FR-10210` sub-leaf numbering precedent (previously unused IDs, confirmed by direct grep). Requirements Review finding #24: no ID collision, no duplicate, no conflict with `FR-11200`/`FR-11300`/`FR-11400`'s existing text (both leaves extend rather than contradict); `NFR-1500`'s still-`UNCONFIRMED` cycle budget named as a constraint on both, its own Notes updated to reference them; no WRAM address/opcode leaked into either leaf (data-model ownership correctly deferred to `07`/`GDS-07`). One genuine open sequencing point named, not resolved unilaterally (does an already-adjacent mob keep re-attempting movement) — harvested as **`BL-0159`**. RTM rows added with every forward column honestly `UNASSIGNED` (Feature Spec filled `FS-112` — same feature, no new capability boundary — but Module/Implementation Package/Test all `UNASSIGNED`, neither leaf implemented). Delta-scoped throughout — only the affected FR/NFR/Review/RTM content touched, no wholesale regeneration, per this skill's own workflow rules. Also triaged all four newly `00-intake`-filed entries from earlier in this session: `BL-0155` (research-gap, weapon-upgrade progression) and `BL-0157` (feature, weapon directionality) both dispositioned `SCHEDULED` against their own future `02`/`03` passes, not yet actioned this run. | Two parallel-eligible next steps: fresh session `09-package-verification` on `IP-1123` (Pass 2, session-boundary blocked this session); or `05-feature-decomposition` to confirm `FR-11210`/`FR-11410` fold into `FEAT-11000` (no session-boundary constraint) |
 | 251 | 2026-07-19 | advance (same session) | `05-feature-decomposition` | `FEAT-11000` — fold in `FR-11210`/`FR-11410` | ✅ **Confirmed both new leaves fold into the existing `FEAT-11000` catalog entry, no new Feature/Epic.** Neither introduces a dependency `FEAT-11000` doesn't already carry (`FR-11210` depends only on `FR-11200`, `FR-11410` only on `FR-11400`, both already owned by this Feature) — per the "maintain incrementally" workflow rule, only `03-feature-catalog.md` (Description, Included Requirements 8→10, Risk, Open Questions) and `05-feature-review.md` (finding #13) were touched; `02-epic-catalog.md`/`04-feature-dependency-graph.md`/`01-release-plan.md` all confirmed structurally unaffected (Epic `EP-6000` membership, the three existing Dependencies, and the `Future` release bucket all verified unchanged by direct re-read, not assumed) and correctly left untouched. Finding #13: clean, no new defect, requirement assignment confirmed not double-assigned anywhere else in the catalog. `BL-0156`/`BL-0158` notes updated to record the fold-in. | `06-feature-specification` on `FS-112`, folding `FR-11210`/`FR-11410`'s own behavior into that spec's field set — same Feature, no new `FS-xxx` document. In parallel (session-boundary permitting): fresh-session `09-package-verification` Pass 2 on `IP-1123`. |
 | 252 | 2026-07-19 | advance (same session) | `06-feature-specification` | `FS-112` — fold in `FR-11210`/`FR-11410` | ✅ **Amended `FS-112`'s own field set** (not a new spec): Workflows B (mob movement, step 4) and D (post-contact protection, step 2, three combined mechanisms a/b/c) extended; System Behaviour gained two new edge cases plus a new **Open Question 4** (`BL-0159` — does an already-adjacent mob keep re-attempting movement); Module Responsibilities/Interfaces Used/Data Model Changes/Performance Considerations all updated; Acceptance Criteria renumbered 1→10 to insert the two new criteria (AC-3 mob movement, AC-6 post-contact protection) in requirement order rather than appended out of sequence; Verification Plan extended to match. **Found and fixed a pre-existing citation error while inserting the new Open Question 4**: §12 mis-cited "Open Question 4" for what was actually the already-resolved Open Question 3 (heal-spend feedback) — corrected in the same pass to avoid a duplicate number, named explicitly in the commit rather than silently changed. `docs/features/INDEX.md` row and `FEAT-11000`'s own forward-reference metadata (not its content) updated. Neither leaf packaged yet. | `07-implementation-planning` on `FS-112`'s two new leaves — authoring a package is not itself a G3 authorization, so this can proceed; the eventual `08-code-implementation` step is where a fresh G3 ask becomes necessary (new scope beyond the original "build all six" go-ahead). In parallel (session-boundary permitting): fresh-session `09-package-verification` Pass 2 on `IP-1123`. |
+| 253 | 2026-07-19 | advance → gate | `07-implementation-planning` | `FS-112`'s two new leaves — `FR-11210`/`FR-11410` | ✅ **Planned two packages, `IP-1126`/`IP-1127`, split rather than combined** (different dependency-readiness: `IP-1126` depends only on `IP-1121` `VERIFIED`; `IP-1127` also depends on `IP-1123`, still verification-owed). **`IP-1126`** (mob movement): dominant-axis single-step, adjustable `MOB_MOVE_INTERVAL`/`MOB_MOVE_STEP` (8 frames/1 pixel starting values); resolves `FS-112` Open Question 4 (holds still once coincident with the player — chosen over always-recomputing to avoid jitter and compose cleanly with knockback); new WRAM `MOB_MOVE_TIMER` (`0xC6DE`); new suite `T35` (9 checks planned) — **`READY`**. **`IP-1127`** (post-contact protection): extends `inf_mob_contact_check` with a per-mob cooldown bit — **deliberately a new parallel `MOB_CONTACT_FLAGS` table, not a `MOB_DATA` stride widening**, avoiding a broad re-derivation risk across `IP-1121`/`IP-1122`/`IP-1123`'s own already-shipped slot arithmetic — plus an invincibility countdown and a clamped knockback push; new WRAM `PLAYER_INVINCIBLE`/`MOB_CONTACT_FLAGS` (`0xC6DF`–`0xC6E0`); new suite `T36` (10 checks planned, incl. the exact `BL-0158` repro) — **`BLOCKED`** on `IP-1123` reaching `VERIFIED`. **Neither package authorized** — both are new scope beyond the original "Yes, build all six" go-ahead (2026-07-17, `IP-1120`–`1125` only). TWBS, Master Build Plan, `packages/INDEX.md`, `FS-112` metadata, RTM, `ROADMAP.md` all updated. | **GATE: G3 authorization needed on `IP-1126`** (and `IP-1127` once it unblocks) before `08-code-implementation` can pick either up — this is new scope the user has not yet authorized. In parallel, session-boundary permitting: fresh-session `09-package-verification` Pass 2 on `IP-1123` (unblocks `IP-1127` independently of the G3 question). |
