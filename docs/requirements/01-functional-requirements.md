@@ -26,7 +26,11 @@
 > Infinite Mode combat sub-mode, `BL-0133`/`ADS-002`/`MSTR-001` C11** — this project's first use
 > of the FR-11xxx range, gated on `ADS-002`'s own now-fully-resolved Open Questions and a batch
 > of direct user decisions (treasure-spent healing, no weapon ammo/durability, non-lethal
-> setback, save persistence) — see Changelog).**
+> setback, save persistence); **delta 2026-07-19 — FR-11210/FR-11410 baselined** (`BL-0156`/
+> `BL-0158`, mob movement + post-contact protection); **delta 2026-07-19 (cont'd) — FR-11310/
+> FR-11510 baselined** (`BL-0157`/`BL-0147`+`BL-0155`, movement-based multi-directional weapon
+> fire grounded by `ADS-002`'s "Weapon Directionality Delta"/`ADR-0021`/`R220`, and a
+> treasure-spent weapon-tier funding economy grounded by `R219`) — see Changelog).**
 > Owned by `04-requirements-engineering`.
 > Derives from [GDS-05](../architecture/05-functional-requirements.md)'s six capability groupings
 > (C1–C6) — this document formalizes each into numbered, testable `FR-xxxx` requirements per
@@ -39,6 +43,24 @@
 
 ## Changelog
 
+- **2026-07-19 (second delta this date) — Two more sub-function leaves under the FR-11000 group,
+  both grounded by newly-authored `02-research-game-design`/`03-architecture-design-synthesis`
+  passes, not implemented yet.** **`FR-11310`** (`BL-0157`): the shipped weapon fires only
+  left/right because `PROJ_DIR` mirrors `PLAYER_DIR`'s own 2-state encoding — this leaf widens
+  firing to all eight compass directions, derived from the player's own movement ("moving
+  direction, else last-faced direction," per `R220`'s Link's-Awakening-grounded recommendation),
+  with diagonal projectile motion via simultaneous independent per-axis stepping (`ADS-002`'s
+  "Weapon Directionality Delta"/`ADR-0021`) rather than new vector math. A new, separate WRAM
+  facing concept carries this — `PLAYER_DIR` itself is untouched (`ADR-0021`'s own Decision 1).
+  **`FR-11510`** (`BL-0147`/`BL-0155`): `WEAPON_TIER` shipped in `IP-1122` as a stat with no way
+  to ever change it — this leaf closes that traceability gap with a treasure-spent,
+  persistent-purchase funding mechanism (grounded by `R219`'s survey of Contra's pickup-drop/
+  full-reset model vs. Zelda's own currency-spent/never-lost shop-upgrade model, recommending the
+  latter since this project's non-lethal setback has no "death" event for the former to hook
+  into), sharing `FR-11500`'s own `RUNNING_TREASURE_COUNT` currency and its "spend at cap is a
+  no-op" convention. Neither leaf is implemented yet; both name `NFR-1500`'s still-`UNCONFIRMED`
+  cycle budget as a constraint; both name an unresolved input-binding gap for their own spend/fire
+  actions, mirroring `FR-11500`'s own still-open `BL-0148`.
 - **2026-07-19 — Two new sub-function leaves under the FR-11000 group, both closing user-filed
   `00-intake` gaps found by direct play/investigation, not upstream document drift.**
   **`FR-11210`** (`BL-0156`): mobs currently never move once materialized (`FR-11200` fixes only
@@ -2460,6 +2482,68 @@ none of FR-10000's own leaves are amended by this group. `FR-9000`'s finite mode
   ships as a persisted, fixed-default (1) stat — its own treasure-funded upgrade mechanism remains
   the known gap tracked by `BL-0147`, unresolved by this package.
 
+### FR-11310 — Movement-based multi-directional weapon fire (delta 2026-07-19, `BL-0157`)
+
+- **ID:** FR-11310
+- **Title:** When the combat sub-mode is active, the fired projectile's direction shall be
+  derived from the player's own movement, across all eight compass directions, not limited to
+  left/right.
+- **Description:** `FR-11300` fixes only that firing spawns a projectile "in the player's current
+  facing direction," which the shipped implementation resolved as `PLAYER_DIR`'s own real 2-value
+  (left/right) encoding — the projectile cannot fire up, down, or diagonally at all (`FR-11300`'s
+  own Notes name this as a known deviation, tracked by `BL-0151`). This leaf widens that: the
+  system shall derive the projectile's own firing direction from a fuller, 8-directional facing
+  concept, computed as **the player's current movement direction while moving, or the player's
+  last movement direction while idle** (`ADS-002`'s "Weapon Directionality Delta,"
+  2026-07-19/`ADR-0021` — grounded by `R220`'s survey of movement-based aiming conventions,
+  recommending this exact semantics). A fired projectile whose facing has a nonzero component on
+  both axes (a diagonal direction) shall move along both axes simultaneously, mirroring this
+  project's own established single-axis-at-a-time integer-stepping movement idiom applied to two
+  axes at once, not free-angle/vector motion (`ADR-0021`'s own Decision 3).
+- **Rationale:** User request, 2026-07-19 (`BL-0157`, filed via `00-intake`): "the weapon only
+  fires left and right not up or down or diagonal... add directionality to the weapon based on
+  movement." Architecture-level shape decided by `ADS-002`'s own delta / `ADR-0021`, grounded by
+  `R220`.
+- **Priority:** Should (a real, user-requested gap; not a defect against `FR-11300`'s own written
+  Acceptance Criteria, which never claimed multi-directional fire — see `FR-11300`'s own Notes,
+  which named the 2-state limitation as a documentation-accuracy deviation, `BL-0151`, not a bug).
+- **Inputs:** The player's current and most recent D-pad movement input (the same joypad state
+  `handle_play_input` already reads every frame); the fire input (`FR-11300`).
+- **Outputs:** A projectile whose direction of travel matches the derived 8-directional facing at
+  the moment of firing.
+- **Preconditions:** `COMBAT_MODE` active; `GAMESTATE == PLAYING`; the fire input is pressed with
+  no projectile already active (`FR-11300`'s own existing preconditions, unchanged).
+- **Postconditions:** The projectile's per-frame movement steps its position along every axis its
+  derived facing has a nonzero component on (one or both of X/Y); a projectile fired while the
+  player is stationary but was previously moving travels in that last movement direction, not a
+  default/undefined one.
+- **Acceptance Criteria:** Firing while moving in a cardinal direction (up/down/left/right) spawns
+  a projectile that moves along that single axis only; firing while moving diagonally (two D-pad
+  directions held simultaneously) spawns a projectile that moves along both axes simultaneously;
+  firing while stationary uses the most recently held movement direction, not a fixed default;
+  every one of the eight compass directions is reachable, not merely the two `FR-11300` shipped
+  with.
+- **Dependencies:** `FR-11300` (the projectile/fire mechanism this leaf widens the direction axis
+  of); `ADS-002`'s "Weapon Directionality Delta" / `ADR-0021` (the direction-representation shape:
+  a new, separate facing concept, not a widened `PLAYER_DIR` — see that ADR for why `PLAYER_DIR`
+  itself is untouched).
+- **Verification Method:** Test (direct-force facing/movement scenarios across all eight
+  directions, mirroring `FR-11300`'s own established hit/miss test methodology; a live PyBoy drive
+  through the real per-frame chain for at least one non-cardinal case, mirroring the discipline
+  `VR-1121`/`VR-1122`/`T35.i` already established for this feature).
+- **Source Documents:** Direct user request, 2026-07-19 (`BL-0157`); `ADS-002`'s "Weapon
+  Directionality Delta" (2026-07-19); `ADR-0021`; `R220`.
+- **Related ADRs:** `ADR-0021` (weapon-direction representation).
+- **Notes:** Not yet implemented. The exact bit-encoding of the new facing concept and its WRAM
+  address are `07-implementation-planning`'s own decision (`ADR-0021` names this explicitly as
+  not fixed at the architecture level). Whether the new facing value is written on every frame a
+  direction is held, or only on a transition, is also an implementation-level decision this FR
+  does not fix — either satisfies the "moving, else last-faced" semantics as an observable
+  behavior contract. `NFR-1500`'s own still-`UNCONFIRMED` per-frame cycle budget is a named
+  constraint (a second per-frame axis step in `inf_projectile_update`, plus a direction-decode in
+  `handle_play_input`), not resolved here. Does not require or imply new player sprite art
+  (`ADR-0021`'s own Decision 4) — the player's rendered sprite is unaffected by this leaf.
+
 ### FR-11400 — Player health and non-lethal setback
 
 - **ID:** FR-11400
@@ -2610,6 +2694,70 @@ none of FR-10000's own leaves are amended by this group. `FR-9000`'s finite mode
   **Not yet player-reachable**: the heal-spend action has no free input button (`BL-0148`,
   unresolved) — this subroutine is defined, exposed, and directly force-tested, mirroring
   `IP-1121`'s own "defined and exposed, no call site yet" precedent for `inf_mob_defeat`.
+
+### FR-11510 — Treasure-spent weapon-tier funding economy (delta 2026-07-19, `BL-0147`/`BL-0155`)
+
+- **ID:** FR-11510
+- **Title:** When the combat sub-mode is active, treasure collection shall be consumable to
+  permanently increase the weapon's own power tier, reducing the running treasure count that also
+  drives the win/high-score system and `FR-11500`'s own healing spend.
+- **Description:** `WEAPON_TIER` shipped in `IP-1122` as a persisted stat (default 1, range 1-3)
+  with no way to ever change it — `ADS-002` §Domain Model and `FR-11300`'s own Notes both name a
+  treasure-funded weapon-power axis as the intended direction (per the 2026-07-17 user decision:
+  "treasure funds power only, no ammo/durability"), but no leaf ever formalized the funding
+  mechanism itself (`BL-0147`). This leaf closes that gap: the system shall let the player choose
+  to spend collected treasure (`RUNNING_TREASURE_COUNT`, the same running count `FR-11500` already
+  spends from — no second currency) to increase `WEAPON_TIER` by one, up to its own existing
+  maximum (3). `R219` (ranged-weapon upgrade/progression conventions, newly authored) grounds the
+  shape: a **currency-spent, persistent-purchase** model (mirroring the *Zelda* series' own
+  quiver/bomb-bag shop-upgrade convention — bought outright, never lost) rather than *Contra*'s
+  pickup-drop/full-reset-on-death model, since this project's own non-lethal setback (`FR-11400`)
+  has no "death" event for a full-reset convention to hook into. `WEAPON_TIER` is **not**
+  decremented by the post-contact setback or by any other event — once purchased, an upgrade is
+  permanent, mirroring `FR-11500`'s own healing-spend permanence (a spent heal is not later
+  "un-healed").
+- **Rationale:** `ADS-002` §Domain Model (the weapon-power axis originally named, never
+  formalized); `BL-0147` (the traceability gap this leaf closes); `R219` (the currency-spent,
+  persistent-purchase shape this leaf adopts, over the pickup-drop/full-reset alternative).
+- **Priority:** Should (closes a real, tracked traceability gap; `WEAPON_TIER` already ships as a
+  stat, but permanently stuck at its own default — this leaf is what makes it reachable at all).
+- **Inputs:** A tier-spend action; the current `RUNNING_TREASURE_COUNT`; the current `WEAPON_TIER`.
+- **Outputs:** An increased `WEAPON_TIER` (capped at its own existing maximum, 3); a reduced
+  `RUNNING_TREASURE_COUNT`.
+- **Preconditions:** `COMBAT_MODE` active; `RUNNING_TREASURE_COUNT` > 0; `WEAPON_TIER` < its own
+  maximum (an at-max weapon has nothing left to spend on, mirroring `FR-11500`'s own
+  spend-at-max-health handling — `T31.d2`'s own precedent: spending is a no-op, not an error, once
+  the target is already at its cap).
+- **Postconditions:** `RUNNING_TREASURE_COUNT` decreases by the amount spent; `WEAPON_TIER`
+  increases correspondingly, never exceeding its own maximum; a purchased tier increase persists
+  indefinitely — no event in this feature's own model reduces `WEAPON_TIER` once raised.
+- **Acceptance Criteria:** Spending treasure to upgrade the weapon reduces `RUNNING_TREASURE_COUNT`
+  by exactly the spent amount and increases `WEAPON_TIER` by exactly 1, up to but never past 3;
+  spending at `WEAPON_TIER == 3` still spends nothing and changes nothing (a no-op, mirroring
+  `FR-11500`'s own heal-at-max-health precedent); the same `RUNNING_TREASURE_COUNT`
+  `FR-10400`'s own top-score comparison reads is what this leaf spends from — no separate ledger;
+  a purchased tier increase survives a mob-contact setback (`FR-11400`) and a save/load round trip
+  (`FR-11600`) unchanged.
+- **Dependencies:** `FR-11300` (the `WEAPON_TIER` stat this leaf funds); `FR-10300`/`FR-10400`
+  (the treasure count this leaf spends from); `FR-11500` (the sibling economy leaf this shares its
+  currency and its "spend is a no-op at cap" convention with); `FR-11600` (this leaf's own
+  permanence claim depends on `WEAPON_TIER` already being a persisted, save-format field, which it
+  is as of `IP-1122`).
+- **Verification Method:** Test (direct-force spend/no-op-at-cap/persistence scenarios, mirroring
+  `FR-11500`'s own established test methodology, `T31.d`/`T31.d2`/`T31.e`).
+- **Source Documents:** `ADS-002` §Domain Model; `BL-0147`; `R219`.
+- **Related ADRs:** None.
+- **Notes:** Not yet implemented. The exact tier-spend input/rate (how much treasure per tier
+  increase — `FR-11500`'s own precedent is 1-for-1, but this leaf does not fix that this leaf must
+  match it) is a `06-feature-specification` decision, following this project's own established
+  "adjustable default" convention. **Input-binding gap, named not resolved**: like `FR-11500`'s
+  own heal-spend action (`BL-0148`, still unresolved), this leaf's own spend action has no
+  obviously free input button either — every existing button is already claimed (D-pad movement,
+  A now claimed by fire, B the universal cancel, START/SELECT both claimed by existing menus). A
+  future `06`/`07` pass may resolve both `FR-11500`'s and this leaf's own spend actions with a
+  single shared UI (e.g. a spend menu reachable via SELECT, mirroring `IP-1090`'s own
+  SELECT-menu-confirmation precedent) rather than inventing two separate bindings — named as a
+  recommendation, not decided here.
 
 ### FR-11600 — Combat state save persistence
 

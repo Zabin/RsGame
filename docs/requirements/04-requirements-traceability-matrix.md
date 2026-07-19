@@ -38,7 +38,12 @@
 > cell filled `FS-112` (same feature, no new capability boundary) but Research
 > Source/Architecture Section/ADR/Module/Implementation Package/Test cells all honestly
 > `UNASSIGNED` — neither leaf has any architecture or research grounding document yet, only a
-> direct user decision, and neither is implemented.**
+> direct user decision, and neither is implemented; delta 2026-07-19 (cont'd) — FR-11310/FR-11510
+> rows added (`BL-0157`/`BL-0147`+`BL-0155`), confirmed unused before this delta; Feature Spec
+> cell filled `FS-112` (same feature, no new capability boundary), Research Source/Architecture
+> Section/ADR cells filled where a real grounding document now exists (`R220`/`ADS-002` "Weapon
+> Directionality Delta"/`ADR-0021` for FR-11310; `R219`/`ADS-002` §Domain Model for FR-11510) —
+> Module/Implementation Package/Test cells remain honestly `UNASSIGNED`, neither leaf implemented.**
 > Owned by `04-requirements-engineering`.
 > One row per [RQ-01](01-functional-requirements.md)/[RQ-02](02-non-functional-requirements.md)
 > requirement (Candidates marked). Populates the row-level matrix
@@ -119,9 +124,11 @@
 | FR-11200 | Mob presence, materialization, and non-graphic defeat (Implemented — 2026-07-18) | R218, R115 | ADS-002 §System Architecture, §Domain Model | ADR-0007 | `asm_game.py`, `worldgen.py` | FS-112 | IP-1121 | T29.a-f |
 | FR-11210 | Mob movement toward the player (delta 2026-07-19, `BL-0156` — Implemented 2026-07-19) | — | — | — | `asm_game.py` | FS-112 | IP-1126 | T35.a-i |
 | FR-11300 | Ranged weapon fire and hit resolution (Implemented — 2026-07-18) | R115 | ADS-002 §System Architecture | — | `asm_game.py` | FS-112 | IP-1122 | T30.a-e, T30.c2 |
+| FR-11310 | Movement-based multi-directional weapon fire (delta 2026-07-19, `BL-0157` — Should, planned, not yet implemented) | R220 | ADS-002 "Weapon Directionality Delta" | ADR-0021 | `asm_game.py` | FS-112 | UNASSIGNED | UNASSIGNED |
 | FR-11400 | Player health and non-lethal setback (Implemented — 2026-07-18, region-entry-point ordering fixed 2026-07-19, `BL-0154`) | R218 | ADS-002 §Domain Model | — | `asm_game.py` | FS-112 | IP-1123 | T31.a-c, T31.f-g |
 | FR-11410 | Post-contact player protection: invincibility, knockback, cooldown (delta 2026-07-19, `BL-0158` — Should, direct user decision, planned, not yet implemented) | — | — | — | `asm_game.py` | FS-112 | IP-1127 | T36 (planned) |
 | FR-11500 | Treasure-spent healing economy (Implemented — 2026-07-18) | — | ADS-002 §Domain Model | — | `asm_game.py` | FS-112 | IP-1123 | T31.d, T31.d2, T31.e, T31.f |
+| FR-11510 | Treasure-spent weapon-tier funding economy (delta 2026-07-19, `BL-0147`/`BL-0155` — Should, planned, not yet implemented) | R219 | ADS-002 §Domain Model | — | `asm_game.py` | FS-112 | UNASSIGNED | UNASSIGNED |
 | FR-11600 | Combat state save persistence | — | ADS-002 (Open Question 7) | — | `asm_game.py` (prospective) | UNASSIGNED | UNASSIGNED | UNASSIGNED |
 
 ## Non-Functional Requirements
