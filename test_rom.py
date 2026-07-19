@@ -4152,6 +4152,32 @@ check("T31.f COMBAT_MODE off: no row-1 HUD write, mob-contact/heal-spend logic n
 pb.stop()
 wipe_save()
 
+# T31.g — BL-0154 regression: the "initial Infinite Mode entry" combat-
+# entry-point recording must capture the player's REAL spawn position, not
+# a stale pre-spawn value. Drives the real MODE SELECT -> COMBAT MODE
+# CONFIRM (confirm "Y") -> INFINITE SEED ENTRY -> INTRO -> PLAYING path
+# (not a direct-invoke force -- this is the only way to exercise the
+# actual call-site ordering), confirms COMBAT_ENTRY_X/Y match PLAYER_X/Y
+# exactly on first arrival at PLAYING, rather than the (0,0) VR-1123 found.
+pb31g = fresh_boot(180)
+pb31g.button('a'); [pb31g.tick() for _ in range(40)]        # MAIN MENU -> MODE SELECT
+pb31g.button('down'); [pb31g.tick() for _ in range(40)]     # toggle infinite
+pb31g.button('a'); [pb31g.tick() for _ in range(40)]        # confirm -> COMBAT MODE CONFIRM
+pb31g.button('up'); [pb31g.tick() for _ in range(40)]       # toggle to "Y"
+pb31g.button('a'); [pb31g.tick() for _ in range(40)]        # confirm Y -> INFINITE SEED ENTRY
+enter_infinite_seed(pb31g, [4, 2, 0, 0, 0])
+pb31g.button('a'); [pb31g.tick() for _ in range(100)]       # confirm seed -> INTRO
+pb31g.button('a'); [pb31g.tick() for _ in range(40)]        # INTRO -> PLAYING
+check("T31.g BL-0154 regression: initial-entry COMBAT_ENTRY_X/Y match the player's real spawn position",
+      pb31g.memory[GAMESTATE] == 2 and pb31g.memory[COMBAT_MODE_ADDR] == 1 and
+      pb31g.memory[PLAYER_X] == 76 and pb31g.memory[PLAYER_Y] == 80 and
+      pb31g.memory[COMBAT_ENTRY_X_ADDR] == 76 and pb31g.memory[COMBAT_ENTRY_Y_ADDR] == 80,
+      f"gs={pb31g.memory[GAMESTATE]} combat_mode={pb31g.memory[COMBAT_MODE_ADDR]} "
+      f"player=({pb31g.memory[PLAYER_X]},{pb31g.memory[PLAYER_Y]}) "
+      f"entry=({pb31g.memory[COMBAT_ENTRY_X_ADDR]},{pb31g.memory[COMBAT_ENTRY_Y_ADDR]})")
+pb31g.stop()
+wipe_save()
+
 print("\n=== T33: Combat Sub-Mode — Mode Gating & UI (IP-1120) ===")
 
 CMC_CURSOR_ADDR = 0xC6DD

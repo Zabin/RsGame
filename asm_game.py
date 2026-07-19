@@ -613,6 +613,14 @@ def build_game_asm(rom: ROM) -> dict:
     rom.label('si_clr2'); rom.LD_HLI_A(); rom.DEC_B(); rom.JR_NZ('si_clr2')
     rom.LD_A_n(76); rom.LD_nn_A(PLAYER_X)
     rom.LD_A_n(80); rom.LD_nn_A(PLAYER_Y)
+    # IP-1123's own initial-entry combat-entry-point recording (BL-0154
+    # remediation, moved from st_infinite_seed_entry's own A-confirm
+    # handler, which ran before PLAYER_X/Y were set to their real spawn
+    # value above -- recording it there captured the wrong coordinate).
+    # inf_record_combat_entry self-gates on COMBAT_MODE, so this is a
+    # no-op for finite-mode games (COMBAT_MODE is never set outside
+    # Infinite Mode Combat).
+    rom.CALL('inf_record_combat_entry')
     rom.LD_A_n(GS_PLAYING); rom.LD_nn_A(TRANSITION_TO)
     rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW)
     rom.JP('end_frame')
@@ -926,7 +934,12 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_nn_A(INF_ROW); rom.LD_nn_A(INF_ROW + 1)
     rom.LD_nn_A(INF_COL); rom.LD_nn_A(INF_COL + 1)
     rom.CALL('inf_ensure_window')
-    rom.CALL('inf_record_combat_entry')  # IP-1123: initial region-entry point
+    # IP-1123's own combat-entry-point recording moved to st_intro (BL-0154
+    # remediation) -- PLAYER_X/Y are not yet set to their real spawn
+    # position here, so recording it at this point captured the wrong
+    # coordinate (whatever PLAYER_X/Y held before spawn, 0 on a fresh
+    # session) instead of the position the player actually enters the
+    # region at.
     rom.LD_A_n(GS_INTRO); rom.LD_nn_A(TRANSITION_TO)
     rom.LD_A_n(1); rom.LD_nn_A(NEED_REDRAW)
     rom.JP('end_frame')
@@ -3473,13 +3486,17 @@ def build_game_asm(rom: ROM) -> dict:
 
     # ── inf_record_combat_entry (IP-1123) ──────────────────
     # Records the current PLAYER_X/PLAYER_Y as COMBAT_ENTRY_X/Y -- called
-    # from every inf_ensure_window call site (initial Infinite Mode entry,
-    # each of czt_infinite's own four direction branches after their own
-    # PLAYER_X/Y update, and the post-load restore path), each of which is
-    # exactly a "this is now the current region" event. Gated on
-    # COMBAT_MODE -- a no-op call when off, so recording is fully inert
-    # until IP-1120's own gating screen ships (COMBAT_MODE is never set by
-    # any shipped code path today). Clobbers A.
+    # from six sites, each exactly a "this is now the current region, at
+    # this position" event: st_intro's own A-press handler (initial
+    # Infinite Mode entry, AFTER PLAYER_X/Y are set to their real spawn
+    # value there -- BL-0154 remediation, moved out of
+    # st_infinite_seed_entry's own A-confirm handler, which ran before
+    # PLAYER_X/Y held a real position), each of czt_infinite's own four
+    # direction branches after their own PLAYER_X/Y update, and the
+    # post-load restore path. Gated on COMBAT_MODE -- a no-op call when
+    # off, so recording is fully inert until IP-1120's own gating screen
+    # ships (COMBAT_MODE is never set outside Infinite Mode Combat).
+    # Clobbers A.
     rom.label('inf_record_combat_entry')
     rom.LD_A_nn(COMBAT_MODE); rom.OR_A(); rom.RET_Z()
     rom.LD_A_nn(PLAYER_X); rom.LD_nn_A(COMBAT_ENTRY_X)

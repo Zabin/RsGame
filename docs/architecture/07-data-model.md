@@ -527,13 +527,19 @@ moves purely horizontally. `handle_play_input`'s new fire branch (A-button-just-
 `MOB_DATA`, subtracting `WEAPON_TIER` from a hit mob's health (floored at 0, calling
 `inf_mob_defeat` at zero) and always stopping the projectile on any hit. 5 bytes total.
 
-### 7k. Combat Sub-Mode: player health & economy WRAM — `IP-1123` (confirmed 2026-07-18)
+### 7k. Combat Sub-Mode: player health & economy WRAM — `IP-1123` (confirmed 2026-07-18, `COMBAT_ENTRY_X`/`Y` recording-order fixed 2026-07-19, `BL-0154`)
 
 First unclaimed bytes past `WEAPON_TIER`'s own end (`0xC6D9`, §7j). `PLAYER_HEALTH`
 boot-*initialized* to 3 (max), not simply cleared — a fresh combat session starts at full health.
-`COMBAT_ENTRY_X`/`Y` need no boot clear: `inf_record_combat_entry` runs at every
-`inf_ensure_window` call site (initial entry, all four `czt_infinite` transition branches, and
-the post-load restore path), so any read is always preceded by a same-or-earlier write.
+`COMBAT_ENTRY_X`/`Y` need no boot clear: `inf_record_combat_entry` runs at six sites — `st_intro`'s
+own A-press handler (the initial Infinite Mode entry, *after* `PLAYER_X`/`PLAYER_Y` are set to
+their real spawn value there), all four `czt_infinite` transition branches (each after their own
+`PLAYER_X`/`PLAYER_Y` update), and the post-load restore path — so any read is always preceded by
+a same-or-earlier write of the player's real position. (`BL-0154`: the initial-entry call
+originally lived in `st_infinite_seed_entry`'s own A-confirm handler, which ran *before*
+`PLAYER_X`/`PLAYER_Y` held a real value, recording `(0, 0)` instead — fixed by moving the call
+into `st_intro`, after the real spawn write; `T31.g` regression-tests the fix via the real UI
+path.)
 
 | Address | Name | Size | Purpose |
 |---|---|---|---|

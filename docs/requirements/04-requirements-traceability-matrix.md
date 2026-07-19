@@ -113,7 +113,7 @@
 | FR-11100 | Combat sub-mode entry (explicit, gated MODE SELECT choice) (Implemented — 2026-07-18) | R218 | ADS-002 §System Architecture (Gating Mechanism) | ADR-0007 | `asm_game.py` | FS-112 | IP-1120 | T33.a-h |
 | FR-11200 | Mob presence, materialization, and non-graphic defeat (Implemented — 2026-07-18) | R218, R115 | ADS-002 §System Architecture, §Domain Model | ADR-0007 | `asm_game.py`, `worldgen.py` | FS-112 | IP-1121 | T29.a-f |
 | FR-11300 | Ranged weapon fire and hit resolution (Implemented — 2026-07-18) | R115 | ADS-002 §System Architecture | — | `asm_game.py` | FS-112 | IP-1122 | T30.a-e, T30.c2 |
-| FR-11400 | Player health and non-lethal setback (Implemented — 2026-07-18) | R218 | ADS-002 §Domain Model | — | `asm_game.py` | FS-112 | IP-1123 | T31.a-c, T31.f |
+| FR-11400 | Player health and non-lethal setback (Implemented — 2026-07-18, region-entry-point ordering fixed 2026-07-19, `BL-0154`) | R218 | ADS-002 §Domain Model | — | `asm_game.py` | FS-112 | IP-1123 | T31.a-c, T31.f-g |
 | FR-11500 | Treasure-spent healing economy (Implemented — 2026-07-18) | — | ADS-002 §Domain Model | — | `asm_game.py` | FS-112 | IP-1123 | T31.d, T31.d2, T31.e, T31.f |
 | FR-11600 | Combat state save persistence | — | ADS-002 (Open Question 7) | — | `asm_game.py` (prospective) | UNASSIGNED | UNASSIGNED | UNASSIGNED |
 

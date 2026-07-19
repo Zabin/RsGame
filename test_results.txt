@@ -1,4 +1,4 @@
-BunnyQuest ROM Tests  PASS=363/363  FAIL=0
+BunnyQuest ROM Tests  PASS=364/364  FAIL=0
 ==================================================
 [PASS] T1.1 ROM size = 32768  (32768)
 [PASS] T1.2 Entry = NOP; JP
@@ -345,6 +345,7 @@ BunnyQuest ROM Tests  PASS=363/363  FAIL=0
 [PASS] T31.d2 Spot: heal-spend at max health still spends treasure but does not exceed the health cap  (ok=True rtc=4 health=3)
 [PASS] T31.e Heal-spend at zero treasure is a no-op (no change to RUNNING_TREASURE_COUNT or PLAYER_HEALTH)  (ok=True rtc=0 health=1)
 [PASS] T31.f COMBAT_MODE off: no row-1 HUD write, mob-contact/heal-spend logic never executes  (health=3 rtc=5 row1=[170, 170, 170])
+[PASS] T31.g BL-0154 regression: initial-entry COMBAT_ENTRY_X/Y match the player's real spawn position  (gs=2 combat_mode=1 player=(76,80) entry=(76,80))
 [PASS] T33.a0 Reaches COMBAT MODE CONFIRM (GS=12)  (GS=12)
 [PASS] T33.a0b CMC_CURSOR defaults to 0 (N)  (cursor=0)
 [PASS] T33.a Off by default: A at default N cursor leaves COMBAT_MODE == 0  (combat_mode=0)
