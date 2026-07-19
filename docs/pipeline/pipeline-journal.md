@@ -14,7 +14,11 @@
 
 ## Position
 
-- **Updated:** 2026-07-19 (run #260)
+- **Updated:** 2026-07-19 (gate resolved, continuing from run #260)
+- **Gate resolved:** user answered the run #260 G3 ask with **"Authorize both"** (no
+  don't-iterate caveat this time, unlike `IP-1126`'s own earlier gate) — `IP-1128`/`IP-1129` both
+  flipped `AUTHORIZED` on the Master Build Plan/`packages/INDEX.md`. Iterate mode resumes,
+  proceeding to `08-code-implementation` on both.
 - **Increment:** Same as run #259, plus: **`07-implementation-planning`** authored **`IP-1128`**
   (weapon directionality, `READY` — sole dependency `IP-1122` `VERIFIED`) and **`IP-1129`**
   (weapon-tier funding, `READY` — both dependencies `IP-1122`/`IP-1103` `VERIFIED`). `IP-1128`
