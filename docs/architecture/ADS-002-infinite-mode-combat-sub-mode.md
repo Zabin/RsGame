@@ -11,6 +11,14 @@ sketches-only) but the remaining economy/persistence Open Questions (2, 3, 4, 7)
 requirements-level decisions this skill does not have standing to make; `04-requirements-
 engineering` still cannot proceed until those are resolved. See §"What this ADS does NOT do."
 
+**Delta record (2026-07-19):** §"Weapon Directionality Delta" added below, per `BL-0157`
+(user-requested weapon directionality) and `R220` (movement-based multi-directional aiming
+conventions, newly authored). Resolves the direction-representation shape a future
+`04-requirements-engineering`/`06-feature-specification` pass needs for widening the weapon's
+firing direction beyond today's shipped left/right-only encoding. Recorded as `ADR-0021`. No
+re-authoring of §1–§8/Open Questions 1–8 above — those remain accurate as the already-shipped
+`IP-1120`–`1126` baseline describes it; this delta is additive, extending the weapon axis only.
+
 ## Executive Design Overview
 
 The project owner filed a request (via `00-intake`, `BL-0133`) for a new sub-mode on Infinite
@@ -210,6 +218,75 @@ mob-spawn draw would most naturally hook into.
 complete for what `03-architecture-design-synthesis` can decide; `04-requirements-engineering`
 can now baseline real `FR-xxxx`s against it.
 
+## Weapon Directionality Delta (2026-07-19, `BL-0157`, grounded by `R220`)
+
+The shipped weapon (`IP-1122`) fires only left/right because `PROJ_DIR` copies `PLAYER_DIR`
+verbatim, and `PLAYER_DIR` itself is a 2-value fact — direct code read confirms it is written
+only by `handle_play_input`'s RIGHT/LEFT branches (0=right, 1=left), never UP/DOWN, and is read
+exactly once elsewhere, at OAM-render time, to isolate its bit 0 into the sprite's X-flip
+attribute bit (`update_oam`: three `RRCA`s then `AND 0x20`). The user asked for the weapon to
+also fire up/down/diagonal, based on movement. Four decisions, each with its own basis:
+
+**(a) A new, separate WRAM concept — not a widening of `PLAYER_DIR` in place.** `PLAYER_DIR`
+stays exactly as shipped: 2-value, left/right, driving the existing X-flip render unchanged. A
+new byte (name TBD by `07`, working name `PLAYER_FACING` below) carries the fuller direction. This
+mirrors this project's own already-established convention for exactly this kind of extension —
+`IP-1127`'s own planning (`docs/implementation/packages/IP-1127-...md`) deliberately chose a new
+parallel `MOB_CONTACT_FLAGS` table over widening `MOB_DATA`'s stride, for the identical reason: a
+widened shared field risks every existing consumer of the old shape, where a new field risks
+nothing already shipped. Here the calculus is even more one-sided — `PLAYER_DIR` has exactly one
+non-copy consumer (the X-flip render), and decision (d) below means that consumer's own behavior
+is not changing at all, so there is no shared behavior to even keep in sync.
+
+**(b) Eight-directional, not four.** `R220` deliberately leaves this choice open as a tone/pacing
+call; this project's own concrete fact tips it: `handle_play_input`'s RIGHT/LEFT/UP/DOWN branches
+are independent `BIT`-tested branches, not a mutually-exclusive chain — holding e.g. RIGHT+UP
+already moves the player diagonally today (each axis steps independently in the same frame). A
+weapon restricted to 4-way would fire a strictly narrower set of directions than the player can
+already move in, reading as an arbitrary mismatch rather than a deliberate constraint. 8-way keeps
+the weapon's own expressive range matching the movement model that already exists, at no
+additional input-scheme cost (no new button, still derived from the same D-pad state already read
+every frame).
+
+**(c) Diagonal projectile motion via simultaneous independent per-axis stepping — not vector
+math.** This project's existing movement idiom, used everywhere it needs 2D motion (the player's
+own D-pad movement above; `IP-1126`'s `inf_mob_move`, dominant-axis stepping toward the player),
+is single-axis-at-a-time integer stepping — no trigonometry, no multiplication (SM83 has neither
+natively). The player's own "diagonal movement" today is not a diagonal primitive at all: it is
+two independent per-frame `INC`/`DEC` operations on `PLAYER_X` and `PLAYER_Y`, each gated on its
+own D-pad bit, that happen to run in the same frame. A diagonal-firing projectile can copy this
+exact idiom rather than inventing vector motion: `PLAYER_FACING` decodes to an independent
+per-axis step (`-1`/`0`/`+1` on X, `-1`/`0`/`+1` on Y — 8 of the 9 combinations are the compass
+directions, the 9th, `(0,0)`, is unreachable since firing requires the player to be facing some
+direction); `inf_projectile_update` applies both axis steps every frame instead of only the X
+step it applies today. No new hardware-level technique, no new research gap — an extension of an
+idiom `R213`/this codebase's own shipped code already establish.
+
+**(d) No new player sprite art.** The player's own walk-cycle sprite keeps rendering exactly as
+today (frame-based animation + X-flip only) regardless of `PLAYER_FACING`'s value — `PLAYER_DIR`
+is untouched (decision a), so the existing render path has nothing new to reflect. This is
+consistent with `R218`'s own "abstract stakes over graphic depiction" convention (mob defeat is a
+poof, not gore) and this ADS's own repeated pattern of reusing existing art at zero new cost
+(the heart-tile HUD, the mob/projectile tiles' own already-shipped-then-reused palette slots).
+`ADR-0007`'s 8×16 OBJ mode has no established Y-flip-based up/down variant or diagonal frame set
+to reuse, and inventing one is new art-authoring scope this delta does not ask for. A future
+`09-content-review` pass may recommend directional sprite art later as a purely additive
+follow-on — not required by this decision, and not blocking it.
+
+**Named risk, not resolved here:** `NFR-1500` (combat sub-mode per-frame cycle budget) is already
+`UNCONFIRMED` and now also covers this delta's own added cost (`handle_play_input`'s
+direction-decode, `inf_projectile_update`'s second per-frame axis step) — the same standing,
+unmeasured risk `IP-1121`–`1126` all already carry, not a new category of risk this delta
+introduces, but real cost added on top of an already-unmeasured budget.
+
+**Not decided here (`04`/`06`'s own job):** the exact bit-encoding of `PLAYER_FACING` (a compact
+3-bit compass value vs. two signed 1-bit-per-axis fields vs. some other shape); the exact
+WRAM address (`07-implementation-planning`'s own job, following `GDS-07`'s address-allocation
+convention); whether `PLAYER_FACING` is written on every frame a D-pad direction is held or only
+on transition (idle-preserves-last-facing per the Link's Awakening convention `R220` grounds,
+requiring "held" vs. "just-changed" to be distinguished somewhere) — a real implementation detail
+this delta names but does not resolve.
+
 ## Decision Log
 
 | Date | Decision | Basis |
@@ -219,6 +296,7 @@ can now baseline real `FR-xxxx`s against it.
 | 2026-07-17 | **A second stop, found on this same day's follow-up pass** (after Open Question 1 resolved): before committing to concrete mob/projectile/health entity designs or a gating mechanism, this skill searched the research encyclopedia for any grounding on combat/enemy/damage design and found **none** — a genuine domain-knowledge gap, not a small detail. `R204` mentions HUD health-bar *weighting* in passing (not combat design); `R214` explicitly warns *against* treating existing combat-focused GBC homebrew (Azure Dreams/Dragon Crystal) as design templates for *this* project, without offering an alternative. No R1xx/R2xx/R3xx topic covers enemy AI patterns, projectile/hitscan feasibility on SM83, sprite-based hit-detection conventions, or health/damage HUD conventions for a GBC title. This pass stops here rather than inventing combat-design conventions itself — that would be exactly the kind of research-origination this skill's own charter forbids. | Direct search of `docs/research/encyclopedia/` (grep for combat/enemy/mob/projectile/weapon/health/damage across every R1xx/R2xx/R3xx topic) — confirmed empty beyond the two tangential mentions above. |
 | 2026-07-17 | Committed to concrete candidate architecture (6-slot mob table, transient projectile, MODE SELECT gating option, A-button fire input, poof-defeat + reused heart-tile HUD) now that `R218`/`R115` ground it. Every concrete claim (A-button unbound during `PLAYING`, `TL_HEART_FULL`/`TL_HEART_EMPTY` already shipped) re-verified against the live tree before being stated, not assumed from the research topics alone. | `R218`, `R115`, direct code read of `handle_play_input`/`st_playing`/`tiles.py`. |
 | 2026-07-17 | **User resolved all four remaining Open Questions in one batched round**: treasure is *spent* on healing (Open Question 2); the weapon fires freely with no ammo/durability, treasure funds power only (Open Question 3); the fail state is a non-lethal setback, no real game-over (Open Question 4); combat state (mobs, weapon tier, health) persists across save/load via a new `SAVE_VERSION_VAL` bump (Open Question 7). All eight Open Questions are now closed or committed as adjustable defaults — `04-requirements-engineering` can proceed. | Direct user decision, 2026-07-17 (batched `AskUserQuestion`, all four recommended options accepted). |
+| 2026-07-19 | **Weapon Directionality Delta committed** (`BL-0157`): a new, separate `PLAYER_FACING`-shaped WRAM concept (not a widened `PLAYER_DIR`) carries an 8-directional facing value; `PLAYER_DIR` and its own sole non-copy consumer (the X-flip OAM render) stay untouched; diagonal projectile motion is simultaneous independent per-axis stepping (this codebase's own existing 2D-movement idiom, not new vector math); no new player sprite art. Recorded as `ADR-0021`. | `R220` (movement-based directional aiming conventions); direct code read of `handle_play_input`/`update_oam` confirming `PLAYER_DIR`'s exact single non-copy consumer and its independent-branch (not mutually-exclusive) D-pad handling; `IP-1127`'s own "new parallel structure over widened shared field" precedent. |
 
 ## What this ADS does NOT do
 
