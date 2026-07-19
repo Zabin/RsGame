@@ -14,8 +14,24 @@
 
 ## Position
 
-- **Updated:** 2026-07-19 (run #259)
-- **Increment:** Same as run #258, plus: **`06-feature-specification`** amended `FS-112`'s own
+- **Updated:** 2026-07-19 (run #260)
+- **Increment:** Same as run #259, plus: **`07-implementation-planning`** authored **`IP-1128`**
+  (weapon directionality, `READY` — sole dependency `IP-1122` `VERIFIED`) and **`IP-1129`**
+  (weapon-tier funding, `READY` — both dependencies `IP-1122`/`IP-1103` `VERIFIED`). `IP-1128`
+  repurposes `PROJ_DIR` in place (renamed `PROJ_STEP_X`, new raw-signed-step encoding) — mandatory
+  supersession sweep confirmed exactly two consumers, both rewritten, `inf_projectile_hittest`
+  untouched; one pre-named test correction (`T30.b`'s own `dir=0` assertion). New WRAM
+  `PLAYER_FACING_X`/`PLAYER_FACING_Y`/`PROJ_STEP_Y` (`0xC6DF`–`0xC6E1`) — **named, unresolved
+  collision** with `IP-1127`'s own still-`BLOCKED` prospective claim of the identical range,
+  resolved at build time by whichever ships first. `IP-1129`'s own `inf_tier_spend` mirrors
+  `inf_heal_spend` exactly, including spending even at the tier cap (matching `FR-11500`'s real
+  precedent, not the earlier-corrected no-op draft). TWBS delta section authored (verb inventory,
+  supersession sweep, split rationale — two packages for the same conceptual-independence reason
+  as `IP-1126`/`IP-1127`, though neither is readiness-blocked here). Master Build Plan,
+  `packages/INDEX.md`, RTM (Implementation Package/Test cells filled), `FS-112` metadata,
+  `ROADMAP.md` all updated. **Neither package authorized** — new scope beyond the original "build
+  all six" go-ahead, same class as `IP-1126`/`IP-1127`.
+- **Increment (run #259):** **`06-feature-specification`** amended `FS-112`'s own
   field set (not a new spec): Workflow C gained step 4 (weapon directionality, `FR-11310`),
   Workflow D gained step 3a (weapon-tier funding, `FR-11510`); System Behaviour, Module
   Responsibilities, Interfaces Used, Data Model Changes (new `PlayerFacing` concept), Error
@@ -72,28 +88,28 @@
   `COMPLETE` (fix applied run #249, own `09` Pass 2 also owed — fresh session). `IP-1124` remains
   `NOT STARTED` (blocked on `IP-1123` reaching `VERIFIED`). `IP-1120`/`IP-1121`/`IP-1122`/`IP-1125`
   `VERIFIED`. `IP-1127` still `BLOCKED` on `IP-1123` reaching `VERIFIED`, still `NOT AUTHORIZED`.
-  `FR-11310`/`FR-11510` now folded into `FS-112` (`06`), not yet packaged. Standing,
-  non-blocking doc/design work unchanged: the doc-accuracy sweep family (`BL-0136`/`BL-0137`/
-  `BL-0140`–`BL-0143`/`BL-0151`); `BL-0118` (`NFR-1400` cycle-budget gap); `NFR-1500`
-  (combat-sub-mode cycle budget, still `UNCONFIRMED`, now also naming both new leaves' own added
-  cost); `BL-0123` (`try_load_save` unneeded finite-mode work); `BL-0112` (Infinite Mode run-end
-  trigger); `BL-0097` (Medium, routed already); `BL-0130` (catalog text gap);
-  `BL-0148`/`BL-0149`/`BL-0150`/`BL-0152`/`BL-0159`(remaining half)/`BL-0160`/`BL-0161` (all
-  Low/unstated-priority, `SCHEDULED`/`DEFERRED`, non-blocking).
-- **Backlog:** 161 entries. `BL-0147`/`BL-0155`/`BL-0157` updated: folded into `FS-112` (run #259),
-  still `IN PIPELINE`, next step `07-implementation-planning`. `BL-0161` unchanged (`DEFERRED`).
-  `BL-0156` unchanged (`IN PIPELINE`). `BL-0154`/`BL-0133` unchanged (`IN PIPELINE`).
-- **Next step:** **`07-implementation-planning`** on `FS-112`'s two new leaves — authoring a
-  package is not itself a G3 authorization, so this can proceed now; the eventual
-  `08-code-implementation` step is where a fresh G3 ask becomes necessary (new scope beyond the
-  original "build all six" go-ahead, same class as `IP-1126`/`IP-1127`). Both in-scope
-  (mob/weapon), neither session-blocked. Separately, fresh session: `09-package-verification` on
-  `IP-1126`/`IP-1123` Pass 2 (still session-blocked this session); `BL-0159`'s remaining half rides
-  `IP-1127`, still `BLOCKED`.
-- **Open gates:** **none for `IP-1126`** — G3 granted 2026-07-19, now built. **G3 still needed on
-  `IP-1127`** (post-contact protection) once `IP-1123` reaches `VERIFIED` — not yet asked, since
-  `IP-1127`
-  remains `BLOCKED` regardless. The fresh-session requirement on `IP-1123`'s own Pass 2 is a
+  `FR-11310`/`FR-11510` now packaged as `IP-1128`/`IP-1129` (`07`), both `READY`, neither
+  authorized. Standing, non-blocking doc/design work unchanged: the doc-accuracy sweep family
+  (`BL-0136`/`BL-0137`/`BL-0140`–`BL-0143`/`BL-0151`); `BL-0118` (`NFR-1400` cycle-budget gap);
+  `NFR-1500` (combat-sub-mode cycle budget, still `UNCONFIRMED`, now also naming both new
+  packages' own added cost); `BL-0123` (`try_load_save` unneeded finite-mode work); `BL-0112`
+  (Infinite Mode run-end trigger); `BL-0097` (Medium, routed already); `BL-0130` (catalog text
+  gap); `BL-0148`/`BL-0149`/`BL-0150`/`BL-0152`/`BL-0159`(remaining half)/`BL-0160`/`BL-0161`
+  (all Low/unstated-priority, `SCHEDULED`/`DEFERRED`, non-blocking).
+- **Backlog:** 161 entries. `BL-0147`/`BL-0155`/`BL-0157` updated: packaged as `IP-1129`/`IP-1128`
+  (run #260), still `IN PIPELINE`, next step is the G3 ask below. `BL-0161` unchanged
+  (`DEFERRED`). `BL-0156` unchanged (`IN PIPELINE`). `BL-0154`/`BL-0133` unchanged (`IN PIPELINE`).
+- **Next step:** **GATE — G3 authorization needed on `IP-1128`/`IP-1129`** before
+  `08-code-implementation` can build either (new scope beyond the original "build all six"
+  go-ahead, same class as `IP-1126`/`IP-1127`). Both `READY` (every dependency `VERIFIED`), no
+  further planning work is possible without this decision — this is where the mob/weapon-scoped
+  iterate run genuinely stops. Separately, fresh session: `09-package-verification` on
+  `IP-1126`/`IP-1123` Pass 2 (still session-blocked this session); `BL-0159`'s remaining half and
+  `IP-1127`'s own G3 ask both still ride `IP-1123` reaching `VERIFIED` first.
+- **Open gates:** **G3 needed on `IP-1128`/`IP-1129`** (weapon directionality / weapon-tier
+  funding) — both `READY`, asked this run. **G3 still needed on `IP-1127`** (post-contact
+  protection) once `IP-1123` reaches `VERIFIED` — not yet asked, `IP-1127` remains `BLOCKED`
+  regardless, so not ripe yet. The fresh-session requirement on `IP-1123`'s own Pass 2 is a
   separate, session-boundary constraint, not itself a human decision gate.
 
 ## Run log
@@ -363,3 +379,4 @@
 | 257 | 2026-07-19 | advance (same session, user-scoped to mob/weapon items) | `04-requirements-engineering` | `FR-11310`/`FR-11510`, batching `BL-0157` and `BL-0147`/`BL-0155` (mirroring the `FR-11210`/`FR-11410` batching precedent at run #250) | ✅ **Baselined both leaves.** **`FR-11310`** (movement-based multi-directional weapon fire): formalizes `ADS-002`'s "Weapon Directionality Delta"/`ADR-0021` — 8-directional fire derived from movement ("moving direction, else last-faced," per `R220`), diagonal projectile motion via simultaneous independent per-axis stepping, a new separate facing concept (not a widened `PLAYER_DIR`). **`FR-11510`** (treasure-spent weapon-tier funding economy): closes `BL-0147`'s own traceability gap with a currency-spent, persistent-purchase model (`R219`'s recommendation over Contra's pickup-drop/full-reset shape), sharing `FR-11500`'s `RUNNING_TREASURE_COUNT` currency and its "spends even at cap, floored at the maximum" convention (`T31.d2`'s own precedent — corrected during this same run after an initial no-op draft didn't match it). Both correctly follow the `x10`-sub-leaf-under-`x00`-parent numbering pattern (`FR-10200`/`FR-10210` precedent), confirmed unused before this delta by direct grep. **Requirements Review finding #25**: no ID collision, no duplicate (`FR-11310` widens rather than restates `FR-11300`'s facing claim; `FR-11510` funds a different consumer than `FR-11500`'s healing, same shared currency), no conflict, no implementation-level fact leaked (bit-encoding/WRAM address/spend-rate all correctly deferred to `07`/`06`), `NFR-1500` cross-referenced live in both directions. RTM rows added — `Feature Spec` filled `FS-112` (mirroring the `FR-11210`/`FR-11410` precedent: same feature, no new capability boundary), `Module` filled `asm_game.py`, `Implementation Package`/`Test` honestly `UNASSIGNED`. Both leaves name an unresolved input-binding gap for their own action (mirroring `FR-11500`'s still-open `BL-0148`), not invented a binding for. Neither leaf implemented. Backlog: `BL-0147`/`BL-0155`/`BL-0157` all updated to reflect the baseline, still `IN PIPELINE`. | `05-feature-decomposition` to confirm `FR-11310`/`FR-11510` fold into the existing `FEAT-11000` catalog entry, then `06-feature-specification` to fold both into `FS-112`'s own field set — mirroring the exact sequence already completed for `FR-11210`/`FR-11410` (runs #251–252). |
 | 258 | 2026-07-19 | advance (same session, user-scoped to mob/weapon items) | `05-feature-decomposition` | `FEAT-11000` — fold in `FR-11310`/`FR-11510` | ✅ **Confirmed both new leaves fold into the existing `FEAT-11000` catalog entry, no new Feature/Epic.** Neither introduces a dependency `FEAT-11000` doesn't already carry (`FR-11310` depends on `FR-11300`/`ADR-0021`, both already this Feature's own; `FR-11510` depends on `FR-11300`/`FR-10300`/`FR-10400`/`FR-11500`/`FR-11600`, all already `FEAT-11000`'s or `FEAT-10000`'s own) — per the "maintain incrementally" workflow rule, only `03-feature-catalog.md` (forward-reference note, Description, Included Requirements 10→12, Risk) and `05-feature-review.md` (finding #14) were touched; `02-epic-catalog.md`/`04-feature-dependency-graph.md`/`01-release-plan.md` confirmed structurally unaffected by direct re-read, correctly left untouched. Finding #14: clean, no new defect, requirement assignment confirmed not double-assigned anywhere else in the catalog (cross-checked against `03-requirements-review.md` finding #25). **Sizing milestone named, not treated as a split trigger**: `FEAT-11000` is now the catalog's largest entry at 12 Included Requirements (surpassing `FEAT-10000`'s 11) — noted explicitly per this document's own transparency discipline, but `FEAT-11000`'s own Scope field already defers any split to a real implementation-revealed seam, and neither new leaf introduces one. `BL-0147`/`BL-0155`/`BL-0157` notes updated to record the fold-in. | `06-feature-specification` on `FS-112`, folding `FR-11310`/`FR-11510`'s own behavior into that spec's field set — same Feature, no new `FS-xxx` document, mirroring the exact precedent already completed for `FR-11210`/`FR-11410` (run #252). |
 | 259 | 2026-07-19 | advance (same session, user-scoped to mob/weapon items) | `06-feature-specification` | `FS-112` — fold in `FR-11310`/`FR-11510` | ✅ **Amended `FS-112`'s own field set** (not a new spec): Workflow C gained step 4 (`FR-11310` — direction derived from movement, diagonal projectiles via simultaneous independent per-axis stepping, a new separate facing concept leaving `PLAYER_DIR` untouched); Workflow D gained step 3a (`FR-11510` — a sibling treasure-spend action funding `WEAPON_TIER`, sharing `FR-11500`'s currency and its spend-even-at-cap convention). System Behaviour, Module Responsibilities, Interfaces Used (new `PLAYER_DIR`/`RUNNING_TREASURE_COUNT` cross-references), Data Model Changes (new `PlayerFacing` concept, `Weapon`'s funding mechanism named), Error Handling (spend-at-cap still spends, floored at the maximum), Performance Considerations (`NFR-1500` named again), Risks (a third distinct provenance class named; growing multi-action input-binding contention flagged as a recommendation, not a blocker), and Related ADRs (`ADR-0021`) all updated. **Acceptance Criteria renumbered 1→12** to insert AC-5 (weapon directionality) and AC-9 (weapon-tier funding) in requirement order rather than appended out of sequence, mirroring the exact renumbering discipline already used once this date for `FR-11210`/`FR-11410`; Verification Plan extended to match, each new AC's own verification method mirroring an already-established sibling (AC-4's hit/miss methodology for AC-5; AC-8's spend-check methodology for AC-9). `docs/features/INDEX.md` row updated. Neither leaf implemented yet — `07-implementation-planning` is next. | `07-implementation-planning` on `FS-112`'s two new leaves — authoring a package is not itself a G3 authorization; the eventual `08-code-implementation` step needs a fresh G3 ask, same class as `IP-1126`/`IP-1127`. |
+| 260 | 2026-07-19 | advance → gate (same session, user-scoped to mob/weapon items) | `07-implementation-planning` | `FS-112`'s two new leaves — `FR-11310`/`FR-11510` | ✅ **Planned two packages, `IP-1128`/`IP-1129`, split for the same conceptual-independence reason as `IP-1126`/`IP-1127`** (weapon aiming vs. the treasure economy), though unlike that pair neither is readiness-blocked — both dependencies (`IP-1122`, `IP-1103`) are already `VERIFIED`. **`IP-1128`** (weapon directionality): 8-directional fire derived from movement, diagonal projectile motion via simultaneous independent per-axis stepping; new WRAM `PLAYER_FACING_X`/`Y`/`PROJ_STEP_Y` (`0xC6DF`–`0xC6E1`); `PROJ_DIR` repurposed in place as `PROJ_STEP_X` — mandatory supersession sweep confirmed exactly two consumers (both rewritten), `inf_projectile_hittest` untouched, one pre-named test correction (`T30.b`). New suite `T37` (9 checks) — **`READY`**. **`IP-1129`** (weapon-tier funding): `inf_tier_spend` mirrors `inf_heal_spend` exactly, spending even at the tier cap (`FR-11500`'s real precedent). No new WRAM. New suite `T38` (5 checks) — **`READY`**. **Named, unresolved WRAM collision**: `IP-1128`'s own `0xC6DF`–`0xC6E0` claim overlaps `IP-1127`'s own still-`BLOCKED` prospective claim of the identical range — a normal consequence of two packages planned in parallel against a shared free-byte frontier, not a defect in either; resolved at build time by whichever ships first. TWBS delta section authored (verb inventory, supersession sweep, split rationale, WRAM/ROM budget, collision note). **Neither package authorized** — both new scope beyond the original "Yes, build all six" go-ahead. Master Build Plan, `packages/INDEX.md`, RTM, `FS-112` metadata, `ROADMAP.md` all updated. **GATE hit: G3 authorization needed on `IP-1128`/`IP-1129`** before either can be built — this ends the mob/weapon-scoped iterate run per the manager's own charter (a ripe G3 ask is one of the five genuine stopping conditions). | **Ask the user**: authorize `IP-1128` (weapon directionality) and/or `IP-1129` (weapon-tier funding) for `08-code-implementation`? Both `READY`, neither authorized. |
