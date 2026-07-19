@@ -3770,6 +3770,36 @@ def build_game_asm(rom: ROM) -> dict:
     rom.label('ihs_done')
     rom.RET()
 
+    # ── inf_tier_spend (IP-1129, FR-11510) ──────────────────
+    # Player-choice weapon-tier funding: gated on COMBAT_MODE and
+    # RUNNING_TREASURE_COUNT > 0 (16-bit, both bytes checked), mirroring
+    # inf_heal_spend's own exact structure field-for-field. Decrements
+    # RUNNING_TREASURE_COUNT by 1 via the identical 16-bit-borrow technique
+    # -- the same shared count, no second ledger. Spends UNCONDITIONALLY:
+    # SCORE_DIRTY is set and the treasure decrement always happens before
+    # the WEAPON_TIER cap check, matching FR-11500's own real shipped
+    # precedent (T31.d2) -- spending at the cap still spends, it is not a
+    # no-op, only the tier increase itself is floored at 3. NOT called from
+    # anywhere in this package's own control flow -- shares inf_heal_spend's
+    # own still-unresolved input-binding gap (BL-0148-class), not invented a
+    # binding for here. Defined and exposed, directly force-testable
+    # (T38.a-d). Clobbers A.
+    rom.label('inf_tier_spend')
+    rom.LD_A_nn(COMBAT_MODE); rom.OR_A(); rom.RET_Z()
+    rom.LD_A_nn(RUNNING_TREASURE_COUNT); rom.OR_A(); rom.JR_NZ('its_have')
+    rom.LD_A_nn(RUNNING_TREASURE_COUNT + 1); rom.OR_A(); rom.RET_Z()
+    rom.label('its_have')
+    rom.LD_A_nn(RUNNING_TREASURE_COUNT); rom.OR_A(); rom.JR_NZ('its_no_borrow')
+    rom.LD_A_nn(RUNNING_TREASURE_COUNT + 1); rom.DEC_A(); rom.LD_nn_A(RUNNING_TREASURE_COUNT + 1)
+    rom.label('its_no_borrow')
+    rom.LD_A_nn(RUNNING_TREASURE_COUNT); rom.DEC_A(); rom.LD_nn_A(RUNNING_TREASURE_COUNT)
+
+    rom.LD_A_n(1); rom.LD_nn_A(SCORE_DIRTY)  # treasure count always changed above
+    rom.LD_A_nn(WEAPON_TIER); rom.CP_n(3); rom.JR_NC('its_done')
+    rom.INC_A(); rom.LD_nn_A(WEAPON_TIER)
+    rom.label('its_done')
+    rom.RET()
+
     # ── inf_health_hud_draw (IP-1123) ───────────────────────
     # Called from update_status_disp (mirrors its own SCORE_DIRTY/
     # GAMESTATE==PLAYING trigger and VBlank-safe timing), gated additionally

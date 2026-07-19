@@ -4733,6 +4733,81 @@ check("T37.i Independent live drive: a real diagonally-fired projectile moves on
 pb37i.stop()
 wipe_save()
 
+print("\n=== T38: Combat Sub-Mode — Weapon-Tier Funding Economy (IP-1129) ===")
+
+ITS_ADDR = _gw_rom.labels['inf_tier_spend']
+
+def t38_reset(pb, combat_mode=1, weapon_tier=1, treasure=0):
+    pb.memory[GAME_MODE] = 1
+    pb.memory[COMBAT_MODE_ADDR] = combat_mode
+    pb.memory[WEAPON_TIER_ADDR] = weapon_tier
+    pb.memory[RUNNING_TREASURE_COUNT] = treasure & 0xFF
+    pb.memory[RUNNING_TREASURE_COUNT + 1] = (treasure >> 8) & 0xFF
+
+pb = fresh_boot(180)
+advance_to_playing(pb)
+
+# T38.a — tier-spend decrements the shared count and increases WEAPON_TIER
+# by exactly 1 (mirrors T31.d's own established shape for the sibling
+# healing-spend action).
+t38_reset(pb, weapon_tier=1, treasure=5)
+_t38a_ok = invoke_no_arg(pb, ITS_ADDR)
+_t38a_rtc = pb.memory[RUNNING_TREASURE_COUNT] | (pb.memory[RUNNING_TREASURE_COUNT + 1] << 8)
+check("T38.a Tier-spend decrements RUNNING_TREASURE_COUNT by 1 and increases WEAPON_TIER by 1",
+      _t38a_ok and _t38a_rtc == 4 and pb.memory[WEAPON_TIER_ADDR] == 2,
+      f"ok={_t38a_ok} rtc={_t38a_rtc} tier={pb.memory[WEAPON_TIER_ADDR]}")
+
+# T38.b — spot check: tier-spend at WEAPON_TIER == 3 still decrements
+# RUNNING_TREASURE_COUNT by 1 but does not push WEAPON_TIER past 3 (mirrors
+# T31.d2's own exact precedent -- confirms this is the spend-even-at-cap
+# convention, not a no-op).
+t38_reset(pb, weapon_tier=3, treasure=5)
+_t38b_ok = invoke_no_arg(pb, ITS_ADDR)
+_t38b_rtc = pb.memory[RUNNING_TREASURE_COUNT] | (pb.memory[RUNNING_TREASURE_COUNT + 1] << 8)
+check("T38.b Spot: tier-spend at the cap still spends treasure but does not exceed WEAPON_TIER 3",
+      _t38b_ok and _t38b_rtc == 4 and pb.memory[WEAPON_TIER_ADDR] == 3,
+      f"ok={_t38b_ok} rtc={_t38b_rtc} tier={pb.memory[WEAPON_TIER_ADDR]}")
+
+# T38.c — tier-spend at RUNNING_TREASURE_COUNT == 0 is a genuine no-op:
+# neither field changes (mirrors T31.e's own precondition-failure shape).
+t38_reset(pb, weapon_tier=1, treasure=0)
+_t38c_ok = invoke_no_arg(pb, ITS_ADDR)
+_t38c_rtc = pb.memory[RUNNING_TREASURE_COUNT] | (pb.memory[RUNNING_TREASURE_COUNT + 1] << 8)
+check("T38.c Tier-spend at zero treasure is a no-op (no change to RUNNING_TREASURE_COUNT or WEAPON_TIER)",
+      _t38c_ok and _t38c_rtc == 0 and pb.memory[WEAPON_TIER_ADDR] == 1,
+      f"ok={_t38c_ok} rtc={_t38c_rtc} tier={pb.memory[WEAPON_TIER_ADDR]}")
+
+# T38.d — COMBAT_MODE off: inf_tier_spend is a complete no-op (mirrors
+# T31.f's own established COMBAT_MODE-off pattern).
+t38_reset(pb, combat_mode=0, weapon_tier=1, treasure=5)
+invoke_no_arg(pb, ITS_ADDR)
+_t38d_rtc = pb.memory[RUNNING_TREASURE_COUNT] | (pb.memory[RUNNING_TREASURE_COUNT + 1] << 8)
+check("T38.d COMBAT_MODE off: inf_tier_spend is a complete no-op",
+      _t38d_rtc == 5 and pb.memory[WEAPON_TIER_ADDR] == 1,
+      f"rtc={_t38d_rtc} tier={pb.memory[WEAPON_TIER_ADDR]}")
+
+# T38.e — persistence: a tier increase survives a mob-contact setback
+# (inf_health_setback touches only PLAYER_HEALTH/PLAYER_X/PLAYER_Y, never
+# WEAPON_TIER). No SRAM mirror of WEAPON_TIER exists yet (confirmed by
+# direct code read — no save/load path references it), so this check is
+# scoped to the in-session, non-save-boundary persistence half only, named
+# explicitly per this package's own §8, not silently assumed.
+t38_reset(pb, weapon_tier=1, treasure=5)
+invoke_no_arg(pb, ITS_ADDR)
+_t38e_tier_after_spend = pb.memory[WEAPON_TIER_ADDR]
+pb.memory[PLAYER_HEALTH_ADDR] = 0
+pb.memory[COMBAT_ENTRY_X_ADDR] = 40; pb.memory[COMBAT_ENTRY_Y_ADDR] = 90
+pb.memory[PLAYER_X] = 120; pb.memory[PLAYER_Y] = 20
+_t38e_ok = invoke_no_arg(pb, IHSB_ADDR)
+check("T38.e A tier increase survives a mob-contact setback (in-session persistence half; no SRAM mirror exists yet)",
+      _t38e_ok and _t38e_tier_after_spend == 2 and pb.memory[WEAPON_TIER_ADDR] == 2 and
+      pb.memory[PLAYER_HEALTH_ADDR] == 3,
+      f"ok={_t38e_ok} tier_after_spend={_t38e_tier_after_spend} tier_after_setback={pb.memory[WEAPON_TIER_ADDR]} "
+      f"health={pb.memory[PLAYER_HEALTH_ADDR]}")
+
+pb.stop()
+wipe_save()
+
 # ══════════════════════════════════════════════════════
 # SUMMARY
 # ══════════════════════════════════════════════════════

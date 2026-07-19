@@ -2757,17 +2757,27 @@ none of FR-10000's own leaves are amended by this group. `FR-9000`'s finite mode
   `FR-11500`'s own established test methodology, `T31.d`/`T31.d2`/`T31.e`).
 - **Source Documents:** `ADS-002` §Domain Model; `BL-0147`; `R219`.
 - **Related ADRs:** None.
-- **Notes:** Not yet implemented. The exact tier-spend input/rate (how much treasure per tier
-  increase — `FR-11500`'s own precedent is 1-for-1, but this leaf does not fix that this leaf must
-  match it) is a `06-feature-specification` decision, following this project's own established
-  "adjustable default" convention. **Input-binding gap, named not resolved**: like `FR-11500`'s
-  own heal-spend action (`BL-0148`, still unresolved), this leaf's own spend action has no
-  obviously free input button either — every existing button is already claimed (D-pad movement,
-  A now claimed by fire, B the universal cancel, START/SELECT both claimed by existing menus). A
-  future `06`/`07` pass may resolve both `FR-11500`'s and this leaf's own spend actions with a
-  single shared UI (e.g. a spend menu reachable via SELECT, mirroring `IP-1090`'s own
-  SELECT-menu-confirmation precedent) rather than inventing two separate bindings — named as a
-  recommendation, not decided here.
+- **Status:** Implemented (`IP-1129`, 2026-07-19). `inf_tier_spend` (new subroutine, mirroring
+  `inf_heal_spend`'s own exact structure) decrements `RUNNING_TREASURE_COUNT` by exactly 1 treasure
+  per tier (1-for-1, matching `FR-11500`'s own precedent) and increases `WEAPON_TIER` by 1, capped
+  at 3 — spending even at the cap, not a no-op, per this leaf's own Postconditions. No new WRAM.
+  Verified by `T38.a`–`e` (`test_rom.py`). The save/load half of this leaf's own Acceptance
+  Criteria is **not yet verifiable**: `FR-11600` (combat state save persistence) is still
+  unimplemented, and direct code read confirms `WEAPON_TIER` has no SRAM mirror yet — `T38.e`
+  verifies only the in-session (mob-contact-setback) persistence half, named explicitly rather than
+  silently assumed; the save/load half remains open pending `FR-11600`.
+- **Notes:** The exact tier-spend input/rate (how much treasure per tier increase — `FR-11500`'s
+  own precedent is 1-for-1) was a `06-feature-specification` decision, following this project's own
+  established "adjustable default" convention — resolved above (1-for-1). **Input-binding gap,
+  named not resolved**: like `FR-11500`'s own heal-spend action (`BL-0148`, still unresolved), this
+  leaf's own spend action has no obviously free input button either — every existing button is
+  already claimed (D-pad movement, A now claimed by fire, B the universal cancel, START/SELECT both
+  claimed by existing menus). `inf_tier_spend` is defined and exposed, directly force-testable, but
+  has no call site anywhere, mirroring `inf_heal_spend`'s own identical situation. A future `06`/`07`
+  pass may resolve both `FR-11500`'s and this leaf's own spend actions with a single shared UI
+  (e.g. a spend menu reachable via SELECT, mirroring `IP-1090`'s own SELECT-menu-confirmation
+  precedent) rather than inventing two separate bindings — named as a recommendation, not decided
+  here.
 
 ### FR-11600 — Combat state save persistence
 
