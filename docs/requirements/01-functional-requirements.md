@@ -39,6 +39,23 @@
 
 ## Changelog
 
+- **2026-07-19 — Two new sub-function leaves under the FR-11000 group, both closing user-filed
+  `00-intake` gaps found by direct play/investigation, not upstream document drift.**
+  **`FR-11210`** (`BL-0156`): mobs currently never move once materialized (`FR-11200` fixes only
+  their static starting position) — this leaf requires movement toward the player at two
+  independently adjustable defaults (distance per recomputation, recomputation interval),
+  mirroring `FR-11200`/`FR-11300`'s own established "adjustable default" convention; not yet
+  implemented, `NFR-1500`'s still-`UNCONFIRMED` cycle budget named as a constraint the eventual
+  implementation must measure against. **`FR-11410`** (`BL-0158`): a live PyBoy drive through the
+  real game (not the test suite's own fixtures) found sustained mob contact re-triggers
+  `FR-11400`'s own damage decrement every single frame with nothing separating player and mob
+  afterward, resolving a full 3-hit death-and-reset cycle in 3-4 real frames — imperceptibly fast,
+  so the reported symptom ("touching a mob does not appear to subtract from the player's life")
+  was actually "it does, just too fast and too fully-reversed to see." User decided directly,
+  2026-07-19, on being given the three candidate mechanisms: invincibility frames, knockback, and
+  a per-mob cooldown, combined (not any one alone) — this leaf baselines that combination's own
+  Postconditions/Acceptance Criteria; concrete durations/distances remain `06`/`07`'s own
+  decision, per the same adjustable-default convention. Neither leaf is implemented yet.
 - **2026-07-17 — New FR-11000 group (FR-11100–11600), Infinite Mode combat sub-mode** (`BL-0133`,
   `ADS-002`, `MSTR-001` C11). This project's first use of the FR-11xxx range. Formalizes: entry
   gating via a new MODE SELECT option (`FR-11100`); mob materialization/defeat, independent-
@@ -2332,6 +2349,62 @@ none of FR-10000's own leaves are amended by this group. `FR-9000`'s finite mode
   (`test_rom.py` `T29.a`/`b`). Defeat (`inf_mob_defeat`) is defined and exposed here but has no
   call site yet — `FR-11300`/`IP-1122`'s own scope.
 
+### FR-11210 — Mob movement toward the player (delta 2026-07-19, `BL-0156`)
+
+- **ID:** FR-11210
+- **Title:** When the combat sub-mode is active, an active mob shall move toward the player's
+  current position, at an adjustable speed and update rate.
+- **Description:** `FR-11200` fixes only a mob's *materialized* position — this leaf adds motion.
+  Each active mob shall periodically recompute a single step toward the player's current
+  position (the shortest available step along whichever axis needs it most, mirroring this
+  project's own established grid-aligned movement model rather than inventing free-angle motion)
+  and apply that step. Both the **distance moved per recomputation** and the **recomputation
+  interval** (how many frames elapse between recomputations) are independently adjustable
+  defaults, not fixed architectural constants — mirroring `FR-11200`'s own "up to six mobs, not a
+  hard ceiling" framing and `FR-11300`'s own "at most one projectile, an adjustable default"
+  framing. A mob materialized with the combat sub-mode inactive, or while `COMBAT_MODE` is
+  inactive generally, shall not move — mirroring `FR-11200`'s own strict-additivity postcondition.
+- **Rationale:** User request, 2026-07-19 (`BL-0156`, filed via `00-intake`): mobs currently never
+  move once materialized, which the user identified directly by playing the shipped build.
+- **Priority:** Should (a real, user-requested gap — not yet implemented, no existing Acceptance
+  Criterion required it, so its absence is not a defect against any prior baseline).
+- **Inputs:** The mob's own current position (`FR-11200`); the player's current position.
+- **Outputs:** An updated mob position, applied at the adjustable recomputation interval.
+- **Preconditions:** `COMBAT_MODE` active; the mob slot is active (`FR-11200`).
+- **Postconditions:** A mob's position converges toward the player's own position over time, at
+  the configured speed/interval; a materialized region with `COMBAT_MODE` inactive remains
+  byte-for-byte identical to today's shipped Infinite Mode, exactly as `FR-11200` already
+  requires — this leaf does not weaken that guarantee.
+- **Acceptance Criteria:** With the combat sub-mode active, an active mob's recorded position
+  changes over successive recomputation intervals such that the player-mob distance strictly
+  decreases (absent an intervening defeat or the mob reaching the player's own position); the
+  distance moved per recomputation and the number of frames between recomputations both match
+  their configured adjustable-default values exactly; a mob's position is unchanged between
+  recomputations (motion is not continuous/sub-step); with `COMBAT_MODE` inactive, mob position
+  is never read or written by this leaf's own logic at all.
+- **Dependencies:** `FR-11200` (the mob entity and its materialized starting position this leaf
+  moves); `FR-11400`/`FR-11410` (mob movement is what makes sustained player-mob contact newly
+  reachable without the player initiating it, so the post-contact protection `FR-11410` adds is a
+  direct consequence of this leaf existing, not an independent concern).
+- **Verification Method:** Test (direct-force position/distance assertions across multiple
+  recomputation intervals, mirroring `FR-11200`'s own oracle/SM83-lockstep-adjacent discipline
+  where a deterministic mirror is feasible; a live PyBoy drive to confirm the real per-frame
+  chain, mirroring the discipline `VR-1121`/`VR-1122` already established for this feature).
+- **Source Documents:** Direct user request, 2026-07-19 (`BL-0156`); `FR-11200`/`FR-11300` (the
+  "adjustable default" convention this leaf's own two parameters follow).
+- **Related ADRs:** None yet — `NFR-1500`'s own still-`UNCONFIRMED` per-frame cycle budget is a
+  named constraint on this leaf's eventual implementation (six mobs' worth of per-frame movement
+  recomputation, even at a reduced update rate, adds real cost on top of `IP-1121`/`IP-1122`'s
+  own already-unmeasured combat-mode frame cost), not a blocker on baselining the requirement
+  itself.
+- **Notes:** Not yet implemented — `07-implementation-planning` inherits the obligation to
+  measure `NFR-1500` against this leaf's own real per-frame cost once built, per that NFR's
+  existing Acceptance Criteria (it already requires measurement "before the owning implementation
+  package is considered `COMPLETE`," and does not distinguish which combat-mode leaf caused the
+  cost). Concrete numeric defaults for speed/update-rate are `06`/`07`'s own decision, same as
+  `FR-11200`'s own mob-count/species distribution — this FR fixes only that both must be
+  independently tunable, not their specific values.
+
 ### FR-11300 — Ranged weapon fire and hit resolution
 
 - **ID:** FR-11300
@@ -2414,6 +2487,86 @@ none of FR-10000's own leaves are amended by this group. `FR-9000`'s finite mode
   own "treasure partially restored" phrasing from this FR's own Description is not implemented —
   the user's 2026-07-17 decision and `ADS-002` both settled on a pure position/health reset with
   no treasure penalty; `T31.c` verifies the shipped behavior.
+
+### FR-11410 — Post-contact player protection (delta 2026-07-19, `BL-0158`)
+
+- **ID:** FR-11410
+- **Title:** After a mob-contact damage event, the system shall protect the player from
+  immediately repeated damage from the same encounter via a combination of invincibility frames,
+  a knockback separation, and a per-mob cooldown.
+- **Description:** `FR-11400` fixes that contact reduces health and that zero health triggers a
+  non-lethal setback, but states nothing about *repeated* contact within the same encounter.
+  Direct investigation (`BL-0158`: a live PyBoy drive through the real game, not the test suite's
+  own fixtures) found the shipped behavior re-evaluates contact and decrements health on **every
+  single frame** of continued overlap, with nothing separating the player from the mob afterward
+  — a sustained overlap resolves a full 3-hit death-and-reset cycle (health 3→2→1→0, immediately
+  triggering `FR-11400`'s own setback) in 3-4 real frames, faster than a human can perceive, so
+  the net visible outcome is "health unchanged, player relocated" — indistinguishable from no
+  damage at all. The user decided directly (2026-07-19, in response to this finding) that the fix
+  is **all three** of the following, combined, not any one alone:
+  1. **Invincibility frames** — for an adjustable-default duration immediately after a contact
+     damage event, the player takes no further contact damage from *any* mob, regardless of
+     overlap.
+  2. **Knockback** — immediately after a contact damage event, the player is displaced an
+     adjustable-default distance away from the mob that caused the contact, along whichever axis
+     separates them fastest (mirroring `FR-11210`'s own grid-aligned movement model rather than
+     inventing free-angle displacement).
+  3. **Per-mob cooldown** — independent of and outlasting the invincibility window, the *specific*
+     mob that caused a contact event shall not cause another contact-damage event against the
+     same player until the player's hitbox has stopped overlapping that mob's hitbox for at least
+     one frame and then re-approaches it — a floor guarantee against the exact repeated-single-
+     frame-overlap failure mode `BL-0158` found, independent of whether knockback fully separates
+     them or the invincibility window has already expired.
+- **Rationale:** Direct user decision, 2026-07-19, in response to `BL-0158`'s own investigation
+  (a live-drive finding, not a design document) — the user was given the three candidate
+  mechanisms (invincibility frames / knockback / cooldown) and one open question ("which, or what
+  combination"), and answered "a combination of all three."
+- **Priority:** Should (closes a real, confirmed player-experience gap; not itself a defect
+  against any prior written Acceptance Criterion, since none existed for repeated contact before
+  this delta — see `FR-11400`'s own unchanged Acceptance Criteria, which this leaf extends rather
+  than supersedes).
+- **Inputs:** A contact-damage event (`FR-11400`); the mob that caused it; the player's and that
+  mob's current positions.
+- **Outputs:** The player's health remains protected from re-triggering (invincibility); the
+  player's position is displaced (knockback); the specific mob's own ability to cause further
+  contact damage is suspended until contact genuinely breaks and resumes (cooldown).
+- **Preconditions:** `COMBAT_MODE` active; a contact-damage event has just occurred (`FR-11400`).
+- **Postconditions:** No second contact-damage event registers within the invincibility window
+  regardless of source mob; the player's position after knockback no longer overlaps the
+  triggering mob's hitbox (barring an unavoidable obstruction, e.g. a screen/window edge — this
+  leaf does not guarantee knockback succeeds against every possible obstruction, only that it is
+  attempted); the triggering mob specifically cannot cause a second contact-damage event until
+  overlap has genuinely broken and resumed, even after the invincibility window and any
+  knockback-driven separation have both elapsed/succeeded.
+- **Acceptance Criteria:** A contact-damage event followed immediately by continued overlap with
+  the same mob (the exact `BL-0158` repro) produces exactly one health decrement, not a cascading
+  three; the player's recorded position changes by the configured knockback distance in the
+  expected direction immediately following a contact-damage event; no contact-damage event of any
+  kind registers for the configured invincibility-frame duration after the prior one; the
+  triggering mob specifically causes no further contact damage until the player's hitbox has
+  first stopped, then resumed, overlapping it — verified independently of the invincibility
+  window's own expiry (i.e. even if the invincibility window has already elapsed, the same mob
+  still cannot re-trigger without a genuine break-and-resume).
+- **Dependencies:** `FR-11400` (the contact-damage event this leaf protects against repetition
+  of); `FR-11210` (mob movement — without it, the player-initiated-contact-only case this leaf
+  also covers already had a natural pause between approaches; with mob movement now requestable,
+  sustained contact becomes reachable without any player input at all, which is what makes this
+  leaf's own cooldown guarantee load-bearing rather than a corner case).
+- **Verification Method:** Test (the exact `BL-0158` live-drive repro — sustained overlap via
+  held input, or a stationary player with an adjacent mob once `FR-11210` ships — re-run against
+  the fixed behavior; direct-force assertions for each of the three mechanisms independently).
+- **Source Documents:** Direct user decision, 2026-07-19, on `BL-0158` (filed via `00-intake`,
+  itself grounded in a live PyBoy drive through the real UI path, not the test suite's own
+  direct-invoke fixtures).
+- **Related ADRs:** None.
+- **Notes:** Not yet implemented. Concrete numeric defaults (invincibility-frame count, knockback
+  distance, and the exact overlap-break-and-resume detection mechanics for the per-mob cooldown)
+  are `06`/`07`'s own decision, following this project's established "adjustable default"
+  convention (`FR-11200`'s mob count, `FR-11300`'s single-projectile cap, `FR-11210`'s own
+  speed/update-rate) — this FR fixes only that all three mechanisms must exist and combine, not
+  their specific tuned values. `NFR-1500`'s own still-`UNCONFIRMED` per-frame cycle budget is a
+  named constraint the eventual implementation must account for (per-mob cooldown state adds a
+  small but real per-mob per-frame check), not resolved here.
 
 ### FR-11500 — Treasure-spent healing economy
 

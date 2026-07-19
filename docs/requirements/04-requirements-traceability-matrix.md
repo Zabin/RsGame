@@ -33,7 +33,12 @@
 > added for the new Infinite Mode combat sub-mode capability (`BL-0133`/`ADS-002`/`MSTR-001` C11),
 > this project's first use of the FR-11xxx range, confirmed unused before this delta; all Module/
 > Feature Spec/Implementation Package/Test cells honestly `UNASSIGNED` — nothing has reached
-> `05`/`06`/`07`/`08` yet.**
+> `05`/`06`/`07`/`08` yet; delta 2026-07-19 — FR-11210/FR-11410 rows added (`BL-0156`/`BL-0158`,
+> two user-filed gaps, not architecture drift), confirmed unused before this delta; Feature Spec
+> cell filled `FS-112` (same feature, no new capability boundary) but Research
+> Source/Architecture Section/ADR/Module/Implementation Package/Test cells all honestly
+> `UNASSIGNED` — neither leaf has any architecture or research grounding document yet, only a
+> direct user decision, and neither is implemented.**
 > Owned by `04-requirements-engineering`.
 > One row per [RQ-01](01-functional-requirements.md)/[RQ-02](02-non-functional-requirements.md)
 > requirement (Candidates marked). Populates the row-level matrix
@@ -112,8 +117,10 @@
 | FR-10600 | Indefinitely resumable Infinite Mode run (no bounded end-condition mechanic) | R216 | ADS-001 §Open Questions (Q1) | ADR-0017 | `asm_game.py` | FS-110 | IP-1104 | T27.f |
 | FR-11100 | Combat sub-mode entry (explicit, gated MODE SELECT choice) (Implemented — 2026-07-18) | R218 | ADS-002 §System Architecture (Gating Mechanism) | ADR-0007 | `asm_game.py` | FS-112 | IP-1120 | T33.a-h |
 | FR-11200 | Mob presence, materialization, and non-graphic defeat (Implemented — 2026-07-18) | R218, R115 | ADS-002 §System Architecture, §Domain Model | ADR-0007 | `asm_game.py`, `worldgen.py` | FS-112 | IP-1121 | T29.a-f |
+| FR-11210 | Mob movement toward the player (delta 2026-07-19, `BL-0156` — Should, not yet implemented) | — | — | — | UNASSIGNED | FS-112 | UNASSIGNED | UNASSIGNED |
 | FR-11300 | Ranged weapon fire and hit resolution (Implemented — 2026-07-18) | R115 | ADS-002 §System Architecture | — | `asm_game.py` | FS-112 | IP-1122 | T30.a-e, T30.c2 |
 | FR-11400 | Player health and non-lethal setback (Implemented — 2026-07-18, region-entry-point ordering fixed 2026-07-19, `BL-0154`) | R218 | ADS-002 §Domain Model | — | `asm_game.py` | FS-112 | IP-1123 | T31.a-c, T31.f-g |
+| FR-11410 | Post-contact player protection: invincibility, knockback, cooldown (delta 2026-07-19, `BL-0158` — Should, direct user decision, not yet implemented) | — | — | — | UNASSIGNED | FS-112 | UNASSIGNED | UNASSIGNED |
 | FR-11500 | Treasure-spent healing economy (Implemented — 2026-07-18) | — | ADS-002 §Domain Model | — | `asm_game.py` | FS-112 | IP-1123 | T31.d, T31.d2, T31.e, T31.f |
 | FR-11600 | Combat state save persistence | — | ADS-002 (Open Question 7) | — | `asm_game.py` (prospective) | UNASSIGNED | UNASSIGNED | UNASSIGNED |
 
