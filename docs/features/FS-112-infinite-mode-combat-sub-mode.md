@@ -99,6 +99,16 @@
 > confirmed both belong to `FEAT-11000`, no new Feature/FS document). Neither is implemented yet —
 > this delta only elaborates their behavior; `07-implementation-planning` is the next stage that
 > would package them, still subject to a fresh G3 authorization.
+>
+> **Planned 2026-07-19** (`07-implementation-planning`, same session) — two more new packages,
+> [IP-1128](../implementation/packages/IP-1128-infinite-mode-combat-weapon-directionality.md)
+> (weapon directionality, `READY` — sole dependency `IP-1122` already `VERIFIED`) and
+> [IP-1129](../implementation/packages/IP-1129-infinite-mode-combat-weapon-tier-funding.md)
+> (weapon-tier funding, `READY` — both dependencies `IP-1122`/`IP-1103` already `VERIFIED`).
+> **Neither authorized** — both new scope beyond the original "build all six" go-ahead, same class
+> as `IP-1126`/`IP-1127`. `IP-1128` repurposes `PROJ_DIR` in place (renamed `PROJ_STEP_X`) and
+> shares a named, unresolved WRAM-address collision with `IP-1127`'s own still-`BLOCKED`
+> prospective claim.
 
 [↑ Features index](INDEX.md) · [Feature Catalog](../feature-planning/03-feature-catalog.md) ·
 [Epic Catalog](../feature-planning/02-epic-catalog.md)

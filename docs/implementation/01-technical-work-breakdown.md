@@ -1855,3 +1855,79 @@ to `FR-11210`/`FR-11410`, baselined two days later in direct response to user-fi
 package may be picked up by `08-code-implementation` until the user gives an explicit go-ahead,
 per this skill's own charter (a package being fully specified, even `READY`, is not authorization
 to build).
+
+## Infinite Mode Combat Sub-Mode delta — weapon directionality + weapon-tier funding (`FS-112`/`FEAT-11000`/`EP-6000`, `FR-11310`/`FR-11510`, `BL-0157`/`BL-0147`+`BL-0155`, planned 2026-07-19)
+
+Two more new leaves baselined the same session as the mob-movement/post-contact delta above, both
+grounded by newly-authored `02-research-game-design`/`03-architecture-design-synthesis` passes
+rather than either upstream architecture drift or a direct user-filed play-tested gap: `FR-11310`
+(the shipped weapon fires left/right only, per `ADS-002`'s "Weapon Directionality Delta"/
+`ADR-0021`) and `FR-11510` (`WEAPON_TIER` shipped with no funding mechanism, per `R219`). Both
+folded into `FS-112`'s own field set (`06-feature-specification`, same session) rather than a new
+spec.
+
+### Verb inventory (mandatory)
+
+| Verb | Owner | Notes |
+|---|---|---|
+| **Act** (weapon fire, widened to 8-directional) | [IP-1128](packages/IP-1128-infinite-mode-combat-weapon-directionality.md) | Widens the existing `Act`-fire verb `IP-1122` already owns — not a new verb, a wider version of one that already exists. |
+| **Act** (weapon-tier funding spend) | [IP-1129](packages/IP-1129-infinite-mode-combat-weapon-tier-funding.md) | Sibling to the existing `Act`-heal-spend verb `IP-1123` already owns (`inf_heal_spend`) — same currency, different consumer, kept as its own separate action mirroring the split already established between healing and (now) tier funding. |
+| **Generate / Render / Persist / Gate / Review** | Unchanged from the tranche so far — none of these verbs are touched by this delta. Mob generation/rendering/movement (`IP-1121`/`IP-1126`) and post-contact protection (`IP-1127`) are all unaffected: neither new leaf touches `MOB_DATA` or `PLAYER_HEALTH`. Combat-state *persistence* (`IP-1124`, `NOT STARTED`) is unaffected in scope — `WEAPON_TIER`/the new facing fields were already going to ride whatever save-format bump `IP-1124` eventually ships (the facing fields are transient/derived from movement, not save-worthy state; `WEAPON_TIER` was already in scope for persistence since `IP-1122`). |
+
+### Supersession sweep
+
+**`IP-1128` repurposes an existing model** (`PROJ_DIR`'s own 2-value left/right encoding) —
+mandatory sweep run and recorded in the package's own §7: grepped every reference to `PROJ_DIR` in
+both `asm_game.py` and `test_rom.py`, confirmed exactly two production-code consumers (both
+rewritten by this package) and confirmed `inf_projectile_hittest` never reads it (reads only
+`PROJ_X`/`PROJ_Y`). Found one required, pre-named test correction (`T30.b`'s own `dir=0` assertion
+for a leftward fire, which must change under the new raw-signed-step encoding) — named explicitly
+in the package rather than left for `08` to rediscover via a failing test. **`IP-1129` introduces
+and supersedes nothing** — `WEAPON_TIER`'s own existing shape is unchanged, only a second writer
+(alongside the existing boot-init) is added; confirmed clean by direct grep.
+
+### Work units and package cut
+
+| Work unit | Package | Owner | Depends on |
+|---|---|---|---|
+| Movement-derived 8-directional weapon fire, diagonal projectile motion via simultaneous independent per-axis stepping | [IP-1128](packages/IP-1128-infinite-mode-combat-weapon-directionality.md) | `08-code-implementation` | `IP-1122` (`VERIFIED` — `PROJ_ACTIVE`/`PROJ_X`/`PROJ_Y`/`PROJ_DIR`, the last repurposed in place); `ADR-0021` (the binding design decisions this package implements) |
+| Treasure-spent weapon-tier funding, spending even at the cap (mirrors the healing-spend precedent, not a no-op) | [IP-1129](packages/IP-1129-infinite-mode-combat-weapon-tier-funding.md) | `08-code-implementation` | `IP-1122` (`VERIFIED` — `WEAPON_TIER`); `IP-1103` (`VERIFIED` — `RUNNING_TREASURE_COUNT`) |
+
+**Split rationale:** two packages, not one, mirroring the `IP-1126`/`IP-1127` split precedent
+immediately above for the identical reason class: the two work units are conceptually distinct
+(weapon *aiming* vs. the treasure *economy*) and have independent dependency-readiness — both
+happen to depend only on already-`VERIFIED` packages today (`IP-1122`, `IP-1103`), so unlike
+`IP-1126`/`IP-1127`, this split is not forced by a readiness gap, but the conceptual-independence
+rationale (mirroring `Act`-mob-materialization/`Act`-weapon-fire's own original split, and
+`FR-11210`/`FR-11410`'s own kept-separate precedent) still applies on its own: a reviewer or future
+package should be able to reason about weapon aiming without also loading the treasure-economy
+mechanism into the same diff, and vice versa.
+
+**Critical path:** both `IP-1128` and `IP-1129` are immediately `READY` once authorized — neither
+has any `BLOCKED` dependency (unlike `IP-1127`, both dependencies here are already `VERIFIED`).
+Independent of each other and of `IP-1126`/`IP-1127`; may build/ship in any order or in parallel
+once authorized.
+
+**ROM budget:** both small, code-only additions (`IP-1128`: one restructured subroutine plus a
+rename, three new WRAM bytes, no new tile/screen/music data; `IP-1129`: one new subroutine
+mirroring an existing one's shape, zero new WRAM) — expected modest growth, re-affirmed at build
+time. Headroom as of the last build (`IP-1126`'s own implementation): 354 bytes.
+
+**WRAM budget:** next free byte is `0xC6DF` (past `IP-1126`'s own `MOB_MOVE_TIMER` end, `0xC6DE`).
+`IP-1128` claims 3 new bytes (`0xC6DF`–`0xC6E1`: `PLAYER_FACING_X`/`PLAYER_FACING_Y`/
+`PROJ_STEP_Y`) plus repurposes `PROJ_DIR`'s own existing `0xC6D8` in place (renamed
+`PROJ_STEP_X`, no new byte). `IP-1129` claims zero new bytes. **Named collision, not hidden:**
+`IP-1128`'s own `0xC6DF`–`0xC6E0` claim overlaps `IP-1127`'s own still-`BLOCKED`,
+still-unauthorized prospective claim of the identical range for `PLAYER_INVINCIBLE`/
+`MOB_CONTACT_FLAGS` — three packages (`IP-1127`/`IP-1128`, plus whichever of the two builds
+second) are all planned against a WRAM budget that has not yet been serialized by build order.
+This is a normal consequence of planning multiple packages against the same free-byte frontier in
+parallel, not a defect in any one package's own plan — whichever of `IP-1127`/`IP-1128` builds
+first legitimately claims the range in the real `GDS-07` map; the other's own package doc requires
+a routine address re-derivation at `08-code-implementation` time (a `grep`-and-update, not a
+redesign).
+
+**Authorization:** **NOT AUTHORIZED.** Both packages are new scope beyond the original "Yes,
+build all six" go-ahead (2026-07-17, `IP-1120`–`1125` only), the same class as `IP-1126`/`IP-1127`
+before them. Neither package may be picked up by `08-code-implementation` until the user gives an
+explicit go-ahead.
