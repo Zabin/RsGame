@@ -1,4 +1,4 @@
-BunnyQuest ROM Tests  PASS=393/393  FAIL=0
+BunnyQuest ROM Tests  PASS=404/404  FAIL=0
 ==================================================
 [PASS] T1.1 ROM size = 32768  (32768)
 [PASS] T1.2 Entry = NOP; JP
@@ -320,11 +320,11 @@ BunnyQuest ROM Tests  PASS=393/393  FAIL=0
 [PASS] T27.e Regression: every existing T15 (generated-world save persistence) check still passes unmodified under the new SAVE_VERSION_VAL  (failed=[] total_checked=17)
 [PASS] T27.f Indefinite resumability: a loaded Infinite Mode run survives every reachable input branch (movement, SAVE round trips, SELECT-menu round trips) without ending -- lands back in PLAYING, GAME_MODE still 1  (gs_after_load=2 gs_final=2 game_mode=1)
 [PASS] T27.g In-session re-entry: collected treasure does not respawn on ordinary navigation back (no save/load boundary crossed) -- INF_TREASURE_HERE stays 0, RUNNING_TREASURE_COUNT does not double-increment  (rtc_pre=1 col=0 treasure_here=0 rtc_back=1)
-[PASS] T28.a0 Static: music_tbl patch resolves inside ROM and the nine table entries are distinct, ordered track addresses  (tbl=0x335D entries=['0x2d00', '0x2db5', '0x2e6a', '0x2f1f', '0x2fd4', '0x3089', '0x313e', '0x31f3', '0x32a8'])
+[PASS] T28.a0 Static: music_tbl patch resolves inside ROM and the nine table entries are distinct, ordered track addresses  (tbl=0x345D entries=['0x2e00', '0x2eb5', '0x2f6a', '0x301f', '0x30d4', '0x3189', '0x323e', '0x32f3', '0x33a8'])
 [PASS] T28.a Selection: each of the nine biome-ids repoints MUSIC_BASE to its own music_table entry with MUSIC_PTR playing inside that track (finite path, FR-7110)  (bad=[])
-[PASS] T28.b Selection via Infinite Mode window path: biome 7 (Desert) repoints MUSIC_BASE to music_table[7], MUSIC_PTR playing inside that track  (ptr=0x31F6 base=0x31F3 expected=0x31F3)
+[PASS] T28.b Selection via Infinite Mode window path: biome 7 (Desert) repoints MUSIC_BASE to music_table[7], MUSIC_PTR playing inside that track  (ptr=0x32F6 base=0x32F3 expected=0x32F3)
 [PASS] T28.c Fallback: every one of the eleven non-PLAYING states resets MUSIC_BASE to music_table[2] (the main theme), MUSIC_PTR playing inside it  (bad=[])
-[PASS] T28.d Loop restart: a sub-theme reaching its terminal 0xFF restarts from its own MUSIC_BASE start (Village), never the main theme (the music_tick fix)  (ptr=0x308C base=0x3089 start=0x3089 ff=0x313D)
+[PASS] T28.d Loop restart: a sub-theme reaching its terminal 0xFF restarts from its own MUSIC_BASE start (Village), never the main theme (the music_tick fix)  (ptr=0x318C base=0x3189 start=0x3189 ff=0x323D)
 [PASS] T28.e Timing: the sub-theme repoint lands with the redraw itself (within FR-7110's one-frame budget of the screen appearing)  (frames=2)
 [PASS] T29.a Determinism: materializing the same region twice produces byte-identical mob slots  (r1=(0, [(48, 72, 0, 1, 0), (24, 56, 0, 1, 0), (56, 88, 0, 1, 0), (32, 72, 0, 1, 0), (72, 64, 0, 1, 0), (128, 88, 0, 1, 0)]) r2=(0, [(48, 72, 0, 1, 0), (24, 56, 0, 1, 0), (56, 88, 0, 1, 0), (32, 72, 0, 1, 0), (72, 64, 0, 1, 0), (128, 88, 0, 1, 0)]))
 [PASS] T29.b Oracle-vs-SM83 lockstep: worldgen.materialize_mobs matches inf_materialize_mobs exactly  (mismatches=[])
@@ -379,6 +379,17 @@ BunnyQuest ROM Tests  PASS=393/393  FAIL=0
 [PASS] T35.g COMBAT_MODE off: inf_mob_move is a complete no-op (mob position and MOB_MOVE_TIMER unchanged across multiple ticks)  (slot=(100, 60, 0, 1, 1) timer=1)
 [PASS] T35.h An inactive MOB_DATA slot is never moved (only active slots' positions change)  (ok=True slots=[(99, 60, 0, 1, 1), (100, 60, 0, 1, 0), (99, 60, 0, 1, 1), (100, 60, 0, 1, 0), (99, 60, 0, 1, 1), (100, 60, 0, 1, 0)])
 [PASS] T35.i Independent live drive: a real mob moves the expected total distance/direction toward the real player over several real recomputation intervals  (gs=2 player=(76,80) mob0=116 final=(113, 80, 0, 1, 1) expected_x=113 frames=17)
+[PASS] T36.a BL-0158 repro: sustained overlap with the same mob across multiple frames produces exactly one health decrement, not a cascade  (health=2)
+[PASS] T36.b Knockback fires on a hit: player pushed exactly KNOCKBACK_DISTANCE on the dominant axis, away from the mob  (x=64 y=60)
+[PASS] T36.c Invincibility blocks a fresh hit from a distinct mob: no second decrement, but the new mob's own bit is tracked  (health_a=2 inv_a=30 health_b=2 mobB_bit=2)
+[PASS] T36.c2 Once invincibility expires, the tracked mob (B) still doesn't get a free hit -- its own bit already covers it as a cooldown  (health=2)
+[PASS] T36.d Per-mob cooldown outlasts invincibility: no second decrement from the same mob even after invincibility is forced to 0 while still overlapping  (health=2)
+[PASS] T36.e Cooldown clears on a genuine break-and-resume: bit set after the first hit, clears once overlap breaks, a fresh hit registers on resumed overlap  (bit_after_hit=1 bit_after_break=0 health=1)
+[PASS] T36.f Invincibility countdown: decrements by exactly 1, reaches exactly 0 (not clamped above)  (after1=9 after2=0)
+[PASS] T36.g Knockback clamped at the window boundary: player position stays within bounds (0), not an invalid/wrapped coordinate  (x=0)
+[PASS] T36.h COMBAT_MODE off: inf_mob_contact_check/inf_invincibility_tick are both complete no-ops  (health=3 x=80 inv=5 flags=0)
+[PASS] T36.i T31 non-regression: a single isolated contact still behaves exactly as IP-1123 originally shipped -- one decrement, HUD redraw flagged  (health=2 score_dirty=1)
+[PASS] T36.j Independent live drive: sustained real per-frame overlap produces exactly one health decrement and a visible knockback displacement, not a rapid death-and-setback cascade  (GS=2 health0=3 health1=2 pos0=(76,80) pos1=(60,80))
 [PASS] T37.a Firing while moving right spawns a projectile stepping (+1, 0)  (ok=True active=1 step=(1, 0))
 [PASS] T37.b Firing while moving up spawns a projectile stepping (0, -1)  (ok=True active=1 step=(0, -1))
 [PASS] T37.c Firing while moving diagonally (RIGHT+UP) spawns a projectile stepping (+1, -1)  (ok=True active=1 step=(1, -1))

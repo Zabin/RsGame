@@ -644,10 +644,12 @@ movement already has), checking the X boundary (`>= 153`, unchanged) and a new Y
 (`< 8` or `>= 129`, mirroring `handle_play_input`'s own UP/DOWN clamp constants) before calling
 the unmodified `inf_projectile_hittest`. 3 bytes total.
 
-**Named planning-time WRAM collision:** `IP-1129` (still `BLOCKED`, unbuilt as of this package)
-also prospectively claims `0xC6DF`–`0xC6E0` for its own fields — a normal consequence of parallel
-implementation planning, to be resolved at build time by whichever package ships first (not a
-defect in either package's own plan).
+**Named planning-time WRAM collision (resolved 2026-07-19, `IP-1127`, `BL-0163`):** `IP-1127`
+also prospectively claimed `0xC6DF`–`0xC6E0` for its own fields — a normal consequence of parallel
+implementation planning, resolved at build time in this package's own favor (it shipped first).
+`IP-1127` re-derived its own two bytes to `0xC6E2`–`0xC6E3` when it was actually built — see §7p.
+(This paragraph previously misnamed the colliding package as `IP-1129`, which never claimed any
+WRAM at all; corrected here as part of `IP-1127`'s own build, closing `BL-0163`.)
 
 ### 7o. Combat Sub-Mode: SRAM save shape — `IP-1124` (confirmed 2026-07-19, `FR-11600`)
 
@@ -697,6 +699,37 @@ later same-session combat-mode entry.
    correctly records the just-restored player position as the new combat-entry point). Restoring
    `COMBAT_MODE` before `inf_ensure_window` would have let a fresh `inf_materialize_mobs` call
    immediately overwrite the just-restored `MOB_DATA`/`MOB_COUNT`.
+
+### 7p. Combat Sub-Mode: post-contact player protection WRAM — `IP-1127` (confirmed 2026-07-19, `FR-11410`/`BL-0158`)
+
+First unclaimed bytes past `PROJ_STEP_Y`'s own end (`0xC6E1`, §7n) — re-derived at build time: the
+package's own plan prospectively claimed `0xC6DF`–`0xC6E0`, but `IP-1128` shipped first and
+claimed that exact range for real (§7n), so this package's own two bytes moved to the next
+actually-free WRAM (`BL-0163`).
+
+| Address | Name | Size | Purpose |
+|---|---|---|---|
+| `C6E2` | `PLAYER_INVINCIBLE` | 1 byte | frames of invincibility remaining after a hit, 0 = vulnerable, boot-cleared |
+| `C6E3` | `MOB_CONTACT_FLAGS` | 1 byte | one bit per `MOB_DATA` slot index (0-5), set while that specific mob is in unbroken overlap with the player — the per-mob cooldown's own state, boot-cleared |
+
+`MOB_CONTACT_FLAGS` is deliberately a new, parallel table, not a `MOB_DATA` field — avoids
+widening `MOB_DATA`'s own 5-byte-per-slot stride for a single extra bit (the same "parallel table,
+not a stride widening" discipline the package's own planning committed to). `inf_mob_contact_check`
+(`IP-1123`, §7k) is extended, not replaced: `check_collisions`'s own asymmetric point-in-box
+technique and `MOB_DATA`'s own layout are both confirmed byte-for-byte unchanged by direct diff.
+The routine now carries this slot's own bitmask in `C`, doubling in lockstep with the existing
+per-slot loop index (`B`) each iteration — a fresh contact sets the bit; a broken or inactive slot
+clears it; a bit already set is a no-op (the cooldown's own core guarantee). `INVINCIBILITY_FRAMES
+= 30` / `KNOCKBACK_DISTANCE = 16` are compile-time Python constants (adjustable defaults, mirroring
+`IP-1126`'s own `MOB_MOVE_INTERVAL`/`MOB_MOVE_STEP` precedent). Knockback reuses `handle_play_
+input`'s own player-position clamp bounds (X: `0`–`152`; Y: `8`–`128`) — the same pair `IP-1128`'s
+own projectile boundary check already reuses (§7n).
+
+**Found-and-fixed interaction, named explicitly:** a lethal hit (health reaches 0, triggering
+`inf_health_setback`, §7k) skips knockback on that one path — applying it would have computed a
+displacement from the player's pre-setback position, silently pushing them off the setback's own
+just-restored region-entry point rather than the position they're actually placed at. The bit and
+invincibility-window state still apply on the lethal path exactly as the non-lethal path's own.
 
 ### 8. Tile index map implication (cross-reference only — GDS-08 decides the actual strategy)
 

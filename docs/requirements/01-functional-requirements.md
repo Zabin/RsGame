@@ -2661,14 +2661,17 @@ none of FR-10000's own leaves are amended by this group. `FR-9000`'s finite mode
   itself grounded in a live PyBoy drive through the real UI path, not the test suite's own
   direct-invoke fixtures).
 - **Related ADRs:** None.
-- **Notes:** Not yet implemented. Concrete numeric defaults (invincibility-frame count, knockback
-  distance, and the exact overlap-break-and-resume detection mechanics for the per-mob cooldown)
-  are `06`/`07`'s own decision, following this project's established "adjustable default"
-  convention (`FR-11200`'s mob count, `FR-11300`'s single-projectile cap, `FR-11210`'s own
-  speed/update-rate) — this FR fixes only that all three mechanisms must exist and combine, not
-  their specific tuned values. `NFR-1500`'s own still-`UNCONFIRMED` per-frame cycle budget is a
-  named constraint the eventual implementation must account for (per-mob cooldown state adds a
-  small but real per-mob per-frame check), not resolved here.
+- **Notes:** **Implemented `IP-1127`, 2026-07-19.** `INVINCIBILITY_FRAMES = 30` (0.5s at 60fps),
+  `KNOCKBACK_DISTANCE = 16` (twice `MOB_MOVE_STEP`'s own per-interval closing distance); the
+  per-mob cooldown is a new one-bit-per-slot `MOB_CONTACT_FLAGS` table (`0xC6E3`), cleared on any
+  non-overlapping frame (inactive or genuinely broken contact) and set on a tracked contact
+  (invincible or a real hit), giving the exact break-and-resume semantics this FR's own
+  Postconditions describe. **Found-and-fixed interaction, named explicitly**: a lethal hit (health
+  reaches 0, triggering `FR-11400`'s own setback) skips knockback — applying it would have used
+  the pre-setback position, displacing the player off the setback's own just-restored entry point;
+  the bit/invincibility state still apply on that path. `NFR-1500`'s own still-`UNCONFIRMED`
+  per-frame cycle budget is unaffected by this note (unresolved, unchanged — see `IP-1127`'s own
+  Risks).
 
 ### FR-11500 — Treasure-spent healing economy
 

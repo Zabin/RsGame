@@ -4696,6 +4696,262 @@ check("T35.i Independent live drive: a real mob moves the expected total distanc
 pb35i.stop()
 wipe_save()
 
+# ══════════════════════════════════════════════════════
+# T36 — Combat Sub-Mode: Post-Contact Player Protection (IP-1127)
+# ══════════════════════════════════════════════════════
+print("\n=== T36: Combat Sub-Mode — Post-Contact Player Protection (IP-1127) ===")
+
+PLAYER_INVINCIBLE_ADDR = 0xC6E2; MOB_CONTACT_FLAGS_ADDR = 0xC6E3
+IIT_ADDR = _gw_rom.labels['inf_invincibility_tick']
+IP1127_KNOCKBACK_DISTANCE = 16
+
+def t36_reset(pb, combat_mode=1, player_health=3):
+    pb.memory[GAME_MODE] = 1
+    pb.memory[COMBAT_MODE_ADDR] = combat_mode
+    pb.memory[MOB_COUNT_ADDR] = 0
+    for i in range(6):
+        base = MOB_DATA_ADDR + i * 5
+        for k in range(5): pb.memory[base + k] = 0
+    pb.memory[PLAYER_HEALTH_ADDR] = player_health
+    pb.memory[PLAYER_INVINCIBLE_ADDR] = 0
+    pb.memory[MOB_CONTACT_FLAGS_ADDR] = 0
+    pb.memory[COMBAT_ENTRY_X_ADDR] = 0; pb.memory[COMBAT_ENTRY_Y_ADDR] = 0
+
+# T36.a — the exact BL-0158 repro: sustained overlap with the same mob
+# across several direct-invoke "frames" produces exactly one health
+# decrement, not a cascade.
+pb = fresh_boot(180)
+t36_reset(pb)
+pb.memory[PLAYER_X] = 80; pb.memory[PLAYER_Y] = 60
+_t36a_mob = MOB_DATA_ADDR
+pb.memory[_t36a_mob + 0] = 80; pb.memory[_t36a_mob + 1] = 60
+pb.memory[_t36a_mob + 2] = 0; pb.memory[_t36a_mob + 3] = 1; pb.memory[_t36a_mob + 4] = 1
+pb.memory[MOB_COUNT_ADDR] = 1
+for _ in range(5):
+    invoke_no_arg(pb, IMCC_ADDR)
+    # IP-1127's own knockback (correctly) separates the player from the
+    # mob on a hit -- re-pin the player back to the overlap position
+    # between invocations so this check genuinely exercises *sustained*
+    # overlap (the cooldown-bit mechanism specifically), not knockback's
+    # own already-separately-tested (T36.b/g) side effect of ending
+    # overlap naturally after one hit.
+    pb.memory[PLAYER_X] = 80; pb.memory[PLAYER_Y] = 60
+check("T36.a BL-0158 repro: sustained overlap with the same mob across multiple frames produces exactly one health decrement, not a cascade",
+      pb.memory[PLAYER_HEALTH_ADDR] == 2,
+      f"health={pb.memory[PLAYER_HEALTH_ADDR]}")
+pb.stop()
+wipe_save()
+
+# T36.b — knockback fires on a hit: player pushed exactly
+# KNOCKBACK_DISTANCE on the expected dominant axis, away from the mob.
+pb = fresh_boot(180)
+t36_reset(pb)
+pb.memory[PLAYER_X] = 80; pb.memory[PLAYER_Y] = 60
+_t36b_mob = MOB_DATA_ADDR
+pb.memory[_t36b_mob + 0] = 84; pb.memory[_t36b_mob + 1] = 60   # mob to the right (dx=4, dominant X)
+pb.memory[_t36b_mob + 2] = 0; pb.memory[_t36b_mob + 3] = 1; pb.memory[_t36b_mob + 4] = 1
+pb.memory[MOB_COUNT_ADDR] = 1
+invoke_no_arg(pb, IMCC_ADDR)
+check("T36.b Knockback fires on a hit: player pushed exactly KNOCKBACK_DISTANCE on the dominant axis, away from the mob",
+      pb.memory[PLAYER_X] == 80 - IP1127_KNOCKBACK_DISTANCE and pb.memory[PLAYER_Y] == 60,
+      f"x={pb.memory[PLAYER_X]} y={pb.memory[PLAYER_Y]}")
+pb.stop()
+wipe_save()
+
+# T36.c — invincibility blocks a fresh hit from a distinct mob (tracked,
+# not decremented); T36.c2 — once invincibility expires, that tracked
+# mob's own bit still covers it as a cooldown (no "free" hit).
+pb = fresh_boot(180)
+t36_reset(pb)
+pb.memory[PLAYER_X] = 80; pb.memory[PLAYER_Y] = 60
+_t36c_mobA = MOB_DATA_ADDR
+pb.memory[_t36c_mobA + 0] = 80; pb.memory[_t36c_mobA + 1] = 60
+pb.memory[_t36c_mobA + 2] = 0; pb.memory[_t36c_mobA + 3] = 1; pb.memory[_t36c_mobA + 4] = 1
+pb.memory[MOB_COUNT_ADDR] = 1
+invoke_no_arg(pb, IMCC_ADDR)   # mob A hits: health 3->2, PLAYER_INVINCIBLE=30
+_t36c_health_a = pb.memory[PLAYER_HEALTH_ADDR]
+_t36c_inv_a = pb.memory[PLAYER_INVINCIBLE_ADDR]
+# IP-1127's own knockback correctly moves the player away from mob A on
+# the hit (already covered by T36.b/g) -- re-pin the player back to the
+# overlap position so mob B's own fresh-contact test isn't confounded by
+# that already-separately-tested side effect.
+pb.memory[PLAYER_X] = 80; pb.memory[PLAYER_Y] = 60
+_t36c_mobB = MOB_DATA_ADDR + 5
+pb.memory[_t36c_mobB + 0] = 80; pb.memory[_t36c_mobB + 1] = 60   # distinct mob, same position, fresh contact
+pb.memory[_t36c_mobB + 2] = 0; pb.memory[_t36c_mobB + 3] = 1; pb.memory[_t36c_mobB + 4] = 1
+pb.memory[MOB_COUNT_ADDR] = 2
+invoke_no_arg(pb, IMCC_ADDR)   # mob A: bit already set, no-op; mob B: fresh but invincible, tracked
+_t36c_health_b = pb.memory[PLAYER_HEALTH_ADDR]
+_t36c_mobB_bit = pb.memory[MOB_CONTACT_FLAGS_ADDR] & 0b10
+check("T36.c Invincibility blocks a fresh hit from a distinct mob: no second decrement, but the new mob's own bit is tracked",
+      _t36c_health_a == 2 and _t36c_inv_a == 30 and _t36c_health_b == 2 and _t36c_mobB_bit != 0,
+      f"health_a={_t36c_health_a} inv_a={_t36c_inv_a} health_b={_t36c_health_b} mobB_bit={_t36c_mobB_bit}")
+pb.memory[PLAYER_INVINCIBLE_ADDR] = 0   # force natural expiry
+pb.memory[PLAYER_X] = 80; pb.memory[PLAYER_Y] = 60   # re-pin: mob B's own hit (if any) would also knock back
+invoke_no_arg(pb, IMCC_ADDR)
+check("T36.c2 Once invincibility expires, the tracked mob (B) still doesn't get a free hit -- its own bit already covers it as a cooldown",
+      pb.memory[PLAYER_HEALTH_ADDR] == 2,
+      f"health={pb.memory[PLAYER_HEALTH_ADDR]}")
+pb.stop()
+wipe_save()
+
+# T36.d — per-mob cooldown outlasts invincibility: force a hit, force
+# PLAYER_INVINCIBLE to 0 directly (simulating natural expiry) while still
+# overlapping the *same* triggering mob, confirm still no second decrement.
+pb = fresh_boot(180)
+t36_reset(pb)
+pb.memory[PLAYER_X] = 80; pb.memory[PLAYER_Y] = 60
+_t36d_mob = MOB_DATA_ADDR
+pb.memory[_t36d_mob + 0] = 80; pb.memory[_t36d_mob + 1] = 60
+pb.memory[_t36d_mob + 2] = 0; pb.memory[_t36d_mob + 3] = 1; pb.memory[_t36d_mob + 4] = 1
+pb.memory[MOB_COUNT_ADDR] = 1
+invoke_no_arg(pb, IMCC_ADDR)   # hit: health 3->2
+pb.memory[PLAYER_INVINCIBLE_ADDR] = 0
+# Re-pin the player: knockback (already covered by T36.b/g) moved it off
+# the mob -- this check is specifically about *genuinely still overlapping*
+# the same mob, so restore that premise before testing the cooldown gate.
+pb.memory[PLAYER_X] = 80; pb.memory[PLAYER_Y] = 60
+invoke_no_arg(pb, IMCC_ADDR)   # still overlapping the same mob -- cooldown, not invincibility, blocks it
+check("T36.d Per-mob cooldown outlasts invincibility: no second decrement from the same mob even after invincibility is forced to 0 while still overlapping",
+      pb.memory[PLAYER_HEALTH_ADDR] == 2,
+      f"health={pb.memory[PLAYER_HEALTH_ADDR]}")
+pb.stop()
+wipe_save()
+
+# T36.e — cooldown clears on a genuine break-and-resume: bit set after a
+# hit, clears once overlap genuinely breaks, a fresh hit registers on
+# resumed overlap (the cooldown is per-approach, not permanent).
+pb = fresh_boot(180)
+t36_reset(pb)
+pb.memory[PLAYER_X] = 80; pb.memory[PLAYER_Y] = 60
+_t36e_mob = MOB_DATA_ADDR
+pb.memory[_t36e_mob + 0] = 80; pb.memory[_t36e_mob + 1] = 60
+pb.memory[_t36e_mob + 2] = 0; pb.memory[_t36e_mob + 3] = 1; pb.memory[_t36e_mob + 4] = 1
+pb.memory[MOB_COUNT_ADDR] = 1
+invoke_no_arg(pb, IMCC_ADDR)   # hit: health 3->2, bit set
+_t36e_bit_after_hit = pb.memory[MOB_CONTACT_FLAGS_ADDR] & 1
+pb.memory[_t36e_mob + 0] = 200; pb.memory[_t36e_mob + 1] = 200   # move far away -- breaks overlap
+invoke_no_arg(pb, IMCC_ADDR)   # not overlapping -- clears the bit
+_t36e_bit_after_break = pb.memory[MOB_CONTACT_FLAGS_ADDR] & 1
+# Re-pin the player: the first hit's own knockback (already covered by
+# T36.b/g) moved it -- restore the overlap position before the fresh
+# approach, so this check is genuinely about the cooldown bit clearing,
+# not a coincidental non-overlap from the earlier knockback.
+pb.memory[PLAYER_X] = 80; pb.memory[PLAYER_Y] = 60
+pb.memory[_t36e_mob + 0] = 80; pb.memory[_t36e_mob + 1] = 60   # move back -- fresh approach
+pb.memory[PLAYER_INVINCIBLE_ADDR] = 0   # not invincible, so the fresh hit can register
+invoke_no_arg(pb, IMCC_ADDR)
+check("T36.e Cooldown clears on a genuine break-and-resume: bit set after the first hit, clears once overlap breaks, a fresh hit registers on resumed overlap",
+      _t36e_bit_after_hit != 0 and _t36e_bit_after_break == 0 and pb.memory[PLAYER_HEALTH_ADDR] == 1,
+      f"bit_after_hit={_t36e_bit_after_hit} bit_after_break={_t36e_bit_after_break} health={pb.memory[PLAYER_HEALTH_ADDR]}")
+pb.stop()
+wipe_save()
+
+# T36.f — invincibility countdown: decrements by exactly 1, reaches
+# exactly 0 (not clamped above 0).
+pb = fresh_boot(180)
+t36_reset(pb)
+pb.memory[PLAYER_INVINCIBLE_ADDR] = 10
+invoke_no_arg(pb, IIT_ADDR)
+_t36f_after1 = pb.memory[PLAYER_INVINCIBLE_ADDR]
+pb.memory[PLAYER_INVINCIBLE_ADDR] = 1
+invoke_no_arg(pb, IIT_ADDR)
+_t36f_after2 = pb.memory[PLAYER_INVINCIBLE_ADDR]
+check("T36.f Invincibility countdown: decrements by exactly 1, reaches exactly 0 (not clamped above)",
+      _t36f_after1 == 9 and _t36f_after2 == 0,
+      f"after1={_t36f_after1} after2={_t36f_after2}")
+pb.stop()
+wipe_save()
+
+# T36.g — knockback clamped at a window boundary: player position stays
+# within bounds rather than reading as an invalid/wrapped coordinate.
+pb = fresh_boot(180)
+t36_reset(pb)
+pb.memory[PLAYER_X] = 4; pb.memory[PLAYER_Y] = 60   # near the left edge (min 0)
+_t36g_mob = MOB_DATA_ADDR
+pb.memory[_t36g_mob + 0] = 8; pb.memory[_t36g_mob + 1] = 60   # mob to the right -> push left, would underflow unclamped
+pb.memory[_t36g_mob + 2] = 0; pb.memory[_t36g_mob + 3] = 1; pb.memory[_t36g_mob + 4] = 1
+pb.memory[MOB_COUNT_ADDR] = 1
+invoke_no_arg(pb, IMCC_ADDR)
+check("T36.g Knockback clamped at the window boundary: player position stays within bounds (0), not an invalid/wrapped coordinate",
+      pb.memory[PLAYER_X] == 0,
+      f"x={pb.memory[PLAYER_X]}")
+pb.stop()
+wipe_save()
+
+# T36.h — COMBAT_MODE off: inf_mob_contact_check/inf_invincibility_tick
+# are both complete no-ops.
+pb = fresh_boot(180)
+t36_reset(pb, combat_mode=0)
+pb.memory[PLAYER_X] = 80; pb.memory[PLAYER_Y] = 60
+_t36h_mob = MOB_DATA_ADDR
+pb.memory[_t36h_mob + 0] = 80; pb.memory[_t36h_mob + 1] = 60
+pb.memory[_t36h_mob + 2] = 0; pb.memory[_t36h_mob + 3] = 1; pb.memory[_t36h_mob + 4] = 1
+pb.memory[MOB_COUNT_ADDR] = 1
+pb.memory[PLAYER_INVINCIBLE_ADDR] = 5
+invoke_no_arg(pb, IMCC_ADDR)
+invoke_no_arg(pb, IIT_ADDR)
+check("T36.h COMBAT_MODE off: inf_mob_contact_check/inf_invincibility_tick are both complete no-ops",
+      pb.memory[PLAYER_HEALTH_ADDR] == 3 and pb.memory[PLAYER_X] == 80 and
+      pb.memory[PLAYER_INVINCIBLE_ADDR] == 5 and pb.memory[MOB_CONTACT_FLAGS_ADDR] == 0,
+      f"health={pb.memory[PLAYER_HEALTH_ADDR]} x={pb.memory[PLAYER_X]} inv={pb.memory[PLAYER_INVINCIBLE_ADDR]} flags={pb.memory[MOB_CONTACT_FLAGS_ADDR]}")
+pb.stop()
+wipe_save()
+
+# T36.i — T31 non-regression: a single isolated (non-sustained) contact
+# still behaves exactly as IP-1123 originally shipped -- one decrement,
+# HUD redraw flagged. No T31 assertion needed adjustment (confirmed by
+# the unmodified full-suite run, not merely assumed): this package's own
+# new gating only changes behavior on a *second* overlapping frame for
+# the *same* mob, which no existing T31 fixture ever exercises.
+pb = fresh_boot(180)
+t36_reset(pb)
+pb.memory[PLAYER_X] = 100; pb.memory[PLAYER_Y] = 50
+_t36i_mob = MOB_DATA_ADDR
+pb.memory[_t36i_mob + 0] = 100; pb.memory[_t36i_mob + 1] = 50
+pb.memory[_t36i_mob + 2] = 0; pb.memory[_t36i_mob + 3] = 1; pb.memory[_t36i_mob + 4] = 1
+pb.memory[MOB_COUNT_ADDR] = 1
+pb.memory[SCORE_DIRTY] = 0
+invoke_no_arg(pb, IMCC_ADDR)
+check("T36.i T31 non-regression: a single isolated contact still behaves exactly as IP-1123 originally shipped -- one decrement, HUD redraw flagged",
+      pb.memory[PLAYER_HEALTH_ADDR] == 2 and pb.memory[SCORE_DIRTY] == 1,
+      f"health={pb.memory[PLAYER_HEALTH_ADDR]} score_dirty={pb.memory[SCORE_DIRTY]}")
+pb.stop()
+wipe_save()
+
+# T36.j — independent live PyBoy drive through the real production
+# per-frame chain (not a direct-invoke force), mirroring T35.i's/T37.i's
+# own established discipline: reproduce the exact BL-0158 scenario --
+# real held contact during real PLAYING -- and confirm the fix is
+# perceptible in real play: health drops by exactly one heart, the player
+# is visibly displaced, not teleported through a rapid death-and-setback
+# cascade within an imperceptible handful of frames.
+pb = fresh_boot(180)
+pb.button('a'); [pb.tick() for _ in range(40)]        # MAIN MENU -> MODE SELECT
+pb.button('down'); [pb.tick() for _ in range(40)]     # toggle infinite
+pb.button('a'); [pb.tick() for _ in range(40)]        # confirm -> COMBAT MODE CONFIRM
+pb.button('up'); [pb.tick() for _ in range(40)]       # toggle to "Y"
+pb.button('a'); [pb.tick() for _ in range(40)]        # confirm Y -> INFINITE SEED ENTRY
+enter_infinite_seed(pb, [4, 2, 0, 0, 0])
+pb.button('a'); [pb.tick() for _ in range(100)]       # confirm seed -> INTRO
+pb.button('a'); [pb.tick() for _ in range(40)]        # INTRO -> PLAYING
+_t36j_px0 = pb.memory[PLAYER_X]; _t36j_py0 = pb.memory[PLAYER_Y]
+pb.memory[MOB_COUNT_ADDR] = 1
+_t36j_mob = MOB_DATA_ADDR
+pb.memory[_t36j_mob + 0] = _t36j_px0; pb.memory[_t36j_mob + 1] = _t36j_py0
+pb.memory[_t36j_mob + 2] = 0; pb.memory[_t36j_mob + 3] = 1; pb.memory[_t36j_mob + 4] = 1
+pb.memory[0xC6DE] = 200   # MOB_MOVE_TIMER pinned high -- mob stays put, isolating the effect being tested
+for _ in range(20):
+    pb.tick()   # sustained real per-frame overlap -- the exact BL-0158 scenario
+_t36j_health = pb.memory[PLAYER_HEALTH_ADDR]
+_t36j_px1 = pb.memory[PLAYER_X]; _t36j_py1 = pb.memory[PLAYER_Y]
+check("T36.j Independent live drive: sustained real per-frame overlap produces exactly one health decrement and a visible knockback displacement, not a rapid death-and-setback cascade",
+      pb.memory[GAMESTATE] == 2 and _t36j_health == 2 and
+      (_t36j_px1, _t36j_py1) != (_t36j_px0, _t36j_py0),
+      f"GS={pb.memory[GAMESTATE]} health0=3 health1={_t36j_health} pos0=({_t36j_px0},{_t36j_py0}) pos1=({_t36j_px1},{_t36j_py1})")
+pb.stop()
+wipe_save()
+
 print("\n=== T37: Combat Sub-Mode — Weapon Directionality (IP-1128) ===")
 
 pb = fresh_boot(180)

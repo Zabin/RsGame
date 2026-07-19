@@ -129,6 +129,25 @@
 > restored position as the new combat-entry point. New suite `T32` (4 checks, incl. a real
 > two-instance save/load round trip). **393/393 suite passes.** `COMPLETE`, own
 > `09-package-verification` pass owed.
+>
+> **`IP-1127` authorized and implemented 2026-07-19, same session** (G3, user "Yes, authorize
+> IP-1127," asked once `IP-1123` reached `VERIFIED`) — Workflow D step 2's own delta (post-contact
+> player protection, `FR-11410`/`BL-0158`) is built: new `PLAYER_INVINCIBLE`/`MOB_CONTACT_FLAGS`
+> (`0xC6E2`–`0xC6E3`, `asm_game.py` — re-derived at build time past `IP-1128`'s own real claim of
+> the package's originally-planned `0xC6DF`–`0xC6E0`, closing `BL-0163`). `inf_mob_contact_check`
+> (`IP-1123`) extended with a per-mob cooldown bit carried alongside its existing per-slot loop
+> index; new `inf_invincibility_tick` hooked into `st_playing`'s per-frame chain. **Found-and-fixed
+> interaction, named explicitly:** a lethal hit (triggering `inf_health_setback`) skips knockback
+> on that one path — applying it against the pre-setback position would have silently displaced
+> the player off the setback's own just-restored region-entry point. **Two test-only bugs found and
+> fixed during authoring, not product defects:** several `T36` checks first read state after
+> knockback had already (correctly) separated the player from the mob, so a same-position follow-up
+> mob placement no longer overlapped — fixed by re-pinning the player's own test position between
+> invocations where the check's own intent requires genuinely continued overlap. New suite `T36`
+> (12 checks incl. a live PyBoy drive, `T36.j`). **404/404 suite passes.** ROM builds at exactly
+> 32768 bytes (32670 used, 98 bytes headroom — the tightest margin of any package in this
+> tranche). `COMPLETE`, own `09-package-verification` pass owed. **This closes every package in
+> the Infinite Mode Combat Sub-Mode delta (`IP-1120`–`IP-1129`) to at least `COMPLETE`.**
 
 [↑ Features index](INDEX.md) · [Feature Catalog](../feature-planning/03-feature-catalog.md) ·
 [Epic Catalog](../feature-planning/02-epic-catalog.md)
