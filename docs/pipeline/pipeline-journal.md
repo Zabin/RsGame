@@ -14,39 +14,43 @@
 
 ## Position
 
-- **Updated:** 2026-07-19 (run #253)
-- **Increment:** Same as run #252, plus: **`07-implementation-planning`** authored **`IP-1126`**
-  (mob movement, `READY`, sole dependency `IP-1121` `VERIFIED`) and **`IP-1127`** (post-contact
-  protection, `BLOCKED` on `IP-1123` reaching `VERIFIED`) for `FR-11210`/`FR-11410`. `IP-1126`
-  resolves `FS-112` Open Question 4 (mob holds still once coincident with the player). `IP-1127`
-  deliberately uses a new parallel `MOB_CONTACT_FLAGS` table rather than widening `MOB_DATA`'s
-  own stride, avoiding a broad re-derivation risk across three already-shipped packages. **Loop
-  stopped here: neither package is authorized** — both are new scope beyond the original "build
-  all six" go-ahead.
-- **Pipeline state:** Bootstrap stages 01–11 ✅; Release 2 GO. 45 packages `VERIFIED`, `IP-1123`
-  `COMPLETE` (fix applied, own `09-package-verification` Pass 2 owed — **needs a fresh session**,
-  implemented in run #249, same session as this run). `IP-1124` remains `NOT STARTED` (blocked on
-  `IP-1123` reaching `VERIFIED`). `IP-1120`/`IP-1121`/`IP-1122`/`IP-1125` `VERIFIED`. `FR-11210`/
-  `FR-11410` fully planned (`IP-1126` `READY`, `IP-1127` `BLOCKED`) but **neither authorized**.
-  Standing, non-blocking doc/design work unchanged: the doc-accuracy sweep family (`BL-0136`/
-  `BL-0137`/`BL-0140`–`BL-0143`/`BL-0151`); `BL-0118` (`NFR-1400` cycle-budget gap); `BL-0123`
-  (`try_load_save` unneeded finite-mode work); `BL-0112` (Infinite Mode run-end trigger);
-  `BL-0097` (Medium, routed already); `BL-0130` (catalog text gap); `BL-0147`/`BL-0148` (ride a
-  future `04`/`06` touch); `BL-0149`/`BL-0150`/`BL-0152`/`BL-0155`/`BL-0157`/`BL-0159` (all
-  Low/unstated-priority, `SCHEDULED`, non-blocking).
-- **Backlog:** 159 entries, unchanged this run. `BL-0156`/`BL-0158` notes updated to record their
-  own packages (`IP-1126`/`IP-1127`), still `IN PIPELINE`, awaiting G3. `BL-0154` still
-  `IN PIPELINE` (fix applied run #249, `09` Pass 2 owed). `BL-0133` still `IN PIPELINE` (G3
-  granted — `IP-1120`/`IP-1121`/`IP-1122`/`IP-1125` `VERIFIED`, `IP-1123` `COMPLETE` (fix
-  applied, verification-owed), `IP-1124` `NOT STARTED`).
-- **Next step:** **`08-code-implementation` on `IP-1126`** (mob movement) — `READY` and now
-  `AUTHORIZED` (G3, user, 2026-07-19: "authorized but don't iterate now"). Build is deliberately
-  deferred to a later turn/session per the user's own explicit request, not blocked on anything
-  further. In parallel: fresh session `09-package-verification` Pass 2 on `IP-1123` — unblocks
-  `IP-1127` (still awaiting its own G3 ask once unblocked) independently of `IP-1126`'s own
-  progress.
-- **Open gates:** **none for `IP-1126`** — G3 granted 2026-07-19. **G3 still needed on `IP-1127`**
-  (post-contact protection) once `IP-1123` reaches `VERIFIED` — not yet asked, since `IP-1127`
+- **Updated:** 2026-07-19 (run #254)
+- **Increment:** Same as run #253, plus: **`08-code-implementation`** built **`IP-1126`** (mob
+  movement) to **`COMPLETE`** — `inf_mob_move` hooked into `st_playing`'s per-frame chain, new
+  WRAM `MOB_MOVE_TIMER` (`0xC6DE`), new suite `T35` (9 checks incl. a live `PyBoy` drive),
+  373/373 suite passes. `FS-112` Open Question 4 fully resolved (mob holds still once coincident
+  with the player, `T35.e`); `BL-0159`'s own jitter half resolved the same way, its
+  invincibility-window-pause half still owed to `IP-1127`. `FR-11210` → Implemented; RTM/`GDS-07`
+  §7m/Master-Build-Plan/`packages/INDEX.md` all updated. Also (outside the loop, two small
+  same-session-adjacent commits not logged as their own runs): `00-intake` filed **`BL-0160`**
+  (sound effects — no APU channel 2-4 usage exists yet, per `R108`/`R115`), triaged `SCHEDULED`
+  against a future `03-architecture-design-synthesis` pass.
+- **Pipeline state:** Bootstrap stages 01–11 ✅; Release 2 GO. 45 packages `VERIFIED`, 1
+  (`IP-1126`) newly `COMPLETE` this run (own `09-package-verification` pass owed, needs a fresh
+  session). `IP-1123` still `COMPLETE` (fix applied run #249, own `09` Pass 2 also owed — fresh
+  session). `IP-1124` remains `NOT STARTED` (blocked on `IP-1123` reaching `VERIFIED`).
+  `IP-1120`/`IP-1121`/`IP-1122`/`IP-1125` `VERIFIED`. `IP-1127` still `BLOCKED` on `IP-1123`
+  reaching `VERIFIED`, still `NOT AUTHORIZED`. Standing, non-blocking doc/design work unchanged:
+  the doc-accuracy sweep family (`BL-0136`/`BL-0137`/`BL-0140`–`BL-0143`/`BL-0151`); `BL-0118`
+  (`NFR-1400` cycle-budget gap); `NFR-1500` (combat-sub-mode cycle budget, still `UNCONFIRMED`,
+  now also covering `IP-1126`'s own added per-frame cost, no dedicated backlog entry — tracked
+  inline in the NFR/FR text, same as for `IP-1121`–`1123`); `BL-0123` (`try_load_save` unneeded
+  finite-mode work); `BL-0112` (Infinite Mode run-end trigger); `BL-0097` (Medium, routed
+  already); `BL-0130` (catalog text gap); `BL-0147`/`BL-0148` (ride a future `04`/`06` touch);
+  `BL-0149`/`BL-0150`/`BL-0152`/`BL-0155`/`BL-0157`/`BL-0159`/`BL-0160` (all Low/unstated-priority,
+  `SCHEDULED`, non-blocking).
+- **Backlog:** 160 entries. `BL-0156` updated: `IP-1126` `COMPLETE`, still `IN PIPELINE` (closes
+  once independently verified). `BL-0159` updated: jitter half resolved, invincibility-pause half
+  still open, still `SCHEDULED`. `BL-0158` unchanged (`IP-1127` still `BLOCKED`). `BL-0154` still
+  `IN PIPELINE` (fix applied run #249, `09` Pass 2 owed). `BL-0133` still `IN PIPELINE`.
+- **Next step:** Fresh session: **`09-package-verification`** on `IP-1126` and/or `IP-1123` Pass
+  2 (independent of each other, either order) — the sole remaining actionable steps; both are
+  blocked this session by the same-session independence rule (both implemented in this session's
+  own recent runs). `IP-1123` Pass 2 additionally unblocks `IP-1127` (still needing its own G3
+  ask once unblocked). No other backlog entry is ripe/blocking this session.
+- **Open gates:** **none for `IP-1126`** — G3 granted 2026-07-19, now built. **G3 still needed on
+  `IP-1127`** (post-contact protection) once `IP-1123` reaches `VERIFIED` — not yet asked, since
+  `IP-1127`
   remains `BLOCKED` regardless. The fresh-session requirement on `IP-1123`'s own Pass 2 is a
   separate, session-boundary constraint, not itself a human decision gate.
 
@@ -311,3 +315,4 @@
 | 251 | 2026-07-19 | advance (same session) | `05-feature-decomposition` | `FEAT-11000` — fold in `FR-11210`/`FR-11410` | ✅ **Confirmed both new leaves fold into the existing `FEAT-11000` catalog entry, no new Feature/Epic.** Neither introduces a dependency `FEAT-11000` doesn't already carry (`FR-11210` depends only on `FR-11200`, `FR-11410` only on `FR-11400`, both already owned by this Feature) — per the "maintain incrementally" workflow rule, only `03-feature-catalog.md` (Description, Included Requirements 8→10, Risk, Open Questions) and `05-feature-review.md` (finding #13) were touched; `02-epic-catalog.md`/`04-feature-dependency-graph.md`/`01-release-plan.md` all confirmed structurally unaffected (Epic `EP-6000` membership, the three existing Dependencies, and the `Future` release bucket all verified unchanged by direct re-read, not assumed) and correctly left untouched. Finding #13: clean, no new defect, requirement assignment confirmed not double-assigned anywhere else in the catalog. `BL-0156`/`BL-0158` notes updated to record the fold-in. | `06-feature-specification` on `FS-112`, folding `FR-11210`/`FR-11410`'s own behavior into that spec's field set — same Feature, no new `FS-xxx` document. In parallel (session-boundary permitting): fresh-session `09-package-verification` Pass 2 on `IP-1123`. |
 | 252 | 2026-07-19 | advance (same session) | `06-feature-specification` | `FS-112` — fold in `FR-11210`/`FR-11410` | ✅ **Amended `FS-112`'s own field set** (not a new spec): Workflows B (mob movement, step 4) and D (post-contact protection, step 2, three combined mechanisms a/b/c) extended; System Behaviour gained two new edge cases plus a new **Open Question 4** (`BL-0159` — does an already-adjacent mob keep re-attempting movement); Module Responsibilities/Interfaces Used/Data Model Changes/Performance Considerations all updated; Acceptance Criteria renumbered 1→10 to insert the two new criteria (AC-3 mob movement, AC-6 post-contact protection) in requirement order rather than appended out of sequence; Verification Plan extended to match. **Found and fixed a pre-existing citation error while inserting the new Open Question 4**: §12 mis-cited "Open Question 4" for what was actually the already-resolved Open Question 3 (heal-spend feedback) — corrected in the same pass to avoid a duplicate number, named explicitly in the commit rather than silently changed. `docs/features/INDEX.md` row and `FEAT-11000`'s own forward-reference metadata (not its content) updated. Neither leaf packaged yet. | `07-implementation-planning` on `FS-112`'s two new leaves — authoring a package is not itself a G3 authorization, so this can proceed; the eventual `08-code-implementation` step is where a fresh G3 ask becomes necessary (new scope beyond the original "build all six" go-ahead). In parallel (session-boundary permitting): fresh-session `09-package-verification` Pass 2 on `IP-1123`. |
 | 253 | 2026-07-19 | advance → gate | `07-implementation-planning` | `FS-112`'s two new leaves — `FR-11210`/`FR-11410` | ✅ **Planned two packages, `IP-1126`/`IP-1127`, split rather than combined** (different dependency-readiness: `IP-1126` depends only on `IP-1121` `VERIFIED`; `IP-1127` also depends on `IP-1123`, still verification-owed). **`IP-1126`** (mob movement): dominant-axis single-step, adjustable `MOB_MOVE_INTERVAL`/`MOB_MOVE_STEP` (8 frames/1 pixel starting values); resolves `FS-112` Open Question 4 (holds still once coincident with the player — chosen over always-recomputing to avoid jitter and compose cleanly with knockback); new WRAM `MOB_MOVE_TIMER` (`0xC6DE`); new suite `T35` (9 checks planned) — **`READY`**. **`IP-1127`** (post-contact protection): extends `inf_mob_contact_check` with a per-mob cooldown bit — **deliberately a new parallel `MOB_CONTACT_FLAGS` table, not a `MOB_DATA` stride widening**, avoiding a broad re-derivation risk across `IP-1121`/`IP-1122`/`IP-1123`'s own already-shipped slot arithmetic — plus an invincibility countdown and a clamped knockback push; new WRAM `PLAYER_INVINCIBLE`/`MOB_CONTACT_FLAGS` (`0xC6DF`–`0xC6E0`); new suite `T36` (10 checks planned, incl. the exact `BL-0158` repro) — **`BLOCKED`** on `IP-1123` reaching `VERIFIED`. **Neither package authorized** — both are new scope beyond the original "Yes, build all six" go-ahead (2026-07-17, `IP-1120`–`1125` only). TWBS, Master Build Plan, `packages/INDEX.md`, `FS-112` metadata, RTM, `ROADMAP.md` all updated. **GATE hit and resolved same turn:** asked the user directly (`AskUserQuestion`) whether to authorize `IP-1126` — **G3 GRANTED** ("authorized but don't iterate now"). Master Build Plan/`packages/INDEX.md`/backlog updated to `AUTHORIZED`; build itself deliberately not started, per the user's own explicit instruction not to continue iterating this turn. `IP-1127` remains unauthorized (moot while still `BLOCKED` on `IP-1123`). | `08-code-implementation` on `IP-1126` — `READY` and `AUTHORIZED`, deliberately deferred to a later turn/session. In parallel: fresh-session `09-package-verification` Pass 2 on `IP-1123` (unblocks `IP-1127`, still needing its own G3 ask once unblocked). |
+| 254 | 2026-07-19 | advance → queue empty (same session) | `08-code-implementation` | `IP-1126` (Infinite Mode Combat: Mob Movement) | ✅ **`COMPLETE`.** `MOB_MOVE_TIMER` (`0xC6DE`, boot-cleared) and `MOB_MOVE_INTERVAL`/`MOB_MOVE_STEP` (8 frames / 1 pixel, plain Python constants) defined; `inf_mob_move` hooked into `st_playing`'s per-frame chain alongside `inf_projectile_update`/`inf_mob_contact_check` (gated on `COMBAT_MODE`). Per active `MOB_DATA` slot, steps one `MOB_MOVE_STEP` pixel on the dominant axis (`|dx|` vs `|dy|`, ties favor X) toward the player every `MOB_MOVE_INTERVAL` frames; holds still when exactly coincident (resolves `FS-112` Open Question 4). **Timer semantics corrected during authoring** (found via `T35.a`'s own written expectation, not a drift from the package's design): the first-draft "check-then-decrement" timer made the effective cadence `MOB_MOVE_INTERVAL+1` frames and wouldn't move on the same frame a forced `MOB_MOVE_TIMER=1` reached 0; replaced with a "timer already 0, or decrementing reaches 0, both move immediately" rule giving an exact `MOB_MOVE_INTERVAL`-frame gap and satisfying `T35.a`/`T35.f` exactly. Two SM83-level notes: `CP_H`/`CP_L`/`SUB_H` used via `rom.emit()` (no named `gbc_lib.py` wrapper, same escape hatch `inf_mob_contact_check` already established for `SUB_H`); the loop-back branch exceeded `JR`'s ±127-byte range given the routine's size, used `JP_C` instead (a first for this codebase's combat-mode routines). **373/373 suite passes** (new suite `T35`, 9 checks: `T35.a`-`d` per-axis movement/dominance, `T35.e` coincident hold-still, `T35.f` sub-interval no-move + exact decrement, `T35.g` `COMBAT_MODE`-off no-op, `T35.h` inactive-slot exclusion, `T35.i` independent live `PyBoy` drive through the real per-frame chain — found and fixed a test-only bug during authoring, a stray menu-navigation `A`-press latching into a real projectile fire that clipped the forced test mob before the movement window completed, fixed by explicitly clearing `PROJ_ACTIVE` in the test's own setup, no product-code change). ROM 32414/32768 (headroom 354 bytes, down from 610). `FR-11210` → Implemented (concrete values recorded); RTM row updated; `FS-112` Open Question 4 marked Resolved (both its edge-case paragraph and its §19 entry); `GDS-07` new §7m added; Master Build Plan + `packages/INDEX.md` updated `READY`→`COMPLETE`. `BL-0156`/`BL-0159` (jitter half) updated to record the resolution. **Outstanding, named not fixed:** `NFR-1500`'s own direct per-frame cycle-count measurement remains `UNCONFIRMED` — a pre-existing gap spanning the whole combat sub-mode, not created by this package and outside its own named scope, but this package adds further per-frame cost on top of it. **This session's queue of unblocked work is now genuinely empty**: the sole remaining actionable steps (`09-package-verification` on `IP-1126` and `IP-1123` Pass 2) both need a fresh session (both implemented in this session's own runs) — nothing left this session can advance standalone. | Fresh session: `09-package-verification` on `IP-1126` and/or `IP-1123` Pass 2 (independent of each other, either order) — the sole remaining steps this pipeline currently owes |
