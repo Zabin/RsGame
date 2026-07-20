@@ -1931,3 +1931,47 @@ redesign).
 build all six" go-ahead (2026-07-17, `IP-1120`–`1125` only), the same class as `IP-1126`/`IP-1127`
 before them. Neither package may be picked up by `08-code-implementation` until the user gives an
 explicit go-ahead.
+
+## `BL-0170` — Point-in-box hit-test duplication (refactor)
+
+**Verb inventory:** not applicable — a single-verb structural cleanup (de-duplicate), not a new
+capability; no generate/render/navigate/persist/review split needed.
+
+**Supersession sweep:** `grep -n "CP_n(8); rom.J[RP]_NC\|CP_n(16); rom.J[RP]_NC" asm_game.py`
+confirms exactly three inlined point-in-box tests exist in the current tree: `check_collisions`
+(~line 1223-1230), `inf_projectile_hittest` (~line 3673-3676), `inf_mob_contact_check`
+(~line 3758-3763). No fourth site found — the sweep is clean.
+
+**Corrected scope, found during this planning pass (not the originating backlog entry's own
+framing):** direct reconstruction of each site's actual arithmetic shows only **two of the three
+are true duplicates**. `check_collisions` and `inf_mob_contact_check` both compute
+`(register-held point) − (WRAM-held origin)` — the box is anchored on `PLAYER_X`/`PLAYER_Y`
+(a static, contiguous WRAM pair) and the point being tested is whatever the per-slot loop just
+read into `E`/`D` (item or mob position). `inf_projectile_hittest` computes the **reverse
+order**, `(WRAM-held point) − (register-held origin)` — the box is anchored on the mob's own
+position (already in `E`/`D` from the loop read) and the point being tested is the static
+`PROJ_X`/`PROJ_Y` pair. Unsigned 8-bit subtraction is not commutative for this bounded-range
+test (`a−b mod 256 < N` and `b−a mod 256 < N` are different predicates), so the two orders
+cannot share one subroutine without changing `inf_projectile_hittest`'s own observable behavior
+— which a refactor must never do.
+
+**Decomposition, one package:**
+
+| Work unit | Package | Owning peer | Depends on |
+|---|---|---|---|
+| Extract `pib_reg_minus_origin` (the shared "register-point vs. WRAM-origin" test); rewrite `check_collisions` and `inf_mob_contact_check` to call it; leave `inf_projectile_hittest` unmodified (its own inlined test is not a duplicate of anything else — extracting a single-use routine would add a `CALL`'s worth of body overhead for zero de-duplication benefit, a net ROM-budget loss, not a refactor win) | [IP-8010](packages/IP-8010-point-in-box-hittest-deduplication.md) | `08-refactoring` | none (both call sites are in `asm_game.py`, no upstream dependency) |
+
+**Split rationale:** one package — the two genuinely-duplicated call sites are small, share one
+subroutine, and there is no natural seam to split them across; `check_collisions` and
+`inf_mob_contact_check` must change together or the equivalence proof (byte-delta prediction,
+full-suite regression) can't be reasoned about as one unit.
+
+**ROM budget:** expected small **net decrease** — two ~9-10-byte inlined sequences replaced by
+two 3-byte `CALL`s plus one ~16-18-byte shared subroutine body (exact figures measured at build
+time, per the package's own equivalence contract); a positive contribution against the tranche's
+current 98-byte headroom (`VR-1127`), not a cost. `inf_projectile_hittest` is untouched — zero
+byte impact there.
+
+**Authorization:** **NOT AUTHORIZED.** Refactoring packages carry no bootstrap carve-out — `IP-8010`
+requires the user's own explicit, per-package go-ahead before `08-refactoring` may execute it,
+regardless of severity or how small the change is.
