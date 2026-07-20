@@ -2410,13 +2410,19 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_n(TL_BG_BLANK); rom.LD_HL_A()
 
     rom.LD_A_nn(SSE_CURSOR); rom.CP_n(5); rom.JP_Z('dsd_scale_cursor')
-    rom.LD_E_A(); rom.LD_D_n(0)
-    rom.LD_HL_nn(0x9800 + SSE_CURSOR_SEED_ROW*32 + SSE_SEED_COL0)
-    rom.ADD_HL_DE()
-    rom.LD_A_n(TL_ARROW_D); rom.LD_HL_A()
+    rom.CALL('dsd_seed_cursor_arrow')
     rom.RET()
     rom.label('dsd_scale_cursor')
     rom.LD_HL_nn(0x9800 + SSE_CURSOR_SCALE_ROW*32 + SSE_SCALE_COL)
+    rom.LD_A_n(TL_ARROW_D); rom.LD_HL_A()
+    rom.RET()
+
+    # IP-8060: shared "seed-cursor arrow" tail -- input A = cursor index
+    # (SSE_CURSOR), writes TL_ARROW_D at the corresponding seed-digit cell.
+    rom.label('dsd_seed_cursor_arrow')
+    rom.LD_E_A(); rom.LD_D_n(0)
+    rom.LD_HL_nn(0x9800 + SSE_CURSOR_SEED_ROW*32 + SSE_SEED_COL0)
+    rom.ADD_HL_DE()
     rom.LD_A_n(TL_ARROW_D); rom.LD_HL_A()
     rom.RET()
 
@@ -2441,10 +2447,7 @@ def build_game_asm(rom: ROM) -> dict:
         rom.LD_HL_nn(addr); rom.LD_A_n(TL_BG_BLANK); rom.LD_HL_A()
 
     rom.LD_A_nn(SSE_CURSOR)
-    rom.LD_E_A(); rom.LD_D_n(0)
-    rom.LD_HL_nn(0x9800 + SSE_CURSOR_SEED_ROW*32 + SSE_SEED_COL0)
-    rom.ADD_HL_DE()
-    rom.LD_A_n(TL_ARROW_D); rom.LD_HL_A()
+    rom.CALL('dsd_seed_cursor_arrow')
     rom.RET()
 
     # ── sse_adjust_up / sse_adjust_down (IP-1040) ──────────
@@ -2943,10 +2946,8 @@ def build_game_asm(rom: ROM) -> dict:
     rom.XOR_A(); rom.LD_nn_A(GW_BRAID_IDX)   # try-count, reset
 
     rom.label('maze_try_loop')
-    rom.LD_A_nn(GW_MAZE_DIR); rom.LD_C_A()
     rom.LD_A_nn(GW_CUR_REGION)
-    rom.CALL('gw_neighbor_hl')               # HL -> REGION_GRAPH[R].neighbor[dir]
-    rom.LD_A_HL()
+    rom.CALL('gw_read_neighbor')              # A = neighbor region in GW_MAZE_DIR dir
     rom.CP_n(0xFF); rom.JR_Z('maze_try_next')   # off-grid in this direction
 
     rom.LD_D_A()                              # D = V (candidate region)
@@ -3121,10 +3122,8 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_n(1); rom.LD_nn_A(GW_MAZE_DIR)   # repurposed: current direction (down first)
 
     rom.label('maze_prune_dir')
-    rom.LD_A_nn(GW_MAZE_DIR); rom.LD_C_A()
     rom.LD_A_nn(GW_BRAID_IDX)                 # A = R
-    rom.CALL('gw_neighbor_hl')                # HL -> REGION_GRAPH[R].neighbor[dir]
-    rom.LD_A_HL()
+    rom.CALL('gw_read_neighbor')              # A = neighbor region in GW_MAZE_DIR dir
     rom.CP_n(0xFF); rom.JR_Z('maze_prune_next_dir')   # true boundary
 
     rom.LD_D_A()                              # D = V
@@ -3197,6 +3196,17 @@ def build_game_asm(rom: ROM) -> dict:
     rom.label('gnh_try3')
     rom.INC_HL(); rom.INC_HL(); rom.INC_HL()    # dir 3 (right, only case left)
     rom.label('gnh_done')
+    rom.RET()
+
+    # gw_read_neighbor (IP-8070): on entry A=region index. Reads GW_MAZE_DIR
+    # internally for direction. Returns A = neighbor region index, or 0xFF
+    # if none in that direction. Clobbers A, B, C, D, E, H, L.
+    rom.label('gw_read_neighbor')
+    rom.LD_B_A()                              # B = region (stash across C load)
+    rom.LD_A_nn(GW_MAZE_DIR); rom.LD_C_A()    # C = dir
+    rom.LD_A_B()                              # A = region (restored)
+    rom.CALL('gw_neighbor_hl')                # HL -> REGION_GRAPH[region].neighbor[dir]
+    rom.LD_A_HL()
     rom.RET()
 
     # gw_maze_state_hl: on entry A=region index (0-80). Returns HL ->

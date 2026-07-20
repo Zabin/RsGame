@@ -67,10 +67,10 @@ None expected.
 
 ## 11. Verification Checklist
 
-- [ ] G5: ROM builds at exactly 32768 bytes.
-- [ ] G5: full suite passes, zero `test_rom.py` diff.
-- [ ] Equivalence contract: diff touches only the new subroutine + the two replaced blocks.
-- [ ] Seed-scale-entry and infinite-seed-entry cursor-arrow tests still pass.
+- [x] G5: ROM builds at exactly 32768 bytes.
+- [x] G5: full suite passes, zero `test_rom.py` diff.
+- [x] Equivalence contract: diff touches only the new subroutine + the two replaced blocks.
+- [x] Seed-scale-entry and infinite-seed-entry cursor-arrow tests still pass.
 
 ## 12. Dependencies
 

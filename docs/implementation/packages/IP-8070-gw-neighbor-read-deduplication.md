@@ -31,13 +31,18 @@ Unaffected; `R307`.
   **Clobbers:** `A`, `B`, `C`, `D`, `E`, `H`, `L`. **Preserves:** nothing beyond what's needed —
   confirmed by direct read that neither call site needs `B`/`C`/`D`/`E` alive after the call
   (each immediately branches on the returned `A` via `CP_n(0xFF)`).
-- **Call sites** (line numbers approximate, pre-refactor tree): ~3023-3026 (`ki_passA_dir`,
-  region = `GW_BRAID_IDX`), ~3124-3127 (`maze_prune_dir`, region = `GW_BRAID_IDX`) — each replaces
-  its own `LD_A_nn(GW_MAZE_DIR); LD_C_A(); LD_A_nn(GW_BRAID_IDX); CALL('gw_neighbor_hl'); LD_A_HL()`
-  block with `LD_A_nn(GW_BRAID_IDX); CALL('gw_read_neighbor')`. The third candidate site
-  (~line 2946, region = `GW_CUR_REGION`) is included if, after implementing the first two, direct
-  read confirms it fits the same contract with `GW_CUR_REGION` substituted for `GW_BRAID_IDX` as
-  the `A` input — no other line at any site changes.
+- **Call sites, as actually implemented** — **`maze_try_loop`** (region = `GW_CUR_REGION`) and
+  **`maze_prune_dir`** (region = `GW_BRAID_IDX`) both rewritten to
+  `LD_A_nn(<region>); CALL('gw_read_neighbor')`. **`ki_passA_dir` excluded** (scope corrected
+  during execution, see §13/Rollback below): it clobbers `B` as a live `has_child` accumulator
+  across its own direction loop (set before the loop at `ki_passA_region`, read after the loop
+  ends) — a register-liveness conflict not visible from the block's own immediate context, only
+  from the enclosing loop; `gw_read_neighbor`'s use of `B` as scratch broke this, caught
+  immediately by `T12.e` (KeyItem placement oracle-parity test). Reverted that one site back to
+  its original inlined form; kept the other two, which have no such conflict (confirmed by direct
+  read of `maze_prune_dir`'s own enclosing scope: its only `B` usage, the "durable stash" at the
+  braid-decision branch ~10 lines further down, is assigned fresh *after* the site's own call and
+  never carries a value in from a prior iteration).
 
 ## 6. Files to Create/Modify
 
@@ -63,17 +68,18 @@ None expected.
 
 ## 10. Definition of Done
 
-- `gw_read_neighbor` exists, called from at least the two confirmed sites; neither retains its
-  own inlined block.
+- `gw_read_neighbor` exists, called from `maze_try_loop` and `maze_prune_dir`; `ki_passA_dir`
+  correctly excluded and confirmed zero diff lines.
 - ROM builds at exactly 32768 bytes; full suite passes, unmodified, at its current count.
 - Byte delta measured and recorded.
 
 ## 11. Verification Checklist
 
-- [ ] G5: ROM builds at exactly 32768 bytes.
-- [ ] G5: full suite passes, zero `test_rom.py` diff.
-- [ ] Equivalence contract: diff touches only the new subroutine + the replaced blocks.
-- [ ] Maze-generation suites still pass.
+- [x] G5: ROM builds at exactly 32768 bytes.
+- [x] G5: full suite passes, zero `test_rom.py` diff.
+- [x] Equivalence contract: diff touches only the new subroutine + the two replaced blocks
+      (`ki_passA_dir` zero diff lines).
+- [x] Maze-generation suites still pass (incl. `T12.e`, which caught the `ki_passA_dir` conflict).
 
 ## 12. Dependencies
 
