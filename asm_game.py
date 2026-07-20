@@ -4175,11 +4175,7 @@ def build_game_asm(rom: ROM) -> dict:
     # inf_ledger_find's own contract).
     rom.LD_A_nn(LEDGER_COUNT); rom.CP_n(128); rom.JR_NC('ilmc_evict')
     # Append: write (row, col, collected=1) at HL; LEDGER_COUNT += 1.
-    rom.LD_A_nn(INF_ROW); rom.LD_HLI_A()
-    rom.LD_A_nn(INF_ROW + 1); rom.LD_HLI_A()
-    rom.LD_A_nn(INF_COL); rom.LD_HLI_A()
-    rom.LD_A_nn(INF_COL + 1); rom.LD_HLI_A()
-    rom.LD_A_n(1); rom.LD_HL_A()
+    rom.CALL('write_ledger_entry_at_hl')
     rom.LD_A_nn(LEDGER_COUNT); rom.INC_A(); rom.LD_nn_A(LEDGER_COUNT)
     rom.RET()
     rom.label('ilmc_evict')
@@ -4189,14 +4185,22 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_nn(LEDGER_CURSOR); rom.LD_E_A(); rom.LD_D_n(0)
     rom.LD_HL_nn(LEDGER)
     rom.CALL('idx5_to_hl')
+    rom.CALL('write_ledger_entry_at_hl')
+    # Advance cursor modulo 128 (AND 0x7F, no DIV).
+    rom.LD_A_nn(LEDGER_CURSOR); rom.INC_A(); rom.AND_n(0x7F)
+    rom.LD_nn_A(LEDGER_CURSOR)
+    rom.RET()
+
+    # write_ledger_entry_at_hl (IP-8080): on entry HL = pre-positioned
+    # ledger slot address. Writes (INF_ROW, INF_ROW+1, INF_COL, INF_COL+1,
+    # collected=1). HL ends pointing at the collected byte (non-incrementing
+    # final write). Clobbers A, H, L.
+    rom.label('write_ledger_entry_at_hl')
     rom.LD_A_nn(INF_ROW); rom.LD_HLI_A()
     rom.LD_A_nn(INF_ROW + 1); rom.LD_HLI_A()
     rom.LD_A_nn(INF_COL); rom.LD_HLI_A()
     rom.LD_A_nn(INF_COL + 1); rom.LD_HLI_A()
     rom.LD_A_n(1); rom.LD_HL_A()
-    # Advance cursor modulo 128 (AND 0x7F, no DIV).
-    rom.LD_A_nn(LEDGER_CURSOR); rom.INC_A(); rom.AND_n(0x7F)
-    rom.LD_nn_A(LEDGER_CURSOR)
     rom.RET()
 
     # ── save_to_sram ─────────────────────────────────────

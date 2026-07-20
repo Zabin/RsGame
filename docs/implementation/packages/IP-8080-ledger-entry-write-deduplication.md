@@ -67,10 +67,10 @@ None expected.
 
 ## 11. Verification Checklist
 
-- [ ] G5: ROM builds at exactly 32768 bytes.
-- [ ] G5: full suite passes, zero `test_rom.py` diff.
-- [ ] Equivalence contract: diff touches only the new subroutine + the two replaced blocks.
-- [ ] Ledger append and FIFO-eviction tests still pass.
+- [x] G5: ROM builds at exactly 32768 bytes.
+- [x] G5: full suite passes, zero `test_rom.py` diff.
+- [x] Equivalence contract: diff touches only the new subroutine + the two replaced blocks.
+- [x] Ledger append and FIFO-eviction tests still pass.
 
 ## 12. Dependencies
 
