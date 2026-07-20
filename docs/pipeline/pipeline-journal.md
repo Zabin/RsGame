@@ -14,23 +14,41 @@
 
 ## Position
 
-- **Updated:** 2026-07-20 (run #290 — advance, gate resolved: user answered run #289's G3 ask,
-  "Authorize IP-9200"; per the manager's own charter a resolved gate resumes the loop rather
-  than ending the session)
-- **Increment (run #290):** **User answered: "Authorize IP-9200."** `IP-9200` →
-  `AUTHORIZED`/`READY` on the Master Build Plan and `packages/INDEX.md`. Continuing to
-  `08-code-implementation` within this same run.
+- **Updated:** 2026-07-20 (run #291 — loop stops here, session-boundary: both `IP-9190`'s and
+  `IP-9200`'s own `09-package-verification` need a fresh session for genuine independence, same
+  basis as every prior post-bootstrap package this pipeline has treated as a genuine stop)
+- **Increment (run #291):** **`08-code-implementation`** on **`IP-9200` → `COMPLETE`**. Fixed
+  `handle_play_input`'s facing computation: replaced the four embedded per-direction
+  `PLAYER_FACING_X`/`Y` writes with a single upfront block that recomputes both axes fresh from
+  `JOY_CUR`'s current held state whenever any direction is held (clearing the unheld axis to 0),
+  preserving `FR-11310`'s own "moving direction, else last-faced" rule when nothing is held
+  (`T37.e`'s own precedent, confirmed still passing). Direct diff confirmed `PLAYER_DIR`'s own
+  write sites and `TMP1`'s own animation-flag logic byte-for-byte unchanged. New regression pair
+  `T37.j`/`k` (drives `handle_play_input` via real successive per-frame invocations, not fixture
+  force-injection — the only way to actually express this bug) directly encodes the reported
+  axis-switch failure and its symmetric case; `T37.l`/`m` reconfirm the pre-existing default/
+  last-held behaviors. **410/410 suite passes** (406 pre-existing + `T37.j`-`m`). ROM unchanged,
+  32768 bytes/32670 used. **Independently reproduced live** via the original real-button repro
+  script: moving only UP then firing now yields `(0, -1)`, not the previously-reported `(1, -1)`.
+  `FR-11310`/RTM updated. **`BL-0184` → `DONE`**.
 - **Pipeline state:** Bootstrap stages 01–11 ✅. **Release 2 GO, with four addenda.** 62/64
-  Implementation Packages `VERIFIED`, 1 `COMPLETE` (`IP-9190`, own `09` pass owed, fresh
-  session), `IP-9200` now `AUTHORIZED`/`READY` (weapon-facing fix, `BL-0184`). Tree green
-  (406/406 `test_rom.py`, ROM 32768/32670). Standing Medium-High: `BL-0185`. Standing Medium:
-  `BL-0176`, `BL-0148`, `BL-0089`/`BL-0090`/`BL-0097`/`BL-0099`. Diffuse Low doc-accuracy sweep
-  family (17 entries, non-blocking).
-- **Backlog:** 64 open entries, unchanged this run (gate-resolution only; `IP-9200`'s own
-  execution outcome will be harvested next).
-- **Next step:** **`08-code-implementation` on `IP-9200`** — fix `handle_play_input`'s facing
-  computation, add regression checks `T37.j`/`k`, run the full suite.
-- **Open gates:** none open. `IP-9190`'s own `09` pass is still owed (fresh session).
+  Implementation Packages `VERIFIED`, **2 `COMPLETE`** (`IP-9190` — combat cycle-budget
+  measurement, `NFR-1500` honestly recorded `MET`/`NOT MET`; `IP-9200` — weapon-facing axis
+  reset fix, `BL-0184`), both owing their own `09-package-verification` pass in a fresh session.
+  Tree green (410/410 `test_rom.py`, ROM 32768/32670). Standing Medium-High: `BL-0185` (combat+
+  materialization over-budget finding). Standing Medium: `BL-0176` (the ~20-site
+  `TRANSITION_TO`/`end_frame` idiom, "big item", next `07` candidate), `BL-0148`, `BL-0089`/
+  `BL-0090`/`BL-0097`/`BL-0099`. Diffuse Low doc-accuracy sweep family (17 entries,
+  non-blocking).
+- **Backlog:** 64 open entries. No `NEW`, no `NEEDS-USER` ripe and unaddressed.
+- **Next step:** **A fresh session should run `09-package-verification` on `IP-9190` and
+  `IP-9200`** (both implemented this same session — verifying now would degrade independence,
+  the same class of stop this pipeline has treated as genuine throughout its history). Once both
+  are `VERIFIED`, the next actionable backlog item is `BL-0176` (Medium, the large `07`-planned
+  refactor candidate) or the standing doc-accuracy sweep family — neither is gated, both are
+  available to whichever session picks this up next.
+- **Open gates:** none open. The two `09` passes owed are a session-boundary constraint, not a
+  human-decision gate.
 
 ## Run log
 
@@ -92,3 +110,4 @@ size — nothing was deleted). Runs #240 onward continue below.
 | 288 | 2026-07-20 | advance (gate resolved, continuing same run) | `08-code-implementation` | `IP-9190` | ✅ **`IP-9190` -> `COMPLETE`.** T39 suite added (2 checks), NFR-1500 measured honestly: combat-only MET (1804-3848 cycles), coinciding-with-materialization NOT MET (92648-95712 cycles). Design correction: a WRAM-trampoline hook design hung PyBoy for hours -- replaced with stack-chained real-ROM-label hooking, verified in isolation first. 406/406 suite. BL-0168 -> DONE; new finding BL-0185 filed. Mid-session, user reported a real bug (weapon fire diagonal-only) -- filed BL-0184 (High), confirmed live. | 09-package-verification on IP-9190 (fresh session); triage+plan BL-0184 in this same run. |
 | 289 | 2026-07-20 | advance (same session, continuing) | `07-implementation-planning` | `IP-9200` from `BL-0184` | ✅ **`IP-9200` authored -- `NOT STARTED`/`NOT AUTHORIZED`.** Fixes handle_play_input's facing computation to clear an unheld axis to 0 each frame, preserving the existing 'nothing held -> keep last value' behavior. New regression checks T37.j/k encode the exact reported bug. | **G3 authorization needed on IP-9200.** If authorized: 08-code-implementation. Separately: a fresh session should run 09-package-verification on IP-9190. |
 | 290 | 2026-07-20 | advance (gate resolved, user answered mid-run) | `00-pipeline-manager` (own record) | `IP-9200` authorization | ✅ **User answered run #289's G3 ask: "Authorize IP-9200."** `IP-9200` -> `AUTHORIZED`/`READY` on the Master Build Plan and `packages/INDEX.md`. | `08-code-implementation` on `IP-9200`, continuing within this same run. |
+| 291 | 2026-07-20 | advance (same session, continuing) | `08-code-implementation` | `IP-9200` | ✅ **`IP-9200` -> `COMPLETE`.** Fixed handle_play_input's facing computation to clear an unheld axis to 0 each frame, preserving the existing last-faced-value behavior when nothing is held. New regression pair T37.j/k encodes the exact reported bug; T37.l/m reconfirm existing behavior. 410/410 suite. Independently reproduced live (real button repro now yields pure (0,-1)). BL-0184 -> DONE. | A fresh session should run 09-package-verification on both IP-9190 and IP-9200. |
