@@ -14,8 +14,20 @@
 
 ## Position
 
-- **Updated:** 2026-07-20 (run #272 — advance → gate resolved, user answered mid-run; per the
-  manager's own charter a resolved gate resumes the loop rather than ending the session)
+- **Updated:** 2026-07-20 (run #273 — iterate mode; continues within the same run as #269-272)
+- **Increment (run #273):** **`05-feature-decomposition`** delta: `FEAT-11000` moved `Future` →
+  Release 2 as a fourth addendum in `01-release-plan.md` (mirroring `FEAT-10000`'s own identical
+  addendum pattern), with `11-release-readiness`'s own GO/NO-GO assessment explicitly named as
+  still owed (not claimed here). Folded in **`BL-0164`**: `03-feature-catalog.md`'s `FEAT-11000`
+  heading/forward-reference refreshed to "implemented and verified," mirroring the `BL-0126` fix
+  pattern for `FEAT-10000` — `BL-0164` → `DONE`. `ROADMAP.md`'s `FP-01`/`FP-03` rows updated to
+  match. **New finding harvested**: `01-release-plan.md`'s own "Deferred" callout sentence still
+  described `FEAT-10000`/`FEAT-7100` as "placed in Future" (stale since their own 2026-07-17
+  move) — the `FEAT-11000` clause of that same sentence is now corrected as part of this delta,
+  the `FEAT-10000`/`FEAT-7100` portions filed as **`BL-0167`** (Low, `SCHEDULED`, doc-accuracy
+  sweep family). `BL-0165` (`FS-112`'s own `INDEX.md` row) deliberately left untouched — owned by
+  `06-feature-specification`, not this stage. Next: `11-release-readiness` for `FEAT-11000`'s own
+  GO/NO-GO call, continuing within this same run.
 - **Increment (run #272):** **User answered run #271's `BL-0166` gate: "Commit to a new release
   now."** Per this project's own established "no Release 3" bucket vocabulary (`01-release-
   plan.md:109`/123 — every post-Release-2 delta, including `FEAT-10000` itself, folded into
@@ -242,29 +254,30 @@
   (`inf_mob_move`, new WRAM `MOB_MOVE_TIMER`, suite `T35`, 373/373 passes, `FS-112` Open Question 4
   resolved); `BL-0160` (sound effects) filed and triaged `SCHEDULED` for a future `03` pass.
 - **Pipeline state:** Bootstrap stages 01–11 ✅; Release 2 GO. **51 packages `VERIFIED`**
-  (`IP-1124`/`IP-1127` `VERIFIED` runs #269-270). `IP-1120`–`IP-1129` **all ten packages in the
-  Infinite Mode Combat Sub-Mode delta `VERIFIED` AND integration-reviewed clean** (run #271).
-  `FEAT-11000` **release-commitment decided this run** ("commit to a new release now") — moving
-  Future → Release 2 addendum is this run's own immediately-next step. Standing, non-blocking
-  doc/design work: the doc-accuracy sweep family (`BL-0136`/`BL-0137`/`BL-0140`–`BL-0143`/
-  `BL-0151`/`BL-0164`/`BL-0165`); `BL-0118` (`NFR-1400` cycle-budget gap); `NFR-1500`
-  (combat-sub-mode cycle budget, still `UNCONFIRMED`); `BL-0123` (`try_load_save` unneeded
-  finite-mode work); `BL-0112` (Infinite Mode run-end trigger); `BL-0097` (Medium, routed
-  already); `BL-0130` (catalog text gap); `BL-0148`/`BL-0149`/`BL-0150`/`BL-0152`/`BL-0159`
-  (remaining half)/`BL-0160`/`BL-0161`/`BL-0162` (all Low/Low-Medium, `SCHEDULED`/`DEFERRED`,
-  non-blocking).
-- **Backlog:** 166 entries. `BL-0166` flipped `NEEDS-USER`→`SCHEDULED` this run (user decided;
-  rides this run's own next `05` step). `BL-0164`/`BL-0165` unchanged (`SCHEDULED`, ride `05`/
-  `06` respectively — `BL-0164` folds into this same `05` pass since both touch `FEAT-11000`).
-  `BL-0158` `DONE` (unchanged from run #270). `BL-0147`/`BL-0155`/`BL-0157`/`BL-0156`/`BL-0148`/
-  `BL-0161`/`BL-0133`/`BL-0154` unchanged.
-- **Next step:** **`05-feature-decomposition`** — record `FEAT-11000`'s `Future`→Release 2
-  addendum move in `01-release-plan.md` (mirroring `FEAT-10000`'s own identical addendum
-  pattern, "no Release 3" convention), carrying `BL-0164`'s catalog-staleness fix along in the
-  same pass (both touch `03-feature-catalog.md`'s `FEAT-11000` entry). After that:
-  `11-release-readiness` for the GO/NO-GO call. No gate applies to `05` itself (recording an
-  already-user-authorized bucket move is not a fresh G3/G4 event). Continuing within this run.
-- **Open gates:** none open (`BL-0166` resolved this run).
+  (`IP-1124`/`IP-1127` `VERIFIED` runs #269-270; ten-package tranche integration-reviewed clean,
+  run #271). `FEAT-11000` **moved `Future` → Release 2 as a fourth addendum this run**
+  (`01-release-plan.md`) — `11-release-readiness`'s own GO/NO-GO call is the pipeline's own
+  immediately-next step. Standing, non-blocking doc/design work: the doc-accuracy sweep family
+  (`BL-0136`/`BL-0137`/`BL-0140`–`BL-0143`/`BL-0151`/`BL-0165`/`BL-0167`); `BL-0118` (`NFR-1400`
+  cycle-budget gap); `NFR-1500` (combat-sub-mode cycle budget, still `UNCONFIRMED`); `BL-0123`
+  (`try_load_save` unneeded finite-mode work); `BL-0112` (Infinite Mode run-end trigger);
+  `BL-0097` (Medium, routed already); `BL-0130` (catalog text gap); `BL-0148`/`BL-0149`/
+  `BL-0150`/`BL-0152`/`BL-0159` (remaining half)/`BL-0160`/`BL-0161`/`BL-0162` (all Low/
+  Low-Medium, `SCHEDULED`/`DEFERRED`, non-blocking).
+- **Backlog:** 167 entries. `BL-0166` → `DONE` this run (bucket move recorded). `BL-0164` →
+  `DONE` this run (`FEAT-11000` catalog heading refreshed). New: **`BL-0167`** (Low, `SCHEDULED`
+  — `FEAT-10000`/`FEAT-7100`'s own stale "placed in Future" callout sentence, doc-accuracy sweep
+  family). `BL-0165` unchanged (`SCHEDULED`, rides a future `06` touch — deliberately not fixed
+  by this run's `05` pass, different owning stage). `BL-0158` `DONE` (unchanged from run #270).
+  `BL-0147`/`BL-0155`/`BL-0157`/`BL-0156`/`BL-0148`/`BL-0161`/`BL-0133`/`BL-0154` unchanged.
+- **Next step:** **`11-release-readiness`** for `FEAT-11000` (Infinite Mode Combat Sub-Mode) —
+  the GO/NO-GO call now that the Feature is `VERIFIED` end-to-end, integration-reviewed clean,
+  and formally moved into a release bucket. No gate applies to invoking `11` itself (the GO/NO-GO
+  recommendation it produces is advisory; the user's own release-commitment decision authorizing
+  this pass already landed this run, per the skill's own charter — "the GO/NO-GO recommendation
+  is advisory, the user makes the actual release decision"). Continuing within this run; the
+  release call itself is the next genuine point requiring user confirmation.
+- **Open gates:** none open.
 
 ## Run log
 
@@ -547,3 +560,4 @@
 | 270 | 2026-07-20 | advance (iterate, same session as #269) | `09-package-verification` | `IP-1127` | ✅ **`VERIFIED`** ([VR-1127](../implementation/verification/VR-1127-infinite-mode-combat-post-contact-protection.md)). Tree unchanged since run #269's build/suite run — shared as independent evidence for both. All 11 `T36.a`-`j` reconfirmed. Direct code read confirmed `check_collisions`/`MOB_DATA` layout untouched (only `inf_mob_contact_check`'s own prior body replaced); knockback clamp bounds confirmed matching `handle_play_input`'s own; `MOB_CONTACT_FLAGS` confirmed a genuinely separate table. No findings, no scope excursion. Closes `BL-0158`. **This closes every package in the Infinite Mode Combat Sub-Mode delta (`IP-1120`–`IP-1129`) to `VERIFIED` — the full ten-package tranche is done.** | `10-integration-review` across the ten-package tranche — no gate, continuing within this same run. |
 | 271 | 2026-07-20 | advance (iterate, same session) → gate | `10-integration-review` | Infinite Mode Combat Sub-Mode tranche (`IP-1120`-`IP-1129`) | ✅ **Clean, 0 Critical/High** ([report](../reviews/integration-review-infinite-mode-combat-sub-mode-tranche.md)). All five dimensions exercised; WRAM/ROM/tile budgets confirmed collision-free; own live drive chained all ten packages in one continuous real session (materialization+movement+fire+hit+defeat+contact+knockback+invincibility+cooldown+save/load). Two stale-doc findings harvested (`BL-0164` Medium, `BL-0165` Low, both `SCHEDULED`). `ROADMAP.md` `RV-INTEG` updated. | **GATE (`BL-0166`):** `FEAT-11000` fully `VERIFIED`+reviewed but still `Future`-bucketed since run #228's deliberate pause — release-commitment decision needed from the user (commit to a release now, or leave in `Future`) before `11-release-readiness` can run. |
 | 272 | 2026-07-20 | advance → gate resolved (user answered mid-run) | — | `BL-0166` | ✅ **User answered run #271's gate: "Commit to a new release now."** Per the project's own established "no Release 3" bucket vocabulary, `FEAT-11000` rides the identical Future→Release-2-addendum pattern `FEAT-10000` used. `BL-0166` → `SCHEDULED`. Per the manager's own charter, a resolved gate resumes the loop rather than ending the session. | `05-feature-decomposition` — record the bucket move + `BL-0164`'s catalog refresh, same pass; continuing within this run. |
+| 273 | 2026-07-20 | advance (iterate, same session) | `05-feature-decomposition` | `FEAT-11000` release-plan delta | ✅ **`FEAT-11000` moved `Future` → Release 2 as a fourth addendum** (`01-release-plan.md`), mirroring `FEAT-10000`'s own identical pattern; `11-release-readiness` GO/NO-GO explicitly named as still owed, not claimed here. `BL-0164` folded in: `03-feature-catalog.md`'s `FEAT-11000` heading/forward-reference refreshed to implemented/verified (mirrors `BL-0126`'s fix for `FEAT-10000`). `ROADMAP.md` `FP-01`/`FP-03` rows updated. New finding `BL-0167` (Low, `SCHEDULED`) filed — the same "Deferred" callout sentence's `FEAT-10000`/`FEAT-7100` clauses remain stale (only `FEAT-11000`'s own clause fixed here, in scope). `BL-0165` deliberately left for `06`. | `11-release-readiness` for `FEAT-11000`'s GO/NO-GO call — user's own answer to the `BL-0166` gate explicitly authorized this exact chain ("commit to a new release now... triggers 05... then 11-release-readiness"); continuing within this same run. |
