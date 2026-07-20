@@ -9,7 +9,10 @@
 > `MSTR-001` C11); delta 2026-07-19 (`FEAT-11000`'s own Included Requirements grows by two —
 > `FR-11210` mob movement, `FR-11410` post-contact protection — both user-filed gaps found by
 > direct play, folded into the existing Feature per this document's own Step-1 cohesion rule, no
-> new `FEAT-xxxx` opened, no Epic/graph/release-bucket change, `BL-0156`/`BL-0158`).** Owned by
+> new `FEAT-xxxx` opened, no Epic/graph/release-bucket change, `BL-0156`/`BL-0158`); delta
+> 2026-07-20 (`FEAT-11000`'s own heading/forward-reference refreshed to implemented/verified —
+> all ten packages `VERIFIED`, integration-reviewed clean, moved `Future` → Release 2 as a fourth
+> addendum, `BL-0164`/`BL-0166`).** Owned by
 > `05-feature-decomposition`. Derives from the closed
 > [RQ-01](../requirements/01-functional-requirements.md)/
 > [RQ-02](../requirements/02-non-functional-requirements.md) baseline, now 36 bootstrap `FR-xxxx`/
@@ -879,7 +882,7 @@
   above for the real, already-tracked implementation-time questions this Feature carries forward
   (`BL-0107`/`BL-0108`/`BL-0109`).
 
-## FEAT-11000 — Infinite Mode Combat Sub-Mode (new — not yet implemented)
+## FEAT-11000 — Infinite Mode Combat Sub-Mode (implemented and verified 2026-07-20 — see forward reference)
 
 > **Forward reference (metadata only):** specified by
 > [FS-112](../features/FS-112-infinite-mode-combat-sub-mode.md) (2026-07-17). 3 Open Questions
@@ -893,15 +896,23 @@
 > Requirements below). **Folded into `FS-112` (2026-07-19, `06-feature-specification`)** —
 > Workflows B/D, System Behaviour, Module Responsibilities, Interfaces, Data Model, Acceptance
 > Criteria (AC-3/AC-6, renumbered), Verification Plan, and a new Open Question 4 (`BL-0159`, does
-> an already-adjacent mob keep re-attempting movement) all updated in that same pass. Neither leaf
-> is packaged yet — `07-implementation-planning` is next, subject to a fresh G3 authorization
-> (new scope beyond the original "build all six" go-ahead). **Delta 2026-07-19 (cont'd):** two
-> more new sub-leaves baselined by `04-requirements-engineering` — `FR-11310` (movement-based
-> multi-directional weapon fire, `BL-0157`, grounded by `ADS-002`'s "Weapon Directionality
-> Delta"/`ADR-0021`/`R220`) and `FR-11510` (treasure-spent weapon-tier funding economy,
-> `BL-0147`/`BL-0155`, grounded by `R219`) — both folded into this same Feature (no new capability
-> boundary; see this entry's own Description/Included Requirements below). Neither leaf is
-> specified into `FS-112` or packaged yet.
+> an already-adjacent mob keep re-attempting movement) all updated in that same pass. **Delta
+> 2026-07-19 (cont'd):** two more new sub-leaves baselined by `04-requirements-engineering` —
+> `FR-11310` (movement-based multi-directional weapon fire, `BL-0157`, grounded by `ADS-002`'s
+> "Weapon Directionality Delta"/`ADR-0021`/`R220`) and `FR-11510` (treasure-spent weapon-tier
+> funding economy, `BL-0147`/`BL-0155`, grounded by `R219`) — both folded into this same Feature
+> (no new capability boundary; see this entry's own Description/Included Requirements below).
+> **Implementation status (metadata only, `BL-0164`, 2026-07-20):** all ten planned packages
+> (`IP-1120`–`IP-1129`) are `VERIFIED` on the Master Build Plan, and the full set passed
+> `10-integration-review` clean, 0 Critical/High
+> ([integration-review-infinite-mode-combat-sub-mode-tranche.md](../reviews/integration-review-infinite-mode-combat-sub-mode-tranche.md))
+> — the two Low/Medium findings that review surfaced were this catalog entry's own then-stale
+> status (now fixed here) and `FS-112`'s own `INDEX.md` row (`BL-0165`, owned by
+> `06-feature-specification`). The heal-spend/tier-spend input-binding gaps (`BL-0148`-class)
+> remain open by deliberate, adjudicated scope choice, not an implementation defect — no
+> `FR`/AC names a button binding for either mechanism. **Release status: moved `Future` →
+> Release 2 as a fourth addendum 2026-07-20** (`01-release-plan.md`, `BL-0166`, user-confirmed
+> release commitment) — `11-release-readiness`'s own GO/NO-GO assessment is still owed.
 
 - **Feature ID:** FEAT-11000
 - **Title:** Infinite Mode Combat Sub-Mode

@@ -16,7 +16,10 @@
 > user-confirmed
 > ([release-assessment-infinite-mode-and-nine-biome-family-delta.md](../reviews/release-assessment-infinite-mode-and-nine-biome-family-delta.md))**;
 > delta 2026-07-17 (cont'd) (`FEAT-11000`, Infinite Mode combat sub-mode, joins Future,
-> `BL-0133`/`ADS-002`/`MSTR-001` C11).**
+> `BL-0133`/`ADS-002`/`MSTR-001` C11); **delta 2026-07-20 — `FEAT-11000` moves Future → Release 2
+> as a fourth addendum, all ten packages `VERIFIED` and integration-reviewed clean, user-
+> confirmed release commitment (`BL-0166`) — `11-release-readiness`'s own GO/NO-GO assessment
+> still owed.**
 > Owned by
 > `05-feature-decomposition`. Assigns every Feature
 > in [FP-03](03-feature-catalog.md) (now nineteen) to exactly one bucket, using
@@ -134,6 +137,16 @@ All twelve packages across this addendum, both integration reviews (this one plu
 Infinite Mode tranche review), and the Release Assessment above are the evidence base for this
 GO. See that assessment for the full scope audit, deviations, and residual risks.
 
+### Release 2 addendum — Infinite Mode Combat Sub-Mode (added 2026-07-20, release-readiness owed)
+
+`FEAT-11000`, moved here on the project owner's explicit 2026-07-20 release-commitment decision
+(`BL-0166`) — mirroring the identical "no Release 3" reasoning the addenda above already
+established, rather than opening a new numbered release bucket for a single Feature.
+
+| Feature | Why here |
+|---|---|
+| FEAT-11000 (Infinite Mode Combat Sub-Mode) | Fully shipped: all ten packages (`IP-1120`–`IP-1129`) `VERIFIED`, integration-reviewed clean, 0 Critical/High ([integration-review-infinite-mode-combat-sub-mode-tranche.md](../reviews/integration-review-infinite-mode-combat-sub-mode-tranche.md)). Unlike the addendum above, **`11-release-readiness`'s own GO/NO-GO assessment has not yet run for this addendum** — the bucket move records the user's release-commitment decision; the formal readiness call is the pipeline's own next step. |
+
 ## Bucket: Future
 
 Two kinds of item live here: program-level concerns not yet decomposed into a Feature at all, and
@@ -167,14 +180,10 @@ inventing requirements:
 
 ### Decomposed, not yet scheduled
 
-`FEAT-10000` and `FEAT-7100` moved out of this section 2026-07-17 — see the new Release 2
-addendum above.
+`FEAT-10000` and `FEAT-7100` moved out of this section 2026-07-17; `FEAT-11000` moved out
+2026-07-20 — see the new Release 2 addenda above.
 
-| Feature | Why here |
-|---|---|
-| FEAT-11000 (Infinite Mode Combat Sub-Mode) | Not yet implemented. All three of its own dependencies (`FEAT-10000`, `FEAT-3000`, `FEAT-6000`) are already shipped/`VERIFIED` — zero graph-blocking dependencies, per FP-04. Placed in `Future`, mirroring `FEAT-10000`'s own original placement before its GO, purely a release-commitment choice, not a technical one: this is a substantially larger body of new production code (mob AI, projectile physics, health/damage, a second economy, a save-format extension) than any Feature currently scheduled, and the pipeline journal (run #228) recorded a deliberate checkpoint here rather than assuming continued scope without the user weighing in. |
-
-Nothing else remains in this subsection at present.
+Nothing remains in this subsection at present.
 
 ## Callouts
 
@@ -210,10 +219,9 @@ Nothing else remains in this subsection at present.
   `FEAT-10000`, its runtime selection half carries a real technical blocker in addition to the
   no-release-commitment reason (see its own Future-bucket entry above); its build-time generation
   half shares `FEAT-10000`'s own commitment-only framing. **`FEAT-11000` (Infinite Mode Combat
-  Sub-Mode, added 2026-07-17) is also fully decomposed and placed in Future** — zero
-  graph-blocking dependencies (all three shipped/`VERIFIED`), same commitment-only framing as
-  `FEAT-10000` originally carried, deliberately not auto-scheduled given the scope of the eventual
-  production code it represents.
+  Sub-Mode) moved out of Future 2026-07-20** — see the new Release 2 addendum above; kept as a
+  historical note that it too was originally deferred for the identical commitment-only reason
+  `FEAT-10000` carried, not for any technical blocker.
 
 ## Sequencing note
 
