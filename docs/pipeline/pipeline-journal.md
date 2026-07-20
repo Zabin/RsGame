@@ -14,6 +14,23 @@
 
 ## Position
 
+- **Updated:** 2026-07-20 (run #278 — loop stops here, session-boundary — `IP-8010`'s own
+  `09-package-verification` needs a fresh session for genuine independence)
+- **Increment (run #278):** **`08-refactoring`** on **`IP-8010` → `COMPLETE`**. All five
+  eligibility checks passed (package `READY`, G3 authorized, pipeline quiescent, green baseline
+  captured before any edit — SHA-256 + full 404-check inventory recorded — equivalence contract
+  stated). Extracted `pib_reg_minus_origin`; rewrote `check_collisions`/`inf_mob_contact_check`
+  to call it, preserving each site's own branch instruction (`JR` vs `JP`, `inf_mob_contact_check`
+  needs `JP` since its body exceeds `JR`'s range) and register-preservation requirements (`B`/`C`
+  confirmed surviving at both sites by direct read before editing). `inf_projectile_hittest`
+  confirmed zero diff lines. **Equivalence proven, not asserted:** `test_rom.py` zero diff lines;
+  full suite 404/404, check-name set identical to the pre-edit baseline (`diff` clean); ROM
+  32768 bytes, 32670 used — same as baseline (net-zero at the section-total level, absorbed by
+  alignment slack, not a target hit); the 6365-byte binary diff (0x14e–0x21d7) confirmed to be
+  pure address-relocation cascade from the code-layout shift, not a logic change. No
+  documentation needed correction (`GDS-07`/`ADS-002` describe the technique conceptually, still
+  accurate). Master Build Plan/`packages/INDEX.md` updated — `COMPLETE`, own
+  `09-package-verification` pass owed (fresh session).
 - **Updated:** 2026-07-20 (run #277 — advance → gate resolved, user answered mid-run; per the
   manager's own charter a resolved gate resumes the loop rather than ending the session)
 - **Increment (run #277):** **User answered run #276's G3 ask: "Authorized all refactoring."**
@@ -318,24 +335,25 @@
   resolved); `BL-0160` (sound effects) filed and triaged `SCHEDULED` for a future `03` pass.
 - **Pipeline state:** Bootstrap stages 01–11 ✅. **Release 2 GO, now with four addenda** — the
   fourth (Infinite Mode Combat Sub-Mode, `FEAT-11000`) shipped run #274. **51 packages
-  `VERIFIED`, 1 new package `NOT STARTED`/`NOT AUTHORIZED`** (`IP-8010`, the refactor just
-  authored). Other Medium-High items with no single unambiguous next skill: `BL-0148`
+  `VERIFIED`, 1 package `COMPLETE`** (`IP-8010`, the refactor just executed — own `09` pass
+  owed, fresh session). Other Medium-High items with no single unambiguous next skill: `BL-0148`
   (input-binding gap) and `BL-0168` (`NFR-1500` cycle-budget measurement) — both accepted as
   known deviations at run #274's own GO, not blocking. Diffuse **doc-accuracy sweep family**
   (`BL-0136`/`BL-0137`/`BL-0140`–`BL-0143`/`BL-0151`/`BL-0165`/`BL-0167`/`BL-0169`, all Low,
   `SCHEDULED`, non-blocking). Also standing: `BL-0118`, `BL-0123`, `BL-0112`, `BL-0097`,
   `BL-0130`, `BL-0149`/`BL-0150`/`BL-0152`/`BL-0159` (remaining half)/`BL-0160`/`BL-0161`/
   `BL-0162` (all Low/Low-Medium, non-blocking).
-- **Backlog:** 170 entries. `BL-0170` unchanged (`SCHEDULED` — its own ride, `07`, is now
-  complete; it stays `SCHEDULED` rather than `DONE` until `IP-8010` itself reaches `VERIFIED`).
-  All other entries unchanged.
-- **Next step:** **G3 authorization for `IP-8010`** — the package is fully planned and `READY`
-  in every sense except authorization; no bootstrap carve-out applies to refactoring packages,
-  so `08-refactoring` may not execute it without the user's own explicit, per-package go-ahead.
-  On "yes": `08-refactoring` executes `IP-8010`, then `09-package-verification` (which re-checks
-  the equivalence evidence) before this closes. On "no"/deferred: the package stays `NOT
-  STARTED`/`NOT AUTHORIZED` on the Master Build Plan, available to authorize later.
-- **Open gates:** **G3 on `IP-8010`** — ripe, put to the user this run.
+- **Backlog:** 170 entries. `BL-0170` unchanged (`SCHEDULED` — closes only once `IP-8010` itself
+  reaches `VERIFIED`, per this project's own standing convention for refactor/remediation
+  entries). All other entries unchanged.
+- **Next step:** **`09-package-verification` on `IP-8010`** — independently re-checks the
+  equivalence evidence (ROM rebuild, full suite, direct diff confirming only the three intended
+  regions changed). **Session-boundary stop**: `IP-8010` was implemented this same session, so
+  verifying it now would degrade independence — the same class of stop this pipeline has treated
+  as genuine throughout its history. A fresh session should run `09-package-verification IP-8010`
+  next.
+- **Open gates:** none open. The `09` pass owed is a session-boundary constraint, not a
+  human-decision gate.
 
 ## Run log
 
@@ -623,3 +641,4 @@
 | 275 | 2026-07-20 | advance (user-directed: "refactor using the refactor skill(s)") | — | Refactor survey | ✅ Checked all four `08-refactoring` PROPOSE conditions; none independently triggered (post-GO window timing-satisfied but no structural debt was actually noted during the release). Found genuine duplicated behavior by direct code read: the point-in-box hit-test technique inlined identically three times in `asm_game.py` (`check_collisions`/`inf_projectile_hittest`/`inf_mob_contact_check`). Filed `BL-0170` (`refactor`, `SCHEDULED`), all three `07`-authorization preconditions confirmed (no Critical/High bug at entry stage, pipeline quiescent, tree green 404/404, no release bucket mid-close). | `07-implementation-planning` to author `IP-8xx0` from `BL-0170`; continuing within this run. |
 | 276 | 2026-07-20 | advance → gate (G3, no bootstrap carve-out for refactoring) | `07-implementation-planning` | `IP-8010` from `BL-0170` | ✅ Authored in full (14 fields). Scope corrected during planning: only 2 of the originally-hypothesized 3 duplicate sites are true duplicates (`inf_projectile_hittest` computes the operands in reverse, non-commutable order — deliberately left out of scope). New subroutine `pib_reg_minus_origin` designed. Zero new tests needed; expected small net ROM decrease. Master Build Plan/`packages/INDEX.md`/`ROADMAP.md` updated — `NOT STARTED`, `NOT AUTHORIZED`. | **GATE (G3):** the user's own explicit, per-package go-ahead is required before `08-refactoring` may execute `IP-8010` — no bootstrap carve-out applies to refactoring packages. |
 | 277 | 2026-07-20 | advance → gate resolved (user answered mid-run) | — | `IP-8010` G3 | ✅ **User answered run #276's G3 ask: "Authorized all refactoring."** `IP-8010` → `AUTHORIZED`/`READY`. | `08-refactoring` on `IP-8010`; continuing within this run. |
+| 278 | 2026-07-20 | advance (user-directed) | `08-refactoring` | `IP-8010` | ✅ **`COMPLETE`.** All five eligibility checks passed; baseline captured before any edit (SHA-256 + 404-check inventory). Extracted `pib_reg_minus_origin`; both call sites rewritten, branch instructions and register-preservation preserved per site (confirmed by direct read before editing). `inf_projectile_hittest` confirmed zero diff lines. Equivalence proven: `test_rom.py` zero diff, 404/404 with identical check-name set, ROM 32768 bytes/32670 used (unchanged from baseline), 6365-byte binary diff confirmed pure address-relocation cascade. No doc correction needed. | **Session-boundary stop.** `IP-8010`'s own `09-package-verification` needs a fresh session for genuine independence. |
