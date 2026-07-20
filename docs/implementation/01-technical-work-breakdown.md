@@ -2141,3 +2141,77 @@ body + two ~3-byte `CALL`s).
 
 **Authorization:** treated as authorized under the user's own standing "continue iterating the
 refactoring... don't stop to ask" instruction (same basis as prior packages this session).
+
+## `BL-0180` — `pipeline-journal.md` archive split (refactor)
+
+**Verb inventory:** not applicable — pure documentation reorganization, no logic/behavior change.
+
+**Supersession sweep:** direct read confirms the file is exactly two sections (Position, Run log)
+with no other content; the Run log is a single flat table, one row per run, runs #0-284
+contiguous by line number (lines 405-693 of the pre-refactor file).
+
+**Decomposition, one package:**
+
+| Work unit | Package | Owning peer | Depends on |
+|---|---|---|---|
+| Split runs #0-239 into a new archive file (verbatim); keep Position + runs #240-284 live with a cross-link | [IP-8090](packages/IP-8090-pipeline-journal-archive-split.md) | `08-refactoring` | none |
+
+**Split rationale:** one package — a single mechanical move, no logic to decompose.
+
+**Doc-scope equivalence plan:** byte-for-byte accounting (archive + live body == original body,
+modulo the added header/pointer lines); link integrity check across the tree; the pipeline
+manager's own `SKILL.md` updated to describe the new archive convention so future runs don't
+silently re-grow the live file past the retention window.
+
+**Authorization:** user directly authorized this approach via `AskUserQuestion` ("Refactor all
+log and roadmap files" → "Archive-split (Recommended)").
+
+## `BL-0181` — `backlog.md` archive split (refactor)
+
+**Verb inventory:** not applicable — pure documentation reorganization, no logic/behavior change.
+
+**Supersession sweep:** direct read confirms 179 entries, one row per `BL-xxxx` ID; status
+distribution 114 `DONE`, 46 `SCHEDULED`, 15 `DEFERRED`, 2 `IN PIPELINE`, 2 `NEW`/`REJECTED`
+combined (exact count reconfirmed at execution time, since this run's own new entries shift the
+totals).
+
+**Decomposition, one package:**
+
+| Work unit | Package | Owning peer | Depends on |
+|---|---|---|---|
+| Move every `DONE`/`REJECTED` row to a new archive file (verbatim); keep open-status rows (`NEW`/`SCHEDULED`/`DEFERRED`/`NEEDS-USER`/`IN PIPELINE`) live with a cross-link; update the file's own header text to describe the new convention | [IP-8100](packages/IP-8100-backlog-archive-split.md) | `08-refactoring` | none |
+
+**Split rationale:** one package — a single mechanical partition by status, no logic to
+decompose.
+
+**Doc-scope equivalence plan:** every row accounted for exactly once (archive + live == original
+row count); no row's own ID/status/content text altered, only relocated; lifecycle/lookup text
+in the file's own header updated to match (a genuine but narrow content change, distinct from the
+row data itself, called out explicitly rather than silently folded in); link integrity check.
+
+**Authorization:** user directly authorized this approach via `AskUserQuestion`.
+
+## `BL-0182` — `ROADMAP.md` cell compaction (refactor)
+
+**Verb inventory:** not applicable — pure documentation reorganization, no logic/behavior change.
+
+**Supersession sweep:** direct byte-length scan of every table cell in the file identifies seven
+rows over 1.5KB each (`IM-00` ~17.4KB, `IP-xxxx` ~6.5KB, `RV-INTEG` ~4.8KB, `R201-R220` ~3KB,
+`R101-R115` ~2.3KB, `ADR-xxxx` ~2.1KB, `IM-01` ~1.8KB), confirmed each one's full historical
+content already exists in its own owning document or theme `INDEX.md` before any cell is trimmed.
+
+**Decomposition, one package:**
+
+| Work unit | Package | Owning peer | Depends on |
+|---|---|---|---|
+| Compact the seven worst-offender Status cells to a short current-state summary + pointer to the owning doc; verify equivalence per cell before trimming | [IP-8110](packages/IP-8110-roadmap-cell-compaction.md) | `08-refactoring` | none |
+
+**Split rationale:** one package — seven cells, same mechanical pattern (verify coverage
+elsewhere, then compact), no logic to decompose.
+
+**Doc-scope equivalence plan:** per-cell verification that every fact/finding/ID named in the
+removed prose is independently confirmable in the owning doc/INDEX before trimming; anything not
+independently reconstructable is kept inline rather than removed. Link integrity check.
+
+**Authorization:** user directly authorized this approach via `AskUserQuestion` ("Compact to
+current-state + pointer (Recommended)").
