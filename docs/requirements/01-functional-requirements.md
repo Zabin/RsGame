@@ -2552,6 +2552,14 @@ none of FR-10000's own leaves are amended by this group. `FR-9000`'s finite mode
   regression observed; `NFR-1500` itself remains `UNCONFIRMED` pending its own dedicated
   measurement, unaffected by this leaf. Does not require or imply new player sprite art
   (`ADR-0021`'s own Decision 4) — the player's rendered sprite is unaffected by this leaf.
+  **2026-07-20 remediation (`IP-9200`, `BL-0184`):** the shipped facing computation only ever
+  *set* `PLAYER_FACING_X`/`Y` inside its own direction's movement branch, with no branch that
+  *cleared* the opposite axis when only one axis was held — combined with the boot-default
+  `PLAYER_FACING_X=1`, this made pure cardinal fire effectively unreachable in real play once
+  both axes had ever been touched (user-reported, confirmed live). Fixed: the facing computation
+  now recomputes both axes fresh from `JOY_CUR`'s current held state whenever any direction is
+  held, clearing the unheld axis to 0, while still preserving this FR's own "moving direction,
+  else last-faced" rule when nothing is held. Verified by new checks `T37.j`-`m`.
 
 ### FR-11400 — Player health and non-lethal setback
 
