@@ -5212,6 +5212,159 @@ pb.stop()
 wipe_save()
 
 # ══════════════════════════════════════════════════════
+# T39 — Combat Sub-Mode Per-Frame Cycle Budget Measurement (IP-9190, NFR-1500)
+# ══════════════════════════════════════════════════════
+print("\n=== T39: Combat Sub-Mode Per-Frame Cycle Budget Measurement (NFR-1500) ===")
+
+# Direct cycle-count of the combat per-frame chain st_playing already runs
+# unconditionally every frame (asm_game.py:711-714): inf_mob_move ->
+# inf_projectile_update (incl. inf_projectile_hittest) -> inf_mob_contact_
+# check -> inf_invincibility_tick. Mirrors NFR-1400/IP-1102's own already-
+# VERIFIED T24.e PC/SP-hijack + direct-cycle-count technique, but chains
+# multiple CALLs (not a single routine) via a small trampoline assembled
+# into WRAM scratch and jumped to directly -- simpler than faking a return
+# address per routine, since we control the whole sequence ourselves. The
+# trampoline lives at SCOREITEM_FLAGS' own address range (0xC286-0xC2D6,
+# 81 bytes) -- confirmed by direct read that none of the five routines
+# measured here (inf_mob_move/inf_projectile_update/inf_mob_contact_check/
+# inf_invincibility_tick/check_zone_transition, plus what check_zone_
+# transition itself calls: czt_infinite/inf_ensure_window/inf_record_
+# combat_entry/czt_redraw) ever reads or writes that range -- it is
+# SEED/SCALE ENTRY's own scratch, entirely disjoint from the 0xC6xx combat
+# WRAM block and the 0xC3xx Infinite Mode navigation block these routines
+# actually touch.
+T39_TRAMPOLINE_ADDR = 0xC286
+INF_MOB_MOVE_ADDR = _gw_rom.labels['inf_mob_move']
+INF_PROJECTILE_UPDATE_ADDR = _gw_rom.labels['inf_projectile_update']
+INF_MOB_CONTACT_CHECK_ADDR = _gw_rom.labels['inf_mob_contact_check']
+INF_INVINCIBILITY_TICK_ADDR = _gw_rom.labels['inf_invincibility_tick']
+CHECK_ZONE_TRANSITION_ADDR = _gw_rom.labels['check_zone_transition']
+COMBAT_ENTRY_X_ADDR = 0xC6DA; COMBAT_ENTRY_Y_ADDR = 0xC6DB
+
+def measure_call_chain_cycles(pb, addrs, budget=10):
+    """Assemble a CALL-chain trampoline (CALL addrs[0]; CALL addrs[1]; ...;
+    JR -2 self-loop) at T39_TRAMPOLINE_ADDR, hijack PC directly to it (no
+    SP manipulation needed -- unlike invoke_no_arg's single-RET trap, this
+    trampoline supplies its own next instruction after each CALL's real
+    RET returns, so the CPU's already-valid stack is used unmodified).
+    Measures via two hook_register callpoints (trampoline entry, trap
+    address) reading PyBoy's own cycle counter -- T24.e's own established
+    technique (measure_inf_ensure_window_cycles) and, critically, its own
+    established *reason* for using hooks rather than polling pb._cycles()
+    after each pb.tick() call: tick() advances a full frame at a time, so
+    a post-tick() read would only be frame-quantized (~70224-cycle
+    granularity) regardless of how few cycles the trampoline itself
+    actually took -- the hook fires synchronously at the exact PC/cycle
+    the CPU reaches it, mid-tick."""
+    pos = T39_TRAMPOLINE_ADDR
+    for addr in addrs:
+        pb.memory[pos] = 0xCD; pb.memory[pos + 1] = addr & 0xFF; pb.memory[pos + 2] = (addr >> 8) & 0xFF
+        pos += 3
+    pb.memory[pos] = 0x18; pb.memory[pos + 1] = 0xFE   # JR -2 (self-loop trap)
+    trap_addr = pos
+    pb.register_file.PC = T39_TRAMPOLINE_ADDR
+    state = {}
+    def _start(ctx): state.setdefault('start', pb._cycles())
+    def _end(ctx): state.setdefault('end', pb._cycles())
+    pb.hook_register(0, T39_TRAMPOLINE_ADDR, _start, None)
+    pb.hook_register(0, trap_addr, _end, None)
+    for _ in range(budget):
+        pb.tick()
+        if 'end' in state:
+            break
+    if 'start' not in state or 'end' not in state:
+        return None
+    return state['end'] - state['start']
+
+def t39_set_combat_state(pb, mob_count, proj_active):
+    """Force a realistic non-empty combat frame -- COMBAT_MODE=1 is not
+    enough on its own (every gated routine short-circuits almost
+    immediately on its own count/flag check, understating the real cost);
+    mob slots and an in-flight projectile exercise each routine's own real
+    body. Mirrors T32.a's own direct MOB_DATA injection pattern."""
+    pb.memory[COMBAT_MODE_ADDR] = 1
+    pb.memory[MOB_COUNT_ADDR] = mob_count
+    for i in range(6):
+        base = MOB_DATA_ADDR + i * 5
+        if i < mob_count:
+            # x, y, species, health, active -- placed well clear of the
+            # player's own hitbox so inf_mob_contact_check's own hit
+            # branch doesn't fire and perturb PLAYER_HEALTH mid-measurement
+            slot = (30 + i * 15, 40 + i * 10, 0, 1, 1)
+        else:
+            slot = (0, 0, 0, 0, 0)
+        for k, v in enumerate(slot): pb.memory[base + k] = v
+    pb.memory[PLAYER_X] = 80; pb.memory[PLAYER_Y] = 100   # clear of every mob slot above
+    pb.memory[PROJ_ACTIVE_ADDR] = 1 if proj_active else 0
+    if proj_active:
+        pb.memory[PROJ_X_ADDR] = 60; pb.memory[PROJ_Y_ADDR] = 100
+        pb.memory[PROJ_STEP_X_ADDR] = 1; pb.memory[PROJ_STEP_Y_ADDR] = 0
+    pb.memory[0xC6DE] = 8   # MOB_MOVE_TIMER, pinned above 0 -- irrelevant to cost
+                             # (inf_mob_move's own body runs its full per-mob
+                             # loop regardless of whether the timer reaches 0
+                             # this frame; T35.a's own precedent), kept high
+                             # only so no positional side effect leaks into
+                             # the next corpus entry's own fixture.
+    pb.memory[PLAYER_HEALTH_ADDR] = 3
+
+T39_MOB_PROJ_CORPUS = [(1, 0), (1, 1), (6, 0), (6, 1)]
+
+# T39.a — combat-only frame: measure the four-routine chain in isolation
+# (check_zone_transition deliberately excluded from the trampoline, so no
+# materialization cost can leak in) across the mob-count/projectile-active
+# corpus.
+FRAME_BUDGET_CYCLES_T39 = 70224   # one CGB single-speed frame, same bar T24.e uses
+_t39a_measurements = []
+for _mob_count, _proj_active in T39_MOB_PROJ_CORPUS:
+    pb = fresh_boot(180)
+    t39_set_combat_state(pb, _mob_count, _proj_active)
+    _cycles = measure_call_chain_cycles(pb, [
+        INF_MOB_MOVE_ADDR, INF_PROJECTILE_UPDATE_ADDR,
+        INF_MOB_CONTACT_CHECK_ADDR, INF_INVINCIBILITY_TICK_ADDR])
+    pb.stop()
+    _t39a_measurements.append((_mob_count, _proj_active, _cycles))
+_t39a_valid = [c for (_, _, c) in _t39a_measurements if c is not None]
+_t39a_met = bool(_t39a_valid) and max(_t39a_valid) <= FRAME_BUDGET_CYCLES_T39
+check("T39.a NFR-1500 Analysis: combat-only per-frame chain cost, direct cycle-count, measured and recorded (Met or not, not asserted un-measured)",
+      len(_t39a_valid) == len(T39_MOB_PROJ_CORPUS),
+      f"measurements={_t39a_measurements} budget={FRAME_BUDGET_CYCLES_T39} status={'MET' if _t39a_met else 'NOT MET'}")
+
+# T39.b — combat-plus-materialization frame: the same four-routine chain
+# with check_zone_transition appended to the trampoline, set up so its own
+# czt_infinite east-branch genuinely fires (GAME_MODE=1, JOY_CUR's RIGHT
+# bit held, PLAYER_X at the real 152 threshold, INF_WINDOW's own east-
+# neighbor-exists bit forced) -- confirming the "coinciding" case NFR-1500
+# asks about is not just reachable in principle but real cycles were taken
+# while it actually fired, across T24.e's own established 3-entry
+# (seed, row, col) boundary corpus crossed with the same mob/projectile
+# corpus T39.a uses.
+J_RIGHT = 4
+_t39b_measurements = []
+for _seed, _row, _col in T24E_CORPUS:
+    for _mob_count, _proj_active in T39_MOB_PROJ_CORPUS:
+        pb = fresh_boot(180)
+        t39_set_combat_state(pb, _mob_count, _proj_active)
+        pb.memory[SEED] = _seed & 0xFF; pb.memory[SEED + 1] = (_seed >> 8) & 0xFF
+        _r = _row & 0xFFFF; _c = _col & 0xFFFF
+        pb.memory[INF_ROW] = _r & 0xFF; pb.memory[INF_ROW + 1] = (_r >> 8) & 0xFF
+        pb.memory[INF_COL] = _c & 0xFF; pb.memory[INF_COL + 1] = (_c >> 8) & 0xFF
+        pb.memory[GAME_MODE] = 1
+        pb.memory[JOY_CUR_ADDR] = 1 << J_RIGHT
+        pb.memory[PLAYER_X] = 152
+        pb.memory[INF_WINDOW + 4] = 0x80   # bit 7: east neighbor exists (czt_infinite's own gate)
+        _cycles = measure_call_chain_cycles(pb, [
+            INF_MOB_MOVE_ADDR, INF_PROJECTILE_UPDATE_ADDR, INF_MOB_CONTACT_CHECK_ADDR,
+            INF_INVINCIBILITY_TICK_ADDR, CHECK_ZONE_TRANSITION_ADDR])
+        _fired = pb.memory[PLAYER_X] == 8   # czt_infinite's own east branch always rewrites PLAYER_X to 8
+        pb.stop()
+        _t39b_measurements.append((_seed, _row, _col, _mob_count, _proj_active, _cycles, _fired))
+_t39b_valid = [c for (*_, c, fired) in _t39b_measurements if c is not None and fired]
+_t39b_met = bool(_t39b_valid) and max(_t39b_valid) <= FRAME_BUDGET_CYCLES_T39
+check("T39.b NFR-1500 Analysis: combat-plus-region-materialization coinciding frame cost, direct cycle-count with confirmed real transition firing, measured and recorded (Met or not, not asserted un-measured)",
+      len(_t39b_valid) == len(T24E_CORPUS) * len(T39_MOB_PROJ_CORPUS),
+      f"measurements={_t39b_measurements} budget={FRAME_BUDGET_CYCLES_T39} status={'MET' if _t39b_met else 'NOT MET'}")
+
+# ══════════════════════════════════════════════════════
 # SUMMARY
 # ══════════════════════════════════════════════════════
 total = PASS + FAIL
