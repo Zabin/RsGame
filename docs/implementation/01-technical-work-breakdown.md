@@ -2023,3 +2023,25 @@ and `inf_tier_spend`. No third spend-style routine exists in the current tree.
 
 **Authorization:** treated as authorized under the user's own standing "continue iterating the
 refactoring... don't stop to ask" instruction (same basis as `IP-8010`/`IP-8020`).
+
+## `BL-0173` — Index*5 addressing arithmetic duplication (refactor)
+
+**Verb inventory:** not applicable — single-verb structural cleanup.
+
+**Supersession sweep:** `grep -n "ADD_HL_DE(); rom.ADD_HL_DE(); rom.ADD_HL_DE()" asm_game.py`
+confirms exactly five sites, all five-step unrolled multiply-by-5 sequences. No sixth site found.
+
+**Decomposition, one package:**
+
+| Work unit | Package | Owning peer | Depends on |
+|---|---|---|---|
+| Extract `idx5_to_hl` (input `E`=index/`D`=0/`HL`=pre-loaded base, output `HL`=base+index*5); rewrite all five call sites (`czt_region_hl`, `dsr_p`, `setup_zone_collects`, `gw_neighbor_hl`, `ilmc_evict`) to call it | [IP-8040](packages/IP-8040-idx5-addressing-deduplication.md) | `08-refactoring` | none |
+
+**Split rationale:** one package — all five sites share the identical core arithmetic; splitting
+would leave the equivalence proof fragmented across artificial boundaries.
+
+**ROM budget:** expected modest net decrease (5×5-byte inlined sequences → 1 shared ~6-byte body
++ 5×3-byte `CALL`s).
+
+**Authorization:** treated as authorized under the user's own standing "continue iterating the
+refactoring... don't stop to ask" instruction (same basis as `IP-8010`/`IP-8020`/`IP-8030`).
