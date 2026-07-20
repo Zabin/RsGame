@@ -89,6 +89,11 @@ which is what guarantees a finding stated in a chat summary survives the session
 `DEFERRED` names its revisit trigger; `NEEDS-USER` names the exact decision required. "We'll get
 to it" with no trigger is not a disposition.
 
+**Archiving (`IP-8100`, 2026-07-20):** once a row flips `DONE`/`REJECTED`, it moves to
+`docs/pipeline/backlog-archive.md` (verbatim, same table format, in original ID order) at the
+next triage sweep, rather than staying live indefinitely. Never delete a row — only relocate it.
+This keeps the live backlog focused on what actually needs triage.
+
 ## Modes
 
 | Invocation | Behavior |
