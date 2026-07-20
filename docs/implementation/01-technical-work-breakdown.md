@@ -2249,3 +2249,34 @@ covered by G3's bootstrap carve-out, which is limited to `BL-0001`–`BL-0005`).
 test-only (zero runtime-code change, zero ROM-byte impact), materially lower risk than a
 code-touching package, but still requires the user's explicit go-ahead per this project's
 established rule that a package being fully specified is never itself authorization to build.
+
+## `BL-0184` — Weapon fire only shoots diagonally in real play (`FR-11310`/`IP-1128` remediation)
+
+**Verb inventory:** not applicable — no new gameplay verb, a correctness remediation against an
+already-shipped `VERIFIED` feature's own input-handling logic.
+
+**Supersession sweep:** not applicable — nothing superseded. Confirmed by direct read that
+`handle_play_input` (`asm_game.py:1114`-1198) is the *only* site that writes
+`PLAYER_FACING_X`/`PLAYER_FACING_Y` at runtime (the boot-init at `asm_game.py:554`-558 is the
+only other writer, setting the one-time defaults `(1, 0)`) — no other call site needs sweeping.
+
+**Root cause, confirmed by direct code read:** the movement-tracking block only ever *sets*
+`PLAYER_FACING_X`/`Y` inside each direction's own movement-clamp branch (`RIGHT`→`FACING_X=1` at
+`:1159`, `LEFT`→`FACING_X=-1` at `:1168`, `UP`→`FACING_Y=-1` at `:1177`, `DOWN`→`FACING_Y=1` at
+`:1187`) — there is no branch that clears the *opposite* axis when only one axis is held this
+frame. Combined with the boot-default `PLAYER_FACING_X=1`, this makes pure cardinal fire
+effectively unreachable in real play: confirmed live (moving only UP, never touching LEFT/RIGHT,
+then firing produced `(+1, -1)` instead of the expected `(0, -1)`).
+
+**Decomposition, one package:**
+
+| Work unit | Package | Owning peer | Depends on |
+|---|---|---|---|
+| Recompute `PLAYER_FACING_X`/`Y` fresh from `JOY_CUR`'s current held bits whenever any direction is held this frame (clearing the axis not held to 0), preserving the existing "no direction held → keep the last-faced value" behavior (`FR-11310`'s own "moving direction, else last-faced" rule, `T37.e`'s own precedent); extend `T37`'s own fixture so this exact class of bug is caught | [IP-9200](packages/IP-9200-weapon-facing-axis-reset-fix.md) | `08-code-implementation` | none |
+
+**Split rationale:** one package — a single, localized fix to one routine's own facing
+computation, plus the test-fixture correction that lets the suite actually catch it; no seam to
+split along.
+
+**Authorization:** not yet sought — a correctness fix to already-shipped, `VERIFIED` code is new
+scope, not covered by G3's bootstrap carve-out (limited to `BL-0001`-`BL-0005`).

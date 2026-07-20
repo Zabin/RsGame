@@ -956,3 +956,16 @@ technique; no runtime code change).
 
 No critical-path interaction — independent of every other package in the tree (measurement-only,
 zero WRAM/interface footprint).
+
+## Weapon-facing axis reset fix (`BL-0184`, planned 2026-07-20)
+
+One package — see the
+[TWBS](01-technical-work-breakdown.md#bl-0184--weapon-fire-only-shoots-diagonally-in-real-play-fr-11310ip-1128-remediation)
+for the root cause and scope decision.
+
+| Package | Title | Owner (08 peer) | Status | Depends on | Authorized? | Notes |
+|---|---|---|---|---|---|---|
+| [IP-9200](packages/IP-9200-weapon-facing-axis-reset-fix.md) | Weapon-Facing Axis Reset Fix (`BL-0184`) | `08-code-implementation` | **NOT STARTED** | `IP-1128` (`VERIFIED`) | **NOT AUTHORIZED** — a correctness fix to already-shipped code is new scope, not covered by the G3 bootstrap carve-out (limited to `BL-0001`-`BL-0005`) | Fixes `handle_play_input`'s facing computation to clear an axis to 0 when its own direction isn't held this frame (previously only ever set on press, never cleared) — the stale boot-default `PLAYER_FACING_X=1` and any prior axis's own last value silently contaminated later pure-cardinal fire, making it diagonal. Preserves the existing "no direction held → keep last-faced value" behavior (`T37.e`'s own precedent). New regression checks `T37.j`/`k` encode the exact reported bug. |
+
+No critical-path interaction — independent of every other package in the tree (a localized fix
+to one routine, no WRAM/interface change).
