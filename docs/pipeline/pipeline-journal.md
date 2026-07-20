@@ -14,6 +14,24 @@
 
 ## Position
 
+- **Updated:** 2026-07-20 (run #276 — loop stops here: G3 authorization required, no bootstrap
+  carve-out for refactoring packages)
+- **Increment (run #276):** **`07-implementation-planning`** authored **`IP-8010`** (Point-in-Box
+  Hit-Test Deduplication) from `BL-0170`. TWBS section authored (verb inventory n/a; supersession
+  sweep confirmed exactly three inlined instances, no fourth). **Scope corrected during
+  planning**: direct arithmetic reconstruction found only two of the three sites
+  (`check_collisions`/`inf_mob_contact_check`) are true duplicates — both compute
+  `(register point) − (WRAM origin)`; `inf_projectile_hittest` computes the reverse order
+  (`(WRAM point) − (register origin)`), a genuinely different, non-commutable predicate.
+  Extracting it would cost bytes for zero de-duplication benefit, so it's deliberately left
+  unmodified — recorded explicitly in the package (§13), not silently dropped. New subroutine
+  designed: `pib_reg_minus_origin` (`HL`=origin address, `E`/`D`=point x/y, returns `Z` set on
+  hit — mirrors this codebase's existing flag-branch idiom). Zero new tests (existing `T8`/`T36`
+  coverage is the acceptance bar); zero requirement/architecture/WRAM impact. Expected small net
+  ROM decrease against the tranche's 98-byte headroom. Master Build Plan/`packages/INDEX.md`/
+  `ROADMAP.md` updated — `IP-8010` `NOT STARTED`, **`NOT AUTHORIZED`** (refactoring packages
+  carry no bootstrap carve-out, per this project's own established rule — a fresh, explicit
+  per-package G3 go-ahead is required regardless of how small the change is).
 - **Updated:** 2026-07-20 (run #275 — user-directed: "refactor using the refactor skill(s)")
 - **Increment (run #275):** **Refactor survey (own judgment, user-directed).** Checked all four
   `08-refactoring` PROPOSE conditions against the tree: no `10-integration-review` structural
@@ -295,23 +313,24 @@
   resolved); `BL-0160` (sound effects) filed and triaged `SCHEDULED` for a future `03` pass.
 - **Pipeline state:** Bootstrap stages 01–11 ✅. **Release 2 GO, now with four addenda** — the
   fourth (Infinite Mode Combat Sub-Mode, `FEAT-11000`) shipped run #274. **51 packages
-  `VERIFIED`**. **New this run: `BL-0170` (refactor) `SCHEDULED`**, riding the immediately-next
-  `07-implementation-planning` step (user-directed). Other Medium-High items with no single
-  unambiguous next skill: `BL-0148` (input-binding gap) and `BL-0168` (`NFR-1500` cycle-budget
-  measurement) — both accepted as known deviations at run #274's own GO, not blocking. Diffuse
-  **doc-accuracy sweep family** (`BL-0136`/`BL-0137`/`BL-0140`–`BL-0143`/`BL-0151`/`BL-0165`/
-  `BL-0167`/`BL-0169`, all Low, `SCHEDULED`, non-blocking). Also standing: `BL-0118`, `BL-0123`,
-  `BL-0112`, `BL-0097`, `BL-0130`, `BL-0149`/`BL-0150`/`BL-0152`/`BL-0159` (remaining half)/
-  `BL-0160`/`BL-0161`/`BL-0162` (all Low/Low-Medium, non-blocking).
-- **Backlog:** 170 entries. New: **`BL-0170`** (Low-Medium, `refactor`, `SCHEDULED`). Unchanged:
-  `BL-0148`/`BL-0168`/the doc-accuracy sweep family/all other standing items.
-- **Next step:** **`07-implementation-planning`** — author `IP-8xx0` from `BL-0170` (extract the
-  shared point-in-box hit-test subroutine). No package-authoring gate applies to planning itself
-  (no code written); the resulting package will need a fresh G3 authorization before
-  `08-refactoring` can execute it — no bootstrap carve-out applies to refactoring packages.
-  Continuing within this same run.
-- **Open gates:** none open yet — the G3 ask for the authored `IP-8xx0` package is the next
-  genuine gate, once `07` names its exact scope/byte estimate.
+  `VERIFIED`, 1 new package `NOT STARTED`/`NOT AUTHORIZED`** (`IP-8010`, the refactor just
+  authored). Other Medium-High items with no single unambiguous next skill: `BL-0148`
+  (input-binding gap) and `BL-0168` (`NFR-1500` cycle-budget measurement) — both accepted as
+  known deviations at run #274's own GO, not blocking. Diffuse **doc-accuracy sweep family**
+  (`BL-0136`/`BL-0137`/`BL-0140`–`BL-0143`/`BL-0151`/`BL-0165`/`BL-0167`/`BL-0169`, all Low,
+  `SCHEDULED`, non-blocking). Also standing: `BL-0118`, `BL-0123`, `BL-0112`, `BL-0097`,
+  `BL-0130`, `BL-0149`/`BL-0150`/`BL-0152`/`BL-0159` (remaining half)/`BL-0160`/`BL-0161`/
+  `BL-0162` (all Low/Low-Medium, non-blocking).
+- **Backlog:** 170 entries. `BL-0170` unchanged (`SCHEDULED` — its own ride, `07`, is now
+  complete; it stays `SCHEDULED` rather than `DONE` until `IP-8010` itself reaches `VERIFIED`).
+  All other entries unchanged.
+- **Next step:** **G3 authorization for `IP-8010`** — the package is fully planned and `READY`
+  in every sense except authorization; no bootstrap carve-out applies to refactoring packages,
+  so `08-refactoring` may not execute it without the user's own explicit, per-package go-ahead.
+  On "yes": `08-refactoring` executes `IP-8010`, then `09-package-verification` (which re-checks
+  the equivalence evidence) before this closes. On "no"/deferred: the package stays `NOT
+  STARTED`/`NOT AUTHORIZED` on the Master Build Plan, available to authorize later.
+- **Open gates:** **G3 on `IP-8010`** — ripe, put to the user this run.
 
 ## Run log
 
@@ -597,3 +616,4 @@
 | 273 | 2026-07-20 | advance (iterate, same session) | `05-feature-decomposition` | `FEAT-11000` release-plan delta | ✅ **`FEAT-11000` moved `Future` → Release 2 as a fourth addendum** (`01-release-plan.md`), mirroring `FEAT-10000`'s own identical pattern; `11-release-readiness` GO/NO-GO explicitly named as still owed, not claimed here. `BL-0164` folded in: `03-feature-catalog.md`'s `FEAT-11000` heading/forward-reference refreshed to implemented/verified (mirrors `BL-0126`'s fix for `FEAT-10000`). `ROADMAP.md` `FP-01`/`FP-03` rows updated. New finding `BL-0167` (Low, `SCHEDULED`) filed — the same "Deferred" callout sentence's `FEAT-10000`/`FEAT-7100` clauses remain stale (only `FEAT-11000`'s own clause fixed here, in scope). `BL-0165` deliberately left for `06`. | `11-release-readiness` for `FEAT-11000`'s GO/NO-GO call — user's own answer to the `BL-0166` gate explicitly authorized this exact chain ("commit to a new release now... triggers 05... then 11-release-readiness"); continuing within this same run. |
 | 274 | 2026-07-20 | advance (iterate, same session) → loop stops (manager's own judgment, not a formal gate) | `11-release-readiness` | Infinite Mode Combat Sub-Mode addendum (`FEAT-11000`) | ✅ **GO, user-confirmed** ([assessment](../reviews/release-assessment-infinite-mode-combat-sub-mode-addendum.md)). All 12 Included Requirements traced; two deviations named (`BL-0148` input-binding gap, `NFR-1500` unmeasured cycle budget, filed as `BL-0168`). Baseline flipped: release plan/catalog/`Claude.md`/`ROADMAP.md`/two `INDEX.md` files. Closes the entire Infinite Mode Combat Sub-Mode delta end-to-end. | **Loop stops** — no remaining backlog item is a clean, unambiguous automated next step (the two Medium-High items need either a design decision or unplanned remediation work; the rest is diffuse Low-severity doc drift). Recommend `03`/`06` to design `BL-0148`'s UI mechanism if the user wants to keep building. |
 | 275 | 2026-07-20 | advance (user-directed: "refactor using the refactor skill(s)") | — | Refactor survey | ✅ Checked all four `08-refactoring` PROPOSE conditions; none independently triggered (post-GO window timing-satisfied but no structural debt was actually noted during the release). Found genuine duplicated behavior by direct code read: the point-in-box hit-test technique inlined identically three times in `asm_game.py` (`check_collisions`/`inf_projectile_hittest`/`inf_mob_contact_check`). Filed `BL-0170` (`refactor`, `SCHEDULED`), all three `07`-authorization preconditions confirmed (no Critical/High bug at entry stage, pipeline quiescent, tree green 404/404, no release bucket mid-close). | `07-implementation-planning` to author `IP-8xx0` from `BL-0170`; continuing within this run. |
+| 276 | 2026-07-20 | advance → gate (G3, no bootstrap carve-out for refactoring) | `07-implementation-planning` | `IP-8010` from `BL-0170` | ✅ Authored in full (14 fields). Scope corrected during planning: only 2 of the originally-hypothesized 3 duplicate sites are true duplicates (`inf_projectile_hittest` computes the operands in reverse, non-commutable order — deliberately left out of scope). New subroutine `pib_reg_minus_origin` designed. Zero new tests needed; expected small net ROM decrease. Master Build Plan/`packages/INDEX.md`/`ROADMAP.md` updated — `NOT STARTED`, `NOT AUTHORIZED`. | **GATE (G3):** the user's own explicit, per-package go-ahead is required before `08-refactoring` may execute `IP-8010` — no bootstrap carve-out applies to refactoring packages. |
