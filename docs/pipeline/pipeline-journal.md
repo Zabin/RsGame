@@ -14,8 +14,22 @@
 
 ## Position
 
-- **Updated:** 2026-07-20 (run #269 — iterate mode; fresh session resolves run #268's
-  session-boundary stop)
+- **Updated:** 2026-07-20 (run #270 — iterate mode; continues within the same run as #269)
+- **Increment (run #270):** **`09-package-verification`** on **`IP-1127` → `VERIFIED`**
+  ([VR-1127](../implementation/verification/VR-1127-infinite-mode-combat-post-contact-protection.md)).
+  Same session as run #269 (independent of `IP-1127`'s own 2026-07-19 implementing session — the
+  tree was unchanged between the two VR passes, so this run's shared build/404-suite evidence
+  stands for both). All 11 `T36.a`-`j` reconfirmed passing. Direct code read confirmed
+  `check_collisions`/`MOB_DATA`'s own layout untouched by the implementing diff (only
+  `inf_mob_contact_check`'s own prior body was replaced); the knockback clamp bounds (0/152 X,
+  8/128 Y) confirmed matching `handle_play_input`'s own existing movement clamp exactly;
+  `MOB_CONTACT_FLAGS` confirmed a genuinely separate 1-byte table, not a widened `MOB_DATA`
+  stride. No findings, no scope excursion. **Closes `BL-0158`** (the originating live-drive
+  finding) — `T36.a`/`T36.j` both independently reconfirm the fix live. **This closes every
+  package in the Infinite Mode Combat Sub-Mode delta (`IP-1120`–`IP-1129`) to `VERIFIED` — the
+  full ten-package tranche is done.** Next: `10-integration-review` across the tranche, the
+  natural next stage now that every package is independently confirmed — no gate applies (review
+  is read-only), continuing within this same run.
 - **Increment (run #269):** **`09-package-verification`** on **`IP-1124` → `VERIFIED`**
   ([VR-1124](../implementation/verification/VR-1124-infinite-mode-combat-save-persistence.md)).
   Fresh session (independent of `IP-1124`'s own 2026-07-19 implementing session — this is exactly
@@ -197,29 +211,24 @@
   Also carries forward from run #254 (unchanged this run): `IP-1126` built to `COMPLETE`
   (`inf_mob_move`, new WRAM `MOB_MOVE_TIMER`, suite `T35`, 373/373 passes, `FS-112` Open Question 4
   resolved); `BL-0160` (sound effects) filed and triaged `SCHEDULED` for a future `03` pass.
-- **Pipeline state:** Bootstrap stages 01–11 ✅; Release 2 GO. 50 packages `VERIFIED` (was 49 —
-  `IP-1124` VERIFIED this run). `IP-1120`/`IP-1121`/`IP-1122`/`IP-1123`/`IP-1124`/`IP-1125`/
-  `IP-1126`/`IP-1128`/`IP-1129` all `VERIFIED`. **`IP-1127` remains `COMPLETE`**, own
-  `09-package-verification` pass owed this same run (its own session-boundary block from run #268
-  is resolved the same way `IP-1124`'s just was — this is a fresh session relative to both
-  packages' 2026-07-19 implementing work). Standing, non-blocking doc/design work: the
-  doc-accuracy sweep family (`BL-0136`/`BL-0137`/`BL-0140`–`BL-0143`/`BL-0151`); `BL-0118`
-  (`NFR-1400` cycle-budget gap); `NFR-1500` (combat-sub-mode cycle budget, still `UNCONFIRMED`);
-  `BL-0123` (`try_load_save` unneeded finite-mode work); `BL-0112` (Infinite Mode run-end
-  trigger); `BL-0097` (Medium, routed already); `BL-0130` (catalog text gap); `BL-0148`/`BL-0149`/
-  `BL-0150`/`BL-0152`/`BL-0159` (remaining half)/`BL-0160`/`BL-0161`/`BL-0162` (all Low/Low-Medium,
-  `SCHEDULED`/`DEFERRED`, non-blocking).
-- **Backlog:** 163 entries, unchanged this run (no new findings from `VR-1124`). `BL-0158` (the
-  `IP-1127`-originating live-drive finding) remains `IN PIPELINE` — still owed its own `09-package-
-  verification` confirmation, which is this run's very next internal step. `BL-0147`/`BL-0155`/
-  `BL-0157`/`BL-0156`/`BL-0148`/`BL-0161`/`BL-0133`/`BL-0154` unchanged.
-- **Next step (within this run):** **`09-package-verification` on `IP-1127`** (post-contact
-  protection) — the tranche's last remaining unverified package, session-boundary-unblocked the
-  same way `IP-1124` just was. Closes `BL-0158` on pass. After that: `10-integration-review`
-  across the full ten-package Infinite Mode Combat Sub-Mode delta (`IP-1120`–`IP-1129`), the
-  natural next stage once every package in the tranche is `VERIFIED`.
-- **Open gates:** none open. `IP-1127`'s `09-package-verification` is not a human gate, just this
-  run's next internal step.
+- **Pipeline state:** Bootstrap stages 01–11 ✅; Release 2 GO. **51 packages `VERIFIED`** (was 49
+  at run #268 — `IP-1124` and `IP-1127` both `VERIFIED` this run). `IP-1120`–`IP-1129` **all ten
+  packages in the Infinite Mode Combat Sub-Mode delta now `VERIFIED`** — the tranche is complete,
+  a `10-integration-review` pass across it is owed next (never yet run for this delta). Standing,
+  non-blocking doc/design work: the doc-accuracy sweep family (`BL-0136`/`BL-0137`/`BL-0140`–
+  `BL-0143`/`BL-0151`); `BL-0118` (`NFR-1400` cycle-budget gap); `NFR-1500` (combat-sub-mode cycle
+  budget, still `UNCONFIRMED`); `BL-0123` (`try_load_save` unneeded finite-mode work); `BL-0112`
+  (Infinite Mode run-end trigger); `BL-0097` (Medium, routed already); `BL-0130` (catalog text
+  gap); `BL-0148`/`BL-0149`/`BL-0150`/`BL-0152`/`BL-0159` (remaining half)/`BL-0160`/`BL-0161`/
+  `BL-0162` (all Low/Low-Medium, `SCHEDULED`/`DEFERRED`, non-blocking).
+- **Backlog:** 163 entries. `BL-0158` flipped **`DONE`** this run (the `IP-1127`-originating
+  live-drive finding — `T36.a`/`T36.j` both independently reconfirmed the fix live). `BL-0147`/
+  `BL-0155`/`BL-0157`/`BL-0156`/`BL-0148`/`BL-0161`/`BL-0133`/`BL-0154` unchanged.
+- **Next step:** **`10-integration-review`** across the full ten-package Infinite Mode Combat
+  Sub-Mode delta (`IP-1120`–`IP-1129`) — the natural next stage now that every package in the
+  tranche is independently `VERIFIED`; this delta has never had an integration pass. No gate
+  applies (review is read-only). Continuing within this same run.
+- **Open gates:** none open.
 
 ## Run log
 
@@ -499,3 +508,4 @@
 | 267 | 2026-07-19 | advance → gate resolved (user answered mid-run) | — | `IP-1127` G3 | ✅ **User answered run #266's G3 ask: "Yes, authorize IP-1127."** `IP-1127` → `AUTHORIZED`/`READY` on the Master Build Plan and `packages/INDEX.md` (dependencies `IP-1121`/`IP-1123` both `VERIFIED`). Per the manager's own charter, a resolved gate resumes the loop rather than ending the session — `IP-1124`'s own fresh-session verification need is unaffected (still owed, unrelated to this gate) and does not block continuing on `IP-1127`. | `08-code-implementation` on `IP-1127` — now `READY` and `AUTHORIZED`, its own stale WRAM addresses (prospective `0xC6DF`–`0xC6E0`) to be re-derived to the next free byte (`0xC6E2`–`0xC6E3`, past `IP-1128`'s real claim) during implementation. |
 | 268 | 2026-07-19 | advance (iterate) | `08-code-implementation` | `IP-1127` | ✅ **`COMPLETE`.** Extended `inf_mob_contact_check` (`IP-1123`) with post-contact protection: a per-mob cooldown bit (new parallel `MOB_CONTACT_FLAGS` table, its own bitmask carried in a register that doubles in lockstep with the routine's existing per-slot loop index), an invincibility countdown (`PLAYER_INVINCIBLE`), and a knockback push (clamped to `handle_play_input`'s own position bounds). WRAM re-derived to `0xC6E2`–`0xC6E3` (`IP-1128` claimed the package's own originally-planned `0xC6DF`–`0xC6E1` first, `BL-0163`). **Found-and-fixed interaction, not silently patched over**: a lethal hit (triggering `inf_health_setback`) skips knockback on that one path — applying it against the pre-setback position would have displaced the player off the setback's own just-restored entry point. **Two test-only bugs found and fixed during authoring** (not product defects): several `T36` checks first read state after knockback had already (correctly) separated the player from the mob, breaking a same-position follow-up mob placement's own overlap assumption — fixed by re-pinning the player's own test position between invocations where genuinely continued overlap was the point under test. New suite `T36` (12 checks incl. `T36.j`, a live PyBoy drive). **404/404 suite passes.** ROM builds at exactly 32768 bytes (32670 used, **98 bytes headroom — the tightest margin of any package in this tranche**). `FR-11410` → Implemented; RTM filled; `FS-112`/`GDS-07` §7p added — also closes `BL-0163` (a stale doc mislabel found while implementing `IP-1124`, corrected here as the natural byproduct of resolving the real WRAM collision). `BL-0158` updated but deliberately left `IN PIPELINE` (not `DONE`) per this package's own §9 — closes only once `09-package-verification` confirms the fix live. **This closes every package in the Infinite Mode Combat Sub-Mode delta (`IP-1120`–`IP-1129`) to at least `COMPLETE`.** | **Session-boundary stop.** Both `IP-1124` and `IP-1127` now need `09-package-verification` for genuine independence (fresh session) — same class of stop the manager has treated as genuine throughout this session (runs #254/#260/#261/#266). No further step is available this session; the backlog/next-step queue has no other unblocked, non-session-boundary item. |
 | 269 | 2026-07-20 | advance (iterate, new session) | `09-package-verification` | `IP-1124` | ✅ **`VERIFIED`** ([VR-1124](../implementation/verification/VR-1124-infinite-mode-combat-save-persistence.md)). Fresh session resolves run #268's session-boundary stop. ROM rebuild byte-identical (32768 bytes, 32670 used); full suite **404/404**; `T32.a`-`d` reconfirmed. Direct code read confirmed the single MBC1-enable bracket preserved in both `save_to_sram`/`try_load_save`, `PROJ_*` fields never referenced, and the implementing commit's diff touching exactly one pre-existing line (the version bump). No findings, no scope excursion. | `09-package-verification` on `IP-1127` (post-contact protection) — the tranche's last remaining unverified package, unblocked the same way this run; proceeding within this same run. |
+| 270 | 2026-07-20 | advance (iterate, same session as #269) | `09-package-verification` | `IP-1127` | ✅ **`VERIFIED`** ([VR-1127](../implementation/verification/VR-1127-infinite-mode-combat-post-contact-protection.md)). Tree unchanged since run #269's build/suite run — shared as independent evidence for both. All 11 `T36.a`-`j` reconfirmed. Direct code read confirmed `check_collisions`/`MOB_DATA` layout untouched (only `inf_mob_contact_check`'s own prior body replaced); knockback clamp bounds confirmed matching `handle_play_input`'s own; `MOB_CONTACT_FLAGS` confirmed a genuinely separate table. No findings, no scope excursion. Closes `BL-0158`. **This closes every package in the Infinite Mode Combat Sub-Mode delta (`IP-1120`–`IP-1129`) to `VERIFIED` — the full ten-package tranche is done.** | `10-integration-review` across the ten-package tranche — no gate, continuing within this same run. |
