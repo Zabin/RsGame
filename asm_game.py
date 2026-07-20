@@ -1149,6 +1149,34 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_nn(JOY_CUR); rom.LD_B_A()
     rom.XOR_A(); rom.LD_nn_A(TMP1)
 
+    # IP-9200 (BL-0184 remediation): recompute PLAYER_FACING_X/Y fresh from
+    # JOY_CUR's own current held bits whenever any direction is held this
+    # frame, clearing whichever axis isn't held to 0 -- previously each
+    # axis was only ever SET on press inside its own movement branch below,
+    # with no branch that cleared it, so a stale value (including the
+    # boot-default PLAYER_FACING_X=1) silently rode along into a different
+    # axis's own movement, making pure cardinal fire unreachable in
+    # practice once both axes had ever been touched. When no direction is
+    # held at all, leave both facing values untouched (FR-11310's own
+    # "moving direction, else last-faced" rule, T37.e's own precedent).
+    rom.LD_A_B(); rom.AND_n((1 << J_RIGHT) | (1 << J_LEFT) | (1 << J_UP) | (1 << J_DOWN))
+    rom.JR_Z('face_skip')
+    rom.XOR_A(); rom.LD_nn_A(PLAYER_FACING_X)
+    rom.BIT_b_B(J_RIGHT); rom.JR_Z('face_x_not_right')
+    rom.LD_A_n(1); rom.LD_nn_A(PLAYER_FACING_X)
+    rom.label('face_x_not_right')
+    rom.BIT_b_B(J_LEFT); rom.JR_Z('face_x_done')
+    rom.LD_A_n(0xFF); rom.LD_nn_A(PLAYER_FACING_X)
+    rom.label('face_x_done')
+    rom.XOR_A(); rom.LD_nn_A(PLAYER_FACING_Y)
+    rom.BIT_b_B(J_UP); rom.JR_Z('face_y_not_up')
+    rom.LD_A_n(0xFF); rom.LD_nn_A(PLAYER_FACING_Y)
+    rom.label('face_y_not_up')
+    rom.BIT_b_B(J_DOWN); rom.JR_Z('face_y_done')
+    rom.LD_A_n(1); rom.LD_nn_A(PLAYER_FACING_Y)
+    rom.label('face_y_done')
+    rom.label('face_skip')
+
     # RIGHT
     rom.BIT_b_B(J_RIGHT); rom.JR_Z('mv_nr')
     rom.LD_A_nn(PLAYER_X); rom.INC_A()
@@ -1156,7 +1184,6 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_nn_A(PLAYER_X)
     rom.label('mv_skip_r')
     rom.XOR_A(); rom.LD_nn_A(PLAYER_DIR)
-    rom.LD_A_n(1); rom.LD_nn_A(PLAYER_FACING_X)  # IP-1128: facing right
     rom.LD_A_n(1); rom.LD_nn_A(TMP1)
     rom.label('mv_nr')
 
@@ -1165,7 +1192,6 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_nn(PLAYER_X); rom.OR_A(); rom.JR_Z('mv_nl')
     rom.DEC_A(); rom.LD_nn_A(PLAYER_X)
     rom.LD_A_n(1); rom.LD_nn_A(PLAYER_DIR)
-    rom.LD_A_n(0xFF); rom.LD_nn_A(PLAYER_FACING_X)  # IP-1128: facing left (-1)
     rom.LD_A_n(1); rom.LD_nn_A(TMP1)
     rom.label('mv_nl')
 
@@ -1174,7 +1200,6 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_nn(PLAYER_Y); rom.CP_n(8); rom.JR_C('mv_skip_u')
     rom.JR_Z('mv_skip_u'); rom.DEC_A(); rom.LD_nn_A(PLAYER_Y)
     rom.label('mv_skip_u')
-    rom.LD_A_n(0xFF); rom.LD_nn_A(PLAYER_FACING_Y)  # IP-1128: facing up (-1)
     rom.LD_A_n(1); rom.LD_nn_A(TMP1)
     rom.label('mv_nu')
 
@@ -1184,7 +1209,6 @@ def build_game_asm(rom: ROM) -> dict:
     rom.CP_n(129); rom.JR_NC('mv_skip_d')
     rom.LD_nn_A(PLAYER_Y)
     rom.label('mv_skip_d')
-    rom.LD_A_n(1); rom.LD_nn_A(PLAYER_FACING_Y)  # IP-1128: facing down (+1)
     rom.LD_A_n(1); rom.LD_nn_A(TMP1)
     rom.label('mv_nd')
 

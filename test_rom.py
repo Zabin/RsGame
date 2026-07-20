@@ -5136,6 +5136,57 @@ check("T37.i Independent live drive: a real diagonally-fired projectile moves on
 pb37i.stop()
 wipe_save()
 
+# T37.j/k/l/m — IP-9200 (BL-0184) axis-reset regression suite. Unlike
+# fire_with_facing (direct force-injection of the exact facing pair under
+# test), these drive handle_play_input via real successive invocations
+# holding real JOY_CUR bitmasks, so they can actually express -- and
+# would have caught -- the reported bug: PLAYER_FACING_X/Y previously
+# were only ever SET on press, never CLEARED when that axis's own
+# direction stopped being held, so a stale value from an earlier axis
+# silently rode along into a later, different-axis-only movement.
+J37_RIGHT = 1 << 4; J37_LEFT = 1 << 5; J37_UP = 1 << 6; J37_DOWN = 1 << 7
+
+def fire_after_real_movement(pb, presses):
+    """Drive handle_play_input via successive invoke_no_arg calls (T30's
+    own established real-routine-invocation technique), holding each
+    successive JOY_CUR bitmask in `presses` for one call each -- exercises
+    the routine's own real per-frame facing computation across a sequence
+    of held directions. After the sequence, releases all directions and
+    fires (forces JOY_NEW's own A bit), returning (step_x, step_y)."""
+    for mask in presses:
+        pb.memory[JOY_CUR_ADDR] = mask
+        pb.memory[JOY_NEW_ADDR] = 0
+        invoke_no_arg(pb, HPI_ADDR)
+    pb.memory[JOY_CUR_ADDR] = 0
+    pb.memory[JOY_NEW_ADDR] = 1 << J_A_BIT
+    invoke_no_arg(pb, HPI_ADDR)
+    return proj_step(pb)
+
+t37_reset(pb37i := fresh_boot(180))
+_t37j_step = fire_after_real_movement(pb37i, [J37_RIGHT, J37_RIGHT, J37_UP, J37_UP])
+check("T37.j Axis-reset regression (BL-0184): moving RIGHT then switching to UP-only and firing yields pure up, not diagonal",
+      _t37j_step == (0, -1), f"step={_t37j_step}")
+pb37i.stop()
+
+t37_reset(pb37i := fresh_boot(180))
+_t37k_step = fire_after_real_movement(pb37i, [J37_UP, J37_UP, J37_RIGHT, J37_RIGHT])
+check("T37.k Axis-reset regression, symmetric case: moving UP then switching to RIGHT-only and firing yields pure right, not diagonal",
+      _t37k_step == (1, 0), f"step={_t37k_step}")
+pb37i.stop()
+
+t37_reset(pb37i := fresh_boot(180))
+_t37l_step = fire_after_real_movement(pb37i, [])
+check("T37.l Non-regression: a fresh, never-moved session still fires rightward by default through the real code path",
+      _t37l_step == (1, 0), f"step={_t37l_step}")
+pb37i.stop()
+
+t37_reset(pb37i := fresh_boot(180))
+_t37m_step = fire_after_real_movement(pb37i, [J37_UP, J37_UP, 0, 0])
+check("T37.m Non-regression: releasing all directions after moving preserves the last-held facing (real per-frame path)",
+      _t37m_step == (0, -1), f"step={_t37m_step}")
+pb37i.stop()
+wipe_save()
+
 print("\n=== T38: Combat Sub-Mode — Weapon-Tier Funding Economy (IP-1129) ===")
 
 ITS_ADDR = _gw_rom.labels['inf_tier_spend']
