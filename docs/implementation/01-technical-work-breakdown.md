@@ -2280,3 +2280,30 @@ split along.
 
 **Authorization:** not yet sought — a correctness fix to already-shipped, `VERIFIED` code is new
 scope, not covered by G3's bootstrap carve-out (limited to `BL-0001`-`BL-0005`).
+
+## `FR-11510` revision — Automatic weapon-tier upgrade trigger (`BL-0148`/`ADR-0022`)
+
+**Verb inventory:** not applicable — no new gameplay verb, a trigger-mechanism revision to an
+already-shipped funding economy (fund/spend, not generate/render/navigate/persist/review).
+
+**Supersession sweep:** `inf_tier_spend` is being rewritten in place (its old body retired).
+Direct grep confirms its only call sites anywhere in the tree are `test_rom.py`'s own `T38` suite
+(`ITS_ADDR`, `invoke_no_arg`) — no production call site exists to account for, confirmed clean.
+`treasure_spend_gate_and_decrement` (the shared 1-treasure-per-call helper `inf_heal_spend` also
+uses) is confirmed **not** touched by this delta — `inf_heal_spend`'s own still-unbound input
+gap (`BL-0148`'s other half) is explicitly out of scope.
+
+**Decomposition, one package:**
+
+| Work unit | Package | Owning peer | Depends on |
+|---|---|---|---|
+| Rewrite `inf_tier_spend`'s body to an automatic, threshold-crossing check (10/25 per `ADR-0022`); add one unconditional `CALL` from `st_playing`; rewrite `T38` to test the new automatic/threshold behavior | [IP-9210](packages/IP-9210-automatic-weapon-tier-upgrade.md) | `08-code-implementation` | `IP-1129` (`VERIFIED`) |
+
+**Split rationale:** one package — the trigger rewrite, the new call site, and the test rewrite
+are all one coherent unit of work with a single Definition of Done; splitting the test rewrite
+into a separate package would leave an intermediate state where the shipped code and its own test
+suite disagree about what's being verified.
+
+**Authorization:** not yet sought — new scope beyond any standing go-ahead, and (per this
+project's own established rule) a correctness/behavior change to already-shipped, `VERIFIED`
+code carries no bootstrap carve-out regardless of user request context.

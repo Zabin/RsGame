@@ -969,3 +969,16 @@ for the root cause and scope decision.
 
 No critical-path interaction — independent of every other package in the tree (a localized fix
 to one routine, no WRAM/interface change).
+
+## Automatic weapon-tier upgrade trigger (`BL-0148`/`ADR-0022`, planned 2026-07-20)
+
+One package — see the
+[TWBS](01-technical-work-breakdown.md#fr-11510-revision--automatic-weapon-tier-upgrade-trigger-bl-0148adr-0022)
+for the supersession-sweep result and split rationale.
+
+| Package | Title | Owner (08 peer) | Status | Depends on | Authorized? | Notes |
+|---|---|---|---|---|---|---|
+| [IP-9210](packages/IP-9210-automatic-weapon-tier-upgrade.md) | Automatic Weapon-Tier Upgrade Trigger (`BL-0148`/`ADR-0022`) | `08-code-implementation` | **READY** | `IP-1129` (`VERIFIED`) | **NOT AUTHORIZED** — a correctness/behavior change to already-shipped code is new scope, no bootstrap carve-out | Rewrites `inf_tier_spend` in place: automatic per-frame check during `COMBAT_MODE`, threshold-crossing (10 treasure for tier 1→2, 25 for tier 2→3), true no-op once `WEAPON_TIER == 3` (unlike `inf_heal_spend`'s own spend-even-at-cap shape). New unconditional `CALL('inf_tier_spend')` from `st_playing`. `T38` suite rewritten (`T38.a`-`f`) to test the automatic/threshold behavior in place of the retired manual-spend shape. No new WRAM. |
+
+No critical-path interaction — independent of every other package in the tree (localized to one
+routine + one call site + its own test suite).
