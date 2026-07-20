@@ -1975,3 +1975,29 @@ byte impact there.
 **Authorization:** **NOT AUTHORIZED.** Refactoring packages carry no bootstrap carve-out — `IP-8010`
 requires the user's own explicit, per-package go-ahead before `08-refactoring` may execute it,
 regardless of severity or how small the change is.
+
+## `BL-0171` — Absolute-delta-from-player computation duplication (refactor)
+
+**Verb inventory:** not applicable — single-verb structural cleanup.
+
+**Supersession sweep:** `grep -n "label('imv_a[xy]\|label('ikb_a[xy]" asm_game.py` confirms
+exactly two inlined instances, both computing `|point − PLAYER_X/Y|` on each axis via the
+identical compare/branch/subtract sequence. No third site found.
+
+**Decomposition, one package:**
+
+| Work unit | Package | Owning peer | Depends on |
+|---|---|---|---|
+| Extract `abs_delta_from_player` (shared absolute-delta computation); rewrite `inf_mob_move`'s own `imv_ax_*`/`imv_ay_*` block and the knockback block's own `ikb_ax_*`/`ikb_ay_*` block (inside `inf_mob_contact_check`) to call it | [IP-8020](packages/IP-8020-abs-delta-from-player-deduplication.md) | `08-refactoring` | none |
+
+**Split rationale:** one package — both call sites change together, sharing one subroutine; no
+natural seam to split.
+
+**ROM budget:** expected net decrease (larger than `IP-8010`'s, since the duplicated block here
+is roughly 2.5x the size) — exact figure measured at build time.
+
+**Authorization:** treated as authorized under the user's own standing "continue iterating the
+refactoring... don't stop to ask" instruction (same basis as `IP-8010`'s explicit "Authorized all
+refactoring") — refactoring packages still carry no bootstrap carve-out; this is a user-granted
+blanket go-ahead for this session's further well-scoped refactor work, not an exemption from G3
+itself.
