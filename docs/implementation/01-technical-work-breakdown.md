@@ -2045,3 +2045,29 @@ would leave the equivalence proof fragmented across artificial boundaries.
 
 **Authorization:** treated as authorized under the user's own standing "continue iterating the
 refactoring... don't stop to ask" instruction (same basis as `IP-8010`/`IP-8020`/`IP-8030`).
+
+## `BL-0175` — KEYITEM_FLAGS addressing duplication (refactor)
+
+**Verb inventory:** not applicable — single-verb structural cleanup.
+
+**Supersession sweep:** `grep -n "LD_HL_nn(KEYITEM_FLAGS)" asm_game.py` confirms exactly six
+sites use the `LD_HL_nn(KEYITEM_FLAGS); ADD_HL_DE()` addressing form; the remaining two
+`KEYITEM_FLAGS` references (lines ~762/~864) are bulk 81-byte clear loops with a different shape
+(`LD_B_n(81)`), not index-addressing, correctly out of scope; one more (~4336) is a save/load
+`memcpy` source/dest, also a different shape, correctly out of scope.
+
+**Decomposition, one package:**
+
+| Work unit | Package | Owning peer | Depends on |
+|---|---|---|---|
+| Extract `keyitem_flags_hl` (input `A`=region index, output `HL`=`KEYITEM_FLAGS`+index); rewrite all six call sites | [IP-8050](packages/IP-8050-keyitem-flags-addressing-deduplication.md) | `08-refactoring` | none |
+
+**Split rationale:** one package — all six sites share the identical core; the same
+incremental build-and-test-after-each-site discipline `IP-8040` established applies here too,
+given the larger number of sites.
+
+**ROM budget:** expected net decrease (~16 bytes estimated, six 7-byte inlined blocks → one
+8-byte shared body + six 3-byte `CALL`s).
+
+**Authorization:** treated as authorized under the user's own standing "continue iterating the
+refactoring... don't stop to ask" instruction (same basis as prior packages this session).
