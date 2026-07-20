@@ -3499,6 +3499,42 @@ def build_game_asm(rom: ROM) -> dict:
     rom.label('imd_done')
     rom.RET()
 
+    # ── abs_delta_from_player (IP-8020) ──────────────────────
+    # Shared "absolute delta from PLAYER_X/PLAYER_Y" computation, extracted
+    # from inf_mob_move/inf_mob_contact_check's own knockback block (both
+    # inlined the identical technique for picking a dominant axis).
+    # Input: E = point_x, D = point_y. Output: C = |point_x - PLAYER_X|,
+    # L = |point_y - PLAYER_Y|. Clobbers A, H. Preserves B/D/E.
+    rom.label('abs_delta_from_player')
+    rom.LD_A_nn(PLAYER_X); rom.LD_H_A()
+    rom.LD_A_E(); rom.emit(0xBC)     # CP H: point_x vs player_x
+    rom.JR_Z('adfp_ax_zero')
+    rom.JR_C('adfp_ax_neg')
+    rom.LD_A_E(); rom.emit(0x94)     # SUB H: A = point_x - player_x
+    rom.JR('adfp_ax_done')
+    rom.label('adfp_ax_neg')
+    rom.LD_A_H(); rom.SUB_E()        # A = player_x - point_x
+    rom.JR('adfp_ax_done')
+    rom.label('adfp_ax_zero')
+    rom.XOR_A()
+    rom.label('adfp_ax_done')
+    rom.LD_C_A()
+
+    rom.LD_A_nn(PLAYER_Y); rom.LD_H_A()
+    rom.LD_A_D(); rom.emit(0xBC)     # CP H: point_y vs player_y
+    rom.JR_Z('adfp_ay_zero')
+    rom.JR_C('adfp_ay_neg')
+    rom.LD_A_D(); rom.emit(0x94)     # SUB H: A = point_y - player_y
+    rom.JR('adfp_ay_done')
+    rom.label('adfp_ay_neg')
+    rom.LD_A_H(); rom.SUB_D()        # A = player_y - point_y
+    rom.JR('adfp_ay_done')
+    rom.label('adfp_ay_zero')
+    rom.XOR_A()
+    rom.label('adfp_ay_done')
+    rom.LD_L_A()
+    rom.RET()
+
     # ── inf_mob_move (IP-1126, FR-11210) ────────────────────
     # Called once per frame from st_playing (gated on COMBAT_MODE -- a
     # no-op call otherwise, matching every other combat-sub-mode routine's
@@ -3541,35 +3577,9 @@ def build_game_asm(rom: ROM) -> dict:
     rom.PUSH_BC(); rom.PUSH_HL()
     rom.OR_A(); rom.JR_Z('imv_skip')
 
-    # ax = |mob_x - PLAYER_X| -> C
-    rom.LD_A_nn(PLAYER_X); rom.LD_H_A()
-    rom.LD_A_E(); rom.emit(0xBC)     # CP H: mob_x vs player_x
-    rom.JR_Z('imv_ax_zero')
-    rom.JR_C('imv_ax_neg')
-    rom.LD_A_E(); rom.emit(0x94)     # SUB H: A = mob_x - player_x
-    rom.JR('imv_ax_done')
-    rom.label('imv_ax_neg')
-    rom.LD_A_H(); rom.SUB_E()        # A = player_x - mob_x
-    rom.JR('imv_ax_done')
-    rom.label('imv_ax_zero')
-    rom.XOR_A()
-    rom.label('imv_ax_done')
-    rom.LD_C_A()
-
-    # ay = |mob_y - PLAYER_Y| -> L
-    rom.LD_A_nn(PLAYER_Y); rom.LD_H_A()
-    rom.LD_A_D(); rom.emit(0xBC)     # CP H: mob_y vs player_y
-    rom.JR_Z('imv_ay_zero')
-    rom.JR_C('imv_ay_neg')
-    rom.LD_A_D(); rom.emit(0x94)     # SUB H: A = mob_y - player_y
-    rom.JR('imv_ay_done')
-    rom.label('imv_ay_neg')
-    rom.LD_A_H(); rom.SUB_D()        # A = player_y - mob_y
-    rom.JR('imv_ay_done')
-    rom.label('imv_ay_zero')
-    rom.XOR_A()
-    rom.label('imv_ay_done')
-    rom.LD_L_A()
+    # ax/ay = |mob_x - PLAYER_X| -> C, |mob_y - PLAYER_Y| -> L (IP-8020:
+    # shared with the knockback block below via abs_delta_from_player)
+    rom.CALL('abs_delta_from_player')
 
     # coincident (ax==0 and ay==0) -> hold still
     rom.LD_A_C(); rom.OR_A(); rom.JR_NZ('imv_pick_axis')
@@ -3813,37 +3823,11 @@ def build_game_asm(rom: ROM) -> dict:
     # (E=mob_x, D=mob_y still hold this slot's own position, untouched
     # since loaded), by KNOCKBACK_DISTANCE, clamped to the same 0/152 (X)
     # and 8/128 (Y) bounds handle_play_input's own movement already
-    # enforces. Mirrors inf_mob_move's own dominant-axis magnitude
-    # computation (IP-1126), inverted for direction (push away, not
-    # toward). C is free scratch here -- this slot's own bitmask has
+    # enforces. IP-8020: ax/ay computed via the shared abs_delta_from_player
+    # (also used by inf_mob_move), inverted for direction below (push away,
+    # not toward). C is free scratch here -- this slot's own bitmask has
     # already been OR'd into MOB_CONTACT_FLAGS above.
-    rom.LD_A_nn(PLAYER_X); rom.LD_H_A()
-    rom.LD_A_E(); rom.emit(0xBC)      # CP H: mob_x vs player_x
-    rom.JR_Z('ikb_ax_zero')
-    rom.JR_C('ikb_ax_neg')
-    rom.LD_A_E(); rom.emit(0x94)      # SUB H: A = mob_x - player_x
-    rom.JR('ikb_ax_done')
-    rom.label('ikb_ax_neg')
-    rom.LD_A_H(); rom.SUB_E()
-    rom.JR('ikb_ax_done')
-    rom.label('ikb_ax_zero')
-    rom.XOR_A()
-    rom.label('ikb_ax_done')
-    rom.LD_C_A()   # C = ax
-
-    rom.LD_A_nn(PLAYER_Y); rom.LD_H_A()
-    rom.LD_A_D(); rom.emit(0xBC)      # CP H: mob_y vs player_y
-    rom.JR_Z('ikb_ay_zero')
-    rom.JR_C('ikb_ay_neg')
-    rom.LD_A_D(); rom.emit(0x94)      # SUB H: A = mob_y - player_y
-    rom.JR('ikb_ay_done')
-    rom.label('ikb_ay_neg')
-    rom.LD_A_H(); rom.SUB_D()
-    rom.JR('ikb_ay_done')
-    rom.label('ikb_ay_zero')
-    rom.XOR_A()
-    rom.label('ikb_ay_done')
-    rom.LD_L_A()   # L = ay
+    rom.CALL('abs_delta_from_player')   # C = ax, L = ay
 
     rom.LD_A_C(); rom.emit(0xBD)      # CP L: ax vs ay; carry set if ax<ay
     rom.JR_C('ikb_axis_y')
