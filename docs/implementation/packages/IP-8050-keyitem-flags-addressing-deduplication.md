@@ -68,10 +68,10 @@ None expected.
 
 ## 11. Verification Checklist
 
-- [ ] G5: ROM builds at exactly 32768 bytes.
-- [ ] G5: full suite passes, zero `test_rom.py` diff.
-- [ ] Equivalence contract: diff touches only the new subroutine + the six replaced blocks.
-- [ ] Maze-generation suites and `T1.11`/`T11` all still pass.
+- [x] G5: ROM builds at exactly 32768 bytes.
+- [x] G5: full suite passes, zero `test_rom.py` diff.
+- [x] Equivalence contract: diff touches only the new subroutine + the six replaced blocks.
+- [x] Maze-generation suites and `T1.11`/`T11` all still pass.
 
 ## 12. Dependencies
 

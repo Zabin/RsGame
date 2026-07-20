@@ -1197,6 +1197,16 @@ def build_game_asm(rom: ROM) -> dict:
     rom.label('mv_save'); rom.LD_nn_A(ANIM_CTR)
     rom.label('mv_done'); rom.RET()
 
+    # ── keyitem_flags_hl (IP-8050) ────────────────────────
+    # Shared index-to-KEYITEM_FLAGS-address computation, extracted from
+    # six identical inlined sites. Input: A = region index (caller loads
+    # from CUR_ZONE or GW_BRAID_IDX, whichever applies). Output:
+    # HL = KEYITEM_FLAGS + A. Clobbers A, D, E.
+    rom.label('keyitem_flags_hl')
+    rom.LD_E_A(); rom.LD_D_n(0)
+    rom.LD_HL_nn(KEYITEM_FLAGS); rom.ADD_HL_DE()
+    rom.RET()
+
     # ── check_collisions ─────────────────────────────────
     rom.label('check_collisions')
     rom.LD_A_nn(COLL_COUNT); rom.OR_A(); rom.RET_Z()
@@ -1239,8 +1249,7 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_C(); rom.CP_n(2); rom.JR_NZ('cc_not_c')
     rom.LD_A_nn(CUR_ZONE)
     rom.PUSH_HL()
-    rom.LD_E_A(); rom.LD_D_n(0)
-    rom.LD_HL_nn(KEYITEM_FLAGS); rom.ADD_HL_DE()
+    rom.CALL('keyitem_flags_hl')       # HL = KEYITEM_FLAGS + CUR_ZONE (IP-8050)
     rom.LD_A_n(1); rom.LD_HL_A()
     rom.POP_HL()
     rom.LD_A_nn(KEYITEM_COUNT); rom.INC_A(); rom.LD_nn_A(KEYITEM_COUNT)
@@ -2578,8 +2587,7 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_C(); rom.CP_n(2); rom.JR_NZ('szc_score_chk')
     rom.PUSH_BC(); rom.PUSH_DE(); rom.PUSH_HL()
     rom.LD_A_nn(CUR_ZONE)
-    rom.LD_E_A(); rom.LD_D_n(0)
-    rom.LD_HL_nn(KEYITEM_FLAGS); rom.ADD_HL_DE()
+    rom.CALL('keyitem_flags_hl')       # HL = KEYITEM_FLAGS + CUR_ZONE (IP-8050)
     rom.LD_A_HL()
     rom.POP_HL(); rom.POP_DE(); rom.POP_BC()
     rom.OR_A(); rom.JR_Z('szc_sk')
@@ -3047,22 +3055,19 @@ def build_game_asm(rom: ROM) -> dict:
                                                        # leaf becomes absent instead
     rom.LD_A_nn(GW_KI_PLACED); rom.INC_A(); rom.LD_nn_A(GW_KI_PLACED)
     rom.LD_A_nn(GW_BRAID_IDX)
-    rom.LD_E_A(); rom.LD_D_n(0)
-    rom.LD_HL_nn(KEYITEM_FLAGS); rom.ADD_HL_DE()
+    rom.CALL('keyitem_flags_hl')              # HL = KEYITEM_FLAGS + R (IP-8050)
     rom.XOR_A(); rom.LD_HL_A()                # KEYITEM_FLAGS[R] = 0 (present)
     rom.JR('ki_passA_next_region')
 
     rom.label('ki_passA_mark_absent2')
     rom.LD_A_nn(GW_BRAID_IDX)
-    rom.LD_E_A(); rom.LD_D_n(0)
-    rom.LD_HL_nn(KEYITEM_FLAGS); rom.ADD_HL_DE()
+    rom.CALL('keyitem_flags_hl')
     rom.LD_A_n(2); rom.LD_HL_A()              # KEYITEM_FLAGS[R] = 2 (absent)
     rom.JR('ki_passA_next_region')
 
     rom.label('ki_passA_not_leaf')
     rom.LD_A_nn(GW_BRAID_IDX)
-    rom.LD_E_A(); rom.LD_D_n(0)
-    rom.LD_HL_nn(KEYITEM_FLAGS); rom.ADD_HL_DE()
+    rom.CALL('keyitem_flags_hl')
     rom.LD_A_n(2); rom.LD_HL_A()              # KEYITEM_FLAGS[R] = 2 (absent, tentative)
 
     rom.label('ki_passA_next_region')
@@ -3096,8 +3101,7 @@ def build_game_asm(rom: ROM) -> dict:
 
     rom.LD_A_nn(GW_KI_PLACED); rom.INC_A(); rom.LD_nn_A(GW_KI_PLACED)
     rom.LD_A_nn(GW_BRAID_IDX)
-    rom.LD_E_A(); rom.LD_D_n(0)
-    rom.LD_HL_nn(KEYITEM_FLAGS); rom.ADD_HL_DE()
+    rom.CALL('keyitem_flags_hl')              # HL = KEYITEM_FLAGS + R (IP-8050)
     rom.XOR_A(); rom.LD_HL_A()                # KEYITEM_FLAGS[R] = 0 (present, fallback fill)
 
     rom.label('ki_passB_next_region')
