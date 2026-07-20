@@ -1211,23 +1211,15 @@ def build_game_asm(rom: ROM) -> dict:
     rom.PUSH_BC(); rom.PUSH_HL()
     rom.OR_A(); rom.JR_Z('cc_skip')
 
-    # Item point (E=item_x) falls within the player's real 8x16 box:
-    # 0 <= (item_x - PLAYER_X) <= 7, computed as one unsigned subtract +
-    # compare (item_x < PLAYER_X wraps to a large unsigned value, correctly
-    # failing the CP_n(8)/JR_NC check the same as "too far right"). Uses H
-    # as scratch (not B/C — B is the live loop counter re-read at cc_loop's
-    # own COLL_COUNT-B arithmetic below, C is the item's own type, read
-    # again at the HIT branch below — both must survive this block; H is
-    # free here, HL's real value already stashed by this iteration's own
-    # PUSH_HL, not touched again until cc_skip/the HIT branch's POP_HL).
-    rom.LD_A_nn(PLAYER_X); rom.LD_H_A()
-    rom.LD_A_E(); rom.emit(0x94)          # SUB H
-    rom.CP_n(8); rom.JR_NC('cc_skip')
-
-    # Same test on Y: 0 <= (item_y - PLAYER_Y) <= 15 (D=item_y)
-    rom.LD_A_nn(PLAYER_Y); rom.LD_H_A()
-    rom.LD_A_D(); rom.emit(0x94)          # SUB H
-    rom.CP_n(16); rom.JR_NC('cc_skip')
+    # Item point (E=item_x, D=item_y) falls within the player's real 8x16
+    # box (IP-8010: shared with inf_mob_contact_check via
+    # pib_reg_minus_origin -- HL's real value already stashed by this
+    # iteration's own PUSH_HL, safe to clobber here, not touched again
+    # until cc_skip/the HIT branch's POP_HL; B/C both survive, unclobbered
+    # by the subroutine).
+    rom.LD_HL_nn(PLAYER_X)
+    rom.CALL('pib_reg_minus_origin')
+    rom.JR_NZ('cc_skip')
 
     # HIT — deactivate
     rom.POP_HL(); rom.XOR_A(); rom.LD_HL_A(); rom.INC_HL()
@@ -1314,6 +1306,29 @@ def build_game_asm(rom: ROM) -> dict:
     # receiving end of (a RET stub until then, see inf_ledger_mark_collected).
     rom.CALL('inf_ledger_mark_collected')
     rom.JR('cc_iter')
+
+    # ── pib_reg_minus_origin (IP-8010) ─────────────────────
+    # Shared point-in-box hit test, extracted from check_collisions/
+    # inf_mob_contact_check's own identical inlined logic (both compute
+    # register-held-point minus WRAM-held-origin; inf_projectile_hittest's
+    # own test computes the opposite order and is NOT a match for this
+    # routine -- left inlined, deliberately out of this refactor's scope).
+    # Input: HL -> a contiguous WRAM (origin_x, origin_y) pair; E = point_x,
+    # D = point_y. Tests 0 <= point_x-origin_x < 8 and 0 <= point_y-origin_y
+    # < 16 (the same unsigned-wraparound-tolerant technique both callers
+    # already relied on). Returns Z set if the point is inside the box, Z
+    # clear otherwise -- callers branch with JR_NZ/JP_NZ to their own
+    # existing skip label, mirroring this codebase's flag-branch idiom.
+    # Clobbers A, HL (advanced by one). Preserves B/C/D/E.
+    rom.label('pib_reg_minus_origin')
+    rom.LD_A_E(); rom.emit(0x96)      # SUB (HL): A = point_x - origin_x
+    rom.CP_n(8); rom.JR_NC('pib_rmo_fail')
+    rom.INC_HL()
+    rom.LD_A_D(); rom.emit(0x96)      # SUB (HL): A = point_y - origin_y
+    rom.CP_n(16); rom.JR_NC('pib_rmo_fail')
+    rom.XOR_A(); rom.RET()            # A=0 -> Z set (hit)
+    rom.label('pib_rmo_fail')
+    rom.LD_A_n(1); rom.OR_A(); rom.RET()   # A=1 -> Z clear (miss)
 
     # ── check_zone_transition ────────────────────────────
     # czt_region_hl: HL = REGION_GRAPH + CUR_ZONE*5 (region base, biome-id
@@ -3755,12 +3770,13 @@ def build_game_asm(rom: ROM) -> dict:
     rom.PUSH_BC(); rom.PUSH_HL()
     rom.OR_A(); rom.JP_Z('imcc_skip')   # JP: body now exceeds JR's +-127 range
 
-    rom.LD_A_nn(PLAYER_X); rom.LD_H_A()
-    rom.LD_A_E(); rom.emit(0x94)      # SUB H: A = mob_x - PLAYER_X
-    rom.CP_n(8); rom.JP_NC('imcc_skip')
-    rom.LD_A_nn(PLAYER_Y); rom.LD_H_A()
-    rom.LD_A_D(); rom.emit(0x94)      # SUB H: A = mob_y - PLAYER_Y
-    rom.CP_n(16); rom.JP_NC('imcc_skip')
+    # IP-8010: shared with check_collisions via pib_reg_minus_origin. C
+    # (this slot's own MOB_CONTACT_FLAGS bitmask) and B (loop index) both
+    # survive, unclobbered by the subroutine -- read again immediately
+    # below. JP (not JR) preserved: this body already exceeds JR's range.
+    rom.LD_HL_nn(PLAYER_X)
+    rom.CALL('pib_reg_minus_origin')
+    rom.JP_NZ('imcc_skip')
 
     # OVERLAP confirmed for this active mob -- IP-1127's own cooldown gate
     rom.LD_A_nn(MOB_CONTACT_FLAGS); rom.AND_C()
