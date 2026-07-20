@@ -14,47 +14,23 @@
 
 ## Position
 
-- **Updated:** 2026-07-20 (run #285 — loop stops here: G3 authorization required, no bootstrap
-  carve-out for this remediation package)
-- **Increment (run #285):** Reconciled the journal (Position block rewritten fresh, hadn't been
-  updated since run #283; `BL-0164`/`BL-0166` backlog drift found and fixed, both flipped `DONE`
-  and archived). **`07-implementation-planning`** authored **`IP-9190`** (Combat Sub-Mode
-  Per-Frame Cycle Budget Measurement, `BL-0168`) — a test-only measurement (new `test_rom.py`
-  suite `T39`, zero runtime-code/ROM-byte impact) mirroring `NFR-1400`/`IP-1102`'s own already-
-  `VERIFIED` T24.e PC/SP-hijack cycle-counting technique, covering both a combat-only frame and a
-  frame coinciding with Infinite Mode region materialization (confirmed reachable: `check_zone_
-  transition`/`czt_infinite` runs immediately after the combat chain in the same `st_playing`
-  tick). TWBS section authored (verb inventory n/a; supersession sweep confirmed the four
-  measured routines' entry points are unaffected by the session's own `IP-8010`/`IP-8020`
-  refactor work, per those packages' own `VERIFIED` equivalence evidence). Master Build Plan
-  (new "Combat sub-mode cycle-budget measurement" section), `packages/INDEX.md`, `ROADMAP.md`
-  (`IM-00`/`IM-01`/`IP-xxxx` counts 62→63) all updated. **`IP-9190` `NOT STARTED`/`NOT
-  AUTHORIZED`** — a remediation package for an already-shipped feature's unmet Acceptance
-  Criterion is not covered by the G3 bootstrap carve-out (limited to `BL-0001`-`BL-0005`), same
-  rule this pipeline has applied to every other post-bootstrap package including the refactor
-  tranche.
-- **Pipeline state:** Bootstrap stages 01–11 ✅. **Release 2 GO, with four addenda** (the fourth,
-  Infinite Mode Combat Sub-Mode/`FEAT-11000`, shipped run #274). **62/63 Implementation Packages
-  `VERIFIED`** (51 feature/content + 11 refactor `IP-8010`-`IP-8110`), **1 `NOT STARTED`**
-  (`IP-9190`, this run's own plan, gated on G3). Tree green (404/404 `test_rom.py`, ROM 32768
-  bytes/32670 used — unaffected by this run, which only planned, did not implement). Standing
-  Medium items: `BL-0176` (the ~20-site `TRANSITION_TO`/`end_frame` idiom, "big item", `07`
-  candidate once `IP-9190` clears its own gate or is deferred), `BL-0148` (heal/tier-spend
-  input-binding gap, accepted deviation), `BL-0089`/`BL-0090`/`BL-0097`/`BL-0099` (GDS-07
-  doc-drift findings). Diffuse Low doc-accuracy sweep family (16 entries, `SCHEDULED`,
-  non-blocking). Also standing: `BL-0118`, `BL-0123`, `BL-0112`, `BL-0149`/`BL-0150`/`BL-0159`/
-  `BL-0160`/`BL-0161`/`BL-0162` (Low/Low-Medium, non-blocking) and the maze-owned `02`/`09`
-  design-question family (`BL-0050`, `BL-0107`).
-- **Backlog:** 62 open entries. `BL-0168` updated to record `IP-9190`'s planning; all other
-  entries unchanged from run #285's own reconciliation pass.
-- **Next step:** **G3 authorization on `IP-9190`** (test-only cycle-budget measurement, zero
-  runtime-code/ROM-byte impact — mirrors `NFR-1400`/`IP-1102`'s own already-`VERIFIED`
-  technique). If authorized: `08-code-implementation` on `IP-9190`. If declined/deferred:
-  `BL-0176` (Medium, the ~20-site refactor "big item") is the next-highest-severity actionable
-  entry with no gate against planning it.
-- **Open gates:** **G3 on `IP-9190`** — user go-ahead needed to build a test-only measurement
-  package (adds one `test_rom.py` suite, zero game-code/ROM-byte change) closing `NFR-1500`'s
-  still-`UNCONFIRMED` Acceptance Criterion.
+- **Updated:** 2026-07-20 (run #287 — advance, gate resolved: user answered run #286's G3 ask,
+  "Authorize IP-9190"; per the manager's own charter a resolved gate resumes the loop rather
+  than ending the session)
+- **Increment (run #287):** **User answered: "Authorize IP-9190."** `IP-9190` →
+  `AUTHORIZED`/`READY` on the Master Build Plan and `packages/INDEX.md`. Continuing to
+  `08-code-implementation` within this same run.
+- **Pipeline state:** Bootstrap stages 01–11 ✅. **Release 2 GO, with four addenda.** 62/63
+  Implementation Packages `VERIFIED`, `IP-9190` now `AUTHORIZED`/`READY` (test-only measurement,
+  zero runtime-code/ROM-byte impact — `BL-0168`/`NFR-1500`). Standing Medium items: `BL-0176`
+  (the ~20-site `TRANSITION_TO`/`end_frame` idiom, next candidate once `IP-9190` closes),
+  `BL-0148`, `BL-0089`/`BL-0090`/`BL-0097`/`BL-0099`. Diffuse Low doc-accuracy sweep family (16
+  entries, non-blocking).
+- **Backlog:** 62 open entries, unchanged this run (gate-resolution only; `IP-9190`'s own
+  execution outcome will be harvested next).
+- **Next step:** **`08-code-implementation` on `IP-9190`** — implement the `T39` cycle-count
+  suite, run the full test suite, record `NFR-1500`'s Status honestly (Met or Not Met).
+- **Open gates:** none open.
 
 ## Run log
 
@@ -112,3 +88,4 @@ size — nothing was deleted). Runs #240 onward continue below.
 | 284 | 2026-07-20 | advance (user-directed continuous iteration, no stop) | `07-implementation-planning` → `08-refactoring` (×3) | `IP-8060`/`BL-0177`, `IP-8070`/`BL-0178`, `IP-8080`/`BL-0179` | ✅ All three **`COMPLETE`, VERIFIED same-session** ([VR-8060](../implementation/verification/VR-8060-seed-cursor-arrow-deduplication.md), [VR-8070](../implementation/verification/VR-8070-gw-neighbor-read-deduplication.md), [VR-8080](../implementation/verification/VR-8080-ledger-entry-write-deduplication.md)). `IP-8070` scope corrected mid-execution: `ki_passA_dir` reverted after tripping `T12.e` (the new subroutine's `B`-scratch use clobbers that site's own live loop accumulator, a conflict invisible outside the enclosing loop); `maze_try_loop`/`maze_prune_dir` proceed. Every package: 404/404, identical check-name set, ROM unchanged at 32670 bytes used. **Final re-scan of `asm_game.py` at 4/5/6/7-line windows confirms the refactor survey is exhausted** — only the two already-triaged, correctly-excluded candidates remain (`BL-0176`, the mob-slot-read prologue). Session's refactor tranche now stands at eight packages (`IP-8010`-`IP-8080`), all `VERIFIED`. | Produce the "listing all changes for review/audit" summary the user originally asked for; update PR #34's description; no further refactor candidates remain to execute inline. | Extracted `pib_reg_minus_origin`; both call sites rewritten, branch instructions and register-preservation preserved per site (confirmed by direct read before editing). `inf_projectile_hittest` confirmed zero diff lines. Equivalence proven: `test_rom.py` zero diff, 404/404 with identical check-name set, ROM 32768 bytes/32670 used (unchanged from baseline), 6365-byte binary diff confirmed pure address-relocation cascade. No doc correction needed. | **Session-boundary stop.** `IP-8010`'s own `09-package-verification` needs a fresh session for genuine independence. |
 | 285 | 2026-07-20 | advance (fresh session, "Run pipeline skill") | — (reconciliation only) | journal Position block + backlog drift | ✅ **Reconciled the journal against the tree.** Position block hadn't been rewritten since run #283 despite run #284 and three further merged doc-refactor packages (`IP-8090`/`IP-8100`/`IP-8110`, all `VERIFIED`) — rewritten from scratch per the spec ('rewritten every run', not appended). Master Build Plan reconfirmed 62/62 packages `VERIFIED`, pipeline fully quiescent. Backlog drift found and fixed: `BL-0164`/`BL-0166` were still `SCHEDULED` though the journal's own run #273/#274 rows record both resolved — flipped to `DONE`, archived to `backlog-archive.md` alongside the already-`DONE` `BL-0181`/`BL-0182`. Live backlog now 62 open entries, 0 `NEW`, 0 `NEEDS-USER`. 15 `DEFERRED` entries spot-checked, none intersect this run's scope. | `07-implementation-planning` on `BL-0168` (`NFR-1500` cycle-budget measurement, highest-severity actionable entry, no gate on planning). |
 | 286 | 2026-07-20 | advance (same session, continuing from run #285's own reconciliation) | `07-implementation-planning` | `IP-9190` from `BL-0168` (NFR-1500 combat cycle-budget measurement) | ✅ **`IP-9190` authored — `NOT STARTED`/`NOT AUTHORIZED`.** Test-only measurement (new `test_rom.py` suite `T39`, zero runtime-code/ROM-byte impact) mirroring `NFR-1400`/`IP-1102`'s own already-`VERIFIED` T24.e PC/SP-hijack technique -- combat-only frame plus a frame coinciding with region materialization (confirmed reachable in the same `st_playing` tick). Supersession sweep confirmed the four measured routines' entry points unaffected by `IP-8010`/`IP-8020`'s own refactor work. Master Build Plan/`packages/INDEX.md`/`ROADMAP.md` (62->63 package count) updated. | **G3 authorization needed** -- new remediation scope for an already-shipped feature's unmet Acceptance Criterion, no bootstrap carve-out. If authorized: `08-code-implementation` on `IP-9190`. If declined: `BL-0176` (Medium refactor "big item") is next. |
+| 287 | 2026-07-20 | advance (gate resolved, user answered mid-run) | `00-pipeline-manager` (own record) | `IP-9190` authorization | ✅ **User answered run #286's G3 ask: "Authorize IP-9190."** `IP-9190` -> `AUTHORIZED`/`READY` on the Master Build Plan and `packages/INDEX.md`. | `08-code-implementation` on `IP-9190`, continuing within this same run. |
