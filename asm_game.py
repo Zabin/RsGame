@@ -3916,6 +3916,30 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_nn(COMBAT_ENTRY_Y); rom.LD_nn_A(PLAYER_Y)
     rom.RET()
 
+    # ── treasure_spend_gate_and_decrement (IP-8030) ──────────
+    # Shared gate-and-decrement prefix, extracted from inf_heal_spend/
+    # inf_tier_spend's own identical logic. Checks COMBAT_MODE and
+    # RUNNING_TREASURE_COUNT (16-bit) are both nonzero; if either gate
+    # fails, returns immediately with Z set (caller RET_Zs, spending
+    # nothing). Otherwise decrements RUNNING_TREASURE_COUNT (16-bit,
+    # standard check-before-decrement borrow technique), sets SCORE_DIRTY,
+    # and returns with Z clear (caller applies its own capped-increment
+    # effect). The final OR_A() is required, not redundant: DEC_A on the
+    # low byte can itself set Z (count was exactly 1), which would
+    # otherwise corrupt the success signal. Clobbers A.
+    rom.label('treasure_spend_gate_and_decrement')
+    rom.LD_A_nn(COMBAT_MODE); rom.OR_A(); rom.RET_Z()
+    rom.LD_A_nn(RUNNING_TREASURE_COUNT); rom.OR_A(); rom.JR_NZ('tsgd_have')
+    rom.LD_A_nn(RUNNING_TREASURE_COUNT + 1); rom.OR_A(); rom.RET_Z()
+    rom.label('tsgd_have')
+    rom.LD_A_nn(RUNNING_TREASURE_COUNT); rom.OR_A(); rom.JR_NZ('tsgd_no_borrow')
+    rom.LD_A_nn(RUNNING_TREASURE_COUNT + 1); rom.DEC_A(); rom.LD_nn_A(RUNNING_TREASURE_COUNT + 1)
+    rom.label('tsgd_no_borrow')
+    rom.LD_A_nn(RUNNING_TREASURE_COUNT); rom.DEC_A(); rom.LD_nn_A(RUNNING_TREASURE_COUNT)
+    rom.LD_A_n(1); rom.LD_nn_A(SCORE_DIRTY)
+    rom.OR_A()   # re-assert Z clear (success), independent of DEC_A's own leftover flags
+    rom.RET()
+
     # ── inf_heal_spend (IP-1123, FR-11500) ──────────────────
     # Player-choice healing: gated on COMBAT_MODE and
     # RUNNING_TREASURE_COUNT > 0 (16-bit, both bytes checked). Decrements
@@ -3936,16 +3960,9 @@ def build_game_asm(rom: ROM) -> dict:
     # question resolves -- mirrors inf_mob_defeat's own "defined and
     # exposed, no call site yet" precedent. Clobbers A.
     rom.label('inf_heal_spend')
-    rom.LD_A_nn(COMBAT_MODE); rom.OR_A(); rom.RET_Z()
-    rom.LD_A_nn(RUNNING_TREASURE_COUNT); rom.OR_A(); rom.JR_NZ('ihs_have')
-    rom.LD_A_nn(RUNNING_TREASURE_COUNT + 1); rom.OR_A(); rom.RET_Z()
-    rom.label('ihs_have')
-    rom.LD_A_nn(RUNNING_TREASURE_COUNT); rom.OR_A(); rom.JR_NZ('ihs_no_borrow')
-    rom.LD_A_nn(RUNNING_TREASURE_COUNT + 1); rom.DEC_A(); rom.LD_nn_A(RUNNING_TREASURE_COUNT + 1)
-    rom.label('ihs_no_borrow')
-    rom.LD_A_nn(RUNNING_TREASURE_COUNT); rom.DEC_A(); rom.LD_nn_A(RUNNING_TREASURE_COUNT)
+    rom.CALL('treasure_spend_gate_and_decrement')
+    rom.RET_Z()   # gated off or no treasure -- nothing spent, no effect
 
-    rom.LD_A_n(1); rom.LD_nn_A(SCORE_DIRTY)  # treasure count always changed above
     rom.LD_A_nn(PLAYER_HEALTH); rom.CP_n(3); rom.JR_NC('ihs_done')
     rom.INC_A(); rom.LD_nn_A(PLAYER_HEALTH)
     rom.label('ihs_done')
@@ -3966,16 +3983,9 @@ def build_game_asm(rom: ROM) -> dict:
     # binding for here. Defined and exposed, directly force-testable
     # (T38.a-d). Clobbers A.
     rom.label('inf_tier_spend')
-    rom.LD_A_nn(COMBAT_MODE); rom.OR_A(); rom.RET_Z()
-    rom.LD_A_nn(RUNNING_TREASURE_COUNT); rom.OR_A(); rom.JR_NZ('its_have')
-    rom.LD_A_nn(RUNNING_TREASURE_COUNT + 1); rom.OR_A(); rom.RET_Z()
-    rom.label('its_have')
-    rom.LD_A_nn(RUNNING_TREASURE_COUNT); rom.OR_A(); rom.JR_NZ('its_no_borrow')
-    rom.LD_A_nn(RUNNING_TREASURE_COUNT + 1); rom.DEC_A(); rom.LD_nn_A(RUNNING_TREASURE_COUNT + 1)
-    rom.label('its_no_borrow')
-    rom.LD_A_nn(RUNNING_TREASURE_COUNT); rom.DEC_A(); rom.LD_nn_A(RUNNING_TREASURE_COUNT)
+    rom.CALL('treasure_spend_gate_and_decrement')
+    rom.RET_Z()   # gated off or no treasure -- nothing spent, no effect
 
-    rom.LD_A_n(1); rom.LD_nn_A(SCORE_DIRTY)  # treasure count always changed above
     rom.LD_A_nn(WEAPON_TIER); rom.CP_n(3); rom.JR_NC('its_done')
     rom.INC_A(); rom.LD_nn_A(WEAPON_TIER)
     rom.label('its_done')
