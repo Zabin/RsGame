@@ -2071,3 +2071,73 @@ given the larger number of sites.
 
 **Authorization:** treated as authorized under the user's own standing "continue iterating the
 refactoring... don't stop to ask" instruction (same basis as prior packages this session).
+
+## `BL-0177` — Seed-cursor-arrow tail duplication (refactor)
+
+**Verb inventory:** not applicable — single-verb structural cleanup.
+
+**Supersession sweep:** direct read of `draw_sse_digits`/`draw_ise_digits` confirms exactly two
+sites carry the identical 5-instruction cursor-arrow tail; no third site references
+`SSE_CURSOR`/`TL_ARROW_D` together.
+
+**Decomposition, one package:**
+
+| Work unit | Package | Owning peer | Depends on |
+|---|---|---|---|
+| Extract `dsd_seed_cursor_arrow` (input `A`=`SSE_CURSOR`); rewrite both call sites | [IP-8060](packages/IP-8060-seed-cursor-arrow-deduplication.md) | `08-refactoring` | none |
+
+**Split rationale:** one package — two sites, identical core, no register-liveness conflict.
+
+**ROM budget:** expected small net decrease (two ~9-byte inlined blocks → one ~9-byte shared body
++ two ~3-byte `CALL`s).
+
+**Authorization:** treated as authorized under the user's own standing "continue iterating the
+refactoring... don't stop to ask" instruction (same basis as prior packages this session).
+
+## `BL-0178` — `gw_neighbor_hl` read-wrapper duplication (refactor)
+
+**Verb inventory:** not applicable — single-verb structural cleanup.
+
+**Supersession sweep:** `grep -n "LD_A_nn(GW_MAZE_DIR); rom.LD_C_A()"` confirms four sites total;
+two (`ki_passA_dir`, `maze_prune_dir`) share the identical read-tail; one (`gw_cur_region_neighbor`-
+style block, ~line 2946) uses `GW_CUR_REGION` as the region source rather than `GW_BRAID_IDX` —
+foldable if the new subroutine takes the region index as an `A` input; one (~line 3159) writes
+`0xFF` rather than reading, a different operation, correctly out of scope.
+
+**Decomposition, one package:**
+
+| Work unit | Package | Owning peer | Depends on |
+|---|---|---|---|
+| Extract `gw_read_neighbor` (input `A`=region index, reads `GW_MAZE_DIR` internally, output `A`=neighbor or `0xFF`); rewrite the 2-3 read sites | [IP-8070](packages/IP-8070-gw-neighbor-read-deduplication.md) | `08-refactoring` | none |
+
+**Split rationale:** one package — small, RET-based, one scratch register (`B`) needed to hold
+the region index across the `LD_A_nn(GW_MAZE_DIR); LD_C_A()` step.
+
+**ROM budget:** expected small net decrease or neutral (byte count is close; net-zero at the
+section-total level is an acceptable, previously observed outcome).
+
+**Authorization:** treated as authorized under the user's own standing "continue iterating the
+refactoring... don't stop to ask" instruction (same basis as prior packages this session).
+
+## `BL-0179` — Ledger-entry write-block duplication (refactor)
+
+**Verb inventory:** not applicable — single-verb structural cleanup.
+
+**Supersession sweep:** direct read of `inf_ledger_mark_collected` confirms exactly two sites
+(`ilmc_notfound`'s append path, `ilmc_evict`'s FIFO-overwrite path) write the identical 5-byte
+ledger record; no third site writes this record shape.
+
+**Decomposition, one package:**
+
+| Work unit | Package | Owning peer | Depends on |
+|---|---|---|---|
+| Extract `write_ledger_entry_at_hl` (input `HL`=pre-positioned slot address); rewrite both call sites | [IP-8080](packages/IP-8080-ledger-entry-write-deduplication.md) | `08-refactoring` | none |
+
+**Split rationale:** one package — two sites, identical core, no register-liveness conflict
+(neither site depends on `HL`/`A` after the block).
+
+**ROM budget:** expected small net decrease (two ~13-byte inlined blocks → one ~13-byte shared
+body + two ~3-byte `CALL`s).
+
+**Authorization:** treated as authorized under the user's own standing "continue iterating the
+refactoring... don't stop to ask" instruction (same basis as prior packages this session).
