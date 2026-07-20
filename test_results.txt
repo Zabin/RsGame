@@ -1,4 +1,4 @@
-BunnyQuest ROM Tests  PASS=404/404  FAIL=0
+BunnyQuest ROM Tests  PASS=406/406  FAIL=0
 ==================================================
 [PASS] T1.1 ROM size = 32768  (32768)
 [PASS] T1.2 Entry = NOP; JP
@@ -404,3 +404,5 @@ BunnyQuest ROM Tests  PASS=404/404  FAIL=0
 [PASS] T38.c Tier-spend at zero treasure is a no-op (no change to RUNNING_TREASURE_COUNT or WEAPON_TIER)  (ok=True rtc=0 tier=1)
 [PASS] T38.d COMBAT_MODE off: inf_tier_spend is a complete no-op  (rtc=5 tier=1)
 [PASS] T38.e A tier increase survives a mob-contact setback (in-session persistence half; no SRAM mirror exists yet)  (ok=True tier_after_spend=2 tier_after_setback=2 health=3)
+[PASS] T39.a NFR-1500 Analysis: combat-only per-frame chain cost, direct cycle-count, measured and recorded (Met or not, not asserted un-measured)  (measurements=[(1, 0, 1804), (1, 1, 3092), (6, 0, 2344), (6, 1, 3848)] budget=70224 status=MET)
+[PASS] T39.b NFR-1500 Analysis: combat-plus-region-materialization coinciding frame cost, direct cycle-count with confirmed real transition firing, measured and recorded (Met or not, not asserted un-measured)  (measurements=[(2026, 0, 0, 1, 0, 93668, True), (2026, 0, 0, 1, 1, 94956, True), (2026, 0, 0, 6, 0, 94208, True), (2026, 0, 0, 6, 1, 95712, True), (7, 5, -5, 1, 0, 92648, True), (7, 5, -5, 1, 1, 93936, True), (7, 5, -5, 6, 0, 93188, True), (7, 5, -5, 6, 1, 94692, True), (65535, -100, 100, 1, 0, 93160, True), (65535, -100, 100, 1, 1, 94448, True), (65535, -100, 100, 6, 0, 93700, True), (65535, -100, 100, 6, 1, 95204, True)] budget=70224 status=NOT MET)
