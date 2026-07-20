@@ -14,6 +14,24 @@
 
 ## Position
 
+- **Updated:** 2026-07-20 (run #275 — user-directed: "refactor using the refactor skill(s)")
+- **Increment (run #275):** **Refactor survey (own judgment, user-directed).** Checked all four
+  `08-refactoring` PROPOSE conditions against the tree: no `10-integration-review` structural
+  finding this session (both findings were cosmetic doc-staleness); the doc-accuracy sweep
+  family (9 entries) shares a shallow root cause but every prior instance of this exact pattern
+  was dispositioned as a content fix, never restructuring — followed that precedent rather than
+  reclassify it now; no stage-08 Outstanding Issue repeatedly cites file-entanglement friction
+  (one-job-per-file confirmed clean at every past integration review); the post-GO window
+  condition is timing-satisfied (run #274) but its own qualifier — structural debt actually
+  noted *during* the release — was not met (this release's own deviations were feature-
+  completeness/NFR gaps, not code structure). **Found instead, by direct code read**: the
+  point-in-box hit-test technique is inlined identically three times in `asm_game.py`
+  (`check_collisions`, `inf_projectile_hittest`, `inf_mob_contact_check`) — genuine duplicated
+  behavior, an observable maintenance cost, not taste. Filed **`BL-0170`** (Low-Medium,
+  `refactor`, `SCHEDULED`), riding this run's own immediately-next `07-implementation-planning`
+  step. All three `07`-authorization preconditions confirmed: no Critical/High bug at the entry
+  stage, pipeline quiescent (all packages `VERIFIED`), tree green (404/404), no release bucket
+  mid-close.
 - **Updated:** 2026-07-20 (run #274 — iterate mode; loop stops here — every remaining backlog
   item is either genuinely ambiguous-ownership design work adjacent to a future G3 gate, or
   diffuse Low-severity cosmetic cleanup with no single forcing next action)
@@ -276,35 +294,24 @@
   (`inf_mob_move`, new WRAM `MOB_MOVE_TIMER`, suite `T35`, 373/373 passes, `FS-112` Open Question 4
   resolved); `BL-0160` (sound effects) filed and triaged `SCHEDULED` for a future `03` pass.
 - **Pipeline state:** Bootstrap stages 01–11 ✅. **Release 2 GO, now with four addenda** — the
-  fourth (Infinite Mode Combat Sub-Mode, `FEAT-11000`) shipped this run. **51 packages
-  `VERIFIED`**, ten-package tranche integration-reviewed clean and release-assessed GO. Every
-  remaining backlog item is non-blocking: **two Medium-High items with no single unambiguous
-  next skill** — `BL-0148` (input-binding gap; routed to "06 or 03, whichever fits") and
-  `BL-0168` (`NFR-1500` cycle-budget measurement; routed to a future `07`/`08` remediation) —
-  both accepted as known deviations at this run's own GO, not blocking, but real future work;
-  and a diffuse **doc-accuracy sweep family** (`BL-0136`/`BL-0137`/`BL-0140`–`BL-0143`/`BL-0151`/
-  `BL-0165`/`BL-0167`/`BL-0169`, all Low, `SCHEDULED`, no single forcing next action — this
-  project's own established pattern is fixing these opportunistically as byproducts of other
-  work, not via a dedicated pass). Also standing: `BL-0118` (`NFR-1400` cycle-budget gap),
-  `BL-0123`, `BL-0112`, `BL-0097`, `BL-0130`, `BL-0149`/`BL-0150`/`BL-0152`/`BL-0159` (remaining
-  half)/`BL-0160`/`BL-0161`/`BL-0162` (all Low/Low-Medium, non-blocking).
-- **Backlog:** 169 entries. `BL-0166`/`BL-0164` → `DONE` this run. New: `BL-0167`/`BL-0169`
-  (Low, doc-accuracy sweep) and `BL-0168` (Medium-High, `NFR-1500` measurement owed). `BL-0165`
-  unchanged (rides a future `06` touch). `BL-0158` `DONE` (unchanged from run #270).
-- **Next step:** **No single genuinely-unblocked automated next step remains.** Every open item
-  either (a) needs a real design/UX judgment call before it can even be scoped as a package
-  (`BL-0148`'s input-binding mechanism — ambiguous between `03`/`06` ownership, and any eventual
-  code implementation will need a fresh G3 authorization regardless, since it's new scope beyond
-  every existing go-ahead), (b) is a measurement-only remediation not yet planned (`BL-0168`), or
-  (c) is diffuse Low-severity cosmetic doc drift with no single forcing action (the sweep
-  family). **Recommend:** if the user wants to keep building, the next real step is `03-
-  architecture-design-synthesis` or `06-feature-specification` to design the treasure-spend UI
-  mechanism (resolving `BL-0148`), which would then need a fresh G3 go-ahead before any code is
-  written. Otherwise, the tree is in a clean, fully-shipped state — nothing is broken or
-  half-finished.
-- **Open gates:** none open. The loop stops here on its own judgment that the remaining backlog
-  needs either a product/design decision or is too diffuse for one further automated step,
-  rather than a formally named gate — flagged explicitly as the reason in this run's own report.
+  fourth (Infinite Mode Combat Sub-Mode, `FEAT-11000`) shipped run #274. **51 packages
+  `VERIFIED`**. **New this run: `BL-0170` (refactor) `SCHEDULED`**, riding the immediately-next
+  `07-implementation-planning` step (user-directed). Other Medium-High items with no single
+  unambiguous next skill: `BL-0148` (input-binding gap) and `BL-0168` (`NFR-1500` cycle-budget
+  measurement) — both accepted as known deviations at run #274's own GO, not blocking. Diffuse
+  **doc-accuracy sweep family** (`BL-0136`/`BL-0137`/`BL-0140`–`BL-0143`/`BL-0151`/`BL-0165`/
+  `BL-0167`/`BL-0169`, all Low, `SCHEDULED`, non-blocking). Also standing: `BL-0118`, `BL-0123`,
+  `BL-0112`, `BL-0097`, `BL-0130`, `BL-0149`/`BL-0150`/`BL-0152`/`BL-0159` (remaining half)/
+  `BL-0160`/`BL-0161`/`BL-0162` (all Low/Low-Medium, non-blocking).
+- **Backlog:** 170 entries. New: **`BL-0170`** (Low-Medium, `refactor`, `SCHEDULED`). Unchanged:
+  `BL-0148`/`BL-0168`/the doc-accuracy sweep family/all other standing items.
+- **Next step:** **`07-implementation-planning`** — author `IP-8xx0` from `BL-0170` (extract the
+  shared point-in-box hit-test subroutine). No package-authoring gate applies to planning itself
+  (no code written); the resulting package will need a fresh G3 authorization before
+  `08-refactoring` can execute it — no bootstrap carve-out applies to refactoring packages.
+  Continuing within this same run.
+- **Open gates:** none open yet — the G3 ask for the authored `IP-8xx0` package is the next
+  genuine gate, once `07` names its exact scope/byte estimate.
 
 ## Run log
 
@@ -589,3 +596,4 @@
 | 272 | 2026-07-20 | advance → gate resolved (user answered mid-run) | — | `BL-0166` | ✅ **User answered run #271's gate: "Commit to a new release now."** Per the project's own established "no Release 3" bucket vocabulary, `FEAT-11000` rides the identical Future→Release-2-addendum pattern `FEAT-10000` used. `BL-0166` → `SCHEDULED`. Per the manager's own charter, a resolved gate resumes the loop rather than ending the session. | `05-feature-decomposition` — record the bucket move + `BL-0164`'s catalog refresh, same pass; continuing within this run. |
 | 273 | 2026-07-20 | advance (iterate, same session) | `05-feature-decomposition` | `FEAT-11000` release-plan delta | ✅ **`FEAT-11000` moved `Future` → Release 2 as a fourth addendum** (`01-release-plan.md`), mirroring `FEAT-10000`'s own identical pattern; `11-release-readiness` GO/NO-GO explicitly named as still owed, not claimed here. `BL-0164` folded in: `03-feature-catalog.md`'s `FEAT-11000` heading/forward-reference refreshed to implemented/verified (mirrors `BL-0126`'s fix for `FEAT-10000`). `ROADMAP.md` `FP-01`/`FP-03` rows updated. New finding `BL-0167` (Low, `SCHEDULED`) filed — the same "Deferred" callout sentence's `FEAT-10000`/`FEAT-7100` clauses remain stale (only `FEAT-11000`'s own clause fixed here, in scope). `BL-0165` deliberately left for `06`. | `11-release-readiness` for `FEAT-11000`'s GO/NO-GO call — user's own answer to the `BL-0166` gate explicitly authorized this exact chain ("commit to a new release now... triggers 05... then 11-release-readiness"); continuing within this same run. |
 | 274 | 2026-07-20 | advance (iterate, same session) → loop stops (manager's own judgment, not a formal gate) | `11-release-readiness` | Infinite Mode Combat Sub-Mode addendum (`FEAT-11000`) | ✅ **GO, user-confirmed** ([assessment](../reviews/release-assessment-infinite-mode-combat-sub-mode-addendum.md)). All 12 Included Requirements traced; two deviations named (`BL-0148` input-binding gap, `NFR-1500` unmeasured cycle budget, filed as `BL-0168`). Baseline flipped: release plan/catalog/`Claude.md`/`ROADMAP.md`/two `INDEX.md` files. Closes the entire Infinite Mode Combat Sub-Mode delta end-to-end. | **Loop stops** — no remaining backlog item is a clean, unambiguous automated next step (the two Medium-High items need either a design decision or unplanned remediation work; the rest is diffuse Low-severity doc drift). Recommend `03`/`06` to design `BL-0148`'s UI mechanism if the user wants to keep building. |
+| 275 | 2026-07-20 | advance (user-directed: "refactor using the refactor skill(s)") | — | Refactor survey | ✅ Checked all four `08-refactoring` PROPOSE conditions; none independently triggered (post-GO window timing-satisfied but no structural debt was actually noted during the release). Found genuine duplicated behavior by direct code read: the point-in-box hit-test technique inlined identically three times in `asm_game.py` (`check_collisions`/`inf_projectile_hittest`/`inf_mob_contact_check`). Filed `BL-0170` (`refactor`, `SCHEDULED`), all three `07`-authorization preconditions confirmed (no Critical/High bug at entry stage, pipeline quiescent, tree green 404/404, no release bucket mid-close). | `07-implementation-planning` to author `IP-8xx0` from `BL-0170`; continuing within this run. |
