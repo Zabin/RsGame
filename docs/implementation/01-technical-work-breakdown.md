@@ -2215,3 +2215,37 @@ independently reconstructable is kept inline rather than removed. Link integrity
 
 **Authorization:** user directly authorized this approach via `AskUserQuestion` ("Compact to
 current-state + pointer (Recommended)").
+
+## `BL-0168` — Combat sub-mode per-frame cycle budget measurement (`NFR-1500`)
+
+**Verb inventory:** not applicable — no new gameplay verb, a measurement-only remediation
+against an existing per-frame call chain (`inf_mob_move`/`inf_projectile_update`/
+`inf_mob_contact_check`/`inf_invincibility_tick`) that already ships, unconditionally called
+from `st_playing` every frame.
+
+**Supersession sweep:** not applicable — nothing superseded; this package adds a test-only
+Analysis check, mirroring `NFR-1400`/`IP-1102`'s own already-`VERIFIED` T24.e technique
+(PC/SP hijack + `hook_register` entry/return cycle-count) rather than introducing a new one.
+Confirmed the four target routines' current entry points and the `st_playing` call sequence by
+direct read (`asm_game.py:711`-714) — unaffected by the session's refactor tranche
+(`IP-8010`/`IP-8020` extracted internal subroutines from `check_collisions`/`inf_mob_move`/
+`inf_mob_contact_check` but left every entry point and external behavior byte-identical, per
+their own `VERIFIED` equivalence evidence).
+
+**Decomposition, one package:**
+
+| Work unit | Package | Owning peer | Depends on |
+|---|---|---|---|
+| Direct cycle-count of the combat per-frame chain, on a combat-only frame and a frame coinciding with region materialization (reachable — `check_zone_transition` runs immediately after the combat chain in the same `st_playing` tick); record `NFR-1500`'s Status honestly | [IP-9190](packages/IP-9190-combat-cycle-budget-measurement.md) | `08-code-implementation` | none |
+
+**Split rationale:** one package — both measurements share the same technique, the same fixture
+family (`COMBAT_MODE`/`MOB_DATA`/`PROJ_ACTIVE` injection plus `T24.e`'s own `INF_ROW`/`INF_COL`
+boundary fixture), and the same test file (`test_rom.py`); splitting would only duplicate setup
+for no isolation benefit — a failure in one measurement doesn't block the other.
+
+**Authorization:** not yet sought — new scope beyond any standing go-ahead (this is a
+remediation for an already-shipped, `VERIFIED` feature's own unmet Acceptance Criterion, not
+covered by G3's bootstrap carve-out, which is limited to `BL-0001`–`BL-0005`). `IP-9190` is
+test-only (zero runtime-code change, zero ROM-byte impact), materially lower risk than a
+code-touching package, but still requires the user's explicit go-ahead per this project's
+established rule that a package being fully specified is never itself authorization to build.

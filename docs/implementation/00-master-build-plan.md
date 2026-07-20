@@ -942,3 +942,17 @@ therefore both immediately `READY`, unlike `IP-1127`. Neither extends the origin
 `IP-1128` shares a named, unresolved WRAM-address collision with `IP-1127` (both unbuilt, both
 prospectively claim `0xC6DF`–`0xC6E0`) — resolved at build time by whichever ships first, not a
 blocker to either package's own `READY` status today.
+
+## Combat sub-mode cycle-budget measurement (`BL-0168`, planned 2026-07-20)
+
+One package — see the
+[TWBS](01-technical-work-breakdown.md#bl-0168--combat-sub-mode-per-frame-cycle-budget-measurement-nfr-1500)
+for the scope decision (test-only measurement, mirroring `NFR-1400`/`IP-1102`'s own T24.e
+technique; no runtime code change).
+
+| Package | Title | Owner (08 peer) | Status | Depends on | Authorized? | Notes |
+|---|---|---|---|---|---|---|
+| [IP-9190](packages/IP-9190-combat-cycle-budget-measurement.md) | Combat Sub-Mode Per-Frame Cycle Budget Measurement (`BL-0168`) | `08-code-implementation` | **NOT STARTED** | `IP-1120`-`IP-1129` (all `VERIFIED`) | **NOT AUTHORIZED** — new remediation scope beyond any standing go-ahead; not covered by the G3 bootstrap carve-out (limited to `BL-0001`-`BL-0005`) | Direct cycle-count of the combat per-frame chain (`inf_mob_move`/`inf_projectile_update`/`inf_mob_contact_check`/`inf_invincibility_tick`), on a combat-only frame and a frame coinciding with region materialization (reachable in the same `st_playing` tick). Test-only — adds `test_rom.py` suite `T39`, zero ROM-byte impact. Closes `NFR-1500`'s still-`UNCONFIRMED` Acceptance Criterion, recording Met/Not Met honestly. |
+
+No critical-path interaction — independent of every other package in the tree (measurement-only,
+zero WRAM/interface footprint).
