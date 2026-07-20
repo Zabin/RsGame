@@ -148,6 +148,20 @@
 > 32768 bytes (32670 used, 98 bytes headroom — the tightest margin of any package in this
 > tranche). `COMPLETE`, own `09-package-verification` pass owed. **This closes every package in
 > the Infinite Mode Combat Sub-Mode delta (`IP-1120`–`IP-1129`) to at least `COMPLETE`.**
+>
+> **`IP-9190` implemented 2026-07-20** — `NFR-1500` measured (`T39`): combat-only `MET`
+> (1,804–3,848 cycles), coinciding-with-materialization `NOT MET` (92,648–95,712 cycles, tracked
+> as `BL-0185`). Test-only, no behavior change to this Feature.
+>
+> **Delta 2026-07-20** (`06-feature-specification`, `BL-0148`/`ADR-0022`, direct user request:
+> "implement an automatic weapon upgrade") — Workflow D step 3a (`FR-11510`) revised: the
+> weapon-tier funding trigger changes from a player-invoked, unreachable spend action (`IP-1129`
+> shipped it fully built and `VERIFIED`, but no button was ever bound to it) to an **automatic**
+> per-frame threshold-crossing check (10 treasure for tier 1→2, 25 total for tier 2→3) — no input
+> event required. Resolves `BL-0148`'s tier-spend half; the sibling heal-spend half remains open,
+> unchanged, out of scope for this delta. §9 (Data Model), §12 (Error Handling), §13 (Performance),
+> §15 (Acceptance Criteria, AC-9/AC-12), and §16 (Verification Plan) all updated to match. Not yet
+> implemented — routed to `07-implementation-planning` next.
 
 [↑ Features index](INDEX.md) · [Feature Catalog](../feature-planning/03-feature-catalog.md) ·
 [Epic Catalog](../feature-planning/02-epic-catalog.md)
@@ -287,14 +301,24 @@ and, later the same date, `FR-11310`/`FR-11510`).
 3. The player may choose to spend collected treasure (`RUNNING_TREASURE_COUNT`, the same count
    `FS-110` Workflow C reads for the win/high-score comparison) to restore health — spending
    decrements that same count; no second, independent ledger is created.
-3a. **(FR-11510, delta 2026-07-19, second this date)** The player may, independently of step 3,
-    choose to spend the same `RUNNING_TREASURE_COUNT` to permanently increase `WEAPON_TIER` by
-    one, up to its own existing maximum — a sibling spend action sharing step 3's own currency,
-    not a second ledger. Spending at the maximum tier still decrements `RUNNING_TREASURE_COUNT`,
-    just does not push `WEAPON_TIER` past its own cap — mirroring step 3's own shipped, tested
-    spend-at-max-health precedent exactly (`T31.d2`: the treasure is still spent, not a no-op).
+3a. **(FR-11510, delta 2026-07-19, revised 2026-07-20 per `BL-0148`/`ADR-0022`)** Independently of
+    step 3, the same `RUNNING_TREASURE_COUNT` **automatically** increases `WEAPON_TIER` by one, up
+    to its own existing maximum — no player action or button of any kind, checked once per frame
+    while `COMBAT_MODE` is active. The check compares `RUNNING_TREASURE_COUNT` against
+    `WEAPON_TIER`'s own *next* tier threshold (10 for tier 1→2, 25 total for tier 2→3, per
+    `ADR-0022` — a deliberately modest curve, not derived from a cited convention, chosen so
+    automatic per-frame triggering can't instantly max the weapon); when met or exceeded, the tier
+    increases by exactly one and that tier's own threshold cost is decremented from
+    `RUNNING_TREASURE_COUNT` in the same frame — a sibling *consumer* of step 3's own currency,
+    not a second ledger. **Unlike step 3's own spend-at-max-health precedent, this automatic check
+    does not spend anything once `WEAPON_TIER` is already at its own maximum** — there is no
+    further threshold to compare against, so the check is permanently inert past tier 3 (a
+    deliberate, named divergence from step 3's "spends even at cap" behavior, not an oversight).
     Per `R219`'s grounded recommendation, a purchased tier increase is permanent — not decremented
     by step 4's own setback or any other event, mirroring step 3's own healing-spend permanence.
+    **`BL-0148`'s own original input-binding gap for this action is resolved by removing the input
+    requirement entirely** — step 3's own heal-spend action still has no binding and remains a
+    separate, unresolved gap (out of scope for this delta).
 4. If player health reaches zero, a non-lethal setback triggers (e.g. returning the player to the
    last region entered, with treasure/health partially restored) — never a `GAMESTATE` transition
    to a game-over state, consistent with `MSTR-001` A5's fail-state-free base design holding
@@ -419,7 +443,10 @@ No module outside this set is touched.
   OAM X-flip render) are consumed, not redefined, by this Feature.
 - **`RUNNING_TREASURE_COUNT`'s existing read/write surface** (as above) — **delta 2026-07-19,
   second this date**: `FR-11510`'s weapon-tier funding is a second, sibling consumer of this same
-  interface, alongside `FR-11500`'s healing spend — no new interface, no second ledger.
+  interface, alongside `FR-11500`'s healing spend — no new interface, no second ledger. **Revised
+  2026-07-20 (`BL-0148`/`ADR-0022`)**: the read/decrement is now driven by an automatic per-frame
+  threshold check (no player-invoked call site) — the interface itself (the WRAM address, its
+  read/decrement semantics) is unchanged, only the caller.
 
 ## 10. Data Model Changes
 
@@ -502,30 +529,34 @@ the current catalog.
 - **A pre-combat-mode save loaded after this Feature ships:** mirrors `FS-110`'s own
   version-guard precedent (a version-mismatched-for-this-field save simply lacks the combat
   fields, not offered garbage data) — the exact version value is not fixed here (§9).
-- **Spending treasure to upgrade the weapon with `RUNNING_TREASURE_COUNT` at zero (delta
-  2026-07-19, second this date):** the tier-spend action has no effect (FR-11510's own
-  Precondition) — not a crash or an underflow, mirroring the existing heal-spend-at-zero-treasure
-  precedent immediately above. **Spending with `WEAPON_TIER` already at its own maximum:** unlike
-  the zero-treasure case, this is *not* a no-op — `RUNNING_TREASURE_COUNT` still decreases by the
-  spent amount, mirroring `FR-11500`'s own shipped, tested spend-at-max-health precedent exactly
-  (`T31.d2`); only the tier increase itself is floored at the maximum.
+- **The automatic weapon-tier check with `RUNNING_TREASURE_COUNT` below the next tier's own
+  threshold (revised 2026-07-20, `BL-0148`/`ADR-0022`; delta 2026-07-19, second this date):** no
+  effect — the check simply doesn't fire that frame, re-checked every subsequent frame until the
+  threshold is met. Not a crash or underflow. **With `WEAPON_TIER` already at its own maximum:**
+  unlike step 3's own zero-treasure/spend-at-max-health precedent, this is a true no-op — the
+  check has no further threshold to compare against once capped, so `RUNNING_TREASURE_COUNT` is
+  never decremented by this leaf again (a deliberate, named divergence from `FR-11500`'s own
+  "spends even at cap" precedent — see Workflow D step 3a).
 
 ## 13. Performance Considerations
 
-- **NFR-1500** (combat sub-mode per-frame cycle budget, `UNCONFIRMED`): whether mob AI tick,
-  projectile update, and hit-test logic fit inside the existing per-frame budget — and, critically,
-  whether a frame where combat logic and region materialization coincide would compound
-  `NFR-1400`'s own already-`NOT MET` overage — is not confirmed by any evidence this specification
-  can cite. `R115` names the risk directly but does not treat it as settled. This Feature's own
-  Acceptance Criteria (§15) states the bar; it does not claim compliance. **Delta 2026-07-19:**
+- **NFR-1500** (combat sub-mode per-frame cycle budget) — **measured 2026-07-20, `IP-9190`/`T39`**:
+  the combat-only per-frame chain (mob AI tick, projectile update, hit-test, invincibility tick)
+  costs 1,804–3,848 T-cycles, comfortably `MET` against the 70,224-cycle single-frame budget. A
+  frame where combat logic coincides with a real region-materialization transition costs
+  92,648–95,712 T-cycles, `NOT MET` (exceeds budget ~32–36%) — consistent with `NFR-1400`'s own
+  already-`NOT MET` `inf_ensure_window` overage simply compounding, exactly the risk `R115` named
+  before an implementation existed to measure it. Follow-up optimization tracked as `BL-0185`
+  (shares `NFR-1400`'s own `BL-0118` root cause), not resolved by this Feature. **Delta 2026-07-19:**
   `FR-11210`'s per-mob movement recomputation and `FR-11410`'s per-mob cooldown-state check both
-  add real, unmeasured per-frame cost on top of the pieces already named here — `NFR-1500`'s own
-  text was updated at the requirements stage to name both explicitly as inheriting its existing
-  measurement obligation, not a new/separate NFR. **Delta 2026-07-19 (second this date):**
-  `FR-11310`'s own movement-direction decode (`handle_play_input`) and second per-frame
-  projectile axis step (`inf_projectile_update`), plus `FR-11510`'s own spend-check cost, add
-  further unmeasured cost on the same still-`UNCONFIRMED` surface — `NFR-1500`'s own text updated
-  again to name both.
+  add real per-frame cost, included in the measurement above. **Delta 2026-07-19 (second this
+  date):** `FR-11310`'s own movement-direction decode and second per-frame projectile axis step
+  are likewise included. **Delta 2026-07-20 (`BL-0148`/`ADR-0022`):** the automatic weapon-tier
+  threshold check (a compare-and-branch against `RUNNING_TREASURE_COUNT`, replacing the original
+  unreachable spend action) adds a small, not-yet-separately-measured per-frame cost — expected
+  negligible relative to the measured combat-only headroom (70,224 − 3,848 ≈ 66,000 cycles free),
+  but not independently confirmed; a future package implementing this delta should re-measure if
+  material.
 - **NFR-4500** (ROM/OAM budget): `R115`'s own direct measurement (post-`IP-9170`/`IP-9180`) found
   1,378 bytes of ROM headroom and 31 of 40 shadow-OAM entries free (9 used: 1 player + up to 8
   collectibles). The 6-mob-slot default (7 new entries including the projectile) leaves 24 free —
@@ -584,23 +615,26 @@ applied once this date for `FR-11210`/`FR-11410`:
 8. Spending treasure to heal reduces `RUNNING_TREASURE_COUNT` by exactly the spent amount; the
    same count is what the win/high-score comparison reads at run's end — no separate ledger
    exists (FR-11500).
-9. **(delta 2026-07-19, second this date)** Spending treasure to upgrade the weapon reduces
-   `RUNNING_TREASURE_COUNT` by exactly the spent amount and increases `WEAPON_TIER` by exactly 1,
-   up to but never past its own maximum; spending at the maximum tier still reduces
-   `RUNNING_TREASURE_COUNT` by the spent amount but does not push `WEAPON_TIER` past its cap,
-   mirroring AC-8's own heal-at-max-health precedent exactly (not itself a no-op); the same
-   `RUNNING_TREASURE_COUNT` is spent from — no separate ledger; a purchased tier increase survives
-   a mob-contact setback and a save/load round trip unchanged (FR-11510).
+9. **(delta 2026-07-19, second this date; revised 2026-07-20 per `BL-0148`/`ADR-0022`)** Once
+   `RUNNING_TREASURE_COUNT` reaches the current tier's own threshold (10 for tier 1→2, 25 total
+   for tier 2→3) while `COMBAT_MODE` is active, `WEAPON_TIER` automatically increases by exactly
+   1 and `RUNNING_TREASURE_COUNT` decreases by exactly that threshold — no player action of any
+   kind; once `WEAPON_TIER` is already at its own maximum, no further decrease occurs regardless
+   of treasure held (unlike AC-8's own heal-at-max-health precedent, this is a true no-op once
+   capped — named explicitly as a divergence, not an oversight); the same `RUNNING_TREASURE_COUNT`
+   is spent from — no separate ledger; a purchased tier increase survives a mob-contact setback
+   and a save/load round trip unchanged (FR-11510).
 10. A save/load round trip reproduces identical mob state, weapon tier, and player health; a
     pre-combat-mode save loads cleanly without this state (FR-11600).
 11. Static inspection of the mob-presence draw finds no read of `DIV` or any WRAM address not
     explicitly derived from `SEED`/`(row, col)` (mirrors NFR-2300's own audit shape).
-12. **Not yet a checkable criterion** — NFR-1500's cycle-budget bar has no fixed numeric target to
-    check against until an implementation exists to measure it; this specification names the bar
-    (§13) without asserting compliance. The bar now also covers `FR-11210`'s
-    movement-recomputation cost, `FR-11410`'s cooldown-state-check cost, `FR-11310`'s
-    direction-decode and second-axis-step cost, and `FR-11510`'s spend-check cost, per NFR-1500's
-    own updated text — still not measurable until an implementation exists.
+12. **Measured 2026-07-20 (`IP-9190`/`T39`)** — combat-only per-frame cost 1,804–3,848 cycles,
+    `MET` against the 70,224-cycle budget; a frame coinciding with region materialization costs
+    92,648–95,712 cycles, `NOT MET` (tracked as `BL-0185`, not resolved by this Feature). The
+    measurement covers `FR-11210`'s movement-recomputation cost, `FR-11410`'s cooldown-state-check
+    cost, and `FR-11310`'s direction-decode/second-axis-step cost. `FR-11510`'s own automatic
+    threshold-check cost (`BL-0148`/`ADR-0022`, 2026-07-20) postdates this measurement and is not
+    yet independently re-confirmed — expected negligible against the measured headroom, per §13.
 
 ## 16. Verification Plan
 
@@ -639,11 +673,13 @@ more criteria (`FR-11310`/`FR-11510`) in requirement order:
   condition verified past the invincibility window's own expiry.
 - **Healing economy (AC-8):** direct-force integration check — force a known `RUNNING_TREASURE_COUNT`,
   trigger a heal-spend, confirm the exact decrement and the resulting health increase.
-- **Weapon-tier funding economy (AC-9, delta 2026-07-19, second this date):** direct-force
-  integration check mirroring AC-8's own established methodology — force a known
-  `RUNNING_TREASURE_COUNT`/`WEAPON_TIER`, trigger a tier-spend, confirm the exact decrement and
-  tier increase; spot-check spending at max tier still decrements treasure without exceeding the
-  tier cap; confirm persistence across a mob-contact setback and a save/load round trip.
+- **Weapon-tier funding economy (AC-9, delta 2026-07-19, second this date; revised 2026-07-20 per
+  `BL-0148`/`ADR-0022`):** direct-force integration checks at each tier's own threshold boundary
+  (just below → no change; at/above → exactly one tier increase and the correct decrement),
+  mirroring AC-8's own established methodology but driven by forcing `RUNNING_TREASURE_COUNT`
+  and letting the automatic per-frame check fire, not a discrete triggered action; confirm the
+  check is a true no-op once `WEAPON_TIER == 3` (unlike AC-8's own spend-at-cap precedent);
+  confirm persistence across a mob-contact setback and a save/load round trip.
 - **Save/load (AC-10):** two-instance save/reload harness, mirroring `IP-1104`'s own T27 pattern,
   extended to mob state/weapon tier/player health.
 - **Determinism static audit (AC-11):** Inspection — direct code read of the mob-presence draw,
