@@ -2001,3 +2001,25 @@ refactoring... don't stop to ask" instruction (same basis as `IP-8010`'s explici
 refactoring") — refactoring packages still carry no bootstrap carve-out; this is a user-granted
 blanket go-ahead for this session's further well-scoped refactor work, not an exemption from G3
 itself.
+
+## `BL-0172` — Treasure-spend gate-and-decrement duplication (refactor)
+
+**Verb inventory:** not applicable — single-verb structural cleanup.
+
+**Supersession sweep:** `grep -n "RUNNING_TREASURE_COUNT.*OR_A\|OR_A.*RUNNING_TREASURE_COUNT" asm_game.py`
+and direct read confirm exactly two sites share this exact gate/decrement shape — `inf_heal_spend`
+and `inf_tier_spend`. No third spend-style routine exists in the current tree.
+
+**Decomposition, one package:**
+
+| Work unit | Package | Owning peer | Depends on |
+|---|---|---|---|
+| Extract `treasure_spend_gate_and_decrement` (`Z` set = gated-off/no-treasure, `Z` clear = spent); rewrite `inf_heal_spend`/`inf_tier_spend` to call it, each keeping only its own capped-increment tail | [IP-8030](packages/IP-8030-treasure-spend-gate-deduplication.md) | `08-refactoring` | none |
+
+**Split rationale:** one package — both call sites change together.
+
+**ROM budget:** expected net decrease (9-instruction duplicated prefix → 1 shared body + 2 small
+`CALL`+`RET_Z` sequences).
+
+**Authorization:** treated as authorized under the user's own standing "continue iterating the
+refactoring... don't stop to ask" instruction (same basis as `IP-8010`/`IP-8020`).
