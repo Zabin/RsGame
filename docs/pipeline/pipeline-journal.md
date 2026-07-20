@@ -14,67 +14,23 @@
 
 ## Position
 
-- **Updated:** 2026-07-20 (run #289 — loop stops here: G3 authorization required for `IP-9200`,
-  no bootstrap carve-out for remediation packages; `IP-9190`'s own `09-package-verification`
-  separately needs a fresh session)
-- **Increment (run #288):** **`08-code-implementation`** on **`IP-9190` → `COMPLETE`**. Added
-  `test_rom.py` suite `T39` (2 checks) measuring `NFR-1500` honestly: combat-only chain
-  (`inf_mob_move`→`inf_projectile_update`→`inf_mob_contact_check`→`inf_invincibility_tick`) —
-  **1,804–3,848 T-cycles, `MET`**; the same chain coinciding with a real Infinite Mode region
-  materialization (confirmed reachable and firing every corpus entry) — **92,648–95,712
-  T-cycles, `NOT MET`** (consistent with `NFR-1400`'s own already-`NOT MET` `inf_ensure_window`
-  cost compounding with the combat chain's own cost). **Genuine mid-run design correction, not a
-  product defect:** the first T39 draft assembled a synthetic CALL-chain trampoline into WRAM
-  scratch and hooked addresses there for measurement — this hung PyBoy's own emulation core for
-  hours with no progress (root-caused as likely a `hook_register` WRAM-vs-ROM-bank limitation,
-  not confirmed further since the fix made it moot); replaced with a stack-chaining technique
-  (each real routine's own RET pre-loaded to land at the next real ROM label, mirroring
-  `NFR-1400`/`IP-1102`'s own T24.e single-hijack technique, extended to a multi-routine sequence)
-  that only ever hooks real, already-assembled ROM labels — verified correct and fast in
-  isolation before the full-suite run. **406/406 suite passes** (404 pre-existing + `T39.a`/
-  `T39.b`). ROM unchanged, 32768 bytes/32670 used (test-only). `NFR-1500`/RTM updated with both
-  real measurements. **`BL-0168` → `DONE`** (its own ask — get the real measurement — is
-  answered); **new finding `BL-0185`** filed (Medium-High, `SCHEDULED`, shares `BL-0118`'s own
-  root cause) for the coinciding case's real over-budget cost, not resolved by this package.
-- **Increment (run #288, mid-session, user-reported):** **Filed `BL-0184`** (bug, High) — weapon
-  fire only shoots diagonally in real play. Confirmed live with real button input (moving only
-  UP then firing produces `(1, -1)` instead of `(0, -1)`) — `handle_play_input`'s own movement-
-  tracking block (`asm_game.py:1149`-1198) only ever *sets* `PLAYER_FACING_X`/`Y` when that axis
-  is held, never *clears* the opposite axis, and the boot-default `PLAYER_FACING_X=1` means pure
-  cardinal fire is effectively unreachable in real play once both axes have ever been touched
-  (or from a fresh session, for the vertical-only case). `T37`'s own tests miss this entirely
-  (`fire_with_facing` force-injects the exact facing pair under test rather than deriving it from
-  real movement input).
-- **Increment (run #289):** **Triaged `BL-0184`: `SCHEDULED`**, High severity, well-evidenced,
-  no ambiguity — rode this run's own immediately-next `07-implementation-planning` step (the
-  `IP-9190` session-boundary stop applies only to *its own* verification, not to other unblocked
-  pipeline work, per iterate mode's own "a step being large/session-bound is not a reason to
-  stop the whole loop" rule). **`07-implementation-planning` authored `IP-9200`** (Weapon-Facing
-  Axis Reset Fix): recomputes `PLAYER_FACING_X`/`Y` fresh from `JOY_CUR`'s current held bits
-  whenever any direction is held (clearing the unheld axis to 0), preserving the existing
-  "nothing held → keep last-faced value" behavior (`FR-11310`'s own rule, `T37.e`'s own
-  precedent) so no passing test regresses. New regression checks `T37.j`/`k` (encoding the exact
-  reported axis-switch bug) plus non-regression checks `T37.l`/`m`. TWBS section authored (verb
-  inventory n/a; supersession sweep confirmed `handle_play_input` is the only runtime writer of
-  `PLAYER_FACING_X`/`Y`). Master Build Plan/`packages/INDEX.md`/`ROADMAP.md` updated (64 packages
-  total now). **`IP-9200` `NOT STARTED`/`NOT AUTHORIZED`** — a correctness fix to already-shipped
-  code carries no bootstrap carve-out, same rule this pipeline applies to every post-bootstrap
-  package.
+- **Updated:** 2026-07-20 (run #290 — advance, gate resolved: user answered run #289's G3 ask,
+  "Authorize IP-9200"; per the manager's own charter a resolved gate resumes the loop rather
+  than ending the session)
+- **Increment (run #290):** **User answered: "Authorize IP-9200."** `IP-9200` →
+  `AUTHORIZED`/`READY` on the Master Build Plan and `packages/INDEX.md`. Continuing to
+  `08-code-implementation` within this same run.
 - **Pipeline state:** Bootstrap stages 01–11 ✅. **Release 2 GO, with four addenda.** 62/64
   Implementation Packages `VERIFIED`, 1 `COMPLETE` (`IP-9190`, own `09` pass owed, fresh
-  session), 1 `NOT STARTED`/gated (`IP-9200`, `BL-0184` fix, G3 owed). Tree green (406/406
-  `test_rom.py`, ROM 32768/32670 — unaffected by planning-only work). Standing Medium-High:
-  `BL-0185` (combat+materialization over-budget finding, this session). Standing Medium:
+  session), `IP-9200` now `AUTHORIZED`/`READY` (weapon-facing fix, `BL-0184`). Tree green
+  (406/406 `test_rom.py`, ROM 32768/32670). Standing Medium-High: `BL-0185`. Standing Medium:
   `BL-0176`, `BL-0148`, `BL-0089`/`BL-0090`/`BL-0097`/`BL-0099`. Diffuse Low doc-accuracy sweep
   family (17 entries, non-blocking).
-- **Backlog:** 64 open entries. No `NEW`, no `NEEDS-USER` ripe and unaddressed.
-- **Next step:** **G3 authorization on `IP-9200`** (High-severity, well-evidenced weapon-fire
-  bug fix — localized, test-first regression pair already written). If authorized:
-  `08-code-implementation` on `IP-9200`. **Separately, in parallel: a fresh session should run
-  `09-package-verification` on `IP-9190`** (session-boundary — implemented this same session).
-- **Open gates:** **G3 on `IP-9200`** — user go-ahead needed to fix the weapon-facing bug
-  (`BL-0184`). The `IP-9190` `09` pass owed is a session-boundary constraint, not a
-  human-decision gate, and can proceed independently in a fresh session.
+- **Backlog:** 64 open entries, unchanged this run (gate-resolution only; `IP-9200`'s own
+  execution outcome will be harvested next).
+- **Next step:** **`08-code-implementation` on `IP-9200`** — fix `handle_play_input`'s facing
+  computation, add regression checks `T37.j`/`k`, run the full suite.
+- **Open gates:** none open. `IP-9190`'s own `09` pass is still owed (fresh session).
 
 ## Run log
 
@@ -135,3 +91,4 @@ size — nothing was deleted). Runs #240 onward continue below.
 | 287 | 2026-07-20 | advance (gate resolved, user answered mid-run) | `00-pipeline-manager` (own record) | `IP-9190` authorization | ✅ **User answered run #286's G3 ask: "Authorize IP-9190."** `IP-9190` -> `AUTHORIZED`/`READY` on the Master Build Plan and `packages/INDEX.md`. | `08-code-implementation` on `IP-9190`, continuing within this same run. |
 | 288 | 2026-07-20 | advance (gate resolved, continuing same run) | `08-code-implementation` | `IP-9190` | ✅ **`IP-9190` -> `COMPLETE`.** T39 suite added (2 checks), NFR-1500 measured honestly: combat-only MET (1804-3848 cycles), coinciding-with-materialization NOT MET (92648-95712 cycles). Design correction: a WRAM-trampoline hook design hung PyBoy for hours -- replaced with stack-chained real-ROM-label hooking, verified in isolation first. 406/406 suite. BL-0168 -> DONE; new finding BL-0185 filed. Mid-session, user reported a real bug (weapon fire diagonal-only) -- filed BL-0184 (High), confirmed live. | 09-package-verification on IP-9190 (fresh session); triage+plan BL-0184 in this same run. |
 | 289 | 2026-07-20 | advance (same session, continuing) | `07-implementation-planning` | `IP-9200` from `BL-0184` | ✅ **`IP-9200` authored -- `NOT STARTED`/`NOT AUTHORIZED`.** Fixes handle_play_input's facing computation to clear an unheld axis to 0 each frame, preserving the existing 'nothing held -> keep last value' behavior. New regression checks T37.j/k encode the exact reported bug. | **G3 authorization needed on IP-9200.** If authorized: 08-code-implementation. Separately: a fresh session should run 09-package-verification on IP-9190. |
+| 290 | 2026-07-20 | advance (gate resolved, user answered mid-run) | `00-pipeline-manager` (own record) | `IP-9200` authorization | ✅ **User answered run #289's G3 ask: "Authorize IP-9200."** `IP-9200` -> `AUTHORIZED`/`READY` on the Master Build Plan and `packages/INDEX.md`. | `08-code-implementation` on `IP-9200`, continuing within this same run. |
