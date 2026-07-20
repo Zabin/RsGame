@@ -57,6 +57,12 @@ The manager's persistent memory of **position**. Two parts:
    that stopped at a gate (outcome = `GATE: <what's needed>`), so the log shows stalls, not just
    wins.
 
+   **Archiving (`IP-8090`, 2026-07-20):** once the live run log passes roughly 200 rows, move the
+   oldest rows to `docs/pipeline/pipeline-journal-archive.md` (verbatim, same table format,
+   append-only there too) and leave a one-line pointer in their place. Never delete a row — only
+   relocate it. This is a doc-scope refactoring package (`08-refactoring`), not something to do
+   ad hoc mid-run.
+
 ## The backlog — `docs/pipeline/backlog.md`
 
 The manager's persistent memory of **obligations**: every finding, recommendation, Outstanding
@@ -82,6 +88,11 @@ which is what guarantees a finding stated in a chat summary survives the session
 **Every open entry carries a live disposition.** `SCHEDULED` names the step it rides with;
 `DEFERRED` names its revisit trigger; `NEEDS-USER` names the exact decision required. "We'll get
 to it" with no trigger is not a disposition.
+
+**Archiving (`IP-8100`, 2026-07-20):** once a row flips `DONE`/`REJECTED`, it moves to
+`docs/pipeline/backlog-archive.md` (verbatim, same table format, in original ID order) at the
+next triage sweep, rather than staying live indefinitely. Never delete a row — only relocate it.
+This keeps the live backlog focused on what actually needs triage.
 
 ## Modes
 

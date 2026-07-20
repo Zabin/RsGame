@@ -1197,6 +1197,16 @@ def build_game_asm(rom: ROM) -> dict:
     rom.label('mv_save'); rom.LD_nn_A(ANIM_CTR)
     rom.label('mv_done'); rom.RET()
 
+    # ── keyitem_flags_hl (IP-8050) ────────────────────────
+    # Shared index-to-KEYITEM_FLAGS-address computation, extracted from
+    # six identical inlined sites. Input: A = region index (caller loads
+    # from CUR_ZONE or GW_BRAID_IDX, whichever applies). Output:
+    # HL = KEYITEM_FLAGS + A. Clobbers A, D, E.
+    rom.label('keyitem_flags_hl')
+    rom.LD_E_A(); rom.LD_D_n(0)
+    rom.LD_HL_nn(KEYITEM_FLAGS); rom.ADD_HL_DE()
+    rom.RET()
+
     # ── check_collisions ─────────────────────────────────
     rom.label('check_collisions')
     rom.LD_A_nn(COLL_COUNT); rom.OR_A(); rom.RET_Z()
@@ -1211,23 +1221,15 @@ def build_game_asm(rom: ROM) -> dict:
     rom.PUSH_BC(); rom.PUSH_HL()
     rom.OR_A(); rom.JR_Z('cc_skip')
 
-    # Item point (E=item_x) falls within the player's real 8x16 box:
-    # 0 <= (item_x - PLAYER_X) <= 7, computed as one unsigned subtract +
-    # compare (item_x < PLAYER_X wraps to a large unsigned value, correctly
-    # failing the CP_n(8)/JR_NC check the same as "too far right"). Uses H
-    # as scratch (not B/C — B is the live loop counter re-read at cc_loop's
-    # own COLL_COUNT-B arithmetic below, C is the item's own type, read
-    # again at the HIT branch below — both must survive this block; H is
-    # free here, HL's real value already stashed by this iteration's own
-    # PUSH_HL, not touched again until cc_skip/the HIT branch's POP_HL).
-    rom.LD_A_nn(PLAYER_X); rom.LD_H_A()
-    rom.LD_A_E(); rom.emit(0x94)          # SUB H
-    rom.CP_n(8); rom.JR_NC('cc_skip')
-
-    # Same test on Y: 0 <= (item_y - PLAYER_Y) <= 15 (D=item_y)
-    rom.LD_A_nn(PLAYER_Y); rom.LD_H_A()
-    rom.LD_A_D(); rom.emit(0x94)          # SUB H
-    rom.CP_n(16); rom.JR_NC('cc_skip')
+    # Item point (E=item_x, D=item_y) falls within the player's real 8x16
+    # box (IP-8010: shared with inf_mob_contact_check via
+    # pib_reg_minus_origin -- HL's real value already stashed by this
+    # iteration's own PUSH_HL, safe to clobber here, not touched again
+    # until cc_skip/the HIT branch's POP_HL; B/C both survive, unclobbered
+    # by the subroutine).
+    rom.LD_HL_nn(PLAYER_X)
+    rom.CALL('pib_reg_minus_origin')
+    rom.JR_NZ('cc_skip')
 
     # HIT — deactivate
     rom.POP_HL(); rom.XOR_A(); rom.LD_HL_A(); rom.INC_HL()
@@ -1247,8 +1249,7 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_C(); rom.CP_n(2); rom.JR_NZ('cc_not_c')
     rom.LD_A_nn(CUR_ZONE)
     rom.PUSH_HL()
-    rom.LD_E_A(); rom.LD_D_n(0)
-    rom.LD_HL_nn(KEYITEM_FLAGS); rom.ADD_HL_DE()
+    rom.CALL('keyitem_flags_hl')       # HL = KEYITEM_FLAGS + CUR_ZONE (IP-8050)
     rom.LD_A_n(1); rom.LD_HL_A()
     rom.POP_HL()
     rom.LD_A_nn(KEYITEM_COUNT); rom.INC_A(); rom.LD_nn_A(KEYITEM_COUNT)
@@ -1315,6 +1316,42 @@ def build_game_asm(rom: ROM) -> dict:
     rom.CALL('inf_ledger_mark_collected')
     rom.JR('cc_iter')
 
+    # ── pib_reg_minus_origin (IP-8010) ─────────────────────
+    # Shared point-in-box hit test, extracted from check_collisions/
+    # inf_mob_contact_check's own identical inlined logic (both compute
+    # register-held-point minus WRAM-held-origin; inf_projectile_hittest's
+    # own test computes the opposite order and is NOT a match for this
+    # routine -- left inlined, deliberately out of this refactor's scope).
+    # Input: HL -> a contiguous WRAM (origin_x, origin_y) pair; E = point_x,
+    # D = point_y. Tests 0 <= point_x-origin_x < 8 and 0 <= point_y-origin_y
+    # < 16 (the same unsigned-wraparound-tolerant technique both callers
+    # already relied on). Returns Z set if the point is inside the box, Z
+    # clear otherwise -- callers branch with JR_NZ/JP_NZ to their own
+    # existing skip label, mirroring this codebase's flag-branch idiom.
+    # Clobbers A, HL (advanced by one). Preserves B/C/D/E.
+    rom.label('pib_reg_minus_origin')
+    rom.LD_A_E(); rom.emit(0x96)      # SUB (HL): A = point_x - origin_x
+    rom.CP_n(8); rom.JR_NC('pib_rmo_fail')
+    rom.INC_HL()
+    rom.LD_A_D(); rom.emit(0x96)      # SUB (HL): A = point_y - origin_y
+    rom.CP_n(16); rom.JR_NC('pib_rmo_fail')
+    rom.XOR_A(); rom.RET()            # A=0 -> Z set (hit)
+    rom.label('pib_rmo_fail')
+    rom.LD_A_n(1); rom.OR_A(); rom.RET()   # A=1 -> Z clear (miss)
+
+    # ── idx5_to_hl (IP-8040) ──────────────────────────────
+    # Shared "multiply index by 5, add to a pre-loaded base" addressing
+    # core (this project's own no-multiply-instruction unrolled-add
+    # convention), extracted from czt_region_hl/dsr_p/setup_zone_collects/
+    # gw_neighbor_hl/inf_ledger_mark_collected's own identical inlined
+    # sequences. Input: E = index, D = 0 (caller sets both), HL = base
+    # address (caller pre-loads). Output: HL = base + index*5. Clobbers
+    # nothing beyond HL itself.
+    rom.label('idx5_to_hl')
+    rom.ADD_HL_DE(); rom.ADD_HL_DE(); rom.ADD_HL_DE()
+    rom.ADD_HL_DE(); rom.ADD_HL_DE()
+    rom.RET()
+
     # ── check_zone_transition ────────────────────────────
     # czt_region_hl: HL = REGION_GRAPH + CUR_ZONE*5 (region base, biome-id
     # byte) — the identical addressing dsr_p/draw_region_arrows (IP-1030)
@@ -1325,8 +1362,7 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_nn(CUR_ZONE)
     rom.LD_E_A(); rom.LD_D_n(0)
     rom.LD_HL_nn(REGION_GRAPH)
-    rom.ADD_HL_DE(); rom.ADD_HL_DE(); rom.ADD_HL_DE()
-    rom.ADD_HL_DE(); rom.ADD_HL_DE()
+    rom.CALL('idx5_to_hl')
     rom.RET()
 
     # IP-9050 (BL-0047): regeneralized from the pre-procgen hardcoded
@@ -2374,13 +2410,19 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_n(TL_BG_BLANK); rom.LD_HL_A()
 
     rom.LD_A_nn(SSE_CURSOR); rom.CP_n(5); rom.JP_Z('dsd_scale_cursor')
-    rom.LD_E_A(); rom.LD_D_n(0)
-    rom.LD_HL_nn(0x9800 + SSE_CURSOR_SEED_ROW*32 + SSE_SEED_COL0)
-    rom.ADD_HL_DE()
-    rom.LD_A_n(TL_ARROW_D); rom.LD_HL_A()
+    rom.CALL('dsd_seed_cursor_arrow')
     rom.RET()
     rom.label('dsd_scale_cursor')
     rom.LD_HL_nn(0x9800 + SSE_CURSOR_SCALE_ROW*32 + SSE_SCALE_COL)
+    rom.LD_A_n(TL_ARROW_D); rom.LD_HL_A()
+    rom.RET()
+
+    # IP-8060: shared "seed-cursor arrow" tail -- input A = cursor index
+    # (SSE_CURSOR), writes TL_ARROW_D at the corresponding seed-digit cell.
+    rom.label('dsd_seed_cursor_arrow')
+    rom.LD_E_A(); rom.LD_D_n(0)
+    rom.LD_HL_nn(0x9800 + SSE_CURSOR_SEED_ROW*32 + SSE_SEED_COL0)
+    rom.ADD_HL_DE()
     rom.LD_A_n(TL_ARROW_D); rom.LD_HL_A()
     rom.RET()
 
@@ -2405,10 +2447,7 @@ def build_game_asm(rom: ROM) -> dict:
         rom.LD_HL_nn(addr); rom.LD_A_n(TL_BG_BLANK); rom.LD_HL_A()
 
     rom.LD_A_nn(SSE_CURSOR)
-    rom.LD_E_A(); rom.LD_D_n(0)
-    rom.LD_HL_nn(0x9800 + SSE_CURSOR_SEED_ROW*32 + SSE_SEED_COL0)
-    rom.ADD_HL_DE()
-    rom.LD_A_n(TL_ARROW_D); rom.LD_HL_A()
+    rom.CALL('dsd_seed_cursor_arrow')
     rom.RET()
 
     # ── sse_adjust_up / sse_adjust_down (IP-1040) ──────────
@@ -2528,8 +2567,7 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_nn(CUR_ZONE)
     rom.LD_E_A(); rom.LD_D_n(0)        # DE = region index
     rom.LD_HL_nn(REGION_GRAPH)
-    rom.ADD_HL_DE(); rom.ADD_HL_DE(); rom.ADD_HL_DE()
-    rom.ADD_HL_DE(); rom.ADD_HL_DE()   # HL = REGION_GRAPH + region*5
+    rom.CALL('idx5_to_hl')             # HL = REGION_GRAPH + region*5 (IP-8040)
     rom.LD_A_HL()                      # A = biome-id (0..4)
     rom.ADD_A_A()                      # A = biome-id * 2 (zc_table index)
     rom.LD_E_A(); rom.LD_D_n(0)
@@ -2552,8 +2590,7 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_C(); rom.CP_n(2); rom.JR_NZ('szc_score_chk')
     rom.PUSH_BC(); rom.PUSH_DE(); rom.PUSH_HL()
     rom.LD_A_nn(CUR_ZONE)
-    rom.LD_E_A(); rom.LD_D_n(0)
-    rom.LD_HL_nn(KEYITEM_FLAGS); rom.ADD_HL_DE()
+    rom.CALL('keyitem_flags_hl')       # HL = KEYITEM_FLAGS + CUR_ZONE (IP-8050)
     rom.LD_A_HL()
     rom.POP_HL(); rom.POP_DE(); rom.POP_BC()
     rom.OR_A(); rom.JR_Z('szc_sk')
@@ -2909,10 +2946,8 @@ def build_game_asm(rom: ROM) -> dict:
     rom.XOR_A(); rom.LD_nn_A(GW_BRAID_IDX)   # try-count, reset
 
     rom.label('maze_try_loop')
-    rom.LD_A_nn(GW_MAZE_DIR); rom.LD_C_A()
     rom.LD_A_nn(GW_CUR_REGION)
-    rom.CALL('gw_neighbor_hl')               # HL -> REGION_GRAPH[R].neighbor[dir]
-    rom.LD_A_HL()
+    rom.CALL('gw_read_neighbor')              # A = neighbor region in GW_MAZE_DIR dir
     rom.CP_n(0xFF); rom.JR_Z('maze_try_next')   # off-grid in this direction
 
     rom.LD_D_A()                              # D = V (candidate region)
@@ -3021,22 +3056,19 @@ def build_game_asm(rom: ROM) -> dict:
                                                        # leaf becomes absent instead
     rom.LD_A_nn(GW_KI_PLACED); rom.INC_A(); rom.LD_nn_A(GW_KI_PLACED)
     rom.LD_A_nn(GW_BRAID_IDX)
-    rom.LD_E_A(); rom.LD_D_n(0)
-    rom.LD_HL_nn(KEYITEM_FLAGS); rom.ADD_HL_DE()
+    rom.CALL('keyitem_flags_hl')              # HL = KEYITEM_FLAGS + R (IP-8050)
     rom.XOR_A(); rom.LD_HL_A()                # KEYITEM_FLAGS[R] = 0 (present)
     rom.JR('ki_passA_next_region')
 
     rom.label('ki_passA_mark_absent2')
     rom.LD_A_nn(GW_BRAID_IDX)
-    rom.LD_E_A(); rom.LD_D_n(0)
-    rom.LD_HL_nn(KEYITEM_FLAGS); rom.ADD_HL_DE()
+    rom.CALL('keyitem_flags_hl')
     rom.LD_A_n(2); rom.LD_HL_A()              # KEYITEM_FLAGS[R] = 2 (absent)
     rom.JR('ki_passA_next_region')
 
     rom.label('ki_passA_not_leaf')
     rom.LD_A_nn(GW_BRAID_IDX)
-    rom.LD_E_A(); rom.LD_D_n(0)
-    rom.LD_HL_nn(KEYITEM_FLAGS); rom.ADD_HL_DE()
+    rom.CALL('keyitem_flags_hl')
     rom.LD_A_n(2); rom.LD_HL_A()              # KEYITEM_FLAGS[R] = 2 (absent, tentative)
 
     rom.label('ki_passA_next_region')
@@ -3070,8 +3102,7 @@ def build_game_asm(rom: ROM) -> dict:
 
     rom.LD_A_nn(GW_KI_PLACED); rom.INC_A(); rom.LD_nn_A(GW_KI_PLACED)
     rom.LD_A_nn(GW_BRAID_IDX)
-    rom.LD_E_A(); rom.LD_D_n(0)
-    rom.LD_HL_nn(KEYITEM_FLAGS); rom.ADD_HL_DE()
+    rom.CALL('keyitem_flags_hl')              # HL = KEYITEM_FLAGS + R (IP-8050)
     rom.XOR_A(); rom.LD_HL_A()                # KEYITEM_FLAGS[R] = 0 (present, fallback fill)
 
     rom.label('ki_passB_next_region')
@@ -3091,10 +3122,8 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_n(1); rom.LD_nn_A(GW_MAZE_DIR)   # repurposed: current direction (down first)
 
     rom.label('maze_prune_dir')
-    rom.LD_A_nn(GW_MAZE_DIR); rom.LD_C_A()
     rom.LD_A_nn(GW_BRAID_IDX)                 # A = R
-    rom.CALL('gw_neighbor_hl')                # HL -> REGION_GRAPH[R].neighbor[dir]
-    rom.LD_A_HL()
+    rom.CALL('gw_read_neighbor')              # A = neighbor region in GW_MAZE_DIR dir
     rom.CP_n(0xFF); rom.JR_Z('maze_prune_next_dir')   # true boundary
 
     rom.LD_D_A()                              # D = V
@@ -3155,8 +3184,7 @@ def build_game_asm(rom: ROM) -> dict:
     rom.label('gw_neighbor_hl')
     rom.LD_E_A(); rom.LD_D_n(0)
     rom.LD_HL_nn(REGION_GRAPH)
-    rom.ADD_HL_DE(); rom.ADD_HL_DE(); rom.ADD_HL_DE()
-    rom.ADD_HL_DE(); rom.ADD_HL_DE()   # HL = REGION_GRAPH + region*5 (biome byte)
+    rom.CALL('idx5_to_hl')              # HL = REGION_GRAPH + region*5 (IP-8040)
     rom.INC_HL()                        # HL -> +1 (up slot, direction 0 base)
     rom.LD_A_C()
     rom.OR_A(); rom.JR_Z('gnh_done')            # dir 0 (up): already there
@@ -3168,6 +3196,17 @@ def build_game_asm(rom: ROM) -> dict:
     rom.label('gnh_try3')
     rom.INC_HL(); rom.INC_HL(); rom.INC_HL()    # dir 3 (right, only case left)
     rom.label('gnh_done')
+    rom.RET()
+
+    # gw_read_neighbor (IP-8070): on entry A=region index. Reads GW_MAZE_DIR
+    # internally for direction. Returns A = neighbor region index, or 0xFF
+    # if none in that direction. Clobbers A, B, C, D, E, H, L.
+    rom.label('gw_read_neighbor')
+    rom.LD_B_A()                              # B = region (stash across C load)
+    rom.LD_A_nn(GW_MAZE_DIR); rom.LD_C_A()    # C = dir
+    rom.LD_A_B()                              # A = region (restored)
+    rom.CALL('gw_neighbor_hl')                # HL -> REGION_GRAPH[region].neighbor[dir]
+    rom.LD_A_HL()
     rom.RET()
 
     # gw_maze_state_hl: on entry A=region index (0-80). Returns HL ->
@@ -3484,6 +3523,42 @@ def build_game_asm(rom: ROM) -> dict:
     rom.label('imd_done')
     rom.RET()
 
+    # ── abs_delta_from_player (IP-8020) ──────────────────────
+    # Shared "absolute delta from PLAYER_X/PLAYER_Y" computation, extracted
+    # from inf_mob_move/inf_mob_contact_check's own knockback block (both
+    # inlined the identical technique for picking a dominant axis).
+    # Input: E = point_x, D = point_y. Output: C = |point_x - PLAYER_X|,
+    # L = |point_y - PLAYER_Y|. Clobbers A, H. Preserves B/D/E.
+    rom.label('abs_delta_from_player')
+    rom.LD_A_nn(PLAYER_X); rom.LD_H_A()
+    rom.LD_A_E(); rom.emit(0xBC)     # CP H: point_x vs player_x
+    rom.JR_Z('adfp_ax_zero')
+    rom.JR_C('adfp_ax_neg')
+    rom.LD_A_E(); rom.emit(0x94)     # SUB H: A = point_x - player_x
+    rom.JR('adfp_ax_done')
+    rom.label('adfp_ax_neg')
+    rom.LD_A_H(); rom.SUB_E()        # A = player_x - point_x
+    rom.JR('adfp_ax_done')
+    rom.label('adfp_ax_zero')
+    rom.XOR_A()
+    rom.label('adfp_ax_done')
+    rom.LD_C_A()
+
+    rom.LD_A_nn(PLAYER_Y); rom.LD_H_A()
+    rom.LD_A_D(); rom.emit(0xBC)     # CP H: point_y vs player_y
+    rom.JR_Z('adfp_ay_zero')
+    rom.JR_C('adfp_ay_neg')
+    rom.LD_A_D(); rom.emit(0x94)     # SUB H: A = point_y - player_y
+    rom.JR('adfp_ay_done')
+    rom.label('adfp_ay_neg')
+    rom.LD_A_H(); rom.SUB_D()        # A = player_y - point_y
+    rom.JR('adfp_ay_done')
+    rom.label('adfp_ay_zero')
+    rom.XOR_A()
+    rom.label('adfp_ay_done')
+    rom.LD_L_A()
+    rom.RET()
+
     # ── inf_mob_move (IP-1126, FR-11210) ────────────────────
     # Called once per frame from st_playing (gated on COMBAT_MODE -- a
     # no-op call otherwise, matching every other combat-sub-mode routine's
@@ -3526,35 +3601,9 @@ def build_game_asm(rom: ROM) -> dict:
     rom.PUSH_BC(); rom.PUSH_HL()
     rom.OR_A(); rom.JR_Z('imv_skip')
 
-    # ax = |mob_x - PLAYER_X| -> C
-    rom.LD_A_nn(PLAYER_X); rom.LD_H_A()
-    rom.LD_A_E(); rom.emit(0xBC)     # CP H: mob_x vs player_x
-    rom.JR_Z('imv_ax_zero')
-    rom.JR_C('imv_ax_neg')
-    rom.LD_A_E(); rom.emit(0x94)     # SUB H: A = mob_x - player_x
-    rom.JR('imv_ax_done')
-    rom.label('imv_ax_neg')
-    rom.LD_A_H(); rom.SUB_E()        # A = player_x - mob_x
-    rom.JR('imv_ax_done')
-    rom.label('imv_ax_zero')
-    rom.XOR_A()
-    rom.label('imv_ax_done')
-    rom.LD_C_A()
-
-    # ay = |mob_y - PLAYER_Y| -> L
-    rom.LD_A_nn(PLAYER_Y); rom.LD_H_A()
-    rom.LD_A_D(); rom.emit(0xBC)     # CP H: mob_y vs player_y
-    rom.JR_Z('imv_ay_zero')
-    rom.JR_C('imv_ay_neg')
-    rom.LD_A_D(); rom.emit(0x94)     # SUB H: A = mob_y - player_y
-    rom.JR('imv_ay_done')
-    rom.label('imv_ay_neg')
-    rom.LD_A_H(); rom.SUB_D()        # A = player_y - mob_y
-    rom.JR('imv_ay_done')
-    rom.label('imv_ay_zero')
-    rom.XOR_A()
-    rom.label('imv_ay_done')
-    rom.LD_L_A()
+    # ax/ay = |mob_x - PLAYER_X| -> C, |mob_y - PLAYER_Y| -> L (IP-8020:
+    # shared with the knockback block below via abs_delta_from_player)
+    rom.CALL('abs_delta_from_player')
 
     # coincident (ax==0 and ay==0) -> hold still
     rom.LD_A_C(); rom.OR_A(); rom.JR_NZ('imv_pick_axis')
@@ -3755,12 +3804,13 @@ def build_game_asm(rom: ROM) -> dict:
     rom.PUSH_BC(); rom.PUSH_HL()
     rom.OR_A(); rom.JP_Z('imcc_skip')   # JP: body now exceeds JR's +-127 range
 
-    rom.LD_A_nn(PLAYER_X); rom.LD_H_A()
-    rom.LD_A_E(); rom.emit(0x94)      # SUB H: A = mob_x - PLAYER_X
-    rom.CP_n(8); rom.JP_NC('imcc_skip')
-    rom.LD_A_nn(PLAYER_Y); rom.LD_H_A()
-    rom.LD_A_D(); rom.emit(0x94)      # SUB H: A = mob_y - PLAYER_Y
-    rom.CP_n(16); rom.JP_NC('imcc_skip')
+    # IP-8010: shared with check_collisions via pib_reg_minus_origin. C
+    # (this slot's own MOB_CONTACT_FLAGS bitmask) and B (loop index) both
+    # survive, unclobbered by the subroutine -- read again immediately
+    # below. JP (not JR) preserved: this body already exceeds JR's range.
+    rom.LD_HL_nn(PLAYER_X)
+    rom.CALL('pib_reg_minus_origin')
+    rom.JP_NZ('imcc_skip')
 
     # OVERLAP confirmed for this active mob -- IP-1127's own cooldown gate
     rom.LD_A_nn(MOB_CONTACT_FLAGS); rom.AND_C()
@@ -3797,37 +3847,11 @@ def build_game_asm(rom: ROM) -> dict:
     # (E=mob_x, D=mob_y still hold this slot's own position, untouched
     # since loaded), by KNOCKBACK_DISTANCE, clamped to the same 0/152 (X)
     # and 8/128 (Y) bounds handle_play_input's own movement already
-    # enforces. Mirrors inf_mob_move's own dominant-axis magnitude
-    # computation (IP-1126), inverted for direction (push away, not
-    # toward). C is free scratch here -- this slot's own bitmask has
+    # enforces. IP-8020: ax/ay computed via the shared abs_delta_from_player
+    # (also used by inf_mob_move), inverted for direction below (push away,
+    # not toward). C is free scratch here -- this slot's own bitmask has
     # already been OR'd into MOB_CONTACT_FLAGS above.
-    rom.LD_A_nn(PLAYER_X); rom.LD_H_A()
-    rom.LD_A_E(); rom.emit(0xBC)      # CP H: mob_x vs player_x
-    rom.JR_Z('ikb_ax_zero')
-    rom.JR_C('ikb_ax_neg')
-    rom.LD_A_E(); rom.emit(0x94)      # SUB H: A = mob_x - player_x
-    rom.JR('ikb_ax_done')
-    rom.label('ikb_ax_neg')
-    rom.LD_A_H(); rom.SUB_E()
-    rom.JR('ikb_ax_done')
-    rom.label('ikb_ax_zero')
-    rom.XOR_A()
-    rom.label('ikb_ax_done')
-    rom.LD_C_A()   # C = ax
-
-    rom.LD_A_nn(PLAYER_Y); rom.LD_H_A()
-    rom.LD_A_D(); rom.emit(0xBC)      # CP H: mob_y vs player_y
-    rom.JR_Z('ikb_ay_zero')
-    rom.JR_C('ikb_ay_neg')
-    rom.LD_A_D(); rom.emit(0x94)      # SUB H: A = mob_y - player_y
-    rom.JR('ikb_ay_done')
-    rom.label('ikb_ay_neg')
-    rom.LD_A_H(); rom.SUB_D()
-    rom.JR('ikb_ay_done')
-    rom.label('ikb_ay_zero')
-    rom.XOR_A()
-    rom.label('ikb_ay_done')
-    rom.LD_L_A()   # L = ay
+    rom.CALL('abs_delta_from_player')   # C = ax, L = ay
 
     rom.LD_A_C(); rom.emit(0xBD)      # CP L: ax vs ay; carry set if ax<ay
     rom.JR_C('ikb_axis_y')
@@ -3916,6 +3940,30 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_nn(COMBAT_ENTRY_Y); rom.LD_nn_A(PLAYER_Y)
     rom.RET()
 
+    # ── treasure_spend_gate_and_decrement (IP-8030) ──────────
+    # Shared gate-and-decrement prefix, extracted from inf_heal_spend/
+    # inf_tier_spend's own identical logic. Checks COMBAT_MODE and
+    # RUNNING_TREASURE_COUNT (16-bit) are both nonzero; if either gate
+    # fails, returns immediately with Z set (caller RET_Zs, spending
+    # nothing). Otherwise decrements RUNNING_TREASURE_COUNT (16-bit,
+    # standard check-before-decrement borrow technique), sets SCORE_DIRTY,
+    # and returns with Z clear (caller applies its own capped-increment
+    # effect). The final OR_A() is required, not redundant: DEC_A on the
+    # low byte can itself set Z (count was exactly 1), which would
+    # otherwise corrupt the success signal. Clobbers A.
+    rom.label('treasure_spend_gate_and_decrement')
+    rom.LD_A_nn(COMBAT_MODE); rom.OR_A(); rom.RET_Z()
+    rom.LD_A_nn(RUNNING_TREASURE_COUNT); rom.OR_A(); rom.JR_NZ('tsgd_have')
+    rom.LD_A_nn(RUNNING_TREASURE_COUNT + 1); rom.OR_A(); rom.RET_Z()
+    rom.label('tsgd_have')
+    rom.LD_A_nn(RUNNING_TREASURE_COUNT); rom.OR_A(); rom.JR_NZ('tsgd_no_borrow')
+    rom.LD_A_nn(RUNNING_TREASURE_COUNT + 1); rom.DEC_A(); rom.LD_nn_A(RUNNING_TREASURE_COUNT + 1)
+    rom.label('tsgd_no_borrow')
+    rom.LD_A_nn(RUNNING_TREASURE_COUNT); rom.DEC_A(); rom.LD_nn_A(RUNNING_TREASURE_COUNT)
+    rom.LD_A_n(1); rom.LD_nn_A(SCORE_DIRTY)
+    rom.OR_A()   # re-assert Z clear (success), independent of DEC_A's own leftover flags
+    rom.RET()
+
     # ── inf_heal_spend (IP-1123, FR-11500) ──────────────────
     # Player-choice healing: gated on COMBAT_MODE and
     # RUNNING_TREASURE_COUNT > 0 (16-bit, both bytes checked). Decrements
@@ -3936,16 +3984,9 @@ def build_game_asm(rom: ROM) -> dict:
     # question resolves -- mirrors inf_mob_defeat's own "defined and
     # exposed, no call site yet" precedent. Clobbers A.
     rom.label('inf_heal_spend')
-    rom.LD_A_nn(COMBAT_MODE); rom.OR_A(); rom.RET_Z()
-    rom.LD_A_nn(RUNNING_TREASURE_COUNT); rom.OR_A(); rom.JR_NZ('ihs_have')
-    rom.LD_A_nn(RUNNING_TREASURE_COUNT + 1); rom.OR_A(); rom.RET_Z()
-    rom.label('ihs_have')
-    rom.LD_A_nn(RUNNING_TREASURE_COUNT); rom.OR_A(); rom.JR_NZ('ihs_no_borrow')
-    rom.LD_A_nn(RUNNING_TREASURE_COUNT + 1); rom.DEC_A(); rom.LD_nn_A(RUNNING_TREASURE_COUNT + 1)
-    rom.label('ihs_no_borrow')
-    rom.LD_A_nn(RUNNING_TREASURE_COUNT); rom.DEC_A(); rom.LD_nn_A(RUNNING_TREASURE_COUNT)
+    rom.CALL('treasure_spend_gate_and_decrement')
+    rom.RET_Z()   # gated off or no treasure -- nothing spent, no effect
 
-    rom.LD_A_n(1); rom.LD_nn_A(SCORE_DIRTY)  # treasure count always changed above
     rom.LD_A_nn(PLAYER_HEALTH); rom.CP_n(3); rom.JR_NC('ihs_done')
     rom.INC_A(); rom.LD_nn_A(PLAYER_HEALTH)
     rom.label('ihs_done')
@@ -3966,16 +4007,9 @@ def build_game_asm(rom: ROM) -> dict:
     # binding for here. Defined and exposed, directly force-testable
     # (T38.a-d). Clobbers A.
     rom.label('inf_tier_spend')
-    rom.LD_A_nn(COMBAT_MODE); rom.OR_A(); rom.RET_Z()
-    rom.LD_A_nn(RUNNING_TREASURE_COUNT); rom.OR_A(); rom.JR_NZ('its_have')
-    rom.LD_A_nn(RUNNING_TREASURE_COUNT + 1); rom.OR_A(); rom.RET_Z()
-    rom.label('its_have')
-    rom.LD_A_nn(RUNNING_TREASURE_COUNT); rom.OR_A(); rom.JR_NZ('its_no_borrow')
-    rom.LD_A_nn(RUNNING_TREASURE_COUNT + 1); rom.DEC_A(); rom.LD_nn_A(RUNNING_TREASURE_COUNT + 1)
-    rom.label('its_no_borrow')
-    rom.LD_A_nn(RUNNING_TREASURE_COUNT); rom.DEC_A(); rom.LD_nn_A(RUNNING_TREASURE_COUNT)
+    rom.CALL('treasure_spend_gate_and_decrement')
+    rom.RET_Z()   # gated off or no treasure -- nothing spent, no effect
 
-    rom.LD_A_n(1); rom.LD_nn_A(SCORE_DIRTY)  # treasure count always changed above
     rom.LD_A_nn(WEAPON_TIER); rom.CP_n(3); rom.JR_NC('its_done')
     rom.INC_A(); rom.LD_nn_A(WEAPON_TIER)
     rom.label('its_done')
@@ -4141,32 +4175,32 @@ def build_game_asm(rom: ROM) -> dict:
     # inf_ledger_find's own contract).
     rom.LD_A_nn(LEDGER_COUNT); rom.CP_n(128); rom.JR_NC('ilmc_evict')
     # Append: write (row, col, collected=1) at HL; LEDGER_COUNT += 1.
-    rom.LD_A_nn(INF_ROW); rom.LD_HLI_A()
-    rom.LD_A_nn(INF_ROW + 1); rom.LD_HLI_A()
-    rom.LD_A_nn(INF_COL); rom.LD_HLI_A()
-    rom.LD_A_nn(INF_COL + 1); rom.LD_HLI_A()
-    rom.LD_A_n(1); rom.LD_HL_A()
+    rom.CALL('write_ledger_entry_at_hl')
     rom.LD_A_nn(LEDGER_COUNT); rom.INC_A(); rom.LD_nn_A(LEDGER_COUNT)
     rom.RET()
     rom.label('ilmc_evict')
     # Full (LEDGER_COUNT == 128): FIFO-evict the entry at LEDGER_CURSOR --
-    # HL = LEDGER + LEDGER_CURSOR*5, computed via five fixed ADD_HL_DE
-    # steps (DE = cursor, 0-127, fits one byte) rather than a multiply
-    # instruction (none exists on SM83) or a runtime loop -- a small fixed
-    # unrolled sequence, this codebase's own established style (see
-    # inf_ensure_window's own identical framing for its 9-cell unroll).
+    # HL = LEDGER + LEDGER_CURSOR*5, via the shared idx5_to_hl (IP-8040;
+    # DE = cursor, 0-127, fits one byte).
     rom.LD_A_nn(LEDGER_CURSOR); rom.LD_E_A(); rom.LD_D_n(0)
     rom.LD_HL_nn(LEDGER)
-    rom.ADD_HL_DE(); rom.ADD_HL_DE(); rom.ADD_HL_DE()
-    rom.ADD_HL_DE(); rom.ADD_HL_DE()
+    rom.CALL('idx5_to_hl')
+    rom.CALL('write_ledger_entry_at_hl')
+    # Advance cursor modulo 128 (AND 0x7F, no DIV).
+    rom.LD_A_nn(LEDGER_CURSOR); rom.INC_A(); rom.AND_n(0x7F)
+    rom.LD_nn_A(LEDGER_CURSOR)
+    rom.RET()
+
+    # write_ledger_entry_at_hl (IP-8080): on entry HL = pre-positioned
+    # ledger slot address. Writes (INF_ROW, INF_ROW+1, INF_COL, INF_COL+1,
+    # collected=1). HL ends pointing at the collected byte (non-incrementing
+    # final write). Clobbers A, H, L.
+    rom.label('write_ledger_entry_at_hl')
     rom.LD_A_nn(INF_ROW); rom.LD_HLI_A()
     rom.LD_A_nn(INF_ROW + 1); rom.LD_HLI_A()
     rom.LD_A_nn(INF_COL); rom.LD_HLI_A()
     rom.LD_A_nn(INF_COL + 1); rom.LD_HLI_A()
     rom.LD_A_n(1); rom.LD_HL_A()
-    # Advance cursor modulo 128 (AND 0x7F, no DIV).
-    rom.LD_A_nn(LEDGER_CURSOR); rom.INC_A(); rom.AND_n(0x7F)
-    rom.LD_nn_A(LEDGER_CURSOR)
     rom.RET()
 
     # ── save_to_sram ─────────────────────────────────────

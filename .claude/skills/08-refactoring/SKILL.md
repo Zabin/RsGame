@@ -1,6 +1,6 @@
 ---
 name: 08-refactoring
-description: Execute exactly one approved, eligible refactoring-scoped Implementation Package (IP-8xx0) — behavior-preserving restructuring of code (any repo-root .py the package names) and/or meaning-preserving restructuring of documentation under docs/ — capture a baseline (ROM hash + full test_rom.py results) before the first edit, refactor in small reversible steps, prove equivalence afterward (byte-identical ROM or the package's enumerated predicted deltas; full suite green; doc statuses/decisions/IDs meaning-unchanged; link integrity), update traceability and any migration map, and advance the package on the Master Build Plan. Use when asked to "refactor X," "restructure/reorganize the docs," "rename Y across the tree," "pay down structural debt," or "implement IP-8xxx" where the package names this skill. Stage-08 peer of 08-code-implementation and 08-content-authoring; it never changes behavior, never fixes bugs (even ones it finds — those go to intake), never adds features, and is never pre-authorized (G3 bootstrap carve-out does not apply). Verification to VERIFIED belongs to 09-package-verification.
+description: Execute exactly one approved, eligible refactoring-scoped Implementation Package (IP-8xx0) — behavior-preserving restructuring of code (any repo-root .py the package names) and/or meaning-preserving restructuring of documentation under docs/ — capture a baseline (ROM hash + full test_rom.py results) before the first edit, refactor in small reversible steps, prove equivalence afterward (byte-identical ROM or the package's enumerated predicted deltas; full suite green; doc statuses/decisions/IDs meaning-unchanged; link integrity), update traceability and any migration map, and advance the package on the Master Build Plan. Use when asked to "refactor X," "restructure/reorganize the docs," "rename Y across the tree," "pay down structural debt," "the log/backlog/roadmap has gotten too big," or "implement IP-8xxx" where the package names this skill. Growing living documents (an append-only run log or backlog, a router doc whose summary cells have become history essays) follow a named pattern (Step 4a): archive-split for logs, compact-to-current-state-plus-pointer for router docs, both proven by row-for-row/byte-for-byte diff, with the strategic choice confirmed via `AskUserQuestion` when it isn't a single obvious move. Stage-08 peer of 08-code-implementation and 08-content-authoring; it never changes behavior, never fixes bugs (even ones it finds — those go to intake), never adds features, and is never pre-authorized (G3 bootstrap carve-out does not apply). Verification to VERIFIED belongs to 09-package-verification.
 ---
 
 # Refactoring
@@ -86,6 +86,39 @@ whose justification begins "while I'm here" is out of scope. Docs: move/split/me
 only — every moved claim keeps its wording or the package explicitly lists the permitted
 editorial normalizations; statuses and decisions are copied character-for-character.
 
+### Step 4a — Doc-scope pattern: growing living documents
+
+A recurring doc-refactoring shape (first executed 2026-07-20, `IP-8090`/`IP-8100`/`IP-8110`):
+a "living" document (append-only log, backlog, or summary/router doc) has grown so large it
+undermines its own purpose — a run log too big to skim for "where are we now," a backlog too
+dominated by closed rows to triage quickly, a router doc whose per-row Status cell has become a
+full history essay duplicating what an owning document already tracks in full. Two patterns,
+by shape:
+
+- **Archive-split** (append-only logs — a run log, a backlog, anything with a "never delete
+  rows" rule): once the live file passes a size/row threshold that makes it unwieldy, move the
+  older/closed rows **verbatim** into a new `<name>-archive.md` (same table format, same order),
+  leave a one-line pointer in the live file, and keep only the recent/open rows live. Never
+  delete a row — only relocate it. The equivalence proof is a **row-for-row or byte-for-byte
+  diff** of the archive + live bodies against the pre-refactor file — not a read-through.
+- **Compact-to-current-state-plus-pointer** (summary/router docs whose cells have grown into
+  history essays that an owning document already carries in full — e.g. a Status cell repeating
+  an Implementation Package's own tranche history): before trimming any cell, confirm **every**
+  fact/ID/finding it names is independently reconstructable from the doc/INDEX it will point to.
+  Anything not independently verifiable stays inline — it is not safe to compact. Replace the
+  cell with a short current-state summary (symbol + 1-2 sentences of current facts) plus an
+  explicit pointer to the doc that holds the full history.
+
+Both patterns are meaning-preserving structural moves, governed by the same eligibility/G3 rules
+as any other `IP-8xx0` package — they are not a standing exemption to run unprompted. Because no
+automated test verifies "did this doc refactor preserve meaning" (unlike `test_rom.py` for code),
+when a package's own approach involves a real choice (which threshold, which cells, split vs.
+compact) rather than one obviously-correct move, confirm the approach with the user via
+`AskUserQuestion` before executing — get the strategy right once rather than redo a
+large diff. Update the owning skill's own `SKILL.md` (e.g. `00-pipeline-manager` for the journal/
+backlog) and `docs/INDEX.md` to document the new archive/convention, so future runs follow the
+same pattern instead of silently letting the live file re-grow past the threshold again.
+
 ### Step 5 — Prove equivalence (G5 + the contract)
 
 ```
@@ -98,7 +131,12 @@ prediction — an unpredicted delta is a **failed refactor**, revert or block, n
 post-hoc) · test count not reduced, no check renamed without the package saying so · doc
 inventory identical in meaning (every status token and ID accounted for) · no dangling links
 anywhere in `docs/` to a moved/renamed file (sweep the whole tree, not just the files edited —
-inbound links break silently).
+inbound links break silently). For the growing-document patterns in Step 4a specifically: a
+**row-for-row or byte-for-byte diff** of the split/compacted output against the pre-refactor
+file's own corresponding content — for archive-split, every archived + live row must reconcile
+to the original row count with zero text changed; for compact-to-pointer, every fact removed from
+a cell must be independently confirmed present in the doc it now points to before the trim is
+considered proven, not merely plausible.
 
 ### Step 6 — Traceability and the migration map
 
@@ -136,6 +174,10 @@ end the run.
       filed, not fixed.
 - [ ] No dangling link in `docs/` to anything moved/renamed; migration map written if names
       changed.
+- [ ] For a growing-document split/compaction (Step 4a): row-for-row/byte-for-byte diff proves
+      zero content lost (archive-split), or every trimmed fact is confirmed present in the doc
+      it now points to (compact-to-pointer) — and, if the approach involved a real strategic
+      choice, it was confirmed with the user before executing, not decided unilaterally.
 - [ ] Master Build Plan shows `COMPLETE`; summary matches the actual diff.
 
 ## Pipeline position & completion summary (mandatory, every run)

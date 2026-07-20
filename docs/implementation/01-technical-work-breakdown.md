@@ -1931,3 +1931,287 @@ redesign).
 build all six" go-ahead (2026-07-17, `IP-1120`–`1125` only), the same class as `IP-1126`/`IP-1127`
 before them. Neither package may be picked up by `08-code-implementation` until the user gives an
 explicit go-ahead.
+
+## `BL-0170` — Point-in-box hit-test duplication (refactor)
+
+**Verb inventory:** not applicable — a single-verb structural cleanup (de-duplicate), not a new
+capability; no generate/render/navigate/persist/review split needed.
+
+**Supersession sweep:** `grep -n "CP_n(8); rom.J[RP]_NC\|CP_n(16); rom.J[RP]_NC" asm_game.py`
+confirms exactly three inlined point-in-box tests exist in the current tree: `check_collisions`
+(~line 1223-1230), `inf_projectile_hittest` (~line 3673-3676), `inf_mob_contact_check`
+(~line 3758-3763). No fourth site found — the sweep is clean.
+
+**Corrected scope, found during this planning pass (not the originating backlog entry's own
+framing):** direct reconstruction of each site's actual arithmetic shows only **two of the three
+are true duplicates**. `check_collisions` and `inf_mob_contact_check` both compute
+`(register-held point) − (WRAM-held origin)` — the box is anchored on `PLAYER_X`/`PLAYER_Y`
+(a static, contiguous WRAM pair) and the point being tested is whatever the per-slot loop just
+read into `E`/`D` (item or mob position). `inf_projectile_hittest` computes the **reverse
+order**, `(WRAM-held point) − (register-held origin)` — the box is anchored on the mob's own
+position (already in `E`/`D` from the loop read) and the point being tested is the static
+`PROJ_X`/`PROJ_Y` pair. Unsigned 8-bit subtraction is not commutative for this bounded-range
+test (`a−b mod 256 < N` and `b−a mod 256 < N` are different predicates), so the two orders
+cannot share one subroutine without changing `inf_projectile_hittest`'s own observable behavior
+— which a refactor must never do.
+
+**Decomposition, one package:**
+
+| Work unit | Package | Owning peer | Depends on |
+|---|---|---|---|
+| Extract `pib_reg_minus_origin` (the shared "register-point vs. WRAM-origin" test); rewrite `check_collisions` and `inf_mob_contact_check` to call it; leave `inf_projectile_hittest` unmodified (its own inlined test is not a duplicate of anything else — extracting a single-use routine would add a `CALL`'s worth of body overhead for zero de-duplication benefit, a net ROM-budget loss, not a refactor win) | [IP-8010](packages/IP-8010-point-in-box-hittest-deduplication.md) | `08-refactoring` | none (both call sites are in `asm_game.py`, no upstream dependency) |
+
+**Split rationale:** one package — the two genuinely-duplicated call sites are small, share one
+subroutine, and there is no natural seam to split them across; `check_collisions` and
+`inf_mob_contact_check` must change together or the equivalence proof (byte-delta prediction,
+full-suite regression) can't be reasoned about as one unit.
+
+**ROM budget:** expected small **net decrease** — two ~9-10-byte inlined sequences replaced by
+two 3-byte `CALL`s plus one ~16-18-byte shared subroutine body (exact figures measured at build
+time, per the package's own equivalence contract); a positive contribution against the tranche's
+current 98-byte headroom (`VR-1127`), not a cost. `inf_projectile_hittest` is untouched — zero
+byte impact there.
+
+**Authorization:** **NOT AUTHORIZED.** Refactoring packages carry no bootstrap carve-out — `IP-8010`
+requires the user's own explicit, per-package go-ahead before `08-refactoring` may execute it,
+regardless of severity or how small the change is.
+
+## `BL-0171` — Absolute-delta-from-player computation duplication (refactor)
+
+**Verb inventory:** not applicable — single-verb structural cleanup.
+
+**Supersession sweep:** `grep -n "label('imv_a[xy]\|label('ikb_a[xy]" asm_game.py` confirms
+exactly two inlined instances, both computing `|point − PLAYER_X/Y|` on each axis via the
+identical compare/branch/subtract sequence. No third site found.
+
+**Decomposition, one package:**
+
+| Work unit | Package | Owning peer | Depends on |
+|---|---|---|---|
+| Extract `abs_delta_from_player` (shared absolute-delta computation); rewrite `inf_mob_move`'s own `imv_ax_*`/`imv_ay_*` block and the knockback block's own `ikb_ax_*`/`ikb_ay_*` block (inside `inf_mob_contact_check`) to call it | [IP-8020](packages/IP-8020-abs-delta-from-player-deduplication.md) | `08-refactoring` | none |
+
+**Split rationale:** one package — both call sites change together, sharing one subroutine; no
+natural seam to split.
+
+**ROM budget:** expected net decrease (larger than `IP-8010`'s, since the duplicated block here
+is roughly 2.5x the size) — exact figure measured at build time.
+
+**Authorization:** treated as authorized under the user's own standing "continue iterating the
+refactoring... don't stop to ask" instruction (same basis as `IP-8010`'s explicit "Authorized all
+refactoring") — refactoring packages still carry no bootstrap carve-out; this is a user-granted
+blanket go-ahead for this session's further well-scoped refactor work, not an exemption from G3
+itself.
+
+## `BL-0172` — Treasure-spend gate-and-decrement duplication (refactor)
+
+**Verb inventory:** not applicable — single-verb structural cleanup.
+
+**Supersession sweep:** `grep -n "RUNNING_TREASURE_COUNT.*OR_A\|OR_A.*RUNNING_TREASURE_COUNT" asm_game.py`
+and direct read confirm exactly two sites share this exact gate/decrement shape — `inf_heal_spend`
+and `inf_tier_spend`. No third spend-style routine exists in the current tree.
+
+**Decomposition, one package:**
+
+| Work unit | Package | Owning peer | Depends on |
+|---|---|---|---|
+| Extract `treasure_spend_gate_and_decrement` (`Z` set = gated-off/no-treasure, `Z` clear = spent); rewrite `inf_heal_spend`/`inf_tier_spend` to call it, each keeping only its own capped-increment tail | [IP-8030](packages/IP-8030-treasure-spend-gate-deduplication.md) | `08-refactoring` | none |
+
+**Split rationale:** one package — both call sites change together.
+
+**ROM budget:** expected net decrease (9-instruction duplicated prefix → 1 shared body + 2 small
+`CALL`+`RET_Z` sequences).
+
+**Authorization:** treated as authorized under the user's own standing "continue iterating the
+refactoring... don't stop to ask" instruction (same basis as `IP-8010`/`IP-8020`).
+
+## `BL-0173` — Index*5 addressing arithmetic duplication (refactor)
+
+**Verb inventory:** not applicable — single-verb structural cleanup.
+
+**Supersession sweep:** `grep -n "ADD_HL_DE(); rom.ADD_HL_DE(); rom.ADD_HL_DE()" asm_game.py`
+confirms exactly five sites, all five-step unrolled multiply-by-5 sequences. No sixth site found.
+
+**Decomposition, one package:**
+
+| Work unit | Package | Owning peer | Depends on |
+|---|---|---|---|
+| Extract `idx5_to_hl` (input `E`=index/`D`=0/`HL`=pre-loaded base, output `HL`=base+index*5); rewrite all five call sites (`czt_region_hl`, `dsr_p`, `setup_zone_collects`, `gw_neighbor_hl`, `ilmc_evict`) to call it | [IP-8040](packages/IP-8040-idx5-addressing-deduplication.md) | `08-refactoring` | none |
+
+**Split rationale:** one package — all five sites share the identical core arithmetic; splitting
+would leave the equivalence proof fragmented across artificial boundaries.
+
+**ROM budget:** expected modest net decrease (5×5-byte inlined sequences → 1 shared ~6-byte body
++ 5×3-byte `CALL`s).
+
+**Authorization:** treated as authorized under the user's own standing "continue iterating the
+refactoring... don't stop to ask" instruction (same basis as `IP-8010`/`IP-8020`/`IP-8030`).
+
+## `BL-0175` — KEYITEM_FLAGS addressing duplication (refactor)
+
+**Verb inventory:** not applicable — single-verb structural cleanup.
+
+**Supersession sweep:** `grep -n "LD_HL_nn(KEYITEM_FLAGS)" asm_game.py` confirms exactly six
+sites use the `LD_HL_nn(KEYITEM_FLAGS); ADD_HL_DE()` addressing form; the remaining two
+`KEYITEM_FLAGS` references (lines ~762/~864) are bulk 81-byte clear loops with a different shape
+(`LD_B_n(81)`), not index-addressing, correctly out of scope; one more (~4336) is a save/load
+`memcpy` source/dest, also a different shape, correctly out of scope.
+
+**Decomposition, one package:**
+
+| Work unit | Package | Owning peer | Depends on |
+|---|---|---|---|
+| Extract `keyitem_flags_hl` (input `A`=region index, output `HL`=`KEYITEM_FLAGS`+index); rewrite all six call sites | [IP-8050](packages/IP-8050-keyitem-flags-addressing-deduplication.md) | `08-refactoring` | none |
+
+**Split rationale:** one package — all six sites share the identical core; the same
+incremental build-and-test-after-each-site discipline `IP-8040` established applies here too,
+given the larger number of sites.
+
+**ROM budget:** expected net decrease (~16 bytes estimated, six 7-byte inlined blocks → one
+8-byte shared body + six 3-byte `CALL`s).
+
+**Authorization:** treated as authorized under the user's own standing "continue iterating the
+refactoring... don't stop to ask" instruction (same basis as prior packages this session).
+
+## `BL-0177` — Seed-cursor-arrow tail duplication (refactor)
+
+**Verb inventory:** not applicable — single-verb structural cleanup.
+
+**Supersession sweep:** direct read of `draw_sse_digits`/`draw_ise_digits` confirms exactly two
+sites carry the identical 5-instruction cursor-arrow tail; no third site references
+`SSE_CURSOR`/`TL_ARROW_D` together.
+
+**Decomposition, one package:**
+
+| Work unit | Package | Owning peer | Depends on |
+|---|---|---|---|
+| Extract `dsd_seed_cursor_arrow` (input `A`=`SSE_CURSOR`); rewrite both call sites | [IP-8060](packages/IP-8060-seed-cursor-arrow-deduplication.md) | `08-refactoring` | none |
+
+**Split rationale:** one package — two sites, identical core, no register-liveness conflict.
+
+**ROM budget:** expected small net decrease (two ~9-byte inlined blocks → one ~9-byte shared body
++ two ~3-byte `CALL`s).
+
+**Authorization:** treated as authorized under the user's own standing "continue iterating the
+refactoring... don't stop to ask" instruction (same basis as prior packages this session).
+
+## `BL-0178` — `gw_neighbor_hl` read-wrapper duplication (refactor)
+
+**Verb inventory:** not applicable — single-verb structural cleanup.
+
+**Supersession sweep:** `grep -n "LD_A_nn(GW_MAZE_DIR); rom.LD_C_A()"` confirms four sites total;
+two (`ki_passA_dir`, `maze_prune_dir`) share the identical read-tail; one (`gw_cur_region_neighbor`-
+style block, ~line 2946) uses `GW_CUR_REGION` as the region source rather than `GW_BRAID_IDX` —
+foldable if the new subroutine takes the region index as an `A` input; one (~line 3159) writes
+`0xFF` rather than reading, a different operation, correctly out of scope.
+
+**Decomposition, one package:**
+
+| Work unit | Package | Owning peer | Depends on |
+|---|---|---|---|
+| Extract `gw_read_neighbor` (input `A`=region index, reads `GW_MAZE_DIR` internally, output `A`=neighbor or `0xFF`); rewrite the 2-3 read sites | [IP-8070](packages/IP-8070-gw-neighbor-read-deduplication.md) | `08-refactoring` | none |
+
+**Split rationale:** one package — small, RET-based, one scratch register (`B`) needed to hold
+the region index across the `LD_A_nn(GW_MAZE_DIR); LD_C_A()` step.
+
+**ROM budget:** expected small net decrease or neutral (byte count is close; net-zero at the
+section-total level is an acceptable, previously observed outcome).
+
+**Authorization:** treated as authorized under the user's own standing "continue iterating the
+refactoring... don't stop to ask" instruction (same basis as prior packages this session).
+
+## `BL-0179` — Ledger-entry write-block duplication (refactor)
+
+**Verb inventory:** not applicable — single-verb structural cleanup.
+
+**Supersession sweep:** direct read of `inf_ledger_mark_collected` confirms exactly two sites
+(`ilmc_notfound`'s append path, `ilmc_evict`'s FIFO-overwrite path) write the identical 5-byte
+ledger record; no third site writes this record shape.
+
+**Decomposition, one package:**
+
+| Work unit | Package | Owning peer | Depends on |
+|---|---|---|---|
+| Extract `write_ledger_entry_at_hl` (input `HL`=pre-positioned slot address); rewrite both call sites | [IP-8080](packages/IP-8080-ledger-entry-write-deduplication.md) | `08-refactoring` | none |
+
+**Split rationale:** one package — two sites, identical core, no register-liveness conflict
+(neither site depends on `HL`/`A` after the block).
+
+**ROM budget:** expected small net decrease (two ~13-byte inlined blocks → one ~13-byte shared
+body + two ~3-byte `CALL`s).
+
+**Authorization:** treated as authorized under the user's own standing "continue iterating the
+refactoring... don't stop to ask" instruction (same basis as prior packages this session).
+
+## `BL-0180` — `pipeline-journal.md` archive split (refactor)
+
+**Verb inventory:** not applicable — pure documentation reorganization, no logic/behavior change.
+
+**Supersession sweep:** direct read confirms the file is exactly two sections (Position, Run log)
+with no other content; the Run log is a single flat table, one row per run, runs #0-284
+contiguous by line number (lines 405-693 of the pre-refactor file).
+
+**Decomposition, one package:**
+
+| Work unit | Package | Owning peer | Depends on |
+|---|---|---|---|
+| Split runs #0-239 into a new archive file (verbatim); keep Position + runs #240-284 live with a cross-link | [IP-8090](packages/IP-8090-pipeline-journal-archive-split.md) | `08-refactoring` | none |
+
+**Split rationale:** one package — a single mechanical move, no logic to decompose.
+
+**Doc-scope equivalence plan:** byte-for-byte accounting (archive + live body == original body,
+modulo the added header/pointer lines); link integrity check across the tree; the pipeline
+manager's own `SKILL.md` updated to describe the new archive convention so future runs don't
+silently re-grow the live file past the retention window.
+
+**Authorization:** user directly authorized this approach via `AskUserQuestion` ("Refactor all
+log and roadmap files" → "Archive-split (Recommended)").
+
+## `BL-0181` — `backlog.md` archive split (refactor)
+
+**Verb inventory:** not applicable — pure documentation reorganization, no logic/behavior change.
+
+**Supersession sweep:** direct read confirms 179 entries, one row per `BL-xxxx` ID; status
+distribution 114 `DONE`, 46 `SCHEDULED`, 15 `DEFERRED`, 2 `IN PIPELINE`, 2 `NEW`/`REJECTED`
+combined (exact count reconfirmed at execution time, since this run's own new entries shift the
+totals).
+
+**Decomposition, one package:**
+
+| Work unit | Package | Owning peer | Depends on |
+|---|---|---|---|
+| Move every `DONE`/`REJECTED` row to a new archive file (verbatim); keep open-status rows (`NEW`/`SCHEDULED`/`DEFERRED`/`NEEDS-USER`/`IN PIPELINE`) live with a cross-link; update the file's own header text to describe the new convention | [IP-8100](packages/IP-8100-backlog-archive-split.md) | `08-refactoring` | none |
+
+**Split rationale:** one package — a single mechanical partition by status, no logic to
+decompose.
+
+**Doc-scope equivalence plan:** every row accounted for exactly once (archive + live == original
+row count); no row's own ID/status/content text altered, only relocated; lifecycle/lookup text
+in the file's own header updated to match (a genuine but narrow content change, distinct from the
+row data itself, called out explicitly rather than silently folded in); link integrity check.
+
+**Authorization:** user directly authorized this approach via `AskUserQuestion`.
+
+## `BL-0182` — `ROADMAP.md` cell compaction (refactor)
+
+**Verb inventory:** not applicable — pure documentation reorganization, no logic/behavior change.
+
+**Supersession sweep:** direct byte-length scan of every table cell in the file identifies seven
+rows over 1.5KB each (`IM-00` ~17.4KB, `IP-xxxx` ~6.5KB, `RV-INTEG` ~4.8KB, `R201-R220` ~3KB,
+`R101-R115` ~2.3KB, `ADR-xxxx` ~2.1KB, `IM-01` ~1.8KB), confirmed each one's full historical
+content already exists in its own owning document or theme `INDEX.md` before any cell is trimmed.
+
+**Decomposition, one package:**
+
+| Work unit | Package | Owning peer | Depends on |
+|---|---|---|---|
+| Compact the seven worst-offender Status cells to a short current-state summary + pointer to the owning doc; verify equivalence per cell before trimming | [IP-8110](packages/IP-8110-roadmap-cell-compaction.md) | `08-refactoring` | none |
+
+**Split rationale:** one package — seven cells, same mechanical pattern (verify coverage
+elsewhere, then compact), no logic to decompose.
+
+**Doc-scope equivalence plan:** per-cell verification that every fact/finding/ID named in the
+removed prose is independently confirmable in the owning doc/INDEX before trimming; anything not
+independently reconstructable is kept inline rather than removed. Link integrity check.
+
+**Authorization:** user directly authorized this approach via `AskUserQuestion` ("Compact to
+current-state + pointer (Recommended)").
