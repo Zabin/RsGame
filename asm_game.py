@@ -1330,6 +1330,19 @@ def build_game_asm(rom: ROM) -> dict:
     rom.label('pib_rmo_fail')
     rom.LD_A_n(1); rom.OR_A(); rom.RET()   # A=1 -> Z clear (miss)
 
+    # ── idx5_to_hl (IP-8040) ──────────────────────────────
+    # Shared "multiply index by 5, add to a pre-loaded base" addressing
+    # core (this project's own no-multiply-instruction unrolled-add
+    # convention), extracted from czt_region_hl/dsr_p/setup_zone_collects/
+    # gw_neighbor_hl/inf_ledger_mark_collected's own identical inlined
+    # sequences. Input: E = index, D = 0 (caller sets both), HL = base
+    # address (caller pre-loads). Output: HL = base + index*5. Clobbers
+    # nothing beyond HL itself.
+    rom.label('idx5_to_hl')
+    rom.ADD_HL_DE(); rom.ADD_HL_DE(); rom.ADD_HL_DE()
+    rom.ADD_HL_DE(); rom.ADD_HL_DE()
+    rom.RET()
+
     # ── check_zone_transition ────────────────────────────
     # czt_region_hl: HL = REGION_GRAPH + CUR_ZONE*5 (region base, biome-id
     # byte) — the identical addressing dsr_p/draw_region_arrows (IP-1030)
@@ -1340,8 +1353,7 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_nn(CUR_ZONE)
     rom.LD_E_A(); rom.LD_D_n(0)
     rom.LD_HL_nn(REGION_GRAPH)
-    rom.ADD_HL_DE(); rom.ADD_HL_DE(); rom.ADD_HL_DE()
-    rom.ADD_HL_DE(); rom.ADD_HL_DE()
+    rom.CALL('idx5_to_hl')
     rom.RET()
 
     # IP-9050 (BL-0047): regeneralized from the pre-procgen hardcoded
@@ -2543,8 +2555,7 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_nn(CUR_ZONE)
     rom.LD_E_A(); rom.LD_D_n(0)        # DE = region index
     rom.LD_HL_nn(REGION_GRAPH)
-    rom.ADD_HL_DE(); rom.ADD_HL_DE(); rom.ADD_HL_DE()
-    rom.ADD_HL_DE(); rom.ADD_HL_DE()   # HL = REGION_GRAPH + region*5
+    rom.CALL('idx5_to_hl')             # HL = REGION_GRAPH + region*5 (IP-8040)
     rom.LD_A_HL()                      # A = biome-id (0..4)
     rom.ADD_A_A()                      # A = biome-id * 2 (zc_table index)
     rom.LD_E_A(); rom.LD_D_n(0)
@@ -3170,8 +3181,7 @@ def build_game_asm(rom: ROM) -> dict:
     rom.label('gw_neighbor_hl')
     rom.LD_E_A(); rom.LD_D_n(0)
     rom.LD_HL_nn(REGION_GRAPH)
-    rom.ADD_HL_DE(); rom.ADD_HL_DE(); rom.ADD_HL_DE()
-    rom.ADD_HL_DE(); rom.ADD_HL_DE()   # HL = REGION_GRAPH + region*5 (biome byte)
+    rom.CALL('idx5_to_hl')              # HL = REGION_GRAPH + region*5 (IP-8040)
     rom.INC_HL()                        # HL -> +1 (up slot, direction 0 base)
     rom.LD_A_C()
     rom.OR_A(); rom.JR_Z('gnh_done')            # dir 0 (up): already there
@@ -4160,15 +4170,11 @@ def build_game_asm(rom: ROM) -> dict:
     rom.RET()
     rom.label('ilmc_evict')
     # Full (LEDGER_COUNT == 128): FIFO-evict the entry at LEDGER_CURSOR --
-    # HL = LEDGER + LEDGER_CURSOR*5, computed via five fixed ADD_HL_DE
-    # steps (DE = cursor, 0-127, fits one byte) rather than a multiply
-    # instruction (none exists on SM83) or a runtime loop -- a small fixed
-    # unrolled sequence, this codebase's own established style (see
-    # inf_ensure_window's own identical framing for its 9-cell unroll).
+    # HL = LEDGER + LEDGER_CURSOR*5, via the shared idx5_to_hl (IP-8040;
+    # DE = cursor, 0-127, fits one byte).
     rom.LD_A_nn(LEDGER_CURSOR); rom.LD_E_A(); rom.LD_D_n(0)
     rom.LD_HL_nn(LEDGER)
-    rom.ADD_HL_DE(); rom.ADD_HL_DE(); rom.ADD_HL_DE()
-    rom.ADD_HL_DE(); rom.ADD_HL_DE()
+    rom.CALL('idx5_to_hl')
     rom.LD_A_nn(INF_ROW); rom.LD_HLI_A()
     rom.LD_A_nn(INF_ROW + 1); rom.LD_HLI_A()
     rom.LD_A_nn(INF_COL); rom.LD_HLI_A()
