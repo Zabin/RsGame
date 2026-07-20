@@ -14,6 +14,28 @@
 
 ## Position
 
+- **Updated:** 2026-07-20 (run #274 — iterate mode; loop stops here — every remaining backlog
+  item is either genuinely ambiguous-ownership design work adjacent to a future G3 gate, or
+  diffuse Low-severity cosmetic cleanup with no single forcing next action)
+- **Increment (run #274):** **`11-release-readiness`** on the Infinite Mode Combat Sub-Mode
+  addendum ([release-assessment-infinite-mode-combat-sub-mode-addendum.md](../reviews/release-assessment-infinite-mode-combat-sub-mode-addendum.md)).
+  Scope audit: all 12 Included Requirements (10 FR + 2 NFR) traced — 10 to `VERIFIED`
+  packages/VRs, `NFR-4500` Met by direct repeated measurement, `NFR-1500` **never measured**
+  (named as Deviation #2). Two deviations recorded with their own authorization trails:
+  `BL-0148` (heal-spend/tier-spend have no player-reachable input binding) and `NFR-1500`
+  (combat per-frame cycle budget never directly measured, despite its own "Must"-priority
+  Acceptance Criteria requiring it). **Recommended GO**, advisory only — no baseline flipped
+  pending the user. **User confirmed GO.** Baseline flipped in the same run:
+  `01-release-plan.md` (addendum → GO), `03-feature-catalog.md` (`FEAT-11000` release status),
+  `Claude.md` (Known Good Behavior section, new addendum paragraph), `ROADMAP.md` (`FP-01`/
+  `RV-RELEASE`), `docs/reviews/INDEX.md` + `docs/feature-planning/INDEX.md` (new entries, plus
+  backfilled the previously-missing `IP-1125` content-review row found incidentally). **This
+  closes the entire Infinite Mode Combat Sub-Mode delta end-to-end** — ten packages `VERIFIED`,
+  integration-reviewed clean, and now formally shipped as Release 2's fourth addendum. Harvested
+  two new findings: **`BL-0168`** (Medium-High, `SCHEDULED` — `NFR-1500`'s own standing
+  measurement obligation, explicitly filed as its own entry per the assessment's own
+  recommendation so it doesn't fall out of tracking) and **`BL-0169`** (Low, `SCHEDULED` — the
+  reviews index's own remaining backfill gap, doc-accuracy sweep family).
 - **Updated:** 2026-07-20 (run #273 — iterate mode; continues within the same run as #269-272)
 - **Increment (run #273):** **`05-feature-decomposition`** delta: `FEAT-11000` moved `Future` →
   Release 2 as a fourth addendum in `01-release-plan.md` (mirroring `FEAT-10000`'s own identical
@@ -253,31 +275,36 @@
   Also carries forward from run #254 (unchanged this run): `IP-1126` built to `COMPLETE`
   (`inf_mob_move`, new WRAM `MOB_MOVE_TIMER`, suite `T35`, 373/373 passes, `FS-112` Open Question 4
   resolved); `BL-0160` (sound effects) filed and triaged `SCHEDULED` for a future `03` pass.
-- **Pipeline state:** Bootstrap stages 01–11 ✅; Release 2 GO. **51 packages `VERIFIED`**
-  (`IP-1124`/`IP-1127` `VERIFIED` runs #269-270; ten-package tranche integration-reviewed clean,
-  run #271). `FEAT-11000` **moved `Future` → Release 2 as a fourth addendum this run**
-  (`01-release-plan.md`) — `11-release-readiness`'s own GO/NO-GO call is the pipeline's own
-  immediately-next step. Standing, non-blocking doc/design work: the doc-accuracy sweep family
-  (`BL-0136`/`BL-0137`/`BL-0140`–`BL-0143`/`BL-0151`/`BL-0165`/`BL-0167`); `BL-0118` (`NFR-1400`
-  cycle-budget gap); `NFR-1500` (combat-sub-mode cycle budget, still `UNCONFIRMED`); `BL-0123`
-  (`try_load_save` unneeded finite-mode work); `BL-0112` (Infinite Mode run-end trigger);
-  `BL-0097` (Medium, routed already); `BL-0130` (catalog text gap); `BL-0148`/`BL-0149`/
-  `BL-0150`/`BL-0152`/`BL-0159` (remaining half)/`BL-0160`/`BL-0161`/`BL-0162` (all Low/
-  Low-Medium, `SCHEDULED`/`DEFERRED`, non-blocking).
-- **Backlog:** 167 entries. `BL-0166` → `DONE` this run (bucket move recorded). `BL-0164` →
-  `DONE` this run (`FEAT-11000` catalog heading refreshed). New: **`BL-0167`** (Low, `SCHEDULED`
-  — `FEAT-10000`/`FEAT-7100`'s own stale "placed in Future" callout sentence, doc-accuracy sweep
-  family). `BL-0165` unchanged (`SCHEDULED`, rides a future `06` touch — deliberately not fixed
-  by this run's `05` pass, different owning stage). `BL-0158` `DONE` (unchanged from run #270).
-  `BL-0147`/`BL-0155`/`BL-0157`/`BL-0156`/`BL-0148`/`BL-0161`/`BL-0133`/`BL-0154` unchanged.
-- **Next step:** **`11-release-readiness`** for `FEAT-11000` (Infinite Mode Combat Sub-Mode) —
-  the GO/NO-GO call now that the Feature is `VERIFIED` end-to-end, integration-reviewed clean,
-  and formally moved into a release bucket. No gate applies to invoking `11` itself (the GO/NO-GO
-  recommendation it produces is advisory; the user's own release-commitment decision authorizing
-  this pass already landed this run, per the skill's own charter — "the GO/NO-GO recommendation
-  is advisory, the user makes the actual release decision"). Continuing within this run; the
-  release call itself is the next genuine point requiring user confirmation.
-- **Open gates:** none open.
+- **Pipeline state:** Bootstrap stages 01–11 ✅. **Release 2 GO, now with four addenda** — the
+  fourth (Infinite Mode Combat Sub-Mode, `FEAT-11000`) shipped this run. **51 packages
+  `VERIFIED`**, ten-package tranche integration-reviewed clean and release-assessed GO. Every
+  remaining backlog item is non-blocking: **two Medium-High items with no single unambiguous
+  next skill** — `BL-0148` (input-binding gap; routed to "06 or 03, whichever fits") and
+  `BL-0168` (`NFR-1500` cycle-budget measurement; routed to a future `07`/`08` remediation) —
+  both accepted as known deviations at this run's own GO, not blocking, but real future work;
+  and a diffuse **doc-accuracy sweep family** (`BL-0136`/`BL-0137`/`BL-0140`–`BL-0143`/`BL-0151`/
+  `BL-0165`/`BL-0167`/`BL-0169`, all Low, `SCHEDULED`, no single forcing next action — this
+  project's own established pattern is fixing these opportunistically as byproducts of other
+  work, not via a dedicated pass). Also standing: `BL-0118` (`NFR-1400` cycle-budget gap),
+  `BL-0123`, `BL-0112`, `BL-0097`, `BL-0130`, `BL-0149`/`BL-0150`/`BL-0152`/`BL-0159` (remaining
+  half)/`BL-0160`/`BL-0161`/`BL-0162` (all Low/Low-Medium, non-blocking).
+- **Backlog:** 169 entries. `BL-0166`/`BL-0164` → `DONE` this run. New: `BL-0167`/`BL-0169`
+  (Low, doc-accuracy sweep) and `BL-0168` (Medium-High, `NFR-1500` measurement owed). `BL-0165`
+  unchanged (rides a future `06` touch). `BL-0158` `DONE` (unchanged from run #270).
+- **Next step:** **No single genuinely-unblocked automated next step remains.** Every open item
+  either (a) needs a real design/UX judgment call before it can even be scoped as a package
+  (`BL-0148`'s input-binding mechanism — ambiguous between `03`/`06` ownership, and any eventual
+  code implementation will need a fresh G3 authorization regardless, since it's new scope beyond
+  every existing go-ahead), (b) is a measurement-only remediation not yet planned (`BL-0168`), or
+  (c) is diffuse Low-severity cosmetic doc drift with no single forcing action (the sweep
+  family). **Recommend:** if the user wants to keep building, the next real step is `03-
+  architecture-design-synthesis` or `06-feature-specification` to design the treasure-spend UI
+  mechanism (resolving `BL-0148`), which would then need a fresh G3 go-ahead before any code is
+  written. Otherwise, the tree is in a clean, fully-shipped state — nothing is broken or
+  half-finished.
+- **Open gates:** none open. The loop stops here on its own judgment that the remaining backlog
+  needs either a product/design decision or is too diffuse for one further automated step,
+  rather than a formally named gate — flagged explicitly as the reason in this run's own report.
 
 ## Run log
 
@@ -561,3 +588,4 @@
 | 271 | 2026-07-20 | advance (iterate, same session) → gate | `10-integration-review` | Infinite Mode Combat Sub-Mode tranche (`IP-1120`-`IP-1129`) | ✅ **Clean, 0 Critical/High** ([report](../reviews/integration-review-infinite-mode-combat-sub-mode-tranche.md)). All five dimensions exercised; WRAM/ROM/tile budgets confirmed collision-free; own live drive chained all ten packages in one continuous real session (materialization+movement+fire+hit+defeat+contact+knockback+invincibility+cooldown+save/load). Two stale-doc findings harvested (`BL-0164` Medium, `BL-0165` Low, both `SCHEDULED`). `ROADMAP.md` `RV-INTEG` updated. | **GATE (`BL-0166`):** `FEAT-11000` fully `VERIFIED`+reviewed but still `Future`-bucketed since run #228's deliberate pause — release-commitment decision needed from the user (commit to a release now, or leave in `Future`) before `11-release-readiness` can run. |
 | 272 | 2026-07-20 | advance → gate resolved (user answered mid-run) | — | `BL-0166` | ✅ **User answered run #271's gate: "Commit to a new release now."** Per the project's own established "no Release 3" bucket vocabulary, `FEAT-11000` rides the identical Future→Release-2-addendum pattern `FEAT-10000` used. `BL-0166` → `SCHEDULED`. Per the manager's own charter, a resolved gate resumes the loop rather than ending the session. | `05-feature-decomposition` — record the bucket move + `BL-0164`'s catalog refresh, same pass; continuing within this run. |
 | 273 | 2026-07-20 | advance (iterate, same session) | `05-feature-decomposition` | `FEAT-11000` release-plan delta | ✅ **`FEAT-11000` moved `Future` → Release 2 as a fourth addendum** (`01-release-plan.md`), mirroring `FEAT-10000`'s own identical pattern; `11-release-readiness` GO/NO-GO explicitly named as still owed, not claimed here. `BL-0164` folded in: `03-feature-catalog.md`'s `FEAT-11000` heading/forward-reference refreshed to implemented/verified (mirrors `BL-0126`'s fix for `FEAT-10000`). `ROADMAP.md` `FP-01`/`FP-03` rows updated. New finding `BL-0167` (Low, `SCHEDULED`) filed — the same "Deferred" callout sentence's `FEAT-10000`/`FEAT-7100` clauses remain stale (only `FEAT-11000`'s own clause fixed here, in scope). `BL-0165` deliberately left for `06`. | `11-release-readiness` for `FEAT-11000`'s GO/NO-GO call — user's own answer to the `BL-0166` gate explicitly authorized this exact chain ("commit to a new release now... triggers 05... then 11-release-readiness"); continuing within this same run. |
+| 274 | 2026-07-20 | advance (iterate, same session) → loop stops (manager's own judgment, not a formal gate) | `11-release-readiness` | Infinite Mode Combat Sub-Mode addendum (`FEAT-11000`) | ✅ **GO, user-confirmed** ([assessment](../reviews/release-assessment-infinite-mode-combat-sub-mode-addendum.md)). All 12 Included Requirements traced; two deviations named (`BL-0148` input-binding gap, `NFR-1500` unmeasured cycle budget, filed as `BL-0168`). Baseline flipped: release plan/catalog/`Claude.md`/`ROADMAP.md`/two `INDEX.md` files. Closes the entire Infinite Mode Combat Sub-Mode delta end-to-end. | **Loop stops** — no remaining backlog item is a clean, unambiguous automated next step (the two Medium-High items need either a design decision or unplanned remediation work; the rest is diffuse Low-severity doc drift). Recommend `03`/`06` to design `BL-0148`'s UI mechanism if the user wants to keep building. |
