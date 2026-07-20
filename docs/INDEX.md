@@ -7,7 +7,7 @@ statuses live there and in the ROADMAP, kept in sync by the owning skill.
 
 | Directory | Contents | Owning skill(s) |
 |---|---|---|
-| [`pipeline/`](pipeline/BOOTSTRAP.md) | The run-book ([BOOTSTRAP.md](pipeline/BOOTSTRAP.md)), the manager's journal ([pipeline-journal.md](pipeline/pipeline-journal.md)), backlog ([backlog.md](pipeline/backlog.md)), and increment plans ([PLAN-requirements-aesthetics-story-map.md](pipeline/PLAN-requirements-aesthetics-story-map.md)) | `00-pipeline-manager`, `00-intake` |
+| [`pipeline/`](pipeline/BOOTSTRAP.md) | The run-book ([BOOTSTRAP.md](pipeline/BOOTSTRAP.md)), the manager's journal ([pipeline-journal.md](pipeline/pipeline-journal.md), older runs in [pipeline-journal-archive.md](pipeline/pipeline-journal-archive.md)), backlog ([backlog.md](pipeline/backlog.md), closed entries in [backlog-archive.md](pipeline/backlog-archive.md)), and increment plans ([PLAN-requirements-aesthetics-story-map.md](pipeline/PLAN-requirements-aesthetics-story-map.md)) | `00-pipeline-manager`, `00-intake` |
 | [`master/`](master/INDEX.md) | Program-level MSTR documents (vision, governance, …) | `01-vision` (+ `03`) |
 | [`research/`](research/INDEX.md) | Encyclopedia tiers R100 (GBC hardware) / R200 (game design) / R300 (tooling & verification) | the three `02-research-*` skills |
 | [`architecture/`](architecture/INDEX.md) | The GDS-00…10 ladder, ADS clusters, [ADRs](architecture/adr/INDEX.md), assumptions register | `03-architecture-design-synthesis` (+ `01-vision` for GDS-00) |
