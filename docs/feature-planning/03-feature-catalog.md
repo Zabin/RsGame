@@ -911,8 +911,10 @@
 > `06-feature-specification`). The heal-spend/tier-spend input-binding gaps (`BL-0148`-class)
 > remain open by deliberate, adjudicated scope choice, not an implementation defect — no
 > `FR`/AC names a button binding for either mechanism. **Release status: moved `Future` →
-> Release 2 as a fourth addendum 2026-07-20** (`01-release-plan.md`, `BL-0166`, user-confirmed
-> release commitment) — `11-release-readiness`'s own GO/NO-GO assessment is still owed.
+> Release 2 as a fourth addendum, assessed GO, user-confirmed 2026-07-20**
+> ([release-assessment-infinite-mode-combat-sub-mode-addendum.md](../reviews/release-assessment-infinite-mode-combat-sub-mode-addendum.md),
+> `BL-0166`) — two named deviations accepted with the GO: `BL-0148`'s input-binding gap and
+> `NFR-1500`'s never-measured cycle budget.
 
 - **Feature ID:** FEAT-11000
 - **Title:** Infinite Mode Combat Sub-Mode

@@ -118,3 +118,12 @@ deviations are scope/verification-completeness gaps, not bugs.
 
 **This recommendation is advisory.** No baseline record has been flipped by this assessment —
 per this skill's own charter, that happens only after the user's explicit GO.
+
+## Baseline update
+
+**User confirmed GO, 2026-07-20.** Baseline flipped in this same commit:
+`01-release-plan.md` (addendum heading + top changelog), `docs/feature-planning/03-feature-
+catalog.md` (`FEAT-11000`'s own Release status note), `Claude.md` (Known Good Behavior heading +
+new addendum paragraph), `ROADMAP.md` (`FP-01`/`RV-RELEASE` rows), `docs/reviews/INDEX.md` (this
+assessment + the integration review + the `IP-1125` content review, all three newly indexed),
+`docs/feature-planning/INDEX.md` (`FP-01` row delta note).

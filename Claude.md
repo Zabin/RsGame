@@ -76,7 +76,7 @@ per zone, victory at `CARROTS_COUNT == 9`. `CUR_ZONE` is `0–8`; `CARROT_FLAGS`
 
 ---
 
-## Known Good Behavior (Baseline + Release 1 — assessed GO 2026-07-10; Release 2 — assessed GO 2026-07-12; Release 2 addendum — assessed GO 2026-07-17)
+## Known Good Behavior (Baseline + Release 1 — assessed GO 2026-07-10; Release 2 — assessed GO 2026-07-12; Release 2 addenda — assessed GO 2026-07-17, 2026-07-20)
 
 > Release readiness: **GO** ([release-assessment-bootstrap-tranche.md](docs/reviews/release-assessment-bootstrap-tranche.md));
 > **Release 2 (procedural world + visual narrative, bundled with all post-ship remediation):
@@ -102,6 +102,22 @@ per zone, victory at `CARROTS_COUNT == 9`. `CUR_ZONE` is `0–8`; `CARROT_FLAGS`
 > section's own prose was never re-authored against that shipped reality. A full refresh is
 > filed as `BL-0091` (new, this run) rather than attempted inline here — this baseline flip's
 > own scope is trackers/status only, not a content rewrite.
+>
+> **Release 2 addendum (Infinite Mode Combat Sub-Mode): GO, user-confirmed 2026-07-20**
+> ([release-assessment-infinite-mode-combat-sub-mode-addendum.md](docs/reviews/release-assessment-infinite-mode-combat-sub-mode-addendum.md))
+> — ten packages shipped: `FEAT-11000`, an explicitly opt-in combat layer inside Infinite Mode
+> (mode-gated via a new `MODE SELECT` → `COMBAT MODE CONFIRM` step) — up to 6 concurrent mobs
+> materialized per region and moving toward the player, an 8-directional ranged weapon with hit
+> resolution and mob defeat, player health with a non-lethal setback protected by combined
+> invincibility/knockback/per-mob-cooldown, a treasure-spent healing economy and a sibling
+> treasure-spent weapon-tier funding economy (sharing `FEAT-10000`'s own `RUNNING_TREASURE_COUNT`,
+> not a second ledger), and combat state persisted across save/load (`SAVE_VERSION_VAL` `0x06`).
+> **Two known, tracked gaps accepted with this GO** (see the assessment for full reasoning):
+> the healing/tier-funding spend actions have no player-reachable button binding yet (`BL-0148`)
+> — implemented and unit-verified, but not currently triggerable in real play; the combat-mode
+> per-frame cycle budget (`NFR-1500`) was never directly measured (extensive live PyBoy drives
+> showed no hangs/slowdown, but that is not the required cycle-count measurement). Base Infinite
+> Mode and finite mode are both unaffected — this addendum is strictly additive.
 
 Confirmed by the current `test_rom.py` suite (125/125 checks pass;
 [`docs/architecture/01-concept-of-play.md`](docs/architecture/01-concept-of-play.md) (GDS-01) is

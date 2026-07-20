@@ -17,9 +17,9 @@
 > ([release-assessment-infinite-mode-and-nine-biome-family-delta.md](../reviews/release-assessment-infinite-mode-and-nine-biome-family-delta.md))**;
 > delta 2026-07-17 (cont'd) (`FEAT-11000`, Infinite Mode combat sub-mode, joins Future,
 > `BL-0133`/`ADS-002`/`MSTR-001` C11); **delta 2026-07-20 — `FEAT-11000` moves Future → Release 2
-> as a fourth addendum, all ten packages `VERIFIED` and integration-reviewed clean, user-
-> confirmed release commitment (`BL-0166`) — `11-release-readiness`'s own GO/NO-GO assessment
-> still owed.**
+> as a fourth addendum, all ten packages `VERIFIED` and integration-reviewed clean, assessed
+> **GO**, user-confirmed
+> ([release-assessment-infinite-mode-combat-sub-mode-addendum.md](../reviews/release-assessment-infinite-mode-combat-sub-mode-addendum.md)).**
 > Owned by
 > `05-feature-decomposition`. Assigns every Feature
 > in [FP-03](03-feature-catalog.md) (now nineteen) to exactly one bucket, using
@@ -137,15 +137,20 @@ All twelve packages across this addendum, both integration reviews (this one plu
 Infinite Mode tranche review), and the Release Assessment above are the evidence base for this
 GO. See that assessment for the full scope audit, deviations, and residual risks.
 
-### Release 2 addendum — Infinite Mode Combat Sub-Mode (added 2026-07-20, release-readiness owed)
+### Release 2 addendum — Infinite Mode Combat Sub-Mode (added 2026-07-20, GO)
 
 `FEAT-11000`, moved here on the project owner's explicit 2026-07-20 release-commitment decision
 (`BL-0166`) — mirroring the identical "no Release 3" reasoning the addenda above already
-established, rather than opening a new numbered release bucket for a single Feature.
+established, rather than opening a new numbered release bucket for a single Feature. Assessed
+**GO, user-confirmed 2026-07-20**
+([release-assessment-infinite-mode-combat-sub-mode-addendum.md](../reviews/release-assessment-infinite-mode-combat-sub-mode-addendum.md))
+— two named, accepted deviations: `FR-11500`/`FR-11510`'s spend actions have no player-reachable
+input binding yet (`BL-0148`); `NFR-1500`'s combat-mode per-frame cycle budget was never directly
+measured.
 
 | Feature | Why here |
 |---|---|
-| FEAT-11000 (Infinite Mode Combat Sub-Mode) | Fully shipped: all ten packages (`IP-1120`–`IP-1129`) `VERIFIED`, integration-reviewed clean, 0 Critical/High ([integration-review-infinite-mode-combat-sub-mode-tranche.md](../reviews/integration-review-infinite-mode-combat-sub-mode-tranche.md)). Unlike the addendum above, **`11-release-readiness`'s own GO/NO-GO assessment has not yet run for this addendum** — the bucket move records the user's release-commitment decision; the formal readiness call is the pipeline's own next step. |
+| FEAT-11000 (Infinite Mode Combat Sub-Mode) | Fully shipped: all ten packages (`IP-1120`–`IP-1129`) `VERIFIED`, integration-reviewed clean, 0 Critical/High ([integration-review-infinite-mode-combat-sub-mode-tranche.md](../reviews/integration-review-infinite-mode-combat-sub-mode-tranche.md)). |
 
 ## Bucket: Future
 
