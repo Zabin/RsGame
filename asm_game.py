@@ -373,10 +373,30 @@ PROJ_STEP_Y     = 0xC6E1  # 1 byte -- the projectile's own transient Y-axis step
                             # pattern. No boot-init needed -- PROJ_ACTIVE==0 gates its
                             # validity, like every other projectile field.
 
+# IP-1127 (FR-11410): post-contact player protection. First unclaimed bytes past
+# PROJ_STEP_Y's own end (0xC6E1) -- re-derived here: this package's own plan
+# prospectively claimed 0xC6DF-0xC6E0, but IP-1128 shipped first and claimed that
+# exact range for real (PLAYER_FACING_X/Y above), so this package's own two bytes
+# move to the next actually-free WRAM past every prior package's real claim.
+PLAYER_INVINCIBLE  = 0xC6E2  # 1 byte -- frames of invincibility remaining after a
+                              # hit, 0 = vulnerable, boot-cleared.
+MOB_CONTACT_FLAGS  = 0xC6E3  # 1 byte -- one bit per MOB_DATA slot index (0-5), set
+                              # while that specific mob is in unbroken overlap with
+                              # the player (the per-mob cooldown's own state), boot-
+                              # cleared. Deliberately a new, parallel table, not a
+                              # MOB_DATA field -- avoids widening MOB_DATA's own
+                              # 5-byte-per-slot stride for a single extra bit.
+
+INVINCIBILITY_FRAMES = 30  # 0.5s at 60fps -- long enough to be a real window,
+                            # short enough not to trivialize combat
+KNOCKBACK_DISTANCE = 16    # pixels; twice MOB_MOVE_STEP's own per-interval mob-
+                            # closing distance, so knockback reliably outpaces a
+                            # single mob's own next approach step
+
 SAVE_VERSION_ADDR = 0xA012   # save-format version guard (FR-5220 / Design Decision 2)
-SAVE_VERSION_VAL  = 0x05     # bumped 0x04->0x05 (IP-1104, fifth bump since ship — the
+SAVE_VERSION_VAL  = 0x06     # bumped 0x05->0x06 (IP-1124, sixth bump since ship — the
                               # value sequence is strictly monotonic, never reused). A single
-                              # version guard covers both save shapes; GAME_MODE (restored
+                              # version guard covers all save shapes; GAME_MODE (restored
                               # first on load) selects which fields are meaningful.
 SRAM_SEED          = 0xA01C  # 2 bytes, A01C-A01D — SEED mirror (IP-1050)
 SRAM_WORLD_SCALE   = 0xA01E  # 1 byte — WORLD_SCALE mirror (IP-1050)
@@ -406,6 +426,23 @@ SRAM_LEDGER        = 0xA0D0  # 640 bytes, A0D0-A34F -- mirrors LEDGER, identical
                           # per-entry format. SRAM_LEDGER_COUNT/SRAM_LEDGER_CURSOR/
                           # SRAM_LEDGER form one contiguous 642-byte block (A0CE-A34F),
                           # the exact SRAM mirror of LEDGER_COUNT/LEDGER_CURSOR/LEDGER above.
+
+# IP-1124 (FR-11600): Infinite Mode Combat save shape, nested inside the
+# existing GAME_MODE-gated region (combat is a sub-mode of Infinite Mode).
+# First unclaimed bytes past SRAM_LEDGER's own end (0xA34F).
+SRAM_COMBAT_MODE   = 0xA350  # 1 byte -- mirrors COMBAT_MODE, always written/restored
+                          # (like SRAM_GAME_MODE above), regardless of its own value --
+                          # the flag itself must never go stale, since save_to_sram/
+                          # try_load_save both use it to decide whether the four fields
+                          # below are meaningful (see their own gates).
+SRAM_MOB_COUNT     = 0xA351  # 1 byte -- mirrors MOB_COUNT
+SRAM_MOB_DATA      = 0xA352  # 30 bytes, A352-A36F -- mirrors MOB_DATA, identical
+                          # 5-byte-per-slot format.
+SRAM_WEAPON_TIER   = 0xA370  # 1 byte -- mirrors WEAPON_TIER
+SRAM_PLAYER_HEALTH = 0xA371  # 1 byte -- mirrors PLAYER_HEALTH. PROJ_* fields are
+                          # deliberately NOT persisted here (mirrors INF_MZ_RESULT's
+                          # own transient, generation-time-only precedent) -- a loaded
+                          # save always resumes with no projectile in flight.
 
 J_A=0; J_B=1; J_SELECT=2; J_START=3; J_RIGHT=4; J_LEFT=5; J_UP=6; J_DOWN=7
 
@@ -519,6 +556,10 @@ def build_game_asm(rom: ROM) -> dict:
     # fires a sane rightward shot rather than a directionless (0,0) one.
     rom.LD_A_n(1); rom.LD_nn_A(PLAYER_FACING_X)
     rom.XOR_A(); rom.LD_nn_A(PLAYER_FACING_Y)
+
+    # Clear PLAYER_INVINCIBLE/MOB_CONTACT_FLAGS (IP-1127) -- 0 = vulnerable/
+    # no tracked contact, the correct default for a fresh session.
+    rom.XOR_A(); rom.LD_nn_A(PLAYER_INVINCIBLE); rom.LD_nn_A(MOB_CONTACT_FLAGS)
 
     # Clear PROJ_ACTIVE, init WEAPON_TIER to 1 (IP-1122) -- same targeted-
     # clear rationale as COMBAT_MODE/MOB_COUNT immediately above. PROJ_X/Y/
@@ -670,6 +711,7 @@ def build_game_asm(rom: ROM) -> dict:
     rom.CALL('inf_mob_move')           # IP-1126: no-op unless COMBAT_MODE
     rom.CALL('inf_projectile_update')  # IP-1122: no-op unless COMBAT_MODE/PROJ_ACTIVE
     rom.CALL('inf_mob_contact_check')  # IP-1123: no-op unless COMBAT_MODE
+    rom.CALL('inf_invincibility_tick') # IP-1127: no-op unless COMBAT_MODE
     rom.CALL('check_zone_transition')
     rom.CALL('check_complete')
     rom.JP('end_frame')
@@ -3672,24 +3714,38 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_nn(PLAYER_Y); rom.LD_nn_A(COMBAT_ENTRY_Y)
     rom.RET()
 
-    # ── inf_mob_contact_check (IP-1123, FR-11400) ──────────
+    # ── inf_mob_contact_check (IP-1123/IP-1127, FR-11400/FR-11410) ──
     # Called once per frame (st_playing, gated on COMBAT_MODE -- a no-op
     # otherwise). Tests the player's own 8x16 box against each active
     # MOB_DATA slot's position, reusing check_collisions' own asymmetric
     # point-in-box technique verbatim (mob position as the point, PLAYER_X/
     # Y as the box origin -- the exact same relationship check_collisions
     # itself tests, unmodified): 0 <= (mob_x - PLAYER_X) <= 7 and
-    # 0 <= (mob_y - PLAYER_Y) <= 15. On the first contact found: decrements
-    # PLAYER_HEALTH by 1 (a fixed per-contact cost, not per-mob-type-scaled
-    # -- FS-112 does not specify per-type damage variation); at zero,
-    # calls inf_health_setback. Stops after the first contact (mirrors
-    # inf_projectile_hittest's own "at most one resolved per call"
-    # discipline -- simultaneous multi-mob overlap does not stack multiple
-    # decrements in one frame). Clobbers A/B/C/D/E/HL.
+    # 0 <= (mob_y - PLAYER_Y) <= 15.
+    #
+    # IP-1127 (FR-11410, BL-0158): a per-mob cooldown bit (MOB_CONTACT_
+    # FLAGS, one bit per slot -- C carries this slot's own bitmask,
+    # doubling each iteration in lockstep with B's own index) now gates
+    # whether an overlap is a genuinely fresh contact: continued overlap
+    # from an already-registered hit is a no-op (this is what BL-0158's
+    # own repro needed -- sustained overlap no longer re-decrements every
+    # frame). A fresh contact while PLAYER_INVINCIBLE is still counting
+    # down is tracked (bit set) but does not decrement health either. Only
+    # a fresh contact with PLAYER_INVINCIBLE == 0 is a valid hit:
+    # decrements PLAYER_HEALTH (existing logic, unchanged), sets the bit,
+    # starts a new invincibility window, and (non-lethal case only --
+    # see imcc_fresh_hit's own comment) knocks the player back -- then
+    # stops scanning (mirrors inf_projectile_hittest's own "at most one
+    # resolved per call" discipline, unchanged from IP-1123's original
+    # shape). An inactive or non-overlapping slot always clears its own
+    # bit -- a mob slot reused by materialization for a new mob must not
+    # inherit a stale "already hit" bit from whatever previously occupied
+    # that index. Clobbers A/B/C/D/E/H/L.
     rom.label('inf_mob_contact_check')
     rom.LD_A_nn(COMBAT_MODE); rom.OR_A(); rom.RET_Z()
     rom.LD_HL_nn(MOB_DATA)
     rom.LD_B_n(0)
+    rom.LD_C_n(1)   # C = this slot's own MOB_CONTACT_FLAGS bitmask
     rom.label('imcc_loop')
     rom.LD_E_HL(); rom.INC_HL()     # E = mob x, HL -> y
     rom.LD_D_HL(); rom.INC_HL()     # D = mob y, HL -> species
@@ -3697,29 +3753,154 @@ def build_game_asm(rom: ROM) -> dict:
     rom.INC_HL()                     # skip health, HL -> active
     rom.LD_A_HL()                    # A = active (HL still -> active byte)
     rom.PUSH_BC(); rom.PUSH_HL()
-    rom.OR_A(); rom.JR_Z('imcc_skip')
+    rom.OR_A(); rom.JP_Z('imcc_skip')   # JP: body now exceeds JR's +-127 range
 
     rom.LD_A_nn(PLAYER_X); rom.LD_H_A()
     rom.LD_A_E(); rom.emit(0x94)      # SUB H: A = mob_x - PLAYER_X
-    rom.CP_n(8); rom.JR_NC('imcc_skip')
+    rom.CP_n(8); rom.JP_NC('imcc_skip')
     rom.LD_A_nn(PLAYER_Y); rom.LD_H_A()
     rom.LD_A_D(); rom.emit(0x94)      # SUB H: A = mob_y - PLAYER_Y
-    rom.CP_n(16); rom.JR_NC('imcc_skip')
+    rom.CP_n(16); rom.JP_NC('imcc_skip')
 
-    # CONTACT
-    rom.LD_A_nn(PLAYER_HEALTH); rom.OR_A(); rom.JR_Z('imcc_no_dec')
+    # OVERLAP confirmed for this active mob -- IP-1127's own cooldown gate
+    rom.LD_A_nn(MOB_CONTACT_FLAGS); rom.AND_C()
+    rom.JP_NZ('imcc_advance')   # bit already set -- continued overlap, no-op
+    rom.LD_A_nn(PLAYER_INVINCIBLE); rom.OR_A(); rom.JR_Z('imcc_fresh_hit')
+    # invincible: track the fresh contact (set the bit) but no hit
+    rom.LD_A_nn(MOB_CONTACT_FLAGS); rom.OR_C(); rom.LD_nn_A(MOB_CONTACT_FLAGS)
+    rom.JP('imcc_advance')
+
+    rom.label('imcc_fresh_hit')
+    # valid hit: fresh contact, not invincible
+    rom.LD_A_nn(PLAYER_HEALTH); rom.OR_A(); rom.JR_Z('imcc_hit_no_dec')
     rom.DEC_A(); rom.LD_nn_A(PLAYER_HEALTH)
     rom.LD_A_n(1); rom.LD_nn_A(SCORE_DIRTY)  # health changed -- redraw the HUD promptly
-    rom.LD_A_nn(PLAYER_HEALTH); rom.OR_A(); rom.JR_NZ('imcc_no_dec')
+    rom.LD_A_nn(PLAYER_HEALTH); rom.OR_A(); rom.JR_NZ('imcc_hit_no_dec')
     rom.CALL('inf_health_setback')
-    rom.label('imcc_no_dec')
+    # IP-1127: a lethal hit's own setback already fully repositions/heals
+    # the player -- knockback based on the pre-setback position would be
+    # stale (computed against coordinates the player no longer occupies)
+    # and would silently displace them off their own just-restored entry
+    # point. Skip knockback on this path only; the bit/invincibility state
+    # below still apply exactly as the non-lethal case's own.
+    rom.LD_A_nn(MOB_CONTACT_FLAGS); rom.OR_C(); rom.LD_nn_A(MOB_CONTACT_FLAGS)
+    rom.LD_A_n(INVINCIBILITY_FRAMES); rom.LD_nn_A(PLAYER_INVINCIBLE)
+    rom.POP_HL(); rom.POP_BC()
+    rom.RET()
+
+    rom.label('imcc_hit_no_dec')
+    # non-lethal hit: set the bit, start invincibility, apply knockback
+    rom.LD_A_nn(MOB_CONTACT_FLAGS); rom.OR_C(); rom.LD_nn_A(MOB_CONTACT_FLAGS)
+    rom.LD_A_n(INVINCIBILITY_FRAMES); rom.LD_nn_A(PLAYER_INVINCIBLE)
+
+    # Knockback: push the player away from the mob on the dominant axis
+    # (E=mob_x, D=mob_y still hold this slot's own position, untouched
+    # since loaded), by KNOCKBACK_DISTANCE, clamped to the same 0/152 (X)
+    # and 8/128 (Y) bounds handle_play_input's own movement already
+    # enforces. Mirrors inf_mob_move's own dominant-axis magnitude
+    # computation (IP-1126), inverted for direction (push away, not
+    # toward). C is free scratch here -- this slot's own bitmask has
+    # already been OR'd into MOB_CONTACT_FLAGS above.
+    rom.LD_A_nn(PLAYER_X); rom.LD_H_A()
+    rom.LD_A_E(); rom.emit(0xBC)      # CP H: mob_x vs player_x
+    rom.JR_Z('ikb_ax_zero')
+    rom.JR_C('ikb_ax_neg')
+    rom.LD_A_E(); rom.emit(0x94)      # SUB H: A = mob_x - player_x
+    rom.JR('ikb_ax_done')
+    rom.label('ikb_ax_neg')
+    rom.LD_A_H(); rom.SUB_E()
+    rom.JR('ikb_ax_done')
+    rom.label('ikb_ax_zero')
+    rom.XOR_A()
+    rom.label('ikb_ax_done')
+    rom.LD_C_A()   # C = ax
+
+    rom.LD_A_nn(PLAYER_Y); rom.LD_H_A()
+    rom.LD_A_D(); rom.emit(0xBC)      # CP H: mob_y vs player_y
+    rom.JR_Z('ikb_ay_zero')
+    rom.JR_C('ikb_ay_neg')
+    rom.LD_A_D(); rom.emit(0x94)      # SUB H: A = mob_y - player_y
+    rom.JR('ikb_ay_done')
+    rom.label('ikb_ay_neg')
+    rom.LD_A_H(); rom.SUB_D()
+    rom.JR('ikb_ay_done')
+    rom.label('ikb_ay_zero')
+    rom.XOR_A()
+    rom.label('ikb_ay_done')
+    rom.LD_L_A()   # L = ay
+
+    rom.LD_A_C(); rom.emit(0xBD)      # CP L: ax vs ay; carry set if ax<ay
+    rom.JR_C('ikb_axis_y')
+
+    rom.label('ikb_axis_x')
+    rom.LD_A_nn(PLAYER_X); rom.LD_H_A()
+    rom.LD_A_E(); rom.emit(0xBC)      # CP H: mob_x vs player_x
+    rom.JR_C('ikb_x_push_right')      # mob_x < player_x -> mob to the left -> push right
+    # mob_x >= player_x -> mob to the right (or same) -> push left, clamp floor 0
+    rom.LD_A_nn(PLAYER_X)
+    rom.CP_n(KNOCKBACK_DISTANCE); rom.JR_NC('ikb_x_left_ok')
+    rom.XOR_A(); rom.JR('ikb_x_left_store')
+    rom.label('ikb_x_left_ok')
+    rom.SUB_n(KNOCKBACK_DISTANCE)
+    rom.label('ikb_x_left_store')
+    rom.LD_nn_A(PLAYER_X)
+    rom.JR('ikb_done')
+    rom.label('ikb_x_push_right')
+    rom.LD_A_nn(PLAYER_X); rom.ADD_A_n(KNOCKBACK_DISTANCE)
+    rom.CP_n(153); rom.JR_C('ikb_x_right_ok')
+    rom.LD_A_n(152)
+    rom.label('ikb_x_right_ok')
+    rom.LD_nn_A(PLAYER_X)
+    rom.JR('ikb_done')
+
+    rom.label('ikb_axis_y')
+    rom.LD_A_nn(PLAYER_Y); rom.LD_H_A()
+    rom.LD_A_D(); rom.emit(0xBC)      # CP H: mob_y vs player_y
+    rom.JR_C('ikb_y_push_down')       # mob_y < player_y -> mob above -> push down
+    # mob_y >= player_y -> mob below (or same) -> push up, clamp floor 8
+    rom.LD_A_nn(PLAYER_Y)
+    rom.CP_n(8 + KNOCKBACK_DISTANCE); rom.JR_NC('ikb_y_up_ok')
+    rom.LD_A_n(8); rom.JR('ikb_y_up_store')
+    rom.label('ikb_y_up_ok')
+    rom.SUB_n(KNOCKBACK_DISTANCE)
+    rom.label('ikb_y_up_store')
+    rom.LD_nn_A(PLAYER_Y)
+    rom.JR('ikb_done')
+    rom.label('ikb_y_push_down')
+    rom.LD_A_nn(PLAYER_Y); rom.ADD_A_n(KNOCKBACK_DISTANCE)
+    rom.CP_n(129); rom.JR_C('ikb_y_down_ok')
+    rom.LD_A_n(128)
+    rom.label('ikb_y_down_ok')
+    rom.LD_nn_A(PLAYER_Y)
+
+    rom.label('ikb_done')
     rom.POP_HL(); rom.POP_BC()
     rom.RET()
 
     rom.label('imcc_skip')
+    # inactive, or active-but-not-overlapping: clear this slot's own bit
+    # (a reused slot must never inherit a stale "already hit" state).
+    rom.LD_A_n(0xFF); rom.emit(0xA9)      # XOR C: A = NOT (this slot's bitmask)
+    rom.LD_D_A()
+    rom.LD_A_nn(MOB_CONTACT_FLAGS); rom.emit(0xA2)   # AND D
+    rom.LD_nn_A(MOB_CONTACT_FLAGS)
+
+    rom.label('imcc_advance')
     rom.POP_HL(); rom.INC_HL()
-    rom.POP_BC(); rom.INC_B()
-    rom.LD_A_B(); rom.CP_n(6); rom.JR_C('imcc_loop')
+    rom.POP_BC()
+    rom.emit(0xCB, 0x21)   # SLA C: double the bitmask for the next slot
+    rom.INC_B()
+    rom.LD_A_B(); rom.CP_n(6); rom.JP_C('imcc_loop')  # JP: body exceeds JR's +-127 range
+    rom.RET()
+
+    # ── inf_invincibility_tick (IP-1127, FR-11410) ──────────
+    # Called once per frame from st_playing (gated on COMBAT_MODE -- a
+    # no-op call otherwise). Counts PLAYER_INVINCIBLE down to 0, never
+    # below. Clobbers A.
+    rom.label('inf_invincibility_tick')
+    rom.LD_A_nn(COMBAT_MODE); rom.OR_A(); rom.RET_Z()
+    rom.LD_A_nn(PLAYER_INVINCIBLE); rom.OR_A(); rom.RET_Z()
+    rom.DEC_A(); rom.LD_nn_A(PLAYER_INVINCIBLE)
     rom.RET()
 
     # ── inf_health_setback (IP-1123, FR-11400) ─────────────
@@ -4035,6 +4216,37 @@ def build_game_asm(rom: ROM) -> dict:
     # per the amendment's own mirror-layout design).
     rom.LD_DE_nn(LEDGER_COUNT); rom.LD_HL_nn(SRAM_LEDGER_COUNT); rom.LD_BC_nn(642)
     rom.CALL('memcpy')
+    # IP-1124 (FR-11600): Infinite Mode Combat state, nested inside this
+    # same GAME_MODE==1 gate (combat is a sub-mode of Infinite Mode).
+    # SRAM_COMBAT_MODE is always written here, unconditionally, mirroring
+    # SRAM_GAME_MODE's own "always written" flag precedent immediately
+    # above -- try_load_save's own matching restore depends on this flag
+    # never going stale. MOB_COUNT/MOB_DATA/WEAPON_TIER/PLAYER_HEALTH are
+    # additionally gated on COMBAT_MODE itself: a session that never
+    # entered combat mode leaves these four fields at their own correct
+    # boot-time defaults (PLAYER_HEALTH=3, WEAPON_TIER=1, MOB_COUNT=0) --
+    # writing them here regardless would be harmless to WRAM (source, not
+    # destination) but would let a stale/never-written SRAM range get
+    # trusted as real data by a later load; the matching restore-side gate
+    # (try_load_save, below) is what actually depends on this. MOB_COUNT
+    # copied directly (1 byte), MOB_DATA via a 30-byte memcpy, then
+    # WEAPON_TIER/PLAYER_HEALTH via a second, separate 2-byte memcpy --
+    # NOT one contiguous transfer spanning the whole COMBAT_MODE..
+    # PLAYER_HEALTH range (the package's own §6 framing, corrected here):
+    # PROJ_ACTIVE/PROJ_X/PROJ_Y/PROJ_STEP_X (IP-1122/IP-1128) sit between
+    # MOB_DATA's own end and WEAPON_TIER, deliberately excluded from
+    # persistence (see SRAM_PLAYER_HEALTH's own comment above) -- a single
+    # memcpy spanning that full range would either under-read (stopping
+    # short of WEAPON_TIER/PLAYER_HEALTH, since the real span is 38 bytes
+    # not 34) or wrongly persist the transient projectile fields.
+    rom.LD_A_nn(COMBAT_MODE); rom.LD_nn_A(SRAM_COMBAT_MODE)
+    rom.OR_A(); rom.JR_Z('sts_combat_skip')
+    rom.LD_A_nn(MOB_COUNT); rom.LD_nn_A(SRAM_MOB_COUNT)
+    rom.LD_DE_nn(MOB_DATA); rom.LD_HL_nn(SRAM_MOB_DATA); rom.LD_BC_nn(30)
+    rom.CALL('memcpy')
+    rom.LD_DE_nn(WEAPON_TIER); rom.LD_HL_nn(SRAM_WEAPON_TIER); rom.LD_BC_nn(2)
+    rom.CALL('memcpy')
+    rom.label('sts_combat_skip')
     rom.label('sts_inf_skip')
     # TOP_SCORE_TABLE: always written, both modes -- the persistent high
     # score, distinct from per-run state (ADR-0017 point 4).
@@ -4140,7 +4352,39 @@ def build_game_asm(rom: ROM) -> dict:
     # BL-0119 amendment) also re-populates INF_TREASURE_HERE correctly
     # from the just-restored WRAM ledger via inf_ensure_window's own
     # cross-reference -- no separate restore-path lookup needed here.
+    # IP-1124: deliberately called BEFORE COMBAT_MODE is restored below --
+    # inf_ensure_window's own center-cell recompute unconditionally calls
+    # inf_materialize_mobs (COMBAT_MODE-gated internally), which would
+    # otherwise immediately overwrite the real MOB_DATA/MOB_COUNT this
+    # package is about to restore from SRAM with a freshly re-materialized
+    # (and generally different) mob set. Running this call while
+    # COMBAT_MODE is still its pre-restore value (0) keeps
+    # inf_materialize_mobs correctly inert, exactly as it already is for
+    # every non-combat Infinite Mode load.
     rom.CALL('inf_ensure_window')
+    # IP-1124 (FR-11600): restore Infinite Mode Combat state, matching
+    # save_to_sram's own gate exactly (see its comment above for the full
+    # rationale). SRAM_COMBAT_MODE is restored unconditionally -- it was
+    # always written, so it never holds a stale value. MOB_COUNT/MOB_DATA/
+    # WEAPON_TIER/PLAYER_HEALTH are restored only when the just-restored
+    # COMBAT_MODE is nonzero: a non-combat Infinite Mode save never wrote
+    # real data into this SRAM range, so restoring it unconditionally here
+    # would overwrite these four fields' own correct boot-time defaults
+    # (PLAYER_HEALTH=3, WEAPON_TIER=1, MOB_COUNT=0) with stale/never-
+    # written SRAM bytes -- a real defect a later same-session combat-mode
+    # entry would then start from wrong values, not merely a cosmetic gap.
+    # Restored AFTER inf_ensure_window (see its own comment above) but
+    # BEFORE inf_record_combat_entry below, which also reads COMBAT_MODE
+    # (a no-op otherwise, silently failing to record the restored position
+    # as the new combat-entry point).
+    rom.LD_A_nn(SRAM_COMBAT_MODE); rom.LD_nn_A(COMBAT_MODE)
+    rom.OR_A(); rom.JR_Z('tls_combat_skip')
+    rom.LD_A_nn(SRAM_MOB_COUNT); rom.LD_nn_A(MOB_COUNT)
+    rom.LD_DE_nn(SRAM_MOB_DATA); rom.LD_HL_nn(MOB_DATA); rom.LD_BC_nn(30)
+    rom.CALL('memcpy')
+    rom.LD_DE_nn(SRAM_WEAPON_TIER); rom.LD_HL_nn(WEAPON_TIER); rom.LD_BC_nn(2)
+    rom.CALL('memcpy')
+    rom.label('tls_combat_skip')
     rom.CALL('inf_record_combat_entry')  # IP-1123: PLAYER_X/Y already restored above
     rom.label('tls_inf_skip')
     # TOP_SCORE_TABLE: always restored, both modes (persistent high score,

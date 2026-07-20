@@ -112,7 +112,7 @@ Confirmed directly against `try_load_save`/the save routine:
 | `A007` | `CARROTS_COUNT` |
 | `A008` | `SCORE` |
 | `A009`–`A011` | `CARROT_FLAGS` (9 bytes) |
-| `A012` | Save-format version guard ([FR-5220](../requirements/01-functional-requirements.md); `SAVE_VERSION_VAL = 0x05`) — added 2026-07-07 by [IP-1010](../implementation/packages/IP-1010-per-zone-scoreitem-persistence.md) at `0x01`; bumped to `0x02` by [IP-1050](../implementation/packages/IP-1050-generated-world-save-persistence.md) (seed/scale/`REGION_GRAPH`-regen/`KEYITEM_FLAGS` fields); bumped to `0x03` by [IP-9070](../implementation/packages/IP-9070-cur-zone-indexed-structures-generalization.md), 2026-07-11 (`SRAM_SCOREITEM` relocation/widening below); bumped to `0x04` by [IP-9110](../implementation/packages/IP-9110-gw-prng-step-mixing-step-repair.md), 2026-07-11 (`gw_prng_step` mixing-step repair — excludes a pre-fix save from "continue"); bumped to `0x05` by [IP-1104](../implementation/packages/IP-1104-infinite-mode-ledger-save-persistence.md), 2026-07-16 (Infinite Mode save shape, §7h below). A save whose version byte doesn't match the current value is treated as pre-upgrade: every version-guarded field loads as its fresh-new-game default rather than trusting stale/relocated SRAM bytes. |
+| `A012` | Save-format version guard ([FR-5220](../requirements/01-functional-requirements.md); `SAVE_VERSION_VAL = 0x06`) — added 2026-07-07 by [IP-1010](../implementation/packages/IP-1010-per-zone-scoreitem-persistence.md) at `0x01`; bumped to `0x02` by [IP-1050](../implementation/packages/IP-1050-generated-world-save-persistence.md) (seed/scale/`REGION_GRAPH`-regen/`KEYITEM_FLAGS` fields); bumped to `0x03` by [IP-9070](../implementation/packages/IP-9070-cur-zone-indexed-structures-generalization.md), 2026-07-11 (`SRAM_SCOREITEM` relocation/widening below); bumped to `0x04` by [IP-9110](../implementation/packages/IP-9110-gw-prng-step-mixing-step-repair.md), 2026-07-11 (`gw_prng_step` mixing-step repair — excludes a pre-fix save from "continue"); bumped to `0x05` by [IP-1104](../implementation/packages/IP-1104-infinite-mode-ledger-save-persistence.md), 2026-07-16 (Infinite Mode save shape, §7h below); bumped to `0x06` by [IP-1124](../implementation/packages/IP-1124-infinite-mode-combat-save-persistence.md), 2026-07-19 (Combat Sub-Mode save shape, §7o below). A save whose version byte doesn't match the current value is treated as pre-upgrade: every version-guarded field loads as its fresh-new-game default rather than trusting stale/relocated SRAM bytes. |
 | `A070`–`A0C0` | `SRAM_SCOREITEM` — `SCOREITEM_FLAGS` mirror, **up to 81 bytes**. Originally 9 bytes at `A013`–`A01B` ([IP-1010](../implementation/packages/IP-1010-per-zone-scoreitem-persistence.md)); relocated by [IP-9070](../implementation/packages/IP-9070-cur-zone-indexed-structures-generalization.md) to immediately after `SRAM_KEYITEM_FLAGS`'s own end, leaving `SRAM_SEED`/`SRAM_WORLD_SCALE`/`SRAM_KEYITEM_FLAGS`'s addresses untouched. |
 
 **This updates `BL-0018`'s prior field-set finding** ([GDS-04](04-domain-model.md)): per-zone
@@ -644,10 +644,92 @@ movement already has), checking the X boundary (`>= 153`, unchanged) and a new Y
 (`< 8` or `>= 129`, mirroring `handle_play_input`'s own UP/DOWN clamp constants) before calling
 the unmodified `inf_projectile_hittest`. 3 bytes total.
 
-**Named planning-time WRAM collision:** `IP-1129` (still `BLOCKED`, unbuilt as of this package)
-also prospectively claims `0xC6DF`–`0xC6E0` for its own fields — a normal consequence of parallel
-implementation planning, to be resolved at build time by whichever package ships first (not a
-defect in either package's own plan).
+**Named planning-time WRAM collision (resolved 2026-07-19, `IP-1127`, `BL-0163`):** `IP-1127`
+also prospectively claimed `0xC6DF`–`0xC6E0` for its own fields — a normal consequence of parallel
+implementation planning, resolved at build time in this package's own favor (it shipped first).
+`IP-1127` re-derived its own two bytes to `0xC6E2`–`0xC6E3` when it was actually built — see §7p.
+(This paragraph previously misnamed the colliding package as `IP-1129`, which never claimed any
+WRAM at all; corrected here as part of `IP-1127`'s own build, closing `BL-0163`.)
+
+### 7o. Combat Sub-Mode: SRAM save shape — `IP-1124` (confirmed 2026-07-19, `FR-11600`)
+
+First unclaimed bytes past `SRAM_LEDGER`'s own end (`0xA34F`, §7h). Nested inside the existing
+`GAME_MODE == 1`-gated SRAM region (§7h) — combat is a sub-mode of Infinite Mode, so this state is
+meaningless outside it.
+
+| Address | Name | Size | Purpose |
+|---|---|---|---|
+| `A350` | `SRAM_COMBAT_MODE` | 1 byte | mirrors `COMBAT_MODE`; always written/restored, both combat states — the flag itself must never go stale, since it gates whether the four fields below are meaningful |
+| `A351` | `SRAM_MOB_COUNT` | 1 byte | mirrors `MOB_COUNT`; `COMBAT_MODE != 0`-gated |
+| `A352`–`A36F` | `SRAM_MOB_DATA` | 30 bytes | mirrors `MOB_DATA`, identical 5-byte-per-slot format; `COMBAT_MODE != 0`-gated |
+| `A370` | `SRAM_WEAPON_TIER` | 1 byte | mirrors `WEAPON_TIER`; `COMBAT_MODE != 0`-gated |
+| `A371` | `SRAM_PLAYER_HEALTH` | 1 byte | mirrors `PLAYER_HEALTH`; `COMBAT_MODE != 0`-gated |
+
+`SAVE_VERSION_VAL` bumped `0x05`→`0x06` (the sixth bump since ship, extending `IP-1104`'s own
+strictly-monotonic sequence, §7h). `PROJ_ACTIVE`/`PROJ_X`/`PROJ_Y`/`PROJ_STEP_X`/`PROJ_STEP_Y` are
+deliberately **not** persisted (mirrors `INF_MZ_RESULT`'s own transient, generation-time-only
+precedent, §7d) — a loaded save always resumes with no projectile in flight.
+
+**`SRAM_COMBAT_MODE` is an always-written flag (mirrors `SRAM_GAME_MODE`'s own §7h precedent);
+the four data fields are additionally gated on `COMBAT_MODE` itself, both to save and to load.**
+This asymmetry versus a single uniform gate is deliberate, not an oversight: `save_to_sram` writes
+`SRAM_COMBAT_MODE` unconditionally so the byte never goes stale, then gates the four data fields
+on `COMBAT_MODE != 0` (a non-combat Infinite Mode save has nothing meaningful to write there —
+these four fields simply hold their own correct boot-time defaults in WRAM). `try_load_save`
+mirrors this exactly: `SRAM_COMBAT_MODE` restores unconditionally, and the four data fields
+restore only when the just-restored `COMBAT_MODE` is nonzero — restoring them unconditionally
+would overwrite `PLAYER_HEALTH`/`WEAPON_TIER`/`MOB_COUNT`'s own correct boot-time defaults with
+stale, never-written SRAM bytes whenever a non-combat Infinite Mode save is loaded, corrupting a
+later same-session combat-mode entry.
+
+**Two implementation-time corrections, found and fixed, not silently patched over:**
+
+1. **The five persisted WRAM fields are not one contiguous span.** `COMBAT_MODE`/`MOB_COUNT`/
+   `MOB_DATA` (`0xC6B5`–`0xC6D4`) are contiguous, but `PROJ_ACTIVE`/`PROJ_X`/`PROJ_Y`/`PROJ_STEP_X`
+   (`0xC6D5`–`0xC6D8`, §7j/§7n) sit between `MOB_DATA`'s own end and `WEAPON_TIER`/`PLAYER_HEALTH`
+   (`0xC6D9`–`0xC6DA`) — deliberately excluded from persistence. `save_to_sram`/`try_load_save`
+   each use two separate transfers (a 30-byte `MOB_DATA` block, then a 2-byte `WEAPON_TIER`+
+   `PLAYER_HEALTH` block) rather than one spanning the full range.
+2. **Restore ordering versus `inf_ensure_window`.** `try_load_save`'s own post-load
+   `inf_ensure_window` call (§7h, re-derives the 3×3 working set) unconditionally invokes
+   `inf_materialize_mobs` as part of its center-cell recompute — a no-op only while `COMBAT_MODE`
+   reads 0. The combat-state restore above therefore runs **after** `inf_ensure_window` (so
+   `inf_materialize_mobs` stays correctly inert against the still-pre-restore `COMBAT_MODE`) but
+   **before** `inf_record_combat_entry` (so that routine, which also gates on `COMBAT_MODE`,
+   correctly records the just-restored player position as the new combat-entry point). Restoring
+   `COMBAT_MODE` before `inf_ensure_window` would have let a fresh `inf_materialize_mobs` call
+   immediately overwrite the just-restored `MOB_DATA`/`MOB_COUNT`.
+
+### 7p. Combat Sub-Mode: post-contact player protection WRAM — `IP-1127` (confirmed 2026-07-19, `FR-11410`/`BL-0158`)
+
+First unclaimed bytes past `PROJ_STEP_Y`'s own end (`0xC6E1`, §7n) — re-derived at build time: the
+package's own plan prospectively claimed `0xC6DF`–`0xC6E0`, but `IP-1128` shipped first and
+claimed that exact range for real (§7n), so this package's own two bytes moved to the next
+actually-free WRAM (`BL-0163`).
+
+| Address | Name | Size | Purpose |
+|---|---|---|---|
+| `C6E2` | `PLAYER_INVINCIBLE` | 1 byte | frames of invincibility remaining after a hit, 0 = vulnerable, boot-cleared |
+| `C6E3` | `MOB_CONTACT_FLAGS` | 1 byte | one bit per `MOB_DATA` slot index (0-5), set while that specific mob is in unbroken overlap with the player — the per-mob cooldown's own state, boot-cleared |
+
+`MOB_CONTACT_FLAGS` is deliberately a new, parallel table, not a `MOB_DATA` field — avoids
+widening `MOB_DATA`'s own 5-byte-per-slot stride for a single extra bit (the same "parallel table,
+not a stride widening" discipline the package's own planning committed to). `inf_mob_contact_check`
+(`IP-1123`, §7k) is extended, not replaced: `check_collisions`'s own asymmetric point-in-box
+technique and `MOB_DATA`'s own layout are both confirmed byte-for-byte unchanged by direct diff.
+The routine now carries this slot's own bitmask in `C`, doubling in lockstep with the existing
+per-slot loop index (`B`) each iteration — a fresh contact sets the bit; a broken or inactive slot
+clears it; a bit already set is a no-op (the cooldown's own core guarantee). `INVINCIBILITY_FRAMES
+= 30` / `KNOCKBACK_DISTANCE = 16` are compile-time Python constants (adjustable defaults, mirroring
+`IP-1126`'s own `MOB_MOVE_INTERVAL`/`MOB_MOVE_STEP` precedent). Knockback reuses `handle_play_
+input`'s own player-position clamp bounds (X: `0`–`152`; Y: `8`–`128`) — the same pair `IP-1128`'s
+own projectile boundary check already reuses (§7n).
+
+**Found-and-fixed interaction, named explicitly:** a lethal hit (health reaches 0, triggering
+`inf_health_setback`, §7k) skips knockback on that one path — applying it would have computed a
+displacement from the player's pre-setback position, silently pushing them off the setback's own
+just-restored region-entry point rather than the position they're actually placed at. The bit and
+invincibility-window state still apply on the lethal path exactly as the non-lethal path's own.
 
 ### 8. Tile index map implication (cross-reference only — GDS-08 decides the actual strategy)
 

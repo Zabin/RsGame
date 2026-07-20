@@ -109,6 +109,45 @@
 > as `IP-1126`/`IP-1127`. `IP-1128` repurposes `PROJ_DIR` in place (renamed `PROJ_STEP_X`) and
 > shares a named, unresolved WRAM-address collision with `IP-1127`'s own still-`BLOCKED`
 > prospective claim.
+>
+> **`IP-1124` implemented 2026-07-19** — Workflow E (combat state save persistence, `FR-11600`)
+> is built, closing this Feature's own critical path: new SRAM `SRAM_COMBAT_MODE`/
+> `SRAM_MOB_COUNT`/`SRAM_MOB_DATA`/`SRAM_WEAPON_TIER`/`SRAM_PLAYER_HEALTH` (`0xA350`–`0xA371`,
+> `asm_game.py`); `SAVE_VERSION_VAL` bumped `0x05`→`0x06`; `save_to_sram`/`try_load_save` both
+> extended inside their existing MBC1-enable bracket. `PROJ_*` fields deliberately not persisted.
+> **Two corrections found and fixed during implementation, not silently patched over:** (1) the
+> package's own §6 described the five persisted WRAM fields as one 34-byte contiguous span —
+> direct code read confirmed they are not (`PROJ_ACTIVE`/`PROJ_X`/`PROJ_Y`/`PROJ_STEP_X`,
+> `IP-1122`/`IP-1128`, sit between `MOB_DATA`'s own end and `WEAPON_TIER`) — implemented as two
+> separate transfers instead of one, preserving the exact same SRAM layout and exclusion of the
+> transient projectile fields the package intended; (2) `try_load_save`'s own combat-state restore
+> had to be sequenced *after* the existing `inf_ensure_window` call (not before, as first drafted)
+> since that call's own center-cell recompute unconditionally invokes `inf_materialize_mobs`,
+> which — once `COMBAT_MODE` is restored — would otherwise immediately overwrite the just-restored
+> `MOB_DATA`/`MOB_COUNT` with a freshly re-materialized set; `COMBAT_MODE` is restored between
+> `inf_ensure_window` and `inf_record_combat_entry`, so the latter still correctly records the
+> restored position as the new combat-entry point. New suite `T32` (4 checks, incl. a real
+> two-instance save/load round trip). **393/393 suite passes.** `COMPLETE`, own
+> `09-package-verification` pass owed.
+>
+> **`IP-1127` authorized and implemented 2026-07-19, same session** (G3, user "Yes, authorize
+> IP-1127," asked once `IP-1123` reached `VERIFIED`) — Workflow D step 2's own delta (post-contact
+> player protection, `FR-11410`/`BL-0158`) is built: new `PLAYER_INVINCIBLE`/`MOB_CONTACT_FLAGS`
+> (`0xC6E2`–`0xC6E3`, `asm_game.py` — re-derived at build time past `IP-1128`'s own real claim of
+> the package's originally-planned `0xC6DF`–`0xC6E0`, closing `BL-0163`). `inf_mob_contact_check`
+> (`IP-1123`) extended with a per-mob cooldown bit carried alongside its existing per-slot loop
+> index; new `inf_invincibility_tick` hooked into `st_playing`'s per-frame chain. **Found-and-fixed
+> interaction, named explicitly:** a lethal hit (triggering `inf_health_setback`) skips knockback
+> on that one path — applying it against the pre-setback position would have silently displaced
+> the player off the setback's own just-restored region-entry point. **Two test-only bugs found and
+> fixed during authoring, not product defects:** several `T36` checks first read state after
+> knockback had already (correctly) separated the player from the mob, so a same-position follow-up
+> mob placement no longer overlapped — fixed by re-pinning the player's own test position between
+> invocations where the check's own intent requires genuinely continued overlap. New suite `T36`
+> (12 checks incl. a live PyBoy drive, `T36.j`). **404/404 suite passes.** ROM builds at exactly
+> 32768 bytes (32670 used, 98 bytes headroom — the tightest margin of any package in this
+> tranche). `COMPLETE`, own `09-package-verification` pass owed. **This closes every package in
+> the Infinite Mode Combat Sub-Mode delta (`IP-1120`–`IP-1129`) to at least `COMPLETE`.**
 
 [↑ Features index](INDEX.md) · [Feature Catalog](../feature-planning/03-feature-catalog.md) ·
 [Epic Catalog](../feature-planning/02-epic-catalog.md)
@@ -364,11 +403,11 @@ No module outside this set is touched.
   exact UI mechanic (a three-state `MM_CURSOR` cycle vs. a follow-up confirmation screen shown
   only after choosing Infinite Mode) is not decided by this specification** — flagged as Open
   Question 1.
-- **A new save-format version value** (mirroring `FS-110`'s own `SAVE_VERSION_VAL` precedent,
-  currently `0x05`) — this Feature's combat state needs its own version discriminator; the next
-  value in the established strictly-monotonic sequence would be `0x06`, but the exact bump is
-  `07-implementation-planning`'s/`08`'s own act, not asserted here (mirrors `FS-110`'s own
-  identical framing for its own version bump, Open Question 7 there).
+- **A new save-format version value** (mirroring `FS-110`'s own `SAVE_VERSION_VAL` precedent) —
+  this Feature's combat state needed its own version discriminator; **implemented by `IP-1124`
+  (2026-07-19, Workflow E): `SAVE_VERSION_VAL` bumped `0x05`→`0x06`**, confirming the predicted
+  next value in the established strictly-monotonic sequence, exactly as `FS-110`'s own identical
+  framing anticipated for its own version bump (Open Question 7 there, now resolved).
 - **The player's own existing grid-aligned movement model** (**delta 2026-07-19**, `handle_play_
   input`'s existing single-axis-step-per-frame pattern, unchanged) — `FR-11210`'s mob movement
   and `FR-11410`'s knockback both reuse the same step shape (one axis at a time, whole-tile-

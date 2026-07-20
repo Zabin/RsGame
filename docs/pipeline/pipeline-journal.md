@@ -14,9 +14,89 @@
 
 ## Position
 
-- **Updated:** 2026-07-19 (run #261 — reconciliation after `08-code-implementation` x2, run
-  directly per the pipeline's own workflow rather than via a formal manager Step-5 invocation;
-  this run's own job is to sync that work into the journal/backlog and determine what's next)
+- **Updated:** 2026-07-19 (run #268 — iterate mode; loop stops here, session-boundary --
+  both `IP-1124` and `IP-1127` need a fresh session for their own `09-package-verification`)
+- **Increment (run #268):** **`08-code-implementation`** on **`IP-1127` → `COMPLETE`**.
+  Extended `inf_mob_contact_check` with post-contact protection (invincibility, knockback,
+  per-mob cooldown via a new `MOB_CONTACT_FLAGS` bitmask table). WRAM re-derived to
+  `0xC6E2`–`0xC6E3` (`IP-1128` claimed the package's own originally-planned range first,
+  `BL-0163`). **Found-and-fixed interaction**: a lethal hit skips knockback (would displace
+  the player off `inf_health_setback`'s own just-restored position). **Two test-only bugs
+  found and fixed**: several `T36` checks assumed continued overlap after a hit, not
+  accounting for knockback's own (correct) separation — fixed by re-pinning the player's own
+  test position between invocations. New suite `T36` (12 checks incl. a live PyBoy drive).
+  **404/404 suite passes.** ROM 32768 bytes (32670 used, 98 bytes headroom — tightest
+  margin yet). `FR-11410` → Implemented; RTM filled; `FS-112`/`GDS-07` §7p added — also
+  closes `BL-0163` (the stale doc mislabel `IP-1124` found, corrected here as the natural
+  byproduct of resolving the real collision). `BL-0158` left `IN PIPELINE` (own `09` pass
+  owed, per this package's own §9). **This closes every package in the Infinite Mode Combat
+  Sub-Mode delta to at least `COMPLETE`.**
+- **Increment (run #267):** User answered run #266's G3 ask mid-session: "Yes, authorize
+  `IP-1127`." `IP-1127` → `AUTHORIZED`/`READY` on the Master Build Plan/`packages/INDEX.md`.
+  A resolved gate resumes the loop rather than ending the session.
+- **Increment (run #266):** **`08-code-implementation`** on **`IP-1124` → `COMPLETE`**. Extended
+  `save_to_sram`/`try_load_save` with combat-state SRAM persistence (`0xA350`–`0xA371`,
+  `SAVE_VERSION_VAL` `0x05`→`0x06`). Two genuine planning-gap corrections found and fixed during
+  implementation (not silently patched over): (1) the package's own §6 wrongly claimed the five
+  persisted WRAM fields were one contiguous 34-byte span for a single `memcpy` — `PROJ_ACTIVE`/
+  `PROJ_X`/`PROJ_Y`/`PROJ_STEP_X` actually sit between `MOB_DATA` and `WEAPON_TIER`, so it's two
+  separate transfers; (2) the combat-state restore had to move to *after* `try_load_save`'s
+  existing `inf_ensure_window` call (not before), since that call's own `inf_materialize_mobs`
+  side effect — inert only while `COMBAT_MODE` is still 0 — would otherwise immediately clobber
+  the just-restored mob data (caught live by `T32.a`'s own first failing run). One test-only fix
+  (not a product defect): `T32.a`'s first draft read state after a 60-tick post-load settle,
+  matching `T27.a2`'s own precedent for *static* fields — but `MOB_DATA` is live-mutated every
+  frame by `inf_mob_move` once restored, so the settle window let the just-restored mobs actually
+  move before the check read them; fixed by reading back after 6 ticks. New suite `T32` (4
+  checks). **393/393 suite passes.** ROM 32768 bytes (32414 used, unchanged). `FR-11600` →
+  Implemented; RTM filled; `FR-11510`'s own stale note corrected; `FS-112`/`GDS-07` §7o updated.
+  **Closes the original six-package combat sub-mode critical path in full.** Harvested one Low
+  doc-defect (`BL-0163`, `GDS-07` §7n names the wrong package in its own collision note — cosmetic,
+  triaged `SCHEDULED`).
+- **Increment (run #265):** **`09-package-verification`** on **`IP-1129` → `VERIFIED`**
+  ([VR-1129](../implementation/verification/VR-1129-infinite-mode-combat-weapon-tier-funding.md)).
+  ROM rebuild (32768 bytes); full suite **387/387**; `T38.a`-`e` (5 checks) reconfirmed.
+  Implementing commit `95391e5`'s own `asm_game.py` diff confirmed **purely additive** (0
+  removed/modified lines); `inf_tier_spend` compared line-for-line against `inf_heal_spend`'s own
+  already-`VERIFIED` body — confirmed a byte-for-byte structural mirror. `inf_projectile_hittest`/
+  `WEAPON_TIER`'s own boot-init both confirmed untouched. No player-reachable call site exists yet
+  (`BL-0148`-class gap, unchanged). No findings, no scope excursion. **This closes the session's
+  entire four-package `09-package-verification` backlog** — `IP-1123`/`IP-1126`/`IP-1128`/`IP-1129`
+  all now `VERIFIED`, 0 `COMPLETE`-but-unverified packages remaining. No backlog triage needed
+  beyond flipping `BL-0147`'s own last-owed clause.
+- **Increment (run #264):** **`09-package-verification`** on **`IP-1128` → `VERIFIED`**
+  ([VR-1128](../implementation/verification/VR-1128-infinite-mode-combat-weapon-directionality.md)).
+  ROM rebuild (32768 bytes); full suite **387/387**; `T37.a`-`i` (9 checks) reconfirmed. `T30.a`/
+  `b`/`c`/`c2`/`d` corrections confirmed legitimate re-encodings, not weakened assertions. Direct
+  diff inspection confirmed `inf_projectile_hittest`'s own label body untouched and `PLAYER_DIR`'s
+  own two write sites unchanged (new `PLAYER_FACING_X`/`Y` writes are pure additions alongside
+  them). Y-axis boundary arithmetic and the X-axis underflow-via-wraparound technique both
+  independently re-derived from the assembly. No findings, no scope excursion. No dependent
+  package names `IP-1128`. No backlog triage action needed (0 `NEW` entries this run).
+- **Increment (run #263):** **`09-package-verification`** on **`IP-1126` → `VERIFIED`**
+  ([VR-1126](../implementation/verification/VR-1126-infinite-mode-combat-mob-movement.md)).
+  ROM rebuild (32768 bytes); full suite **387/387**; `T35.a`-`i` (9 checks) reconfirmed. Direct
+  code read confirmed the dominant-axis/tie-break logic, coincident hold-still, and
+  `COMBAT_MODE`/inactive-slot gating all match §6/§10 exactly; implementing commit `3412be8`'s
+  own `asm_game.py` diff confirmed **purely additive** (no line removed/modified anywhere) —
+  `inf_mob_render`/`inf_projectile_hittest`/`inf_mob_contact_check` and `MOB_DATA`'s stride all
+  confirmed untouched by that single check. `MOB_MOVE_INTERVAL`/`STEP` are compile-time constants
+  (not a `BL-0055`-class runtime-tunable), so `T35.i`'s own existing real-chain live drive
+  sufficed, reconfirmed. No findings, no scope excursion. No dependent package names `IP-1126`,
+  so no other readiness changes. No backlog triage action needed (0 `NEW` entries this run).
+- **Increment (run #262):** **`09-package-verification`** on **`IP-1123` (Pass 2) → `VERIFIED`**
+  ([VR-1123 Pass 2](../implementation/verification/VR-1123-infinite-mode-combat-player-health-and-economy-pass2.md)).
+  Chosen first (critical-path first — unblocks `IP-1124`, the last critical-path node, and
+  `IP-1127`'s own eligibility). `pyboy` installed fresh (not preinstalled this session). ROM
+  rebuild byte-identical (32768 bytes); full suite **387/387**. Confirmed by direct code read
+  that the `BL-0154` fix (call site moved `st_infinite_seed_entry`→`st_intro`, after the real
+  spawn-position write) is real; `T31.a`-`g` reconfirmed. **Own independent live drive, not just
+  the new `T31.g` check**: reproduced Pass 1's exact end-to-end repro (real UI path to `PLAYING`,
+  real per-frame contact to zero health, real `inf_health_setback`) and confirmed the player now
+  lands at their real spawn point `(76, 80)`, not `(0, 0)`. No findings, no scope excursion.
+  `IP-1123` → `VERIFIED`; `IP-1124` → `READY` (all three dependencies now `VERIFIED`); `IP-1127`
+  structurally unblocked (still `NOT AUTHORIZED`). No backlog triage action needed (0 `NEW`
+  entries this run).
 - **Increment (run #261):** **`08-code-implementation`** executed on both gated packages in
   sequence, per the run #260 G3 grant ("Authorize both", no don't-iterate caveat):
   **`IP-1128` → `COMPLETE`** (8-directional weapon fire; `PLAYER_FACING_X`/`Y`/`PROJ_STEP_Y` new
@@ -103,42 +183,33 @@
   Also carries forward from run #254 (unchanged this run): `IP-1126` built to `COMPLETE`
   (`inf_mob_move`, new WRAM `MOB_MOVE_TIMER`, suite `T35`, 373/373 passes, `FS-112` Open Question 4
   resolved); `BL-0160` (sound effects) filed and triaged `SCHEDULED` for a future `03` pass.
-- **Pipeline state:** Bootstrap stages 01–11 ✅; Release 2 GO. 45 packages `VERIFIED`. Four
-  packages now `COMPLETE`, each awaiting its own `09-package-verification` pass in a fresh
-  session (independence convention): `IP-1126` (mob movement), `IP-1123` (health/economy — fix
-  applied run #249, this is Pass 2), `IP-1128` (weapon directionality, built run #261), `IP-1129`
-  (weapon-tier funding, built run #261). `IP-1124` remains `NOT STARTED` (blocked on `IP-1123`
-  reaching `VERIFIED`). `IP-1120`/`IP-1121`/`IP-1122`/`IP-1125` `VERIFIED`. `IP-1127` still
-  `BLOCKED` on `IP-1123` reaching `VERIFIED`, still `NOT AUTHORIZED` (its own prospective WRAM
-  claim, `0xC6DF`–`0xC6E0`, is now stale against `IP-1128`'s real claim — must re-derive at build
-  time). Standing, non-blocking doc/design work unchanged: the doc-accuracy sweep family
-  (`BL-0136`/`BL-0137`/`BL-0140`–`BL-0143`/`BL-0151`); `BL-0118` (`NFR-1400` cycle-budget gap);
-  `NFR-1500` (combat-sub-mode cycle budget, still `UNCONFIRMED`, now also carrying `IP-1128`/
-  `IP-1129`'s own added cost, neither observed to regress it); `BL-0123` (`try_load_save` unneeded
-  finite-mode work); `BL-0112` (Infinite Mode run-end trigger); `BL-0097` (Medium, routed
-  already); `BL-0130` (catalog text gap); `BL-0148`/`BL-0149`/`BL-0150`/`BL-0152`/`BL-0159`
-  (remaining half)/`BL-0160`/`BL-0161`/`BL-0162` (all Low/Low-Medium, `SCHEDULED`/`DEFERRED`,
-  non-blocking).
-- **Backlog:** 162 entries. `BL-0147`/`BL-0155`/`BL-0157` updated to record `IP-1128`/`IP-1129`
-  implementation (run #261) — still `IN PIPELINE`, own `09-package-verification` owed. `BL-0148`
-  cross-referenced (`IP-1129` shares its exact input-binding gap). New **`BL-0162`** filed and
-  triaged `SCHEDULED` (stale-ROM tooling gap found and resolved mid-run #261, no code defect).
-  `BL-0161` unchanged (`DEFERRED`). `BL-0156` unchanged (`IN PIPELINE`). `BL-0154`/`BL-0133`
-  unchanged (`IN PIPELINE`).
-- **Next step:** **Session-boundary block — no further step is available in this session.**
-  Every remaining unblocked thread in the mob/weapon-scoped increment now requires either (a) a
-  fresh session for `09-package-verification`'s own independence convention (`IP-1126`, `IP-1123`
-  Pass 2, `IP-1128`, `IP-1129` — four packages) or (b) `IP-1123` actually reaching `VERIFIED`
-  first, which itself needs (a) (`IP-1127`'s own G3 ask, `BL-0159`'s remaining half). This is not
-  a gate in the G3/G4/Vision/`NEEDS-USER` sense — it is the pipeline's own "fresh session for
-  independent verification" convention, same class the manager already treated as a genuine stop
-  for `IP-1126`/`IP-1123` at run #254/#260. `BL-0160` (sound effects) remains actionable
-  (`SCHEDULED` for a future `03` pass) but is deliberately out of this run's own user-scoped
-  "mob and weapon related items" instruction, not resumed here.
-- **Open gates:** none newly opened this run. **G3 still needed on `IP-1127`** (post-contact
-  protection) once `IP-1123` reaches `VERIFIED` — not yet asked, `IP-1127` remains `BLOCKED`
-  regardless, so not ripe yet. The fresh-session requirement on four packages' own
-  `09-package-verification` is a session-boundary constraint, not itself a human decision gate.
+- **Pipeline state:** Bootstrap stages 01–11 ✅; Release 2 GO. 49 packages `VERIFIED` (unchanged
+  this run — `IP-1127` reached `COMPLETE`, not yet `VERIFIED`). `IP-1120`/`IP-1121`/`IP-1122`/
+  `IP-1123`/`IP-1125`/`IP-1126`/`IP-1128`/`IP-1129` `VERIFIED`. **`IP-1124` and `IP-1127` both
+  `COMPLETE`** — every package in the Infinite Mode Combat Sub-Mode delta (`IP-1120`–`IP-1129`)
+  now reaches at least `COMPLETE`; both `IP-1124`/`IP-1127` own a `09-package-verification` pass
+  (fresh session, for genuine independence). Standing, non-blocking doc/design work: the
+  doc-accuracy sweep family (`BL-0136`/`BL-0137`/`BL-0140`–`BL-0143`/`BL-0151` — `BL-0163` closed
+  this run); `BL-0118` (`NFR-1400` cycle-budget gap); `NFR-1500` (combat-sub-mode cycle budget,
+  still `UNCONFIRMED`); `BL-0123` (`try_load_save` unneeded finite-mode work); `BL-0112` (Infinite
+  Mode run-end trigger); `BL-0097` (Medium, routed already); `BL-0130` (catalog text gap);
+  `BL-0148`/`BL-0149`/`BL-0150`/`BL-0152`/`BL-0159` (remaining half)/`BL-0160`/`BL-0161`/`BL-0162`
+  (all Low/Low-Medium, `SCHEDULED`/`DEFERRED`, non-blocking).
+- **Backlog:** 163 entries. `BL-0163` (`GDS-07` §7n's own collision-note mislabel) flipped
+  **`DONE`** this run — corrected as the natural byproduct of `IP-1127` resolving the real WRAM
+  collision. `BL-0158` (the original `IP-1127`-originating live-drive finding) updated to record
+  the implementation but deliberately left `IN PIPELINE` — closes only once `09-package-
+  verification` confirms the fix live, per the package's own §9. `BL-0147`/`BL-0155`/`BL-0157`/
+  `BL-0156`/`BL-0148`/`BL-0161`/`BL-0133` unchanged. `BL-0154` (`IP-1123`'s own region-entry-point
+  defect, closed run #262) remains queued for its own `DONE` flip at the next full triage pass.
+- **Next step:** **Session-boundary stop — no further step is available in this session.** Every
+  remaining unblocked thread now requires a fresh session: `09-package-verification` on `IP-1124`
+  (save persistence) and `IP-1127` (post-contact protection), both `COMPLETE` and implemented this
+  session, so verifying either now would degrade independence — same class of stop the manager has
+  treated as genuine throughout this session (runs #254/#260/#261/#266). Either order is fine;
+  neither blocks the other. No other unblocked, non-session-boundary item exists in the backlog.
+- **Open gates:** none open. Both `09-package-verification` passes owed are session-boundary
+  constraints, not human-decision gates.
 
 ## Run log
 
@@ -410,3 +481,10 @@
 | 260 | 2026-07-19 | advance → gate (same session, user-scoped to mob/weapon items) | `07-implementation-planning` | `FS-112`'s two new leaves — `FR-11310`/`FR-11510` | ✅ **Planned two packages, `IP-1128`/`IP-1129`, split for the same conceptual-independence reason as `IP-1126`/`IP-1127`** (weapon aiming vs. the treasure economy), though unlike that pair neither is readiness-blocked — both dependencies (`IP-1122`, `IP-1103`) are already `VERIFIED`. **`IP-1128`** (weapon directionality): 8-directional fire derived from movement, diagonal projectile motion via simultaneous independent per-axis stepping; new WRAM `PLAYER_FACING_X`/`Y`/`PROJ_STEP_Y` (`0xC6DF`–`0xC6E1`); `PROJ_DIR` repurposed in place as `PROJ_STEP_X` — mandatory supersession sweep confirmed exactly two consumers (both rewritten), `inf_projectile_hittest` untouched, one pre-named test correction (`T30.b`). New suite `T37` (9 checks) — **`READY`**. **`IP-1129`** (weapon-tier funding): `inf_tier_spend` mirrors `inf_heal_spend` exactly, spending even at the tier cap (`FR-11500`'s real precedent). No new WRAM. New suite `T38` (5 checks) — **`READY`**. **Named, unresolved WRAM collision**: `IP-1128`'s own `0xC6DF`–`0xC6E0` claim overlaps `IP-1127`'s own still-`BLOCKED` prospective claim of the identical range — a normal consequence of two packages planned in parallel against a shared free-byte frontier, not a defect in either; resolved at build time by whichever ships first. TWBS delta section authored (verb inventory, supersession sweep, split rationale, WRAM/ROM budget, collision note). **Neither package authorized** — both new scope beyond the original "Yes, build all six" go-ahead. Master Build Plan, `packages/INDEX.md`, RTM, `FS-112` metadata, `ROADMAP.md` all updated. **GATE hit: G3 authorization needed on `IP-1128`/`IP-1129`** before either can be built — this ends the mob/weapon-scoped iterate run per the manager's own charter (a ripe G3 ask is one of the five genuine stopping conditions). | **Ask the user**: authorize `IP-1128` (weapon directionality) and/or `IP-1129` (weapon-tier funding) for `08-code-implementation`? Both `READY`, neither authorized. |
 
 | 261 | 2026-07-19 | sync (reconciling `08-code-implementation` x2, run directly per the pipeline's own workflow rather than via a formal manager Step-5 invocation) | — | `IP-1128`, `IP-1129` | ✅ **Reconciled both implementations into the journal/backlog.** User answered run #260's G3 ask with "Authorize both" (no don't-iterate caveat); `08-code-implementation` then ran on `IP-1128` (8-directional weapon fire — `COMPLETE`, new suite `T37`, 9 checks) and `IP-1129` (weapon-tier funding — `COMPLETE`, new suite `T38`, 5 checks). Full suite 387/387 passing; ROM 32768 bytes. Both packages' own §9 Documentation Updates applied in full (FR status, RTM rows, `GDS-07` §7n, Master Build Plan/`packages/INDEX.md` → `COMPLETE`). Harvested: `BL-0147`/`BL-0155`/`BL-0157` updated (still `IN PIPELINE`, `09` owed); `BL-0148` cross-referenced (`IP-1129` shares its input-binding gap); new `BL-0162` filed and triaged `SCHEDULED` (a stale-on-disk-ROM tooling gap found and root-caused mid-run — not a code defect, fully resolved before the final test/commit). No drift beyond the expected "work done outside a formal manager Step-5" gap, now corrected. Checked for further unblocked steps (Step 3): none found — every remaining thread needs either a fresh session (`09-package-verification` on four `COMPLETE` packages) or `IP-1123` reaching `VERIFIED` first (itself needing the same fresh session). `BL-0160` (sound effects) remains actionable but is out of this run's own user-scoped "mob and weapon related items" instruction. **Session-boundary stop — genuinely nothing left to advance this session.** | Fresh session: `09-package-verification` on `IP-1126`, `IP-1123` (Pass 2), `IP-1128`, `IP-1129` (four independent packages, any order) — unblocks `IP-1124` (once `IP-1123` VERIFIED) and `IP-1127`'s own G3 ask (once `IP-1123` VERIFIED). |
+| 262 | 2026-07-19 | advance (iterate, fresh session — the session-boundary block from run #261 is resolved) | `09-package-verification` | `IP-1123` (Pass 2) | ✅ **`VERIFIED`** ([VR-1123 Pass 2](../implementation/verification/VR-1123-infinite-mode-combat-player-health-and-economy-pass2.md)). Chose `IP-1123` first of the four session-boundary-blocked packages (critical-path first — it unblocks `IP-1124`, the last critical-path node, and `IP-1127`'s own eligibility). `pyboy` was not preinstalled in this session's environment; installed via `pip install pyboy` before running gates. Rebuilt ROM (32768 bytes, byte-identical to checked-in — no diff), full suite **387/387 passed**. Direct code read confirmed the `BL-0154` remediation (`inf_record_combat_entry`'s "initial entry" call site moved from `st_infinite_seed_entry` into `st_intro`, after the real `PLAYER_X`/`PLAYER_Y` write); `T31.a`-`g` reconfirmed passing. **Went beyond the new `T31.g` regression check**: ran an independent standalone PyBoy live drive reproducing Pass 1's own exact end-to-end repro (real UI path to `PLAYING`, real per-frame mob contact driving health to 0, real `inf_health_setback` firing) and confirmed the player now lands at `(76, 80)` — their real spawn point — not `(0, 0)`. No scope excursion (diff limited to `asm_game.py`'s two call sites + declared doc files). No findings. Master Build Plan/`packages/INDEX.md`/verification `INDEX.md` updated: `IP-1123` → `VERIFIED`; `IP-1124` → `READY` (all three dependencies now `VERIFIED`); `IP-1127` → structurally unblocked, still `NOT AUTHORIZED` (G3 owed separately, unchanged). No backlog triage needed (0 `NEW` entries; all standing entries' dispositions unchanged by this step). | `09-package-verification` again — `IP-1126` next (oldest remaining `COMPLETE` package awaiting verification; per "per-package: 08→09" draining, verification debt drains before `IP-1124`'s new `08` build starts), then `IP-1128`/`IP-1129`, then `08-code-implementation` on `IP-1124`. |
+| 263 | 2026-07-19 | advance (iterate) | `09-package-verification` | `IP-1126` | ✅ **`VERIFIED`** ([VR-1126](../implementation/verification/VR-1126-infinite-mode-combat-mob-movement.md)). Rebuilt ROM (32768 bytes), full suite **387/387 passed**; `T35.a`-`i` (9 checks) reconfirmed. Direct code read confirmed the dominant-axis/tie-break logic (X wins on `\|dx\|==\|dy\|`), the coincident hold-still case, and `COMBAT_MODE`/inactive-slot gating all match the package's own §6/§10 exactly. Implementing commit `3412be8`'s own `asm_game.py` diff confirmed **purely additive** (`grep -E '^-[^-]'` on the diff returns nothing) — `inf_mob_render`/`inf_projectile_hittest`/`inf_mob_contact_check` and `MOB_DATA`'s own stride all confirmed untouched, satisfying that DoD item without needing a separate direct-diff spot-check. `MOB_MOVE_INTERVAL`/`MOB_MOVE_STEP` are compile-time constants, not a runtime-tunable parameter in the `BL-0055` sense, so no non-default live drive was owed beyond `T35.i`'s own existing real-chain drive (reconfirmed). No scope excursion, no findings. Master Build Plan/`packages/INDEX.md`/verification `INDEX.md` updated: `IP-1126` → `VERIFIED`. No dependent package names `IP-1126`, so no other readiness changes. No backlog triage needed (0 `NEW` entries). | `09-package-verification` again — `IP-1128` next (weapon directionality), then `IP-1129` (weapon-tier funding), then `08-code-implementation` on `IP-1124` (now `READY` and pre-`AUTHORIZED`). |
+| 264 | 2026-07-19 | advance (iterate) | `09-package-verification` | `IP-1128` | ✅ **`VERIFIED`** ([VR-1128](../implementation/verification/VR-1128-infinite-mode-combat-weapon-directionality.md)). ROM rebuild (32768 bytes); full suite **387/387**; `T37.a`-`i` (9 checks) reconfirmed; `T30.a`/`b`/`c`/`c2`/`d` corrections confirmed **legitimate re-encodings, not weakened assertions** (e.g. `T30.a` now asserts `dir==0xFF` for a leftward fire under the new raw-signed-step encoding — the correct value for the new scheme, matches the package's own §7 supersession-sweep note verbatim). Direct diff inspection confirmed `inf_projectile_hittest`'s own label body appears in no changed hunk (byte-for-byte untouched) and `PLAYER_DIR`'s own two write sites are unchanged (new `PLAYER_FACING_X`/`Y` writes sit alongside them as pure additions). Y-axis boundary arithmetic (reused `PLAYER_Y`'s own 8/129 clamp pair) and the X-axis underflow-via-wraparound technique both independently re-derived from the assembly, not trusted from the Implementation Summary. No scope excursion, no findings. Master Build Plan/`packages/INDEX.md`/verification `INDEX.md` updated: `IP-1128` → `VERIFIED`. No dependent package names `IP-1128`. No backlog triage needed (0 `NEW` entries). | `09-package-verification` on `IP-1129` (weapon-tier funding) — last of the four session-boundary-blocked packages — then `08-code-implementation` on `IP-1124`. |
+| 265 | 2026-07-19 | advance (iterate) | `09-package-verification` | `IP-1129` | ✅ **`VERIFIED`** ([VR-1129](../implementation/verification/VR-1129-infinite-mode-combat-weapon-tier-funding.md)). ROM rebuild (32768 bytes); full suite **387/387**; `T38.a`-`e` (5 checks) reconfirmed. Implementing commit `95391e5`'s own `asm_game.py` diff confirmed **purely additive** (0 removed/modified lines); `inf_tier_spend` quoted and compared line-for-line against `inf_heal_spend`'s own already-`VERIFIED` body — confirmed a byte-for-byte structural mirror (identical 16-bit-borrow decrement, identical `SCORE_DIRTY`-then-cap-check ordering). `inf_projectile_hittest`/`WEAPON_TIER`'s own boot-init both confirmed untouched. No player-reachable call site exists yet (`BL-0148`-class gap, unresolved, unchanged by this run) — direct-invoke testing is the correct method for this class of gap, not a shortfall. No scope excursion, no findings. Master Build Plan/`packages/INDEX.md`/verification `INDEX.md` updated: `IP-1129` → `VERIFIED`. No dependent package names `IP-1129`. **This closes the session's entire four-package `09-package-verification` backlog** (`IP-1123`/`IP-1126`/`IP-1128`/`IP-1129` all now `VERIFIED`, 0 `COMPLETE`-but-unverified packages remaining). No backlog triage needed beyond flipping `BL-0147`'s own last-owed clause. | `08-code-implementation` on `IP-1124` (save persistence) — `READY`, pre-`AUTHORIZED`, last node on the original critical path. |
+| 266 | 2026-07-19 | advance (iterate) | `08-code-implementation` | `IP-1124` | ✅ **`COMPLETE`.** Extended `save_to_sram`/`try_load_save` (single existing MBC1 bracket) with combat state under `SAVE_VERSION_VAL` `0x05`→`0x06`; new SRAM `0xA350`–`0xA371`. `SRAM_COMBAT_MODE` always written/restored as a flag (mirrors `SRAM_GAME_MODE`); `MOB_COUNT`/`MOB_DATA`/`WEAPON_TIER`/`PLAYER_HEALTH` additionally gated on `COMBAT_MODE` both ways. **Two genuine planning-gap corrections found and fixed during implementation, not silently patched over**: (1) the package's own §6 claimed one 34-byte contiguous WRAM span for a single `memcpy` — direct code read proved this false (`PROJ_ACTIVE`/`PROJ_X`/`PROJ_Y`/`PROJ_STEP_X` sit between `MOB_DATA` and `WEAPON_TIER`) — implemented as two separate transfers instead; (2) first-draft ordering restored `COMBAT_MODE` *before* the existing `inf_ensure_window` call, which immediately triggered `inf_materialize_mobs` and clobbered the just-restored mob data (caught by `T32.a`'s own first run, `[FAIL]`) — fixed by moving the restore to *after* `inf_ensure_window` but *before* `inf_record_combat_entry`. **One test-only fix, not a product defect**: `T32.a`'s own first draft read post-load state after a 60-tick settle (mirroring `T27.a2`'s own precedent) — but unlike `T27`'s static fields, `MOB_DATA` is live-mutated every frame by `inf_mob_move` once `COMBAT_MODE=1`, so the settle window let the just-restored mobs actually move before the check read them; fixed by reading back after 6 ticks instead. New suite `T32` (4 checks: `T32.a` real two-instance round trip, `T32.b` projectile non-persistence, `T32.c` pre-combat (`0x05`) compatibility mirroring `T27.d`, `T32.d` `COMBAT_MODE`-off non-write read directly from the raw `.ram` file). **393/393 suite passes.** ROM 32768 bytes (32414 used, unchanged — fit existing padding slack). `FR-11600` → Implemented; RTM row filled; `FR-11510`'s own stale "save/load half pending" note corrected (now closed); `FS-112` metadata + `GDS-07` new §7o added. **This closes the original six-package combat sub-mode critical path in full.** Harvested one Low doc-defect while reading `GDS-07` §7n incidentally (unrelated to this package's own diff): the collision-note paragraph names `IP-1129` where it means `IP-1127` — filed as **`BL-0163`**, triaged `SCHEDULED` (rides the standing doc-accuracy sweep family, not fixed here — out of this package's own scope). | **Session-boundary + gate, both ripe simultaneously.** `IP-1124`'s own `09-package-verification` needs a fresh session for genuine independence (same class of stop the manager already treated as genuine at runs #254/#260/#261) — not resumable this session. Separately, `IP-1127` (post-contact protection) is now structurally unblocked (`IP-1123` `VERIFIED` since run #262) but still `NOT AUTHORIZED` — its own G3 ask is now ripe for the first time this session. Ending the loop here per both. |
+| 267 | 2026-07-19 | advance → gate resolved (user answered mid-run) | — | `IP-1127` G3 | ✅ **User answered run #266's G3 ask: "Yes, authorize IP-1127."** `IP-1127` → `AUTHORIZED`/`READY` on the Master Build Plan and `packages/INDEX.md` (dependencies `IP-1121`/`IP-1123` both `VERIFIED`). Per the manager's own charter, a resolved gate resumes the loop rather than ending the session — `IP-1124`'s own fresh-session verification need is unaffected (still owed, unrelated to this gate) and does not block continuing on `IP-1127`. | `08-code-implementation` on `IP-1127` — now `READY` and `AUTHORIZED`, its own stale WRAM addresses (prospective `0xC6DF`–`0xC6E0`) to be re-derived to the next free byte (`0xC6E2`–`0xC6E3`, past `IP-1128`'s real claim) during implementation. |
+| 268 | 2026-07-19 | advance (iterate) | `08-code-implementation` | `IP-1127` | ✅ **`COMPLETE`.** Extended `inf_mob_contact_check` (`IP-1123`) with post-contact protection: a per-mob cooldown bit (new parallel `MOB_CONTACT_FLAGS` table, its own bitmask carried in a register that doubles in lockstep with the routine's existing per-slot loop index), an invincibility countdown (`PLAYER_INVINCIBLE`), and a knockback push (clamped to `handle_play_input`'s own position bounds). WRAM re-derived to `0xC6E2`–`0xC6E3` (`IP-1128` claimed the package's own originally-planned `0xC6DF`–`0xC6E1` first, `BL-0163`). **Found-and-fixed interaction, not silently patched over**: a lethal hit (triggering `inf_health_setback`) skips knockback on that one path — applying it against the pre-setback position would have displaced the player off the setback's own just-restored entry point. **Two test-only bugs found and fixed during authoring** (not product defects): several `T36` checks first read state after knockback had already (correctly) separated the player from the mob, breaking a same-position follow-up mob placement's own overlap assumption — fixed by re-pinning the player's own test position between invocations where genuinely continued overlap was the point under test. New suite `T36` (12 checks incl. `T36.j`, a live PyBoy drive). **404/404 suite passes.** ROM builds at exactly 32768 bytes (32670 used, **98 bytes headroom — the tightest margin of any package in this tranche**). `FR-11410` → Implemented; RTM filled; `FS-112`/`GDS-07` §7p added — also closes `BL-0163` (a stale doc mislabel found while implementing `IP-1124`, corrected here as the natural byproduct of resolving the real WRAM collision). `BL-0158` updated but deliberately left `IN PIPELINE` (not `DONE`) per this package's own §9 — closes only once `09-package-verification` confirms the fix live. **This closes every package in the Infinite Mode Combat Sub-Mode delta (`IP-1120`–`IP-1129`) to at least `COMPLETE`.** | **Session-boundary stop.** Both `IP-1124` and `IP-1127` now need `09-package-verification` for genuine independence (fresh session) — same class of stop the manager has treated as genuine throughout this session (runs #254/#260/#261/#266). No further step is available this session; the backlog/next-step queue has no other unblocked, non-session-boundary item. |
