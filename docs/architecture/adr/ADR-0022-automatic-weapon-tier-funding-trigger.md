@@ -41,13 +41,16 @@ any treasure at all, trivializing both the upgrade and the currency's own existi
 win/high-score system (`FR-10400`). A threshold-crossing check preserves a real, felt cost per
 tier without requiring a manual action.
 
-**3. Threshold values: 10 treasure for tier 1→2, 25 total for tier 2→3 (15 more).** A modestly
-increasing curve (not flat, not steeply exponential) — meaningful enough that early-game treasure
-collection doesn't instantly max the weapon, but reachable well within a normal Infinite Mode run
-given treasure is this game's own core, plentiful collectible. Exact numbers are a `04`-level
-judgment call, not derived from a cited convention (`R219` explicitly left this open) — deliberately
-conservative and revisable if playtesting shows the curve feels wrong, named honestly as such
-rather than presented as research-derived.
+**3. Threshold values: triangular-number curve, 1 treasure for tier 1→2, 3 for tier 2→3 (user's
+own explicit direction, 2026-07-20: "the first upgrade with the first treasure, then the second
+with the third treasure, third with the sixth treasure and so on" — the triangular sequence
+`T(n) = n(n+1)/2` = 1, 3, 6, 10, 15…; `WEAPON_TIER`'s own existing cap at 3 means only the
+sequence's first two values, 1 and 3, are ever reached by this stat).** A fast-rising, front-loaded
+curve — the first upgrade fires almost immediately (a single treasure pickup), the second shortly
+after, deliberately favoring early, felt progression over a slow grind, since automatic per-frame
+triggering means the player never has to notice or act on the threshold at all. Exact numbers are
+a `04`-level judgment call the user made directly, not derived from a cited convention (`R219`
+explicitly left this open) — named as a direct user decision, not research-derived.
 
 **4. `WEAPON_TIER`'s own existing persistence, cap, and setback-immunity are unchanged.** Once
 auto-purchased, a tier increase behaves exactly as `FR-11510` already specifies: never

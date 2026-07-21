@@ -51,9 +51,11 @@
   `WEAPON_TIER` via a discrete, player-invoked spend action — but no button was ever bound to it
   (`BL-0148`), so it was fully built and tested yet entirely unreachable in real play. This delta
   changes the funding trigger to automatic: checked once per frame during `COMBAT_MODE`, no input
-  event required, threshold-crossing against fixed per-tier costs (10 treasure for tier 1→2, 25
-  total for tier 2→3, per `ADR-0022`) rather than a continuous flat-rate spend (which would
-  trivialize the upgrade under automatic triggering). The underlying currency-spent,
+  event required, threshold-crossing against fixed per-tier costs (a triangular-number curve per
+  the user's own direct instruction, 2026-07-20: 1 treasure for tier 1→2, 3 for tier 2→3, per
+  `ADR-0022`) rather than a continuous flat-rate spend (which would trivialize the upgrade under
+  automatic triggering even at these low thresholds, since a threshold-crossing check consumes
+  its cost once and re-arms, not every frame). The underlying currency-spent,
   persistent-purchase shape `R219` already grounded is unchanged — only the trigger source and
   the exact per-tier costs change. Re-implementation owed (`IP-1129`'s own `inf_tier_spend` logic
   is reusable; the call site and threshold values are new). `BL-0148`'s own heal-spend half
@@ -2768,8 +2770,9 @@ none of FR-10000's own leaves are amended by this group. `FR-9000`'s finite mode
   stat, but was permanently stuck at its own default until this leaf's automatic trigger made it
   reachable for the first time).
 - **Inputs:** The current `RUNNING_TREASURE_COUNT`; the current `WEAPON_TIER`; the fixed
-  per-tier treasure thresholds (`ADR-0022`: 10 for tier 1→2, 25 total for tier 2→3). No player
-  input — the check runs unconditionally every frame while the precondition holds.
+  per-tier treasure thresholds (`ADR-0022`, a triangular-number curve per the user's own direct
+  instruction: 1 for tier 1→2, 3 for tier 2→3). No player input — the check runs unconditionally
+  every frame while the precondition holds.
 - **Outputs:** An increased `WEAPON_TIER` (capped at its own existing maximum, 3); a reduced
   `RUNNING_TREASURE_COUNT`, whenever the current tier's own next threshold is met or exceeded.
 - **Preconditions:** `COMBAT_MODE` active; `WEAPON_TIER` below its own maximum (3); `RUNNING_
@@ -2782,11 +2785,11 @@ none of FR-10000's own leaves are amended by this group. `FR-9000`'s finite mode
   once capped, a deliberate difference from `FR-11500`'s own "spends even at cap" precedent,
   named honestly rather than silently inherited); a purchased tier increase persists
   indefinitely — no event in this feature's own model reduces `WEAPON_TIER` once raised.
-- **Acceptance Criteria:** Once `RUNNING_TREASURE_COUNT` reaches 10 while `WEAPON_TIER == 1` and
-  `COMBAT_MODE` is active, `WEAPON_TIER` becomes 2 and `RUNNING_TREASURE_COUNT` decreases by 10,
+- **Acceptance Criteria:** Once `RUNNING_TREASURE_COUNT` reaches 1 while `WEAPON_TIER == 1` and
+  `COMBAT_MODE` is active, `WEAPON_TIER` becomes 2 and `RUNNING_TREASURE_COUNT` decreases by 1,
   with no button press of any kind involved; once `RUNNING_TREASURE_COUNT` subsequently reaches
-  25 (from new treasure collected after the first upgrade) while `WEAPON_TIER == 2`, `WEAPON_TIER`
-  becomes 3 and `RUNNING_TREASURE_COUNT` decreases by 25; once `WEAPON_TIER == 3`, no further
+  3 (from new treasure collected after the first upgrade) while `WEAPON_TIER == 2`, `WEAPON_TIER`
+  becomes 3 and `RUNNING_TREASURE_COUNT` decreases by 3; once `WEAPON_TIER == 3`, no further
   `RUNNING_TREASURE_COUNT` decrease occurs from this leaf regardless of how much treasure is
   subsequently held; the same `RUNNING_TREASURE_COUNT` `FR-10400`'s own top-score comparison
   reads is what this leaf spends from — no separate ledger; a purchased tier increase survives a
@@ -2805,7 +2808,8 @@ none of FR-10000's own leaves are amended by this group. `FR-9000`'s finite mode
   delta, 2026-07-20 — re-implementation owed, not yet built.** `IP-1129`'s own `inf_tier_spend`
   subroutine (decrement-and-cap logic, mirroring `inf_heal_spend`) remains structurally reusable,
   but its *original 1-for-1, player-invoked-spend* rate no longer matches this leaf's own revised
-  Acceptance Criteria (10/25 thresholds, automatic per-frame trigger, no discrete input event) —
+  Acceptance Criteria (1/3 triangular thresholds, automatic per-frame trigger, no discrete input
+  event) —
   a new implementation package is owed to wire the automatic check and revise the thresholds/cap
   behavior described above. `T38.a`-`e` (`test_rom.py`) verify the *original* manual-spend shape
   and will need revision to match the automatic-trigger behavior once implemented.
@@ -2814,9 +2818,13 @@ none of FR-10000's own leaves are amended by this group. `FR-9000`'s finite mode
   delta, since `WEAPON_TIER`'s own persistence is unchanged.
 - **Notes:** The exact tier-spend input/rate (how much treasure per tier increase) was originally
   a `06-feature-specification` decision resolved as 1-for-1 (`FR-11500`'s own precedent) — **now
-  superseded by `ADR-0022`'s own 10/25 threshold curve**, a deliberate design choice for the
-  automatic-trigger shape (a flat 1-for-1 automatic spend would exhaust treasure and max the
-  weapon within roughly two frames of collecting any at all). **Input-binding gap partially
+  superseded by `ADR-0022`'s own 1/3 triangular-number threshold curve, per the user's own direct
+  instruction** ("the first upgrade with the first treasure, then the second with the third
+  treasure... and so on" — `T(n) = n(n+1)/2`, only its first two values reachable given
+  `WEAPON_TIER`'s own cap at 3). A continuous flat-rate automatic spend (checked and decremented
+  every single frame rather than a one-time threshold-crossing check that re-arms) would still
+  need to be avoided even at these low thresholds — the check fires once per crossing, not every
+  frame thereafter. **Input-binding gap partially
   resolved (`ADR-0022`, 2026-07-20)**: this leaf's own funding no longer needs a button at all —
   `BL-0148`'s tier-spend half is closed by removing the input requirement entirely, per the
   user's own explicit request for an automatic upgrade. `FR-11500`'s own heal-spend action still

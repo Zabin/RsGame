@@ -157,7 +157,7 @@
 > "implement an automatic weapon upgrade") — Workflow D step 3a (`FR-11510`) revised: the
 > weapon-tier funding trigger changes from a player-invoked, unreachable spend action (`IP-1129`
 > shipped it fully built and `VERIFIED`, but no button was ever bound to it) to an **automatic**
-> per-frame threshold-crossing check (10 treasure for tier 1→2, 25 total for tier 2→3) — no input
+> per-frame threshold-crossing check (1 treasure for tier 1→2, 3 total for tier 2→3) — no input
 > event required. Resolves `BL-0148`'s tier-spend half; the sibling heal-spend half remains open,
 > unchanged, out of scope for this delta. §9 (Data Model), §12 (Error Handling), §13 (Performance),
 > §15 (Acceptance Criteria, AC-9/AC-12), and §16 (Verification Plan) all updated to match. Not yet
@@ -305,7 +305,7 @@ and, later the same date, `FR-11310`/`FR-11510`).
     step 3, the same `RUNNING_TREASURE_COUNT` **automatically** increases `WEAPON_TIER` by one, up
     to its own existing maximum — no player action or button of any kind, checked once per frame
     while `COMBAT_MODE` is active. The check compares `RUNNING_TREASURE_COUNT` against
-    `WEAPON_TIER`'s own *next* tier threshold (10 for tier 1→2, 25 total for tier 2→3, per
+    `WEAPON_TIER`'s own *next* tier threshold (1 for tier 1→2, 3 total for tier 2→3, per
     `ADR-0022` — a deliberately modest curve, not derived from a cited convention, chosen so
     automatic per-frame triggering can't instantly max the weapon); when met or exceeded, the tier
     increases by exactly one and that tier's own threshold cost is decremented from
@@ -616,8 +616,9 @@ applied once this date for `FR-11210`/`FR-11410`:
    same count is what the win/high-score comparison reads at run's end — no separate ledger
    exists (FR-11500).
 9. **(delta 2026-07-19, second this date; revised 2026-07-20 per `BL-0148`/`ADR-0022`)** Once
-   `RUNNING_TREASURE_COUNT` reaches the current tier's own threshold (10 for tier 1→2, 25 total
-   for tier 2→3) while `COMBAT_MODE` is active, `WEAPON_TIER` automatically increases by exactly
+   `RUNNING_TREASURE_COUNT` reaches the current tier's own threshold (1 for tier 1→2, 3 for tier
+   2→3 — a triangular-number curve, per the user's own direct instruction) while `COMBAT_MODE` is
+   active, `WEAPON_TIER` automatically increases by exactly
    1 and `RUNNING_TREASURE_COUNT` decreases by exactly that threshold — no player action of any
    kind; once `WEAPON_TIER` is already at its own maximum, no further decrease occurs regardless
    of treasure held (unlike AC-8's own heal-at-max-health precedent, this is a true no-op once

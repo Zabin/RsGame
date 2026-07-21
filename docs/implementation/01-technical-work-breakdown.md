@@ -2297,7 +2297,7 @@ gap (`BL-0148`'s other half) is explicitly out of scope.
 
 | Work unit | Package | Owning peer | Depends on |
 |---|---|---|---|
-| Rewrite `inf_tier_spend`'s body to an automatic, threshold-crossing check (10/25 per `ADR-0022`); add one unconditional `CALL` from `st_playing`; rewrite `T38` to test the new automatic/threshold behavior | [IP-9210](packages/IP-9210-automatic-weapon-tier-upgrade.md) | `08-code-implementation` | `IP-1129` (`VERIFIED`) |
+| Rewrite `inf_tier_spend`'s body to an automatic, threshold-crossing check (1/3 per `ADR-0022`); add one unconditional `CALL` from `st_playing`; rewrite `T38` to test the new automatic/threshold behavior | [IP-9210](packages/IP-9210-automatic-weapon-tier-upgrade.md) | `08-code-implementation` | `IP-1129` (`VERIFIED`) |
 
 **Split rationale:** one package — the trigger rewrite, the new call site, and the test rewrite
 are all one coherent unit of work with a single Definition of Done; splitting the test rewrite

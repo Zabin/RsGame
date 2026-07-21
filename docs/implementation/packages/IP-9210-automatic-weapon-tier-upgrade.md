@@ -14,7 +14,7 @@ check run once per frame during `COMBAT_MODE` — no input event required. Direc
 ## 2. Objective
 
 While `COMBAT_MODE` is active and `WEAPON_TIER` is below its own maximum (3), each frame checks
-`RUNNING_TREASURE_COUNT` against the current tier's own next threshold (10 for tier 1→2, 25 for
+`RUNNING_TREASURE_COUNT` against the current tier's own next threshold (1 for tier 1→2, 3 for
 tier 2→3); when met or exceeded, `WEAPON_TIER` increases by exactly one and that threshold amount
 is decremented from `RUNNING_TREASURE_COUNT` in the same frame. Once `WEAPON_TIER == 3`, the
 check is a true no-op — no further treasure is ever decremented by this leaf.
@@ -27,7 +27,7 @@ check is a true no-op — no further treasure is ever decremented by this leaf.
 ## 4. Architecture Components
 
 `ADR-0022` (automatic weapon-tier funding trigger) — this package implements Decisions 1-4
-verbatim (automatic per-frame trigger; threshold-crossing, not flat-rate; 10/25 threshold curve;
+verbatim (automatic per-frame trigger; threshold-crossing, not flat-rate; 1/3 threshold curve (triangular numbers, per the user's own direct instruction);
 `WEAPON_TIER`'s own existing persistence/cap/setback-immunity unchanged). No new WRAM (thresholds
 are compile-time constants, not persisted state) — confirmed against `GDS-07`: no data-model
 delta.
@@ -66,7 +66,9 @@ delta.
     if WEAPON_TIER >= 3: return                       # true no-op at cap (NOT inf_heal_spend's
                                                        # "spend even at cap" shape -- no further
                                                        # threshold exists past tier 3)
-    threshold = 10 if WEAPON_TIER == 1 else 25        # WEAPON_TIER is 1 or 2 here (3 excluded above)
+    threshold = 1 if WEAPON_TIER == 1 else 3          # WEAPON_TIER is 1 or 2 here (3 excluded above);
+                                                       # triangular-number curve T(n)=n(n+1)/2 = 1, 3,
+                                                       # per the user's own direct instruction
     if RUNNING_TREASURE_COUNT (16-bit) < threshold: return   # not enough yet, re-checked next frame
     RUNNING_TREASURE_COUNT -= threshold               # 16-bit subtract, mirroring
                                                        # treasure_spend_gate_and_decrement's own
@@ -110,24 +112,24 @@ task (6); (6) rewrite `T38` per §8; (7) full suite run; (8) documentation updat
 Rewrite suite `T38` (`IP-1129`'s own suite, retired manual-spend shape replaced in place — same
 suite number, new content, since it's still "Combat Sub-Mode: Weapon-Tier Funding Economy"):
 
-- **`T38.a` — tier 1→2 threshold crossing:** force `WEAPON_TIER=1`, `RUNNING_TREASURE_COUNT=10`,
+- **`T38.a` — tier 1→2 threshold crossing:** force `WEAPON_TIER=1`, `RUNNING_TREASURE_COUNT=1`,
   `COMBAT_MODE=1`; tick one real frame (via the real `st_playing` per-frame path, not a direct
   `inf_tier_spend` invoke, to prove the automatic call site actually fires — mirrors this
   package's own "no input event" claim); confirm `WEAPON_TIER == 2` and `RUNNING_TREASURE_COUNT
   == 0`.
-- **`T38.b` — below-threshold no-op:** force `WEAPON_TIER=1`, `RUNNING_TREASURE_COUNT=9`; tick one
+- **`T38.b` — below-threshold no-op:** force `WEAPON_TIER=1`, `RUNNING_TREASURE_COUNT=0`; tick one
   frame; confirm `WEAPON_TIER` and `RUNNING_TREASURE_COUNT` both unchanged (re-checked, not
   consumed).
 - **`T38.c` — tier 2→3 threshold crossing, and confirms independence from tier 1's own
-  threshold:** force `WEAPON_TIER=2`, `RUNNING_TREASURE_COUNT=25`; tick one frame; confirm
-  `WEAPON_TIER == 3` and `RUNNING_TREASURE_COUNT == 0`. Spot-check `RUNNING_TREASURE_COUNT=24`
+  threshold:** force `WEAPON_TIER=2`, `RUNNING_TREASURE_COUNT=3`; tick one frame; confirm
+  `WEAPON_TIER == 3` and `RUNNING_TREASURE_COUNT == 0`. Spot-check `RUNNING_TREASURE_COUNT=2`
   (one below) does *not* fire.
 - **`T38.d` — true no-op at cap (the deliberate divergence from `inf_heal_spend`'s own "spends
   even at cap" precedent):** force `WEAPON_TIER=3`, `RUNNING_TREASURE_COUNT=999`; tick several
   frames; confirm `RUNNING_TREASURE_COUNT` stays exactly `999` — no decrement at all, unlike
   `T31.d2`'s own heal-spend-at-max-health precedent.
 - **`T38.e` — `COMBAT_MODE` off is a complete no-op:** force `WEAPON_TIER=1`,
-  `RUNNING_TREASURE_COUNT=10`, `COMBAT_MODE=0`; tick a frame; confirm nothing changes.
+  `RUNNING_TREASURE_COUNT=1`, `COMBAT_MODE=0`; tick a frame; confirm nothing changes.
 - **`T38.f` — persistence:** a tier increase earned via the automatic trigger survives a
   mob-contact setback (mirrors the retired `T38.e`'s own in-session persistence check) and a
   save/load round trip (mirrors `IP-1124`'s own `T32.a` coverage — `WEAPON_TIER`'s own SRAM
@@ -159,7 +161,7 @@ suite number, new content, since it's still "Combat Sub-Mode: Weapon-Tier Fundin
 
 - [ ] G5: ROM builds at exactly 32768 bytes with valid header.
 - [ ] G5: full `test_rom.py` suite passes.
-- [ ] `T38.a`/`c` confirm both tier thresholds (10, 25) fire correctly and independently.
+- [ ] `T38.a`/`c` confirm both tier thresholds (1, 3) fire correctly and independently.
 - [ ] `T38.b` confirms a below-threshold balance does not fire.
 - [ ] `T38.d` confirms the at-cap state is a true no-op (zero decrement), not `inf_heal_spend`'s
       own spend-even-at-cap shape.
@@ -182,7 +184,7 @@ suite number, new content, since it's still "Combat Sub-Mode: Weapon-Tier Fundin
 
 Low. A localized rewrite of one already-`VERIFIED` routine's internal body plus one new
 unconditional call site, both following this codebase's own established per-frame-gate
-conventions exactly. The one named risk: the 10/25 threshold curve (`ADR-0022`) is a deliberately
+conventions exactly. The one named risk: the 1/3 threshold curve (triangular numbers, per the user's own direct instruction) (`ADR-0022`) is a deliberately
 conservative, non-research-derived design choice — if playtesting shows it feels too slow or too
 fast, that is a future `03`/`04` revision, not a defect in this package's own correct
 implementation of the values as specified.
