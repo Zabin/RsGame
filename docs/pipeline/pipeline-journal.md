@@ -14,40 +14,65 @@
 
 ## Position
 
-- **Updated:** 2026-07-20 (run #291 — loop stops here, session-boundary: both `IP-9190`'s and
-  `IP-9200`'s own `09-package-verification` need a fresh session for genuine independence, same
-  basis as every prior post-bootstrap package this pipeline has treated as a genuine stop)
-- **Increment (run #291):** **`08-code-implementation`** on **`IP-9200` → `COMPLETE`**. Fixed
-  `handle_play_input`'s facing computation: replaced the four embedded per-direction
-  `PLAYER_FACING_X`/`Y` writes with a single upfront block that recomputes both axes fresh from
-  `JOY_CUR`'s current held state whenever any direction is held (clearing the unheld axis to 0),
-  preserving `FR-11310`'s own "moving direction, else last-faced" rule when nothing is held
-  (`T37.e`'s own precedent, confirmed still passing). Direct diff confirmed `PLAYER_DIR`'s own
-  write sites and `TMP1`'s own animation-flag logic byte-for-byte unchanged. New regression pair
-  `T37.j`/`k` (drives `handle_play_input` via real successive per-frame invocations, not fixture
-  force-injection — the only way to actually express this bug) directly encodes the reported
-  axis-switch failure and its symmetric case; `T37.l`/`m` reconfirm the pre-existing default/
-  last-held behaviors. **410/410 suite passes** (406 pre-existing + `T37.j`-`m`). ROM unchanged,
-  32768 bytes/32670 used. **Independently reproduced live** via the original real-button repro
-  script: moving only UP then firing now yields `(0, -1)`, not the previously-reported `(1, -1)`.
-  `FR-11310`/RTM updated. **`BL-0184` → `DONE`**.
-- **Pipeline state:** Bootstrap stages 01–11 ✅. **Release 2 GO, with four addenda.** 62/64
-  Implementation Packages `VERIFIED`, **2 `COMPLETE`** (`IP-9190` — combat cycle-budget
-  measurement, `NFR-1500` honestly recorded `MET`/`NOT MET`; `IP-9200` — weapon-facing axis
-  reset fix, `BL-0184`), both owing their own `09-package-verification` pass in a fresh session.
-  Tree green (410/410 `test_rom.py`, ROM 32768/32670). Standing Medium-High: `BL-0185` (combat+
-  materialization over-budget finding). Standing Medium: `BL-0176` (the ~20-site
-  `TRANSITION_TO`/`end_frame` idiom, "big item", next `07` candidate), `BL-0148`, `BL-0089`/
-  `BL-0090`/`BL-0097`/`BL-0099`. Diffuse Low doc-accuracy sweep family (17 entries,
-  non-blocking).
-- **Backlog:** 64 open entries. No `NEW`, no `NEEDS-USER` ripe and unaddressed.
-- **Next step:** **A fresh session should run `09-package-verification` on `IP-9190` and
-  `IP-9200`** (both implemented this same session — verifying now would degrade independence,
-  the same class of stop this pipeline has treated as genuine throughout its history). Once both
-  are `VERIFIED`, the next actionable backlog item is `BL-0176` (Medium, the large `07`-planned
-  refactor candidate) or the standing doc-accuracy sweep family — neither is gated, both are
-  available to whichever session picks this up next.
-- **Open gates:** none open. The two `09` passes owed are a session-boundary constraint, not a
+- **Updated:** 2026-07-20 (run #292 — loop stops here, session-boundary: `IP-9190`/`IP-9200`/
+  `IP-9210`'s own `09-package-verification` all need a fresh session for genuine independence)
+- **Increment (run #292):** **`08-code-implementation`** on **`IP-9210` → `COMPLETE`**.
+  `inf_tier_spend` rewritten in place: gated on `COMBAT_MODE` and `WEAPON_TIER < 3` (a true `RET`
+  no-op past that — unlike `inf_heal_spend`'s own spend-even-at-cap shape); branches on the
+  current tier to select its own threshold (1 for tier 1, 3 for tier 2 — a triangular-number
+  curve, per the user's own direct instruction: "the first upgrade with the first treasure, then
+  the second with the third treasure... and so on"); 16-bit-compares `RUNNING_TREASURE_COUNT`
+  against it; on a match, decrements by that threshold and increments `WEAPON_TIER`. New
+  unconditional `CALL('inf_tier_spend')` appended to `st_playing`'s existing combat chain — no
+  input event of any kind, resolving `BL-0148`'s own tier-spend half. **Genuine test-authoring
+  finding along the way, not a product defect:** the very next `pb.tick()` immediately after
+  `advance_to_playing`'s own transition tick doesn't reach as far as `inf_tier_spend` within
+  `st_playing`'s own call chain (confirmed via a diagnostic hook script); the new `T38.a` check
+  (which drives the real per-frame path, not a direct invoke, specifically to prove the automatic
+  call site fires with no input event) needed two ticks, not one, to land on a genuinely complete
+  frame. `T38` suite rewritten (`T38.a`-`g`); `T38.g` confirms an automatically-earned tier
+  increase survives a real save/load round trip. **413/413 suite passes.** ROM unchanged, 32768
+  bytes/32670 used. `FR-11510`/RTM/`FS-112` updated to Implemented; `BL-0148`'s tier-spend half
+  closed (heal-spend half remains open, out of scope for this request).
+- **Increment (run #292, earlier this run):** Investigated three more items from the same user
+  message. **`BL-0186`** (bug, "cannot shoot and move at the same time" — then clarified "firing
+  doesn't trigger while moving"): tested exhaustively (all four directions, sustained holds,
+  simultaneous presses) via direct PyBoy simulation — could not reproduce at the ROM logic level
+  in any scenario; `read_joypad` combines both button matrices into one per-frame read, no code
+  path gates firing on movement. Filed `NEEDS-USER` — asking what platform/input method is in
+  use, since repeated ROM-level testing suggests this may be an emulator/frontend input-handling
+  limitation rather than a game-logic defect. **`BL-0187`** (feature, smoother music transitions):
+  filed `SCHEDULED`, routed to `02-research-*` (no FR/NFR currently requires this; the shipped
+  instant-cut transition works exactly as specified). **`BL-0188`** (bug, mobs not hit on
+  horizontal shots grazing the top third of the head): numeric boundary-testing confirmed
+  `inf_projectile_hittest`'s own hit-test math is exact (hits at `mob_y`..`mob_y+15`, clean misses
+  outside); root-caused as a likely content/art mismatch (the mob's top tile row is 75%
+  transparent, its entire bottom-half tile is blank) rather than a logic defect — routed to
+  `09-content-review`, not fixed here (mirrors `BL-0097`'s own precedent).
+- **Increment (run #292, architecture/requirements/spec chain):** Per the user's own direct
+  request ("implement an automatic weapon upgrade based on research"), authored **`ADR-0022`**
+  (automatic weapon-tier funding trigger — resolved `R219`'s own explicitly-deferred trigger-
+  mechanism/threshold question), revised **`FR-11510`** (`04`, delta), **`FS-112`** Workflow D
+  step 3a (`06`, delta), and planned **`IP-9210`** (`07`) — all before the G3 ask and this run's
+  own implementation. User specified the exact threshold curve directly when asked (1/3
+  triangular numbers, not the planning-stage placeholder 10/25) — all four documents corrected
+  before implementation began.
+- **Pipeline state:** Bootstrap stages 01–11 ✅. **Release 2 GO, with four addenda.** 62/65
+  Implementation Packages `VERIFIED`, **3 `COMPLETE`** (`IP-9190`, `IP-9200`, `IP-9210` — all own
+  `09` passes owed, fresh session). Tree green (413/413 `test_rom.py`, ROM 32768/32670). New
+  standing items: `BL-0186` (`NEEDS-USER`, platform/input-method question), `BL-0187` (Low-Medium,
+  music-transition research), `BL-0188` (Medium-High, mob-hitbox content review). Standing
+  Medium-High: `BL-0185`. Standing Medium: `BL-0176`, `BL-0089`/`BL-0090`/`BL-0097`/`BL-0099`.
+  Diffuse Low doc-accuracy sweep family (17 entries, non-blocking).
+- **Backlog:** 67 open entries. `BL-0186` is `NEEDS-USER` (platform/input-method question) —
+  ripe but not itself blocking any other work; everything else triaged.
+- **Next step:** **A fresh session should run `09-package-verification` on `IP-9190`, `IP-9200`,
+  and `IP-9210`** (all implemented this same session — verifying now would degrade independence).
+  In parallel, no gate blocks further backlog work: `BL-0176` (the large `07`-planned refactor),
+  `BL-0187` (music-transition research), or `BL-0188` (mob-hitbox `09-content-review`) are all
+  available to whichever session picks this up next. `BL-0186` awaits the user's own answer on
+  platform/input method before it can be routed further.
+- **Open gates:** none open. The three `09` passes owed are a session-boundary constraint, not a
   human-decision gate.
 
 ## Run log
@@ -111,3 +136,4 @@ size — nothing was deleted). Runs #240 onward continue below.
 | 289 | 2026-07-20 | advance (same session, continuing) | `07-implementation-planning` | `IP-9200` from `BL-0184` | ✅ **`IP-9200` authored -- `NOT STARTED`/`NOT AUTHORIZED`.** Fixes handle_play_input's facing computation to clear an unheld axis to 0 each frame, preserving the existing 'nothing held -> keep last value' behavior. New regression checks T37.j/k encode the exact reported bug. | **G3 authorization needed on IP-9200.** If authorized: 08-code-implementation. Separately: a fresh session should run 09-package-verification on IP-9190. |
 | 290 | 2026-07-20 | advance (gate resolved, user answered mid-run) | `00-pipeline-manager` (own record) | `IP-9200` authorization | ✅ **User answered run #289's G3 ask: "Authorize IP-9200."** `IP-9200` -> `AUTHORIZED`/`READY` on the Master Build Plan and `packages/INDEX.md`. | `08-code-implementation` on `IP-9200`, continuing within this same run. |
 | 291 | 2026-07-20 | advance (same session, continuing) | `08-code-implementation` | `IP-9200` | ✅ **`IP-9200` -> `COMPLETE`.** Fixed handle_play_input's facing computation to clear an unheld axis to 0 each frame, preserving the existing last-faced-value behavior when nothing is held. New regression pair T37.j/k encodes the exact reported bug; T37.l/m reconfirm existing behavior. 410/410 suite. Independently reproduced live (real button repro now yields pure (0,-1)). BL-0184 -> DONE. | A fresh session should run 09-package-verification on both IP-9190 and IP-9200. |
+| 292 | 2026-07-20 | advance (same session, user-reported bugs + feature request) | `00-intake` (x3) -> `03-architecture-design-synthesis` -> `04-requirements-engineering` -> `06-feature-specification` -> `07-implementation-planning` -> `08-code-implementation` | `BL-0186`/`BL-0187`/`BL-0188` filed; `ADR-0022`/`FR-11510` revision/`FS-112` revision/`IP-9210` authored and implemented | ✅ Investigated 3 user-reported items (1 unreproducible bug -> NEEDS-USER, 1 feature request filed, 1 bug root-caused as content mismatch -> content review). Implemented the user's 4th request end-to-end: automatic weapon-tier upgrade, 1/3 triangular threshold curve per user's own direct specification. IP-9210 -> COMPLETE, 413/413 suite. | A fresh session should run 09-package-verification on IP-9190/IP-9200/IP-9210. BL-0186 awaits the user's own platform/input-method answer. |
