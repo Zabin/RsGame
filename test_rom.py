@@ -5187,7 +5187,7 @@ check("T37.m Non-regression: releasing all directions after moving preserves the
 pb37i.stop()
 wipe_save()
 
-print("\n=== T38: Combat Sub-Mode — Weapon-Tier Funding Economy (IP-1129) ===")
+print("\n=== T38: Combat Sub-Mode — Automatic Weapon-Tier Upgrade (IP-9210) ===")
 
 ITS_ADDR = _gw_rom.labels['inf_tier_spend']
 
@@ -5198,68 +5198,123 @@ def t38_reset(pb, combat_mode=1, weapon_tier=1, treasure=0):
     pb.memory[RUNNING_TREASURE_COUNT] = treasure & 0xFF
     pb.memory[RUNNING_TREASURE_COUNT + 1] = (treasure >> 8) & 0xFF
 
+def t38_tick_real_frame(pb):
+    """Ticks one real per-frame st_playing pass (not a direct inf_tier_spend
+    invoke) -- proves the automatic call site actually fires, per this
+    package's own T38.a requirement. JOY_CUR/JOY_NEW/NEED_REDRAW forced to 0
+    first so handle_play_input's own NEED_REDRAW early-exit doesn't skip the
+    combat chain this frame (mirrors T39's own established discipline)."""
+    pb.memory[JOY_CUR_ADDR] = 0; pb.memory[JOY_NEW_ADDR] = 0
+    pb.memory[NEED_REDRAW] = 0
+    pb.tick()
+
 pb = fresh_boot(180)
 advance_to_playing(pb)
 
-# T38.a — tier-spend decrements the shared count and increases WEAPON_TIER
-# by exactly 1 (mirrors T31.d's own established shape for the sibling
-# healing-spend action).
-t38_reset(pb, weapon_tier=1, treasure=5)
-_t38a_ok = invoke_no_arg(pb, ITS_ADDR)
+# T38.a — tier 1->2 threshold crossing via the real per-frame path: forcing
+# RUNNING_TREASURE_COUNT to exactly the tier-1 threshold (1, per the user's
+# own direct "first upgrade with the first treasure" instruction) and
+# ticking one real frame raises WEAPON_TIER to 2 and spends exactly that 1
+# treasure -- with no input event of any kind (BL-0148's own gap resolved).
+t38_reset(pb, weapon_tier=1, treasure=1)
+t38_tick_real_frame(pb)
 _t38a_rtc = pb.memory[RUNNING_TREASURE_COUNT] | (pb.memory[RUNNING_TREASURE_COUNT + 1] << 8)
-check("T38.a Tier-spend decrements RUNNING_TREASURE_COUNT by 1 and increases WEAPON_TIER by 1",
-      _t38a_ok and _t38a_rtc == 4 and pb.memory[WEAPON_TIER_ADDR] == 2,
-      f"ok={_t38a_ok} rtc={_t38a_rtc} tier={pb.memory[WEAPON_TIER_ADDR]}")
+check("T38.a Tier 1->2 threshold crossing via the real st_playing per-frame path (no input event): WEAPON_TIER becomes 2, RUNNING_TREASURE_COUNT decreases by 1",
+      _t38a_rtc == 0 and pb.memory[WEAPON_TIER_ADDR] == 2,
+      f"rtc={_t38a_rtc} tier={pb.memory[WEAPON_TIER_ADDR]}")
 
-# T38.b — spot check: tier-spend at WEAPON_TIER == 3 still decrements
-# RUNNING_TREASURE_COUNT by 1 but does not push WEAPON_TIER past 3 (mirrors
-# T31.d2's own exact precedent -- confirms this is the spend-even-at-cap
-# convention, not a no-op).
-t38_reset(pb, weapon_tier=3, treasure=5)
-_t38b_ok = invoke_no_arg(pb, ITS_ADDR)
-_t38b_rtc = pb.memory[RUNNING_TREASURE_COUNT] | (pb.memory[RUNNING_TREASURE_COUNT + 1] << 8)
-check("T38.b Spot: tier-spend at the cap still spends treasure but does not exceed WEAPON_TIER 3",
-      _t38b_ok and _t38b_rtc == 4 and pb.memory[WEAPON_TIER_ADDR] == 3,
-      f"ok={_t38b_ok} rtc={_t38b_rtc} tier={pb.memory[WEAPON_TIER_ADDR]}")
-
-# T38.c — tier-spend at RUNNING_TREASURE_COUNT == 0 is a genuine no-op:
-# neither field changes (mirrors T31.e's own precondition-failure shape).
+# T38.b — below-threshold: RUNNING_TREASURE_COUNT == 0 (one below the
+# tier-1 threshold of 1) is a genuine no-op -- re-checked every frame, not
+# consumed.
 t38_reset(pb, weapon_tier=1, treasure=0)
-_t38c_ok = invoke_no_arg(pb, ITS_ADDR)
-_t38c_rtc = pb.memory[RUNNING_TREASURE_COUNT] | (pb.memory[RUNNING_TREASURE_COUNT + 1] << 8)
-check("T38.c Tier-spend at zero treasure is a no-op (no change to RUNNING_TREASURE_COUNT or WEAPON_TIER)",
-      _t38c_ok and _t38c_rtc == 0 and pb.memory[WEAPON_TIER_ADDR] == 1,
-      f"ok={_t38c_ok} rtc={_t38c_rtc} tier={pb.memory[WEAPON_TIER_ADDR]}")
+invoke_no_arg(pb, ITS_ADDR)
+_t38b_rtc = pb.memory[RUNNING_TREASURE_COUNT] | (pb.memory[RUNNING_TREASURE_COUNT + 1] << 8)
+check("T38.b Below-threshold: RUNNING_TREASURE_COUNT=0 (below the tier-1 threshold of 1) is a no-op",
+      _t38b_rtc == 0 and pb.memory[WEAPON_TIER_ADDR] == 1,
+      f"rtc={_t38b_rtc} tier={pb.memory[WEAPON_TIER_ADDR]}")
 
-# T38.d — COMBAT_MODE off: inf_tier_spend is a complete no-op (mirrors
-# T31.f's own established COMBAT_MODE-off pattern).
-t38_reset(pb, combat_mode=0, weapon_tier=1, treasure=5)
+# T38.c — tier 2->3 threshold crossing (threshold 3, the triangular
+# sequence's own next value) and independence from tier 1's own threshold;
+# spot-check one below (2) does not fire.
+t38_reset(pb, weapon_tier=2, treasure=3)
+invoke_no_arg(pb, ITS_ADDR)
+_t38c_rtc = pb.memory[RUNNING_TREASURE_COUNT] | (pb.memory[RUNNING_TREASURE_COUNT + 1] << 8)
+check("T38.c Tier 2->3 threshold crossing: RUNNING_TREASURE_COUNT=3 raises WEAPON_TIER to 3 and spends exactly 3",
+      _t38c_rtc == 0 and pb.memory[WEAPON_TIER_ADDR] == 3,
+      f"rtc={_t38c_rtc} tier={pb.memory[WEAPON_TIER_ADDR]}")
+
+t38_reset(pb, weapon_tier=2, treasure=2)
+invoke_no_arg(pb, ITS_ADDR)
+_t38c2_rtc = pb.memory[RUNNING_TREASURE_COUNT] | (pb.memory[RUNNING_TREASURE_COUNT + 1] << 8)
+check("T38.c2 Spot: RUNNING_TREASURE_COUNT=2 (one below the tier-2 threshold of 3) does not fire",
+      _t38c2_rtc == 2 and pb.memory[WEAPON_TIER_ADDR] == 2,
+      f"rtc={_t38c2_rtc} tier={pb.memory[WEAPON_TIER_ADDR]}")
+
+# T38.d — true no-op at cap: unlike inf_heal_spend's own "spends even at
+# cap" precedent (T31.d2), an already-maxed WEAPON_TIER has no further
+# threshold to check against, so RUNNING_TREASURE_COUNT is never decremented
+# by this leaf again once WEAPON_TIER == 3.
+t38_reset(pb, weapon_tier=3, treasure=999)
 invoke_no_arg(pb, ITS_ADDR)
 _t38d_rtc = pb.memory[RUNNING_TREASURE_COUNT] | (pb.memory[RUNNING_TREASURE_COUNT + 1] << 8)
-check("T38.d COMBAT_MODE off: inf_tier_spend is a complete no-op",
-      _t38d_rtc == 5 and pb.memory[WEAPON_TIER_ADDR] == 1,
+check("T38.d True no-op at WEAPON_TIER==3 (unlike inf_heal_spend's own spend-even-at-cap precedent): RUNNING_TREASURE_COUNT unchanged",
+      _t38d_rtc == 999 and pb.memory[WEAPON_TIER_ADDR] == 3,
       f"rtc={_t38d_rtc} tier={pb.memory[WEAPON_TIER_ADDR]}")
 
-# T38.e — persistence: a tier increase survives a mob-contact setback
-# (inf_health_setback touches only PLAYER_HEALTH/PLAYER_X/PLAYER_Y, never
-# WEAPON_TIER). No SRAM mirror of WEAPON_TIER exists yet (confirmed by
-# direct code read — no save/load path references it), so this check is
-# scoped to the in-session, non-save-boundary persistence half only, named
-# explicitly per this package's own §8, not silently assumed.
-t38_reset(pb, weapon_tier=1, treasure=5)
+# T38.e — COMBAT_MODE off: inf_tier_spend is a complete no-op (mirrors
+# T31.f's own established COMBAT_MODE-off pattern).
+t38_reset(pb, combat_mode=0, weapon_tier=1, treasure=1)
 invoke_no_arg(pb, ITS_ADDR)
-_t38e_tier_after_spend = pb.memory[WEAPON_TIER_ADDR]
+_t38e_rtc = pb.memory[RUNNING_TREASURE_COUNT] | (pb.memory[RUNNING_TREASURE_COUNT + 1] << 8)
+check("T38.e COMBAT_MODE off: inf_tier_spend is a complete no-op",
+      _t38e_rtc == 1 and pb.memory[WEAPON_TIER_ADDR] == 1,
+      f"rtc={_t38e_rtc} tier={pb.memory[WEAPON_TIER_ADDR]}")
+
+# T38.f — persistence: a tier increase earned via the automatic trigger
+# survives a mob-contact setback (inf_health_setback touches only
+# PLAYER_HEALTH/PLAYER_X/PLAYER_Y, never WEAPON_TIER) and a save/load round
+# trip (WEAPON_TIER's own SRAM mirror, IP-1124, is unaffected by this
+# package -- confirm it still round-trips).
+t38_reset(pb, weapon_tier=1, treasure=1)
+invoke_no_arg(pb, ITS_ADDR)
+_t38f_tier_after_spend = pb.memory[WEAPON_TIER_ADDR]
 pb.memory[PLAYER_HEALTH_ADDR] = 0
 pb.memory[COMBAT_ENTRY_X_ADDR] = 40; pb.memory[COMBAT_ENTRY_Y_ADDR] = 90
 pb.memory[PLAYER_X] = 120; pb.memory[PLAYER_Y] = 20
-_t38e_ok = invoke_no_arg(pb, IHSB_ADDR)
-check("T38.e A tier increase survives a mob-contact setback (in-session persistence half; no SRAM mirror exists yet)",
-      _t38e_ok and _t38e_tier_after_spend == 2 and pb.memory[WEAPON_TIER_ADDR] == 2 and
+_t38f_ok = invoke_no_arg(pb, IHSB_ADDR)
+check("T38.f A tier increase earned via the automatic trigger survives a mob-contact setback",
+      _t38f_ok and _t38f_tier_after_spend == 2 and pb.memory[WEAPON_TIER_ADDR] == 2 and
       pb.memory[PLAYER_HEALTH_ADDR] == 3,
-      f"ok={_t38e_ok} tier_after_spend={_t38e_tier_after_spend} tier_after_setback={pb.memory[WEAPON_TIER_ADDR]} "
+      f"ok={_t38f_ok} tier_after_spend={_t38f_tier_after_spend} tier_after_setback={pb.memory[WEAPON_TIER_ADDR]} "
       f"health={pb.memory[PLAYER_HEALTH_ADDR]}")
-
 pb.stop()
+wipe_save()
+
+# T38.g — save/load round trip: an automatically-earned tier increase
+# persists through a real SAVE/reload, mirroring T32.a's own established
+# two-instance harness.
+pb = fresh_boot(200)
+enter_infinite_mode(pb, 777)
+pb.memory[COMBAT_MODE_ADDR] = 1
+pb.memory[0xC6DE] = 8   # MOB_MOVE_TIMER, pinned above 0 -- no movement this window
+pb.memory[MOB_COUNT_ADDR] = 0
+pb.memory[WEAPON_TIER_ADDR] = 1
+pb.memory[RUNNING_TREASURE_COUNT] = 1; pb.memory[RUNNING_TREASURE_COUNT + 1] = 0
+t38_tick_real_frame(pb)
+_t38g_tier_before_save = pb.memory[WEAPON_TIER_ADDR]
+pb.button('start'); [pb.tick() for _ in range(40)]
+pb.button('a'); [pb.tick() for _ in range(40)]   # SAVE: A (save)
+pb.stop()
+
+pb2 = PyBoy(ROM_PATH, window='null', sound_emulated=False)
+pb2.set_emulation_speed(0)
+for _ in range(180): pb2.tick()
+pb2.button('a'); [pb2.tick() for _ in range(6)]   # MAIN MENU: continue
+check("T38.g Save/load round trip: an automatically-earned tier increase persists",
+      pb2.memory[GAMESTATE] == 2 and _t38g_tier_before_save == 2 and
+      pb2.memory[WEAPON_TIER_ADDR] == 2,
+      f"GS={pb2.memory[GAMESTATE]} tier_before_save={_t38g_tier_before_save} tier_after_load={pb2.memory[WEAPON_TIER_ADDR]}")
+pb2.stop()
 wipe_save()
 
 # ══════════════════════════════════════════════════════

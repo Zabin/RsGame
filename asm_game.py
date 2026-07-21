@@ -712,6 +712,7 @@ def build_game_asm(rom: ROM) -> dict:
     rom.CALL('inf_projectile_update')  # IP-1122: no-op unless COMBAT_MODE/PROJ_ACTIVE
     rom.CALL('inf_mob_contact_check')  # IP-1123: no-op unless COMBAT_MODE
     rom.CALL('inf_invincibility_tick') # IP-1127: no-op unless COMBAT_MODE
+    rom.CALL('inf_tier_spend')         # IP-9210: no-op unless COMBAT_MODE/threshold met
     rom.CALL('check_zone_transition')
     rom.CALL('check_complete')
     rom.JP('end_frame')
@@ -4016,27 +4017,52 @@ def build_game_asm(rom: ROM) -> dict:
     rom.label('ihs_done')
     rom.RET()
 
-    # ── inf_tier_spend (IP-1129, FR-11510) ──────────────────
-    # Player-choice weapon-tier funding: gated on COMBAT_MODE and
-    # RUNNING_TREASURE_COUNT > 0 (16-bit, both bytes checked), mirroring
-    # inf_heal_spend's own exact structure field-for-field. Decrements
-    # RUNNING_TREASURE_COUNT by 1 via the identical 16-bit-borrow technique
-    # -- the same shared count, no second ledger. Spends UNCONDITIONALLY:
-    # SCORE_DIRTY is set and the treasure decrement always happens before
-    # the WEAPON_TIER cap check, matching FR-11500's own real shipped
-    # precedent (T31.d2) -- spending at the cap still spends, it is not a
-    # no-op, only the tier increase itself is floored at 3. NOT called from
-    # anywhere in this package's own control flow -- shares inf_heal_spend's
-    # own still-unresolved input-binding gap (BL-0148-class), not invented a
-    # binding for here. Defined and exposed, directly force-testable
-    # (T38.a-d). Clobbers A.
+    # ── inf_tier_spend (IP-9210, FR-11510 revision, BL-0148/ADR-0022) ──
+    # Automatic weapon-tier funding: called unconditionally every frame from
+    # st_playing (no input event of any kind -- resolves BL-0148's own
+    # tier-spend input-binding gap by removing the input requirement
+    # entirely). Gated on COMBAT_MODE and WEAPON_TIER < 3 (a true no-op once
+    # capped -- unlike inf_heal_spend's own "spends even at cap" shape via
+    # treasure_spend_gate_and_decrement, there is no further threshold past
+    # tier 3 to check against). Threshold-crossing, not flat-rate: a
+    # triangular-number curve (1 for tier 1->2, 3 for tier 2->3), per the
+    # user's own direct instruction ("the first upgrade with the first
+    # treasure, then the second with the third treasure... and so on" --
+    # T(n)=n(n+1)/2; only the first two values are ever reached given
+    # WEAPON_TIER's own cap at 3). Does not reuse
+    # treasure_spend_gate_and_decrement (that helper's own decrement-by-
+    # exactly-1 shape doesn't fit a variable per-tier threshold) -- each
+    # tier branch inlines its own 16-bit compare-then-subtract against its
+    # own fixed immediate threshold. Clobbers A.
     rom.label('inf_tier_spend')
-    rom.CALL('treasure_spend_gate_and_decrement')
-    rom.RET_Z()   # gated off or no treasure -- nothing spent, no effect
+    rom.LD_A_nn(COMBAT_MODE); rom.OR_A(); rom.RET_Z()
+    rom.LD_A_nn(WEAPON_TIER)
+    rom.CP_n(1); rom.JR_Z('its_tier1')
+    rom.CP_n(2); rom.JR_Z('its_tier2')
+    rom.RET()   # WEAPON_TIER == 3 -- already capped, true no-op
 
-    rom.LD_A_nn(WEAPON_TIER); rom.CP_n(3); rom.JR_NC('its_done')
-    rom.INC_A(); rom.LD_nn_A(WEAPON_TIER)
-    rom.label('its_done')
+    rom.label('its_tier1')   # threshold = 1
+    rom.LD_A_nn(RUNNING_TREASURE_COUNT + 1); rom.OR_A(); rom.JR_NZ('its_t1_have')
+    rom.LD_A_nn(RUNNING_TREASURE_COUNT); rom.CP_n(1); rom.RET_C()
+    rom.label('its_t1_have')
+    rom.LD_A_nn(RUNNING_TREASURE_COUNT); rom.SUB_n(1); rom.LD_nn_A(RUNNING_TREASURE_COUNT)
+    rom.JR_NC('its_t1_no_borrow')
+    rom.LD_A_nn(RUNNING_TREASURE_COUNT + 1); rom.DEC_A(); rom.LD_nn_A(RUNNING_TREASURE_COUNT + 1)
+    rom.label('its_t1_no_borrow')
+    rom.LD_A_n(2); rom.LD_nn_A(WEAPON_TIER)
+    rom.LD_A_n(1); rom.LD_nn_A(SCORE_DIRTY)
+    rom.RET()
+
+    rom.label('its_tier2')   # threshold = 3
+    rom.LD_A_nn(RUNNING_TREASURE_COUNT + 1); rom.OR_A(); rom.JR_NZ('its_t2_have')
+    rom.LD_A_nn(RUNNING_TREASURE_COUNT); rom.CP_n(3); rom.RET_C()
+    rom.label('its_t2_have')
+    rom.LD_A_nn(RUNNING_TREASURE_COUNT); rom.SUB_n(3); rom.LD_nn_A(RUNNING_TREASURE_COUNT)
+    rom.JR_NC('its_t2_no_borrow')
+    rom.LD_A_nn(RUNNING_TREASURE_COUNT + 1); rom.DEC_A(); rom.LD_nn_A(RUNNING_TREASURE_COUNT + 1)
+    rom.label('its_t2_no_borrow')
+    rom.LD_A_n(3); rom.LD_nn_A(WEAPON_TIER)
+    rom.LD_A_n(1); rom.LD_nn_A(SCORE_DIRTY)
     rom.RET()
 
     # ── inf_health_hud_draw (IP-1123) ───────────────────────
