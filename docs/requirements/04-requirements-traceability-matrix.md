@@ -130,7 +130,7 @@
 | FR-11400 | Player health and non-lethal setback (Implemented — 2026-07-18, region-entry-point ordering fixed 2026-07-19, `BL-0154`) | R218 | ADS-002 §Domain Model | — | `asm_game.py` | FS-112 | IP-1123 | T31.a-c, T31.f-g |
 | FR-11410 | Post-contact player protection: invincibility, knockback, cooldown (delta 2026-07-19, `BL-0158` — Should, direct user decision, Implemented `IP-1127` 2026-07-19) | — | — | — | `asm_game.py` | FS-112 | IP-1127 | T36.a–j |
 | FR-11500 | Treasure-spent healing economy (Implemented — 2026-07-18) | — | ADS-002 §Domain Model | — | `asm_game.py` | FS-112 | IP-1123 | T31.d, T31.d2, T31.e, T31.f |
-| FR-11510 | Automatic treasure-funded weapon-tier upgrade economy (delta 2026-07-19, `BL-0147`/`BL-0155` — Should, save/load half closed by FR-11600/IP-1124; revised 2026-07-20, `BL-0148`/`ADR-0022` — automatic threshold trigger, re-implementation owed) | R219 | ADS-002 §Domain Model | ADR-0022 | `asm_game.py` | FS-112 | IP-1129 (superseded, re-implementation owed) | T38.a–e (pre-revision; owed revision) |
+| FR-11510 | Automatic treasure-funded weapon-tier upgrade economy (delta 2026-07-19, `BL-0147`/`BL-0155` — Should, save/load half closed by FR-11600/IP-1124; revised 2026-07-20, `BL-0148`/`ADR-0022` — automatic threshold trigger, Implemented `IP-9210` 2026-07-20) | R219 | ADS-002 §Domain Model | ADR-0022 | `asm_game.py` | FS-112 | IP-9210 (supersedes IP-1129) | T38.a–g |
 | FR-11600 | Combat state save persistence (Must, Implemented `IP-1124` 2026-07-19) | — | ADS-002 (Open Question 7) | — | `asm_game.py` | FS-112 | IP-1124 | T32.a–d |
 
 ## Non-Functional Requirements

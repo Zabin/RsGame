@@ -1,4 +1,4 @@
-BunnyQuest ROM Tests  PASS=410/410  FAIL=0
+BunnyQuest ROM Tests  PASS=413/413  FAIL=0
 ==================================================
 [PASS] T1.1 ROM size = 32768  (32768)
 [PASS] T1.2 Entry = NOP; JP
@@ -403,10 +403,13 @@ BunnyQuest ROM Tests  PASS=410/410  FAIL=0
 [PASS] T37.k Axis-reset regression, symmetric case: moving UP then switching to RIGHT-only and firing yields pure right, not diagonal  (step=(1, 0))
 [PASS] T37.l Non-regression: a fresh, never-moved session still fires rightward by default through the real code path  (step=(1, 0))
 [PASS] T37.m Non-regression: releasing all directions after moving preserves the last-held facing (real per-frame path)  (step=(0, -1))
-[PASS] T38.a Tier-spend decrements RUNNING_TREASURE_COUNT by 1 and increases WEAPON_TIER by 1  (ok=True rtc=4 tier=2)
-[PASS] T38.b Spot: tier-spend at the cap still spends treasure but does not exceed WEAPON_TIER 3  (ok=True rtc=4 tier=3)
-[PASS] T38.c Tier-spend at zero treasure is a no-op (no change to RUNNING_TREASURE_COUNT or WEAPON_TIER)  (ok=True rtc=0 tier=1)
-[PASS] T38.d COMBAT_MODE off: inf_tier_spend is a complete no-op  (rtc=5 tier=1)
-[PASS] T38.e A tier increase survives a mob-contact setback (in-session persistence half; no SRAM mirror exists yet)  (ok=True tier_after_spend=2 tier_after_setback=2 health=3)
+[PASS] T38.a Tier 1->2 threshold crossing via the real st_playing per-frame path (no input event): WEAPON_TIER becomes 2, RUNNING_TREASURE_COUNT decreases by 1  (rtc=0 tier=2)
+[PASS] T38.b Below-threshold: RUNNING_TREASURE_COUNT=0 (below the tier-1 threshold of 1) is a no-op  (rtc=0 tier=1)
+[PASS] T38.c Tier 2->3 threshold crossing: RUNNING_TREASURE_COUNT=3 raises WEAPON_TIER to 3 and spends exactly 3  (rtc=0 tier=3)
+[PASS] T38.c2 Spot: RUNNING_TREASURE_COUNT=2 (one below the tier-2 threshold of 3) does not fire  (rtc=2 tier=2)
+[PASS] T38.d True no-op at WEAPON_TIER==3 (unlike inf_heal_spend's own spend-even-at-cap precedent): RUNNING_TREASURE_COUNT unchanged  (rtc=999 tier=3)
+[PASS] T38.e COMBAT_MODE off: inf_tier_spend is a complete no-op  (rtc=1 tier=1)
+[PASS] T38.f A tier increase earned via the automatic trigger survives a mob-contact setback  (ok=True tier_after_spend=2 tier_after_setback=2 health=3)
+[PASS] T38.g Save/load round trip: an automatically-earned tier increase persists  (GS=2 tier_before_save=2 tier_after_load=2)
 [PASS] T39.a NFR-1500 Analysis: combat-only per-frame chain cost, direct cycle-count, measured and recorded (Met or not, not asserted un-measured)  (measurements=[(1, 0, 1804), (1, 1, 3092), (6, 0, 2344), (6, 1, 3848)] budget=70224 status=MET)
 [PASS] T39.b NFR-1500 Analysis: combat-plus-region-materialization coinciding frame cost, direct cycle-count with confirmed real transition firing, measured and recorded (Met or not, not asserted un-measured)  (measurements=[(2026, 0, 0, 1, 0, 93668, True), (2026, 0, 0, 1, 1, 94956, True), (2026, 0, 0, 6, 0, 94208, True), (2026, 0, 0, 6, 1, 95712, True), (7, 5, -5, 1, 0, 92648, True), (7, 5, -5, 1, 1, 93936, True), (7, 5, -5, 6, 0, 93188, True), (7, 5, -5, 6, 1, 94692, True), (65535, -100, 100, 1, 0, 93160, True), (65535, -100, 100, 1, 1, 94448, True), (65535, -100, 100, 6, 0, 93700, True), (65535, -100, 100, 6, 1, 95204, True)] budget=70224 status=NOT MET)

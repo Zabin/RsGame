@@ -5199,11 +5199,20 @@ def t38_reset(pb, combat_mode=1, weapon_tier=1, treasure=0):
     pb.memory[RUNNING_TREASURE_COUNT + 1] = (treasure >> 8) & 0xFF
 
 def t38_tick_real_frame(pb):
-    """Ticks one real per-frame st_playing pass (not a direct inf_tier_spend
+    """Ticks a real per-frame st_playing pass (not a direct inf_tier_spend
     invoke) -- proves the automatic call site actually fires, per this
     package's own T38.a requirement. JOY_CUR/JOY_NEW/NEED_REDRAW forced to 0
     first so handle_play_input's own NEED_REDRAW early-exit doesn't skip the
-    combat chain this frame (mirrors T39's own established discipline)."""
+    combat chain this frame (mirrors T39's own established discipline).
+    Empirically confirmed (diagnostic script, not asserted from theory): the
+    very next pb.tick() immediately after advance_to_playing's own last
+    transition tick does not reach as far as inf_tier_spend within
+    st_playing's own call chain (a hook on st_playing's own entry fires on
+    tick 1, a hook on inf_tier_spend's own entry only fires on tick 2) --
+    ticks twice to reliably land on a genuinely complete PLAYING frame."""
+    pb.memory[JOY_CUR_ADDR] = 0; pb.memory[JOY_NEW_ADDR] = 0
+    pb.memory[NEED_REDRAW] = 0
+    pb.tick()
     pb.memory[JOY_CUR_ADDR] = 0; pb.memory[JOY_NEW_ADDR] = 0
     pb.memory[NEED_REDRAW] = 0
     pb.tick()

@@ -160,8 +160,14 @@
 > per-frame threshold-crossing check (1 treasure for tier 1→2, 3 total for tier 2→3) — no input
 > event required. Resolves `BL-0148`'s tier-spend half; the sibling heal-spend half remains open,
 > unchanged, out of scope for this delta. §9 (Data Model), §12 (Error Handling), §13 (Performance),
-> §15 (Acceptance Criteria, AC-9/AC-12), and §16 (Verification Plan) all updated to match. Not yet
-> implemented — routed to `07-implementation-planning` next.
+> §15 (Acceptance Criteria, AC-9/AC-12), and §16 (Verification Plan) all updated to match.
+>
+> **`IP-9210` implemented 2026-07-20** — `inf_tier_spend` rewritten in place per the delta above;
+> new unconditional `CALL('inf_tier_spend')` from `st_playing`. `T38` suite rewritten (`T38.a`-`g`)
+> — `T38.a` drives the real `st_playing` per-frame path to prove the automatic call site actually
+> fires with no input event; `T38.g` confirms an automatically-earned tier increase survives a
+> real save/load round trip. **413/413 suite passes.** ROM unchanged, 32768 bytes/32670 used.
+> `COMPLETE`, own `09-package-verification` pass owed (fresh session).
 
 [↑ Features index](INDEX.md) · [Feature Catalog](../feature-planning/03-feature-catalog.md) ·
 [Epic Catalog](../feature-planning/02-epic-catalog.md)

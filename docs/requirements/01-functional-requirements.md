@@ -2804,17 +2804,19 @@ none of FR-10000's own leaves are amended by this group. `FR-9000`'s finite mode
   methodology).
 - **Source Documents:** `ADS-002` §Domain Model; `BL-0147`; `BL-0148`; `R219`; `ADR-0022`.
 - **Related ADRs:** `ADR-0022` (automatic weapon-tier funding trigger).
-- **Status:** Implemented (`IP-1129`, 2026-07-19); **superseded by `ADR-0022`'s automatic-trigger
-  delta, 2026-07-20 — re-implementation owed, not yet built.** `IP-1129`'s own `inf_tier_spend`
-  subroutine (decrement-and-cap logic, mirroring `inf_heal_spend`) remains structurally reusable,
-  but its *original 1-for-1, player-invoked-spend* rate no longer matches this leaf's own revised
-  Acceptance Criteria (1/3 triangular thresholds, automatic per-frame trigger, no discrete input
-  event) —
-  a new implementation package is owed to wire the automatic check and revise the thresholds/cap
-  behavior described above. `T38.a`-`e` (`test_rom.py`) verify the *original* manual-spend shape
-  and will need revision to match the automatic-trigger behavior once implemented.
+- **Status:** Implemented (`IP-1129`, 2026-07-19; re-implemented `IP-9210`, 2026-07-20 per
+  `ADR-0022`'s automatic-trigger delta). `inf_tier_spend` rewritten in place: gated on
+  `COMBAT_MODE` and `WEAPON_TIER < 3`, branches on the current tier to select its own threshold
+  (1 for tier 1, 3 for tier 2), 16-bit-compares `RUNNING_TREASURE_COUNT` against it, and on a
+  match decrements by that threshold and increments `WEAPON_TIER` — all with no discrete input
+  event, called unconditionally every frame from `st_playing` alongside the existing combat chain.
+  Once `WEAPON_TIER == 3` the routine is a true no-op (an early `RET`, unlike `inf_heal_spend`'s
+  own spend-even-at-cap shape). **413/413 suite passes**; ROM unchanged, 32768 bytes/32670 used.
+  Verified by `T38.a`-`g` (`test_rom.py`) — `T38.a` drives the real `st_playing` per-frame path
+  (not a direct invoke) to prove the automatic call site actually fires with no input event;
+  `T38.g` confirms an automatically-earned tier increase survives a real save/load round trip.
   `FR-11600`'s own delta (`IP-1124`, 2026-07-19) already closes the save/load half of this leaf's
-  own Acceptance Criteria (`SRAM_WEAPON_TIER`, `0xA370`, verified by `T32.a`) — unaffected by this
+  own Acceptance Criteria (`SRAM_WEAPON_TIER`, `0xA370`) — reconfirmed unaffected by this
   delta, since `WEAPON_TIER`'s own persistence is unchanged.
 - **Notes:** The exact tier-spend input/rate (how much treasure per tier increase) was originally
   a `06-feature-specification` decision resolved as 1-for-1 (`FR-11500`'s own precedent) — **now
