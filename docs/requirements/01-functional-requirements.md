@@ -30,7 +30,10 @@
 > `BL-0158`, mob movement + post-contact protection); **delta 2026-07-19 (cont'd) — FR-11310/
 > FR-11510 baselined** (`BL-0157`/`BL-0147`+`BL-0155`, movement-based multi-directional weapon
 > fire grounded by `ADS-002`'s "Weapon Directionality Delta"/`ADR-0021`/`R220`, and a
-> treasure-spent weapon-tier funding economy grounded by `R219`) — see Changelog).**
+> treasure-spent weapon-tier funding economy grounded by `R219`); **delta 2026-07-20 — FR-11510
+> revised** (`BL-0148`/`ADR-0022`, direct user request: the weapon-tier funding trigger becomes
+> automatic/threshold-crossing instead of a player-invoked, unreachable spend action) — see
+> Changelog).**
 > Owned by `04-requirements-engineering`.
 > Derives from [GDS-05](../architecture/05-functional-requirements.md)'s six capability groupings
 > (C1–C6) — this document formalizes each into numbered, testable `FR-xxxx` requirements per
@@ -43,6 +46,20 @@
 
 ## Changelog
 
+- **2026-07-20 — `FR-11510` revised (`BL-0148`/`ADR-0022`, direct user request: "implement an
+  automatic weapon upgrade").** `IP-1129`'s own shipped, `VERIFIED` implementation funded
+  `WEAPON_TIER` via a discrete, player-invoked spend action — but no button was ever bound to it
+  (`BL-0148`), so it was fully built and tested yet entirely unreachable in real play. This delta
+  changes the funding trigger to automatic: checked once per frame during `COMBAT_MODE`, no input
+  event required, threshold-crossing against fixed per-tier costs (a triangular-number curve per
+  the user's own direct instruction, 2026-07-20: 1 treasure for tier 1→2, 3 for tier 2→3, per
+  `ADR-0022`) rather than a continuous flat-rate spend (which would trivialize the upgrade under
+  automatic triggering even at these low thresholds, since a threshold-crossing check consumes
+  its cost once and re-arms, not every frame). The underlying currency-spent,
+  persistent-purchase shape `R219` already grounded is unchanged — only the trigger source and
+  the exact per-tier costs change. Re-implementation owed (`IP-1129`'s own `inf_tier_spend` logic
+  is reusable; the call site and threshold values are new). `BL-0148`'s own heal-spend half
+  remains explicitly unresolved — out of scope for this delta.
 - **2026-07-19 (second delta this date) — Two more sub-function leaves under the FR-11000 group,
   both grounded by newly-authored `02-research-game-design`/`03-architecture-design-synthesis`
   passes, not implemented yet.** **`FR-11310`** (`BL-0157`): the shipped weapon fires only
@@ -2552,6 +2569,14 @@ none of FR-10000's own leaves are amended by this group. `FR-9000`'s finite mode
   regression observed; `NFR-1500` itself remains `UNCONFIRMED` pending its own dedicated
   measurement, unaffected by this leaf. Does not require or imply new player sprite art
   (`ADR-0021`'s own Decision 4) — the player's rendered sprite is unaffected by this leaf.
+  **2026-07-20 remediation (`IP-9200`, `BL-0184`):** the shipped facing computation only ever
+  *set* `PLAYER_FACING_X`/`Y` inside its own direction's movement branch, with no branch that
+  *cleared* the opposite axis when only one axis was held — combined with the boot-default
+  `PLAYER_FACING_X=1`, this made pure cardinal fire effectively unreachable in real play once
+  both axes had ever been touched (user-reported, confirmed live). Fixed: the facing computation
+  now recomputes both axes fresh from `JOY_CUR`'s current held state whenever any direction is
+  held, clearing the unheld axis to 0, while still preserving this FR's own "moving direction,
+  else last-faced" rule when nothing is held. Verified by new checks `T37.j`-`m`.
 
 ### FR-11400 — Player health and non-lethal setback
 
@@ -2707,80 +2732,107 @@ none of FR-10000's own leaves are amended by this group. `FR-9000`'s finite mode
   unresolved) — this subroutine is defined, exposed, and directly force-tested, mirroring
   `IP-1121`'s own "defined and exposed, no call site yet" precedent for `inf_mob_defeat`.
 
-### FR-11510 — Treasure-spent weapon-tier funding economy (delta 2026-07-19, `BL-0147`/`BL-0155`)
+### FR-11510 — Automatic treasure-funded weapon-tier upgrade economy (delta 2026-07-19, `BL-0147`/`BL-0155`; delta 2026-07-20, `BL-0148`/`ADR-0022`)
 
 - **ID:** FR-11510
-- **Title:** When the combat sub-mode is active, treasure collection shall be consumable to
-  permanently increase the weapon's own power tier, reducing the running treasure count that also
-  drives the win/high-score system and `FR-11500`'s own healing spend.
+- **Title:** When the combat sub-mode is active, treasure collection shall automatically
+  increase the weapon's own power tier once enough has been collected, reducing the running
+  treasure count that also drives the win/high-score system and `FR-11500`'s own healing spend —
+  no player action required.
 - **Description:** `WEAPON_TIER` shipped in `IP-1122` as a persisted stat (default 1, range 1-3)
   with no way to ever change it — `ADS-002` §Domain Model and `FR-11300`'s own Notes both name a
   treasure-funded weapon-power axis as the intended direction (per the 2026-07-17 user decision:
   "treasure funds power only, no ammo/durability"), but no leaf ever formalized the funding
-  mechanism itself (`BL-0147`). This leaf closes that gap: the system shall let the player choose
-  to spend collected treasure (`RUNNING_TREASURE_COUNT`, the same running count `FR-11500` already
-  spends from — no second currency) to increase `WEAPON_TIER` by one, up to its own existing
-  maximum (3). `R219` (ranged-weapon upgrade/progression conventions, newly authored) grounds the
-  shape: a **currency-spent, persistent-purchase** model (mirroring the *Zelda* series' own
-  quiver/bomb-bag shop-upgrade convention — bought outright, never lost) rather than *Contra*'s
-  pickup-drop/full-reset-on-death model, since this project's own non-lethal setback (`FR-11400`)
-  has no "death" event for a full-reset convention to hook into. `WEAPON_TIER` is **not**
-  decremented by the post-contact setback or by any other event — once purchased, an upgrade is
-  permanent, mirroring `FR-11500`'s own healing-spend permanence (a spent heal is not later
-  "un-healed").
+  mechanism itself (`BL-0147`). This leaf's original 2026-07-19 shape funded `WEAPON_TIER` via a
+  discrete, player-invoked spend action (`IP-1129`) — but no button was ever available to invoke
+  it (every input already claimed: D-pad/A/B/START/SELECT), so it shipped fully built, tested, and
+  `VERIFIED`, yet entirely unreachable in real play (`BL-0148`). **2026-07-20 delta (`ADR-0022`,
+  direct user request: "implement an automatic weapon upgrade"):** the funding trigger becomes
+  **automatic** — checked once per frame while `COMBAT_MODE` is active, with no discrete input
+  event at all. `RUNNING_TREASURE_COUNT` (the same running count `FR-11500` already spends from —
+  no second currency) is compared each frame against the treasure cost required for `WEAPON_TIER`'s
+  own *next* tier; when met or exceeded, the tier increases by one and the cost is spent
+  (decremented), and the check re-arms against the following tier's own (higher) threshold. `R219`
+  (ranged-weapon upgrade/progression conventions) still grounds the underlying shape — a
+  **currency-spent, persistent-purchase** model (mirroring the *Zelda* series' own quiver/bomb-bag
+  shop-upgrade convention — bought outright, never lost) rather than *Contra*'s pickup-drop/
+  full-reset-on-death model — `ADR-0022` only changes *what triggers the spend*, not the spend's
+  own persistent, capped-at-3, non-decrementing nature. `WEAPON_TIER` is **not** decremented by
+  the post-contact setback or by any other event — once earned, an upgrade is permanent, mirroring
+  `FR-11500`'s own healing-spend permanence (a spent heal is not later "un-healed").
 - **Rationale:** `ADS-002` §Domain Model (the weapon-power axis originally named, never
-  formalized); `BL-0147` (the traceability gap this leaf closes); `R219` (the currency-spent,
-  persistent-purchase shape this leaf adopts, over the pickup-drop/full-reset alternative).
+  formalized); `BL-0147` (the traceability gap this leaf closes); `BL-0148` (the input-binding
+  gap this leaf's 2026-07-20 delta resolves for the tier-spend half); `R219` (the currency-spent,
+  persistent-purchase shape this leaf adopts, over the pickup-drop/full-reset alternative);
+  `ADR-0022` (the automatic-trigger decision and its threshold values, both explicitly left open
+  by `R219` as a `04`/`06`-level judgment call, not a research conclusion).
 - **Priority:** Should (closes a real, tracked traceability gap; `WEAPON_TIER` already ships as a
-  stat, but permanently stuck at its own default — this leaf is what makes it reachable at all).
-- **Inputs:** A tier-spend action; the current `RUNNING_TREASURE_COUNT`; the current `WEAPON_TIER`.
+  stat, but was permanently stuck at its own default until this leaf's automatic trigger made it
+  reachable for the first time).
+- **Inputs:** The current `RUNNING_TREASURE_COUNT`; the current `WEAPON_TIER`; the fixed
+  per-tier treasure thresholds (`ADR-0022`, a triangular-number curve per the user's own direct
+  instruction: 1 for tier 1→2, 3 for tier 2→3). No player input — the check runs unconditionally
+  every frame while the precondition holds.
 - **Outputs:** An increased `WEAPON_TIER` (capped at its own existing maximum, 3); a reduced
-  `RUNNING_TREASURE_COUNT`.
-- **Preconditions:** `COMBAT_MODE` active; `RUNNING_TREASURE_COUNT` > 0.
-- **Postconditions:** `RUNNING_TREASURE_COUNT` decreases by the amount spent — including when
-  `WEAPON_TIER` is already at its own maximum, mirroring `FR-11500`'s own shipped, tested
-  precedent that a heal-spend at max health still spends the treasure (`T31.d2`), not a no-op;
-  `WEAPON_TIER` increases correspondingly, never exceeding its own maximum; a purchased tier
-  increase persists indefinitely — no event in this feature's own model reduces `WEAPON_TIER`
-  once raised.
-- **Acceptance Criteria:** Spending treasure to upgrade the weapon reduces `RUNNING_TREASURE_COUNT`
-  by exactly the spent amount and increases `WEAPON_TIER` by exactly 1, up to but never past 3;
-  spending at `WEAPON_TIER == 3` still reduces `RUNNING_TREASURE_COUNT` by the spent amount but
-  does not push `WEAPON_TIER` past 3 (mirroring `FR-11500`'s own heal-at-max-health precedent
-  exactly, `T31.d2` — spends, does not exceed the cap, is not itself a no-op); the same
-  `RUNNING_TREASURE_COUNT` `FR-10400`'s own top-score comparison reads is what this leaf spends
-  from — no separate ledger; a purchased tier increase survives a mob-contact setback
-  (`FR-11400`) and a save/load round trip (`FR-11600`) unchanged.
+  `RUNNING_TREASURE_COUNT`, whenever the current tier's own next threshold is met or exceeded.
+- **Preconditions:** `COMBAT_MODE` active; `WEAPON_TIER` below its own maximum (3); `RUNNING_
+  TREASURE_COUNT` meets or exceeds the current tier's own next threshold.
+- **Postconditions:** When the precondition holds, `RUNNING_TREASURE_COUNT` decreases by exactly
+  the current tier's own threshold cost and `WEAPON_TIER` increases by exactly 1, never exceeding
+  3; when `WEAPON_TIER` is already 3, the automatic check is permanently inert (unlike the
+  original manual design, an *already-maxed* automatic trigger has nothing left to check against
+  — there is no further threshold to compare, so no further treasure is ever spent by this leaf
+  once capped, a deliberate difference from `FR-11500`'s own "spends even at cap" precedent,
+  named honestly rather than silently inherited); a purchased tier increase persists
+  indefinitely — no event in this feature's own model reduces `WEAPON_TIER` once raised.
+- **Acceptance Criteria:** Once `RUNNING_TREASURE_COUNT` reaches 1 while `WEAPON_TIER == 1` and
+  `COMBAT_MODE` is active, `WEAPON_TIER` becomes 2 and `RUNNING_TREASURE_COUNT` decreases by 1,
+  with no button press of any kind involved; once `RUNNING_TREASURE_COUNT` subsequently reaches
+  3 (from new treasure collected after the first upgrade) while `WEAPON_TIER == 2`, `WEAPON_TIER`
+  becomes 3 and `RUNNING_TREASURE_COUNT` decreases by 3; once `WEAPON_TIER == 3`, no further
+  `RUNNING_TREASURE_COUNT` decrease occurs from this leaf regardless of how much treasure is
+  subsequently held; the same `RUNNING_TREASURE_COUNT` `FR-10400`'s own top-score comparison
+  reads is what this leaf spends from — no separate ledger; a purchased tier increase survives a
+  mob-contact setback (`FR-11400`) and a save/load round trip (`FR-11600`) unchanged.
 - **Dependencies:** `FR-11300` (the `WEAPON_TIER` stat this leaf funds); `FR-10300`/`FR-10400`
   (the treasure count this leaf spends from); `FR-11500` (the sibling economy leaf this shares its
-  currency and its "spends even at cap, floored at the maximum" convention with); `FR-11600`
-  (this leaf's own permanence claim depends on `WEAPON_TIER` already being a persisted,
-  save-format field, which it is as of `IP-1122`).
-- **Verification Method:** Test (direct-force spend/spend-at-cap/persistence scenarios, mirroring
-  `FR-11500`'s own established test methodology, `T31.d`/`T31.d2`/`T31.e`).
-- **Source Documents:** `ADS-002` §Domain Model; `BL-0147`; `R219`.
-- **Related ADRs:** None.
-- **Status:** Implemented (`IP-1129`, 2026-07-19). `inf_tier_spend` (new subroutine, mirroring
-  `inf_heal_spend`'s own exact structure) decrements `RUNNING_TREASURE_COUNT` by exactly 1 treasure
-  per tier (1-for-1, matching `FR-11500`'s own precedent) and increases `WEAPON_TIER` by 1, capped
-  at 3 — spending even at the cap, not a no-op, per this leaf's own Postconditions. No new WRAM.
-  Verified by `T38.a`–`e` (`test_rom.py`). **`FR-11600`'s own delta (`IP-1124`, 2026-07-19) closes
-  the save/load half of this leaf's own Acceptance Criteria**: `WEAPON_TIER` now has a real SRAM
-  mirror (`SRAM_WEAPON_TIER`, `0xA370`), verified by `T32.a`. `T38.e` itself still verifies only
-  the in-session (mob-contact-setback) persistence half, unchanged — the save/load half is now
-  covered by `IP-1124`'s own `T32.a`, not a gap in this leaf's own test suite.
-- **Notes:** The exact tier-spend input/rate (how much treasure per tier increase — `FR-11500`'s
-  own precedent is 1-for-1) was a `06-feature-specification` decision, following this project's own
-  established "adjustable default" convention — resolved above (1-for-1). **Input-binding gap,
-  named not resolved**: like `FR-11500`'s own heal-spend action (`BL-0148`, still unresolved), this
-  leaf's own spend action has no obviously free input button either — every existing button is
-  already claimed (D-pad movement, A now claimed by fire, B the universal cancel, START/SELECT both
-  claimed by existing menus). `inf_tier_spend` is defined and exposed, directly force-testable, but
-  has no call site anywhere, mirroring `inf_heal_spend`'s own identical situation. A future `06`/`07`
-  pass may resolve both `FR-11500`'s and this leaf's own spend actions with a single shared UI
-  (e.g. a spend menu reachable via SELECT, mirroring `IP-1090`'s own SELECT-menu-confirmation
-  precedent) rather than inventing two separate bindings — named as a recommendation, not decided
-  here.
+  currency with — no longer sharing its "spends even at cap" convention, per the Postconditions
+  note above); `FR-11600` (this leaf's own permanence claim depends on `WEAPON_TIER` already
+  being a persisted, save-format field, which it is as of `IP-1122`).
+- **Verification Method:** Test (direct-force threshold-crossing scenarios at each tier boundary,
+  an at-cap non-spend regression, and persistence, mirroring `FR-11500`'s own established test
+  methodology).
+- **Source Documents:** `ADS-002` §Domain Model; `BL-0147`; `BL-0148`; `R219`; `ADR-0022`.
+- **Related ADRs:** `ADR-0022` (automatic weapon-tier funding trigger).
+- **Status:** Implemented (`IP-1129`, 2026-07-19; re-implemented `IP-9210`, 2026-07-20 per
+  `ADR-0022`'s automatic-trigger delta). `inf_tier_spend` rewritten in place: gated on
+  `COMBAT_MODE` and `WEAPON_TIER < 3`, branches on the current tier to select its own threshold
+  (1 for tier 1, 3 for tier 2), 16-bit-compares `RUNNING_TREASURE_COUNT` against it, and on a
+  match decrements by that threshold and increments `WEAPON_TIER` — all with no discrete input
+  event, called unconditionally every frame from `st_playing` alongside the existing combat chain.
+  Once `WEAPON_TIER == 3` the routine is a true no-op (an early `RET`, unlike `inf_heal_spend`'s
+  own spend-even-at-cap shape). **413/413 suite passes**; ROM unchanged, 32768 bytes/32670 used.
+  Verified by `T38.a`-`g` (`test_rom.py`) — `T38.a` drives the real `st_playing` per-frame path
+  (not a direct invoke) to prove the automatic call site actually fires with no input event;
+  `T38.g` confirms an automatically-earned tier increase survives a real save/load round trip.
+  `FR-11600`'s own delta (`IP-1124`, 2026-07-19) already closes the save/load half of this leaf's
+  own Acceptance Criteria (`SRAM_WEAPON_TIER`, `0xA370`) — reconfirmed unaffected by this
+  delta, since `WEAPON_TIER`'s own persistence is unchanged.
+- **Notes:** The exact tier-spend input/rate (how much treasure per tier increase) was originally
+  a `06-feature-specification` decision resolved as 1-for-1 (`FR-11500`'s own precedent) — **now
+  superseded by `ADR-0022`'s own 1/3 triangular-number threshold curve, per the user's own direct
+  instruction** ("the first upgrade with the first treasure, then the second with the third
+  treasure... and so on" — `T(n) = n(n+1)/2`, only its first two values reachable given
+  `WEAPON_TIER`'s own cap at 3). A continuous flat-rate automatic spend (checked and decremented
+  every single frame rather than a one-time threshold-crossing check that re-arms) would still
+  need to be avoided even at these low thresholds — the check fires once per crossing, not every
+  frame thereafter. **Input-binding gap partially
+  resolved (`ADR-0022`, 2026-07-20)**: this leaf's own funding no longer needs a button at all —
+  `BL-0148`'s tier-spend half is closed by removing the input requirement entirely, per the
+  user's own explicit request for an automatic upgrade. `FR-11500`'s own heal-spend action still
+  has no input binding (`BL-0148`'s other half) — **explicitly not resolved by this delta**; the
+  user's request was scoped to the weapon upgrade only, and healing's own automatic-vs-binding
+  question remains open for a separate future decision.
 
 ### FR-11600 — Combat state save persistence
 

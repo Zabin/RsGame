@@ -5136,7 +5136,58 @@ check("T37.i Independent live drive: a real diagonally-fired projectile moves on
 pb37i.stop()
 wipe_save()
 
-print("\n=== T38: Combat Sub-Mode — Weapon-Tier Funding Economy (IP-1129) ===")
+# T37.j/k/l/m — IP-9200 (BL-0184) axis-reset regression suite. Unlike
+# fire_with_facing (direct force-injection of the exact facing pair under
+# test), these drive handle_play_input via real successive invocations
+# holding real JOY_CUR bitmasks, so they can actually express -- and
+# would have caught -- the reported bug: PLAYER_FACING_X/Y previously
+# were only ever SET on press, never CLEARED when that axis's own
+# direction stopped being held, so a stale value from an earlier axis
+# silently rode along into a later, different-axis-only movement.
+J37_RIGHT = 1 << 4; J37_LEFT = 1 << 5; J37_UP = 1 << 6; J37_DOWN = 1 << 7
+
+def fire_after_real_movement(pb, presses):
+    """Drive handle_play_input via successive invoke_no_arg calls (T30's
+    own established real-routine-invocation technique), holding each
+    successive JOY_CUR bitmask in `presses` for one call each -- exercises
+    the routine's own real per-frame facing computation across a sequence
+    of held directions. After the sequence, releases all directions and
+    fires (forces JOY_NEW's own A bit), returning (step_x, step_y)."""
+    for mask in presses:
+        pb.memory[JOY_CUR_ADDR] = mask
+        pb.memory[JOY_NEW_ADDR] = 0
+        invoke_no_arg(pb, HPI_ADDR)
+    pb.memory[JOY_CUR_ADDR] = 0
+    pb.memory[JOY_NEW_ADDR] = 1 << J_A_BIT
+    invoke_no_arg(pb, HPI_ADDR)
+    return proj_step(pb)
+
+t37_reset(pb37i := fresh_boot(180))
+_t37j_step = fire_after_real_movement(pb37i, [J37_RIGHT, J37_RIGHT, J37_UP, J37_UP])
+check("T37.j Axis-reset regression (BL-0184): moving RIGHT then switching to UP-only and firing yields pure up, not diagonal",
+      _t37j_step == (0, -1), f"step={_t37j_step}")
+pb37i.stop()
+
+t37_reset(pb37i := fresh_boot(180))
+_t37k_step = fire_after_real_movement(pb37i, [J37_UP, J37_UP, J37_RIGHT, J37_RIGHT])
+check("T37.k Axis-reset regression, symmetric case: moving UP then switching to RIGHT-only and firing yields pure right, not diagonal",
+      _t37k_step == (1, 0), f"step={_t37k_step}")
+pb37i.stop()
+
+t37_reset(pb37i := fresh_boot(180))
+_t37l_step = fire_after_real_movement(pb37i, [])
+check("T37.l Non-regression: a fresh, never-moved session still fires rightward by default through the real code path",
+      _t37l_step == (1, 0), f"step={_t37l_step}")
+pb37i.stop()
+
+t37_reset(pb37i := fresh_boot(180))
+_t37m_step = fire_after_real_movement(pb37i, [J37_UP, J37_UP, 0, 0])
+check("T37.m Non-regression: releasing all directions after moving preserves the last-held facing (real per-frame path)",
+      _t37m_step == (0, -1), f"step={_t37m_step}")
+pb37i.stop()
+wipe_save()
+
+print("\n=== T38: Combat Sub-Mode — Automatic Weapon-Tier Upgrade (IP-9210) ===")
 
 ITS_ADDR = _gw_rom.labels['inf_tier_spend']
 
@@ -5147,69 +5198,290 @@ def t38_reset(pb, combat_mode=1, weapon_tier=1, treasure=0):
     pb.memory[RUNNING_TREASURE_COUNT] = treasure & 0xFF
     pb.memory[RUNNING_TREASURE_COUNT + 1] = (treasure >> 8) & 0xFF
 
+def t38_tick_real_frame(pb):
+    """Ticks a real per-frame st_playing pass (not a direct inf_tier_spend
+    invoke) -- proves the automatic call site actually fires, per this
+    package's own T38.a requirement. JOY_CUR/JOY_NEW/NEED_REDRAW forced to 0
+    first so handle_play_input's own NEED_REDRAW early-exit doesn't skip the
+    combat chain this frame (mirrors T39's own established discipline).
+    Empirically confirmed (diagnostic script, not asserted from theory): the
+    very next pb.tick() immediately after advance_to_playing's own last
+    transition tick does not reach as far as inf_tier_spend within
+    st_playing's own call chain (a hook on st_playing's own entry fires on
+    tick 1, a hook on inf_tier_spend's own entry only fires on tick 2) --
+    ticks twice to reliably land on a genuinely complete PLAYING frame."""
+    pb.memory[JOY_CUR_ADDR] = 0; pb.memory[JOY_NEW_ADDR] = 0
+    pb.memory[NEED_REDRAW] = 0
+    pb.tick()
+    pb.memory[JOY_CUR_ADDR] = 0; pb.memory[JOY_NEW_ADDR] = 0
+    pb.memory[NEED_REDRAW] = 0
+    pb.tick()
+
 pb = fresh_boot(180)
 advance_to_playing(pb)
 
-# T38.a — tier-spend decrements the shared count and increases WEAPON_TIER
-# by exactly 1 (mirrors T31.d's own established shape for the sibling
-# healing-spend action).
-t38_reset(pb, weapon_tier=1, treasure=5)
-_t38a_ok = invoke_no_arg(pb, ITS_ADDR)
+# T38.a — tier 1->2 threshold crossing via the real per-frame path: forcing
+# RUNNING_TREASURE_COUNT to exactly the tier-1 threshold (1, per the user's
+# own direct "first upgrade with the first treasure" instruction) and
+# ticking one real frame raises WEAPON_TIER to 2 and spends exactly that 1
+# treasure -- with no input event of any kind (BL-0148's own gap resolved).
+t38_reset(pb, weapon_tier=1, treasure=1)
+t38_tick_real_frame(pb)
 _t38a_rtc = pb.memory[RUNNING_TREASURE_COUNT] | (pb.memory[RUNNING_TREASURE_COUNT + 1] << 8)
-check("T38.a Tier-spend decrements RUNNING_TREASURE_COUNT by 1 and increases WEAPON_TIER by 1",
-      _t38a_ok and _t38a_rtc == 4 and pb.memory[WEAPON_TIER_ADDR] == 2,
-      f"ok={_t38a_ok} rtc={_t38a_rtc} tier={pb.memory[WEAPON_TIER_ADDR]}")
+check("T38.a Tier 1->2 threshold crossing via the real st_playing per-frame path (no input event): WEAPON_TIER becomes 2, RUNNING_TREASURE_COUNT decreases by 1",
+      _t38a_rtc == 0 and pb.memory[WEAPON_TIER_ADDR] == 2,
+      f"rtc={_t38a_rtc} tier={pb.memory[WEAPON_TIER_ADDR]}")
 
-# T38.b — spot check: tier-spend at WEAPON_TIER == 3 still decrements
-# RUNNING_TREASURE_COUNT by 1 but does not push WEAPON_TIER past 3 (mirrors
-# T31.d2's own exact precedent -- confirms this is the spend-even-at-cap
-# convention, not a no-op).
-t38_reset(pb, weapon_tier=3, treasure=5)
-_t38b_ok = invoke_no_arg(pb, ITS_ADDR)
-_t38b_rtc = pb.memory[RUNNING_TREASURE_COUNT] | (pb.memory[RUNNING_TREASURE_COUNT + 1] << 8)
-check("T38.b Spot: tier-spend at the cap still spends treasure but does not exceed WEAPON_TIER 3",
-      _t38b_ok and _t38b_rtc == 4 and pb.memory[WEAPON_TIER_ADDR] == 3,
-      f"ok={_t38b_ok} rtc={_t38b_rtc} tier={pb.memory[WEAPON_TIER_ADDR]}")
-
-# T38.c — tier-spend at RUNNING_TREASURE_COUNT == 0 is a genuine no-op:
-# neither field changes (mirrors T31.e's own precondition-failure shape).
+# T38.b — below-threshold: RUNNING_TREASURE_COUNT == 0 (one below the
+# tier-1 threshold of 1) is a genuine no-op -- re-checked every frame, not
+# consumed.
 t38_reset(pb, weapon_tier=1, treasure=0)
-_t38c_ok = invoke_no_arg(pb, ITS_ADDR)
-_t38c_rtc = pb.memory[RUNNING_TREASURE_COUNT] | (pb.memory[RUNNING_TREASURE_COUNT + 1] << 8)
-check("T38.c Tier-spend at zero treasure is a no-op (no change to RUNNING_TREASURE_COUNT or WEAPON_TIER)",
-      _t38c_ok and _t38c_rtc == 0 and pb.memory[WEAPON_TIER_ADDR] == 1,
-      f"ok={_t38c_ok} rtc={_t38c_rtc} tier={pb.memory[WEAPON_TIER_ADDR]}")
+invoke_no_arg(pb, ITS_ADDR)
+_t38b_rtc = pb.memory[RUNNING_TREASURE_COUNT] | (pb.memory[RUNNING_TREASURE_COUNT + 1] << 8)
+check("T38.b Below-threshold: RUNNING_TREASURE_COUNT=0 (below the tier-1 threshold of 1) is a no-op",
+      _t38b_rtc == 0 and pb.memory[WEAPON_TIER_ADDR] == 1,
+      f"rtc={_t38b_rtc} tier={pb.memory[WEAPON_TIER_ADDR]}")
 
-# T38.d — COMBAT_MODE off: inf_tier_spend is a complete no-op (mirrors
-# T31.f's own established COMBAT_MODE-off pattern).
-t38_reset(pb, combat_mode=0, weapon_tier=1, treasure=5)
+# T38.c — tier 2->3 threshold crossing (threshold 3, the triangular
+# sequence's own next value) and independence from tier 1's own threshold;
+# spot-check one below (2) does not fire.
+t38_reset(pb, weapon_tier=2, treasure=3)
+invoke_no_arg(pb, ITS_ADDR)
+_t38c_rtc = pb.memory[RUNNING_TREASURE_COUNT] | (pb.memory[RUNNING_TREASURE_COUNT + 1] << 8)
+check("T38.c Tier 2->3 threshold crossing: RUNNING_TREASURE_COUNT=3 raises WEAPON_TIER to 3 and spends exactly 3",
+      _t38c_rtc == 0 and pb.memory[WEAPON_TIER_ADDR] == 3,
+      f"rtc={_t38c_rtc} tier={pb.memory[WEAPON_TIER_ADDR]}")
+
+t38_reset(pb, weapon_tier=2, treasure=2)
+invoke_no_arg(pb, ITS_ADDR)
+_t38c2_rtc = pb.memory[RUNNING_TREASURE_COUNT] | (pb.memory[RUNNING_TREASURE_COUNT + 1] << 8)
+check("T38.c2 Spot: RUNNING_TREASURE_COUNT=2 (one below the tier-2 threshold of 3) does not fire",
+      _t38c2_rtc == 2 and pb.memory[WEAPON_TIER_ADDR] == 2,
+      f"rtc={_t38c2_rtc} tier={pb.memory[WEAPON_TIER_ADDR]}")
+
+# T38.d — true no-op at cap: unlike inf_heal_spend's own "spends even at
+# cap" precedent (T31.d2), an already-maxed WEAPON_TIER has no further
+# threshold to check against, so RUNNING_TREASURE_COUNT is never decremented
+# by this leaf again once WEAPON_TIER == 3.
+t38_reset(pb, weapon_tier=3, treasure=999)
 invoke_no_arg(pb, ITS_ADDR)
 _t38d_rtc = pb.memory[RUNNING_TREASURE_COUNT] | (pb.memory[RUNNING_TREASURE_COUNT + 1] << 8)
-check("T38.d COMBAT_MODE off: inf_tier_spend is a complete no-op",
-      _t38d_rtc == 5 and pb.memory[WEAPON_TIER_ADDR] == 1,
+check("T38.d True no-op at WEAPON_TIER==3 (unlike inf_heal_spend's own spend-even-at-cap precedent): RUNNING_TREASURE_COUNT unchanged",
+      _t38d_rtc == 999 and pb.memory[WEAPON_TIER_ADDR] == 3,
       f"rtc={_t38d_rtc} tier={pb.memory[WEAPON_TIER_ADDR]}")
 
-# T38.e — persistence: a tier increase survives a mob-contact setback
-# (inf_health_setback touches only PLAYER_HEALTH/PLAYER_X/PLAYER_Y, never
-# WEAPON_TIER). No SRAM mirror of WEAPON_TIER exists yet (confirmed by
-# direct code read — no save/load path references it), so this check is
-# scoped to the in-session, non-save-boundary persistence half only, named
-# explicitly per this package's own §8, not silently assumed.
-t38_reset(pb, weapon_tier=1, treasure=5)
+# T38.e — COMBAT_MODE off: inf_tier_spend is a complete no-op (mirrors
+# T31.f's own established COMBAT_MODE-off pattern).
+t38_reset(pb, combat_mode=0, weapon_tier=1, treasure=1)
 invoke_no_arg(pb, ITS_ADDR)
-_t38e_tier_after_spend = pb.memory[WEAPON_TIER_ADDR]
+_t38e_rtc = pb.memory[RUNNING_TREASURE_COUNT] | (pb.memory[RUNNING_TREASURE_COUNT + 1] << 8)
+check("T38.e COMBAT_MODE off: inf_tier_spend is a complete no-op",
+      _t38e_rtc == 1 and pb.memory[WEAPON_TIER_ADDR] == 1,
+      f"rtc={_t38e_rtc} tier={pb.memory[WEAPON_TIER_ADDR]}")
+
+# T38.f — persistence: a tier increase earned via the automatic trigger
+# survives a mob-contact setback (inf_health_setback touches only
+# PLAYER_HEALTH/PLAYER_X/PLAYER_Y, never WEAPON_TIER) and a save/load round
+# trip (WEAPON_TIER's own SRAM mirror, IP-1124, is unaffected by this
+# package -- confirm it still round-trips).
+t38_reset(pb, weapon_tier=1, treasure=1)
+invoke_no_arg(pb, ITS_ADDR)
+_t38f_tier_after_spend = pb.memory[WEAPON_TIER_ADDR]
 pb.memory[PLAYER_HEALTH_ADDR] = 0
 pb.memory[COMBAT_ENTRY_X_ADDR] = 40; pb.memory[COMBAT_ENTRY_Y_ADDR] = 90
 pb.memory[PLAYER_X] = 120; pb.memory[PLAYER_Y] = 20
-_t38e_ok = invoke_no_arg(pb, IHSB_ADDR)
-check("T38.e A tier increase survives a mob-contact setback (in-session persistence half; no SRAM mirror exists yet)",
-      _t38e_ok and _t38e_tier_after_spend == 2 and pb.memory[WEAPON_TIER_ADDR] == 2 and
+_t38f_ok = invoke_no_arg(pb, IHSB_ADDR)
+check("T38.f A tier increase earned via the automatic trigger survives a mob-contact setback",
+      _t38f_ok and _t38f_tier_after_spend == 2 and pb.memory[WEAPON_TIER_ADDR] == 2 and
       pb.memory[PLAYER_HEALTH_ADDR] == 3,
-      f"ok={_t38e_ok} tier_after_spend={_t38e_tier_after_spend} tier_after_setback={pb.memory[WEAPON_TIER_ADDR]} "
+      f"ok={_t38f_ok} tier_after_spend={_t38f_tier_after_spend} tier_after_setback={pb.memory[WEAPON_TIER_ADDR]} "
       f"health={pb.memory[PLAYER_HEALTH_ADDR]}")
-
 pb.stop()
 wipe_save()
+
+# T38.g — save/load round trip: an automatically-earned tier increase
+# persists through a real SAVE/reload, mirroring T32.a's own established
+# two-instance harness.
+pb = fresh_boot(200)
+enter_infinite_mode(pb, 777)
+pb.memory[COMBAT_MODE_ADDR] = 1
+pb.memory[0xC6DE] = 8   # MOB_MOVE_TIMER, pinned above 0 -- no movement this window
+pb.memory[MOB_COUNT_ADDR] = 0
+pb.memory[WEAPON_TIER_ADDR] = 1
+pb.memory[RUNNING_TREASURE_COUNT] = 1; pb.memory[RUNNING_TREASURE_COUNT + 1] = 0
+t38_tick_real_frame(pb)
+_t38g_tier_before_save = pb.memory[WEAPON_TIER_ADDR]
+pb.button('start'); [pb.tick() for _ in range(40)]
+pb.button('a'); [pb.tick() for _ in range(40)]   # SAVE: A (save)
+pb.stop()
+
+pb2 = PyBoy(ROM_PATH, window='null', sound_emulated=False)
+pb2.set_emulation_speed(0)
+for _ in range(180): pb2.tick()
+pb2.button('a'); [pb2.tick() for _ in range(6)]   # MAIN MENU: continue
+check("T38.g Save/load round trip: an automatically-earned tier increase persists",
+      pb2.memory[GAMESTATE] == 2 and _t38g_tier_before_save == 2 and
+      pb2.memory[WEAPON_TIER_ADDR] == 2,
+      f"GS={pb2.memory[GAMESTATE]} tier_before_save={_t38g_tier_before_save} tier_after_load={pb2.memory[WEAPON_TIER_ADDR]}")
+pb2.stop()
+wipe_save()
+
+# ══════════════════════════════════════════════════════
+# T39 — Combat Sub-Mode Per-Frame Cycle Budget Measurement (IP-9190, NFR-1500)
+# ══════════════════════════════════════════════════════
+print("\n=== T39: Combat Sub-Mode Per-Frame Cycle Budget Measurement (NFR-1500) ===")
+
+# Direct cycle-count of the combat per-frame chain st_playing already runs
+# unconditionally every frame (asm_game.py:711-714): inf_mob_move ->
+# inf_projectile_update (incl. inf_projectile_hittest) -> inf_mob_contact_
+# check -> inf_invincibility_tick -> check_zone_transition. Mirrors
+# NFR-1400/IP-1102's own already-VERIFIED T24.e PC/SP-hijack + direct-
+# cycle-count technique, extended to chain multiple real routines: each
+# routine's own real RET is made to land directly at the next routine's
+# real ROM label by pre-loading the stack with the successor addresses in
+# order -- exactly what st_playing's own real CALL sequence produces,
+# just triggered directly rather than waiting for the per-frame
+# dispatcher. (A first attempt wrote a synthetic CALL-chain trampoline
+# into WRAM scratch and hooked addresses there -- that hung PyBoy's own
+# emulation core for hours with no progress, almost certainly because
+# hook_register only supports real ROM-bank addresses, not arbitrary
+# WRAM; this technique only ever hooks/targets real, already-assembled
+# ROM labels, exactly like every other PC/SP-hijack test in this suite.)
+INF_MOB_MOVE_ADDR = _gw_rom.labels['inf_mob_move']
+INF_PROJECTILE_UPDATE_ADDR = _gw_rom.labels['inf_projectile_update']
+INF_MOB_CONTACT_CHECK_ADDR = _gw_rom.labels['inf_mob_contact_check']
+INF_INVINCIBILITY_TICK_ADDR = _gw_rom.labels['inf_invincibility_tick']
+CHECK_ZONE_TRANSITION_ADDR = _gw_rom.labels['check_zone_transition']
+COMBAT_ENTRY_X_ADDR = 0xC6DA; COMBAT_ENTRY_Y_ADDR = 0xC6DB
+
+def measure_combat_chain_cycles(pb, hook_end_addr, budget=10):
+    """Hijack PC directly to inf_mob_move with the stack pre-loaded (in
+    reverse order, mirroring how PUSH itself works) with the real ROM
+    entry labels of inf_projectile_update, inf_mob_contact_check,
+    inf_invincibility_tick, and check_zone_transition, in that order --
+    so each routine's own real RET lands squarely at the next one's real
+    entry point. hook_end_addr is purely a measurement hook, independent
+    of the stack chain itself: CHECK_ZONE_TRANSITION_ADDR for the
+    combat-only case (fires the instant we'd enter it, before any of its
+    own logic runs -- a pure four-routine measurement) or CZT_REDRAW_ADDR
+    for the coinciding case (check_zone_transition's own real logic,
+    including a real inf_ensure_window recompute if its own branch
+    conditions are met, executes first and this hook fires once its own
+    control flow naturally reaches czt_redraw -- T24.e's own established
+    safe ROM hook point). Measures via two hook_register callpoints
+    (inf_mob_move's entry, hook_end_addr) reading PyBoy's own cycle
+    counter -- T24.e's own established technique
+    (measure_inf_ensure_window_cycles), and for the same established
+    reason: pb.tick() advances a full frame at a time, so reading
+    pb._cycles() only after tick() returns would be frame-quantized
+    regardless of the chain's real cost; the hook fires synchronously at
+    the exact cycle the CPU reaches that address, mid-tick."""
+    targets = [INF_PROJECTILE_UPDATE_ADDR, INF_MOB_CONTACT_CHECK_ADDR,
+               INF_INVINCIBILITY_TICK_ADDR, CHECK_ZONE_TRANSITION_ADDR]
+    sp = pb.register_file.SP
+    for addr in reversed(targets):
+        sp = (sp - 2) & 0xFFFF
+        pb.memory[sp] = addr & 0xFF
+        pb.memory[sp + 1] = (addr >> 8) & 0xFF
+    pb.register_file.SP = sp
+    pb.register_file.PC = INF_MOB_MOVE_ADDR
+    state = {}
+    def _start(ctx): state.setdefault('start', pb._cycles())
+    def _end(ctx): state.setdefault('end', pb._cycles())
+    pb.hook_register(0, INF_MOB_MOVE_ADDR, _start, None)
+    pb.hook_register(0, hook_end_addr, _end, None)
+    for _ in range(budget):
+        pb.tick()
+        if 'end' in state:
+            break
+    if 'start' not in state or 'end' not in state:
+        return None
+    return state['end'] - state['start']
+
+def t39_set_combat_state(pb, mob_count, proj_active):
+    """Force a realistic non-empty combat frame -- COMBAT_MODE=1 is not
+    enough on its own (every gated routine short-circuits almost
+    immediately on its own count/flag check, understating the real cost);
+    mob slots and an in-flight projectile exercise each routine's own real
+    body. Mirrors T32.a's own direct MOB_DATA injection pattern."""
+    pb.memory[COMBAT_MODE_ADDR] = 1
+    pb.memory[MOB_COUNT_ADDR] = mob_count
+    for i in range(6):
+        base = MOB_DATA_ADDR + i * 5
+        if i < mob_count:
+            # x, y, species, health, active -- placed well clear of the
+            # player's own hitbox so inf_mob_contact_check's own hit
+            # branch doesn't fire and perturb PLAYER_HEALTH mid-measurement
+            slot = (30 + i * 15, 40 + i * 10, 0, 1, 1)
+        else:
+            slot = (0, 0, 0, 0, 0)
+        for k, v in enumerate(slot): pb.memory[base + k] = v
+    pb.memory[PLAYER_X] = 80; pb.memory[PLAYER_Y] = 100   # clear of every mob slot above
+    pb.memory[PROJ_ACTIVE_ADDR] = 1 if proj_active else 0
+    if proj_active:
+        pb.memory[PROJ_X_ADDR] = 60; pb.memory[PROJ_Y_ADDR] = 100
+        pb.memory[PROJ_STEP_X_ADDR] = 1; pb.memory[PROJ_STEP_Y_ADDR] = 0
+    pb.memory[0xC6DE] = 8   # MOB_MOVE_TIMER, pinned above 0 -- irrelevant to cost
+                             # (inf_mob_move's own body runs its full per-mob
+                             # loop regardless of whether the timer reaches 0
+                             # this frame; T35.a's own precedent), kept high
+                             # only so no positional side effect leaks into
+                             # the next corpus entry's own fixture.
+    pb.memory[PLAYER_HEALTH_ADDR] = 3
+
+T39_MOB_PROJ_CORPUS = [(1, 0), (1, 1), (6, 0), (6, 1)]
+
+# T39.a — combat-only frame: measure the four-routine chain in isolation
+# (check_zone_transition deliberately excluded from the trampoline, so no
+# materialization cost can leak in) across the mob-count/projectile-active
+# corpus.
+FRAME_BUDGET_CYCLES_T39 = 70224   # one CGB single-speed frame, same bar T24.e uses
+_t39a_measurements = []
+for _mob_count, _proj_active in T39_MOB_PROJ_CORPUS:
+    pb = fresh_boot(180)
+    t39_set_combat_state(pb, _mob_count, _proj_active)
+    _cycles = measure_combat_chain_cycles(pb, CHECK_ZONE_TRANSITION_ADDR)
+    pb.stop()
+    _t39a_measurements.append((_mob_count, _proj_active, _cycles))
+_t39a_valid = [c for (_, _, c) in _t39a_measurements if c is not None]
+_t39a_met = bool(_t39a_valid) and max(_t39a_valid) <= FRAME_BUDGET_CYCLES_T39
+check("T39.a NFR-1500 Analysis: combat-only per-frame chain cost, direct cycle-count, measured and recorded (Met or not, not asserted un-measured)",
+      len(_t39a_valid) == len(T39_MOB_PROJ_CORPUS),
+      f"measurements={_t39a_measurements} budget={FRAME_BUDGET_CYCLES_T39} status={'MET' if _t39a_met else 'NOT MET'}")
+
+# T39.b — combat-plus-materialization frame: the same stack-chained
+# sequence, but hooked at CZT_REDRAW_ADDR instead of CHECK_ZONE_TRANSITION_
+# ADDR so check_zone_transition's own real logic actually executes, set up
+# so its own czt_infinite east-branch genuinely fires (GAME_MODE=1,
+# JOY_CUR's RIGHT bit held, PLAYER_X at the real 152 threshold, INF_
+# WINDOW's own east-neighbor-exists bit forced) -- confirming the
+# "coinciding" case NFR-1500 asks about is not just reachable in principle
+# but real cycles were taken while it actually fired, across T24.e's own
+# established 3-entry (seed, row, col) boundary corpus crossed with the
+# same mob/projectile corpus T39.a uses.
+J_RIGHT = 4
+_t39b_measurements = []
+for _seed, _row, _col in T24E_CORPUS:
+    for _mob_count, _proj_active in T39_MOB_PROJ_CORPUS:
+        pb = fresh_boot(180)
+        t39_set_combat_state(pb, _mob_count, _proj_active)
+        pb.memory[SEED] = _seed & 0xFF; pb.memory[SEED + 1] = (_seed >> 8) & 0xFF
+        _r = _row & 0xFFFF; _c = _col & 0xFFFF
+        pb.memory[INF_ROW] = _r & 0xFF; pb.memory[INF_ROW + 1] = (_r >> 8) & 0xFF
+        pb.memory[INF_COL] = _c & 0xFF; pb.memory[INF_COL + 1] = (_c >> 8) & 0xFF
+        pb.memory[GAME_MODE] = 1
+        pb.memory[JOY_CUR_ADDR] = 1 << J_RIGHT
+        pb.memory[PLAYER_X] = 152
+        pb.memory[INF_WINDOW + 4] = 0x80   # bit 7: east neighbor exists (czt_infinite's own gate)
+        _cycles = measure_combat_chain_cycles(pb, CZT_REDRAW_ADDR)
+        _fired = pb.memory[PLAYER_X] == 8   # czt_infinite's own east branch always rewrites PLAYER_X to 8
+        pb.stop()
+        _t39b_measurements.append((_seed, _row, _col, _mob_count, _proj_active, _cycles, _fired))
+_t39b_valid = [c for (*_, c, fired) in _t39b_measurements if c is not None and fired]
+_t39b_met = bool(_t39b_valid) and max(_t39b_valid) <= FRAME_BUDGET_CYCLES_T39
+check("T39.b NFR-1500 Analysis: combat-plus-region-materialization coinciding frame cost, direct cycle-count with confirmed real transition firing, measured and recorded (Met or not, not asserted un-measured)",
+      len(_t39b_valid) == len(T24E_CORPUS) * len(T39_MOB_PROJ_CORPUS),
+      f"measurements={_t39b_measurements} budget={FRAME_BUDGET_CYCLES_T39} status={'MET' if _t39b_met else 'NOT MET'}")
 
 # ══════════════════════════════════════════════════════
 # SUMMARY

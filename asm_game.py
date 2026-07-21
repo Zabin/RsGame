@@ -712,6 +712,7 @@ def build_game_asm(rom: ROM) -> dict:
     rom.CALL('inf_projectile_update')  # IP-1122: no-op unless COMBAT_MODE/PROJ_ACTIVE
     rom.CALL('inf_mob_contact_check')  # IP-1123: no-op unless COMBAT_MODE
     rom.CALL('inf_invincibility_tick') # IP-1127: no-op unless COMBAT_MODE
+    rom.CALL('inf_tier_spend')         # IP-9210: no-op unless COMBAT_MODE/threshold met
     rom.CALL('check_zone_transition')
     rom.CALL('check_complete')
     rom.JP('end_frame')
@@ -1149,6 +1150,34 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_nn(JOY_CUR); rom.LD_B_A()
     rom.XOR_A(); rom.LD_nn_A(TMP1)
 
+    # IP-9200 (BL-0184 remediation): recompute PLAYER_FACING_X/Y fresh from
+    # JOY_CUR's own current held bits whenever any direction is held this
+    # frame, clearing whichever axis isn't held to 0 -- previously each
+    # axis was only ever SET on press inside its own movement branch below,
+    # with no branch that cleared it, so a stale value (including the
+    # boot-default PLAYER_FACING_X=1) silently rode along into a different
+    # axis's own movement, making pure cardinal fire unreachable in
+    # practice once both axes had ever been touched. When no direction is
+    # held at all, leave both facing values untouched (FR-11310's own
+    # "moving direction, else last-faced" rule, T37.e's own precedent).
+    rom.LD_A_B(); rom.AND_n((1 << J_RIGHT) | (1 << J_LEFT) | (1 << J_UP) | (1 << J_DOWN))
+    rom.JR_Z('face_skip')
+    rom.XOR_A(); rom.LD_nn_A(PLAYER_FACING_X)
+    rom.BIT_b_B(J_RIGHT); rom.JR_Z('face_x_not_right')
+    rom.LD_A_n(1); rom.LD_nn_A(PLAYER_FACING_X)
+    rom.label('face_x_not_right')
+    rom.BIT_b_B(J_LEFT); rom.JR_Z('face_x_done')
+    rom.LD_A_n(0xFF); rom.LD_nn_A(PLAYER_FACING_X)
+    rom.label('face_x_done')
+    rom.XOR_A(); rom.LD_nn_A(PLAYER_FACING_Y)
+    rom.BIT_b_B(J_UP); rom.JR_Z('face_y_not_up')
+    rom.LD_A_n(0xFF); rom.LD_nn_A(PLAYER_FACING_Y)
+    rom.label('face_y_not_up')
+    rom.BIT_b_B(J_DOWN); rom.JR_Z('face_y_done')
+    rom.LD_A_n(1); rom.LD_nn_A(PLAYER_FACING_Y)
+    rom.label('face_y_done')
+    rom.label('face_skip')
+
     # RIGHT
     rom.BIT_b_B(J_RIGHT); rom.JR_Z('mv_nr')
     rom.LD_A_nn(PLAYER_X); rom.INC_A()
@@ -1156,7 +1185,6 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_nn_A(PLAYER_X)
     rom.label('mv_skip_r')
     rom.XOR_A(); rom.LD_nn_A(PLAYER_DIR)
-    rom.LD_A_n(1); rom.LD_nn_A(PLAYER_FACING_X)  # IP-1128: facing right
     rom.LD_A_n(1); rom.LD_nn_A(TMP1)
     rom.label('mv_nr')
 
@@ -1165,7 +1193,6 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_nn(PLAYER_X); rom.OR_A(); rom.JR_Z('mv_nl')
     rom.DEC_A(); rom.LD_nn_A(PLAYER_X)
     rom.LD_A_n(1); rom.LD_nn_A(PLAYER_DIR)
-    rom.LD_A_n(0xFF); rom.LD_nn_A(PLAYER_FACING_X)  # IP-1128: facing left (-1)
     rom.LD_A_n(1); rom.LD_nn_A(TMP1)
     rom.label('mv_nl')
 
@@ -1174,7 +1201,6 @@ def build_game_asm(rom: ROM) -> dict:
     rom.LD_A_nn(PLAYER_Y); rom.CP_n(8); rom.JR_C('mv_skip_u')
     rom.JR_Z('mv_skip_u'); rom.DEC_A(); rom.LD_nn_A(PLAYER_Y)
     rom.label('mv_skip_u')
-    rom.LD_A_n(0xFF); rom.LD_nn_A(PLAYER_FACING_Y)  # IP-1128: facing up (-1)
     rom.LD_A_n(1); rom.LD_nn_A(TMP1)
     rom.label('mv_nu')
 
@@ -1184,7 +1210,6 @@ def build_game_asm(rom: ROM) -> dict:
     rom.CP_n(129); rom.JR_NC('mv_skip_d')
     rom.LD_nn_A(PLAYER_Y)
     rom.label('mv_skip_d')
-    rom.LD_A_n(1); rom.LD_nn_A(PLAYER_FACING_Y)  # IP-1128: facing down (+1)
     rom.LD_A_n(1); rom.LD_nn_A(TMP1)
     rom.label('mv_nd')
 
@@ -3992,27 +4017,52 @@ def build_game_asm(rom: ROM) -> dict:
     rom.label('ihs_done')
     rom.RET()
 
-    # ── inf_tier_spend (IP-1129, FR-11510) ──────────────────
-    # Player-choice weapon-tier funding: gated on COMBAT_MODE and
-    # RUNNING_TREASURE_COUNT > 0 (16-bit, both bytes checked), mirroring
-    # inf_heal_spend's own exact structure field-for-field. Decrements
-    # RUNNING_TREASURE_COUNT by 1 via the identical 16-bit-borrow technique
-    # -- the same shared count, no second ledger. Spends UNCONDITIONALLY:
-    # SCORE_DIRTY is set and the treasure decrement always happens before
-    # the WEAPON_TIER cap check, matching FR-11500's own real shipped
-    # precedent (T31.d2) -- spending at the cap still spends, it is not a
-    # no-op, only the tier increase itself is floored at 3. NOT called from
-    # anywhere in this package's own control flow -- shares inf_heal_spend's
-    # own still-unresolved input-binding gap (BL-0148-class), not invented a
-    # binding for here. Defined and exposed, directly force-testable
-    # (T38.a-d). Clobbers A.
+    # ── inf_tier_spend (IP-9210, FR-11510 revision, BL-0148/ADR-0022) ──
+    # Automatic weapon-tier funding: called unconditionally every frame from
+    # st_playing (no input event of any kind -- resolves BL-0148's own
+    # tier-spend input-binding gap by removing the input requirement
+    # entirely). Gated on COMBAT_MODE and WEAPON_TIER < 3 (a true no-op once
+    # capped -- unlike inf_heal_spend's own "spends even at cap" shape via
+    # treasure_spend_gate_and_decrement, there is no further threshold past
+    # tier 3 to check against). Threshold-crossing, not flat-rate: a
+    # triangular-number curve (1 for tier 1->2, 3 for tier 2->3), per the
+    # user's own direct instruction ("the first upgrade with the first
+    # treasure, then the second with the third treasure... and so on" --
+    # T(n)=n(n+1)/2; only the first two values are ever reached given
+    # WEAPON_TIER's own cap at 3). Does not reuse
+    # treasure_spend_gate_and_decrement (that helper's own decrement-by-
+    # exactly-1 shape doesn't fit a variable per-tier threshold) -- each
+    # tier branch inlines its own 16-bit compare-then-subtract against its
+    # own fixed immediate threshold. Clobbers A.
     rom.label('inf_tier_spend')
-    rom.CALL('treasure_spend_gate_and_decrement')
-    rom.RET_Z()   # gated off or no treasure -- nothing spent, no effect
+    rom.LD_A_nn(COMBAT_MODE); rom.OR_A(); rom.RET_Z()
+    rom.LD_A_nn(WEAPON_TIER)
+    rom.CP_n(1); rom.JR_Z('its_tier1')
+    rom.CP_n(2); rom.JR_Z('its_tier2')
+    rom.RET()   # WEAPON_TIER == 3 -- already capped, true no-op
 
-    rom.LD_A_nn(WEAPON_TIER); rom.CP_n(3); rom.JR_NC('its_done')
-    rom.INC_A(); rom.LD_nn_A(WEAPON_TIER)
-    rom.label('its_done')
+    rom.label('its_tier1')   # threshold = 1
+    rom.LD_A_nn(RUNNING_TREASURE_COUNT + 1); rom.OR_A(); rom.JR_NZ('its_t1_have')
+    rom.LD_A_nn(RUNNING_TREASURE_COUNT); rom.CP_n(1); rom.RET_C()
+    rom.label('its_t1_have')
+    rom.LD_A_nn(RUNNING_TREASURE_COUNT); rom.SUB_n(1); rom.LD_nn_A(RUNNING_TREASURE_COUNT)
+    rom.JR_NC('its_t1_no_borrow')
+    rom.LD_A_nn(RUNNING_TREASURE_COUNT + 1); rom.DEC_A(); rom.LD_nn_A(RUNNING_TREASURE_COUNT + 1)
+    rom.label('its_t1_no_borrow')
+    rom.LD_A_n(2); rom.LD_nn_A(WEAPON_TIER)
+    rom.LD_A_n(1); rom.LD_nn_A(SCORE_DIRTY)
+    rom.RET()
+
+    rom.label('its_tier2')   # threshold = 3
+    rom.LD_A_nn(RUNNING_TREASURE_COUNT + 1); rom.OR_A(); rom.JR_NZ('its_t2_have')
+    rom.LD_A_nn(RUNNING_TREASURE_COUNT); rom.CP_n(3); rom.RET_C()
+    rom.label('its_t2_have')
+    rom.LD_A_nn(RUNNING_TREASURE_COUNT); rom.SUB_n(3); rom.LD_nn_A(RUNNING_TREASURE_COUNT)
+    rom.JR_NC('its_t2_no_borrow')
+    rom.LD_A_nn(RUNNING_TREASURE_COUNT + 1); rom.DEC_A(); rom.LD_nn_A(RUNNING_TREASURE_COUNT + 1)
+    rom.label('its_t2_no_borrow')
+    rom.LD_A_n(3); rom.LD_nn_A(WEAPON_TIER)
+    rom.LD_A_n(1); rom.LD_nn_A(SCORE_DIRTY)
     rom.RET()
 
     # ── inf_health_hud_draw (IP-1123) ───────────────────────

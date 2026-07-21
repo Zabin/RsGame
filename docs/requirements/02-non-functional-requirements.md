@@ -230,7 +230,7 @@
   entry for a follow-up optimization package to actually close the gap, rather than
   discovering the requirement only after a stutter is reported.
 
-### NFR-1500 — Combat sub-mode per-frame cycle budget (target — 2026-07-17, status UNCONFIRMED)
+### NFR-1500 — Combat sub-mode per-frame cycle budget (target — 2026-07-17, status NOT MET)
 
 - **ID:** NFR-1500
 - **Title:** Combat sub-mode per-frame logic (mob AI tick, projectile update, hit-test) shall be
@@ -246,8 +246,22 @@
 - **Rationale:** `R115` §Implementation Guidance ("any new per-frame combat logic must be
   measured against the *already-consumed* portion of the frame budget, not the nominal ceiling
   alone"); `ADS-002` §System Architecture (Cycle budget).
-- **Priority:** Must (target — not yet implemented; measurement owed once a real implementation
-  exists)
+- **Priority:** Must (**measured, `NOT MET` for the coinciding case, `MET` for the combat-only
+  case, 2026-07-20, `IP-9190`/T39**)
+- **Status: NOT MET for the coinciding case (honestly measured, `IP-9190`/T39.b).** Direct
+  cycle-counting (stack-chained PC/SP hijack through `inf_mob_move`→`inf_projectile_update`→
+  `inf_mob_contact_check`→`inf_invincibility_tick`→`check_zone_transition`, mirroring
+  `NFR-1400`/`IP-1102`'s own T24.e technique) measured the **combat-only** chain at
+  **1,804–3,848 T-cycles** across a 4-entry `(mob_count, proj_active)` corpus — comfortably
+  `MET` against the 70,224-cycle single-frame budget. The **coinciding** case (combat chain plus
+  a real region-materialization transition in the same frame, confirmed reachable and confirmed
+  firing every corpus entry) measured **92,648–95,712 T-cycles** — exceeds the budget by
+  ~32–36%, consistent with `NFR-1400`'s own already-`NOT MET` `inf_ensure_window` cost
+  (78,860–81,792 cycles alone) simply compounding with the combat chain's own real cost, exactly
+  the risk `R115`/this NFR's own Description named before implementation existed to measure it.
+  This is a real, measured stall risk (an observable hitch when a region-boundary crossing
+  coincides with active combat), not merely unconfirmed — see `BL-0185`'s successor finding for
+  the follow-up optimization package this now schedules (not decided here).
 - **Inputs:** The combat sub-mode's own per-frame logic (mob AI, projectile update, hit-test).
 - **Outputs:** A direct cycle-count measurement, mirroring `NFR-1400`'s own PC/SP-hijack
   cycle-counting methodology.
@@ -271,7 +285,10 @@
   two more not-yet-built pieces of combat per-frame logic. **2026-07-19 delta (cont'd):** two more
   new leaves, `FR-11310` (movement-based multi-directional weapon fire) and `FR-11510`
   (treasure-spent weapon-tier funding), likewise name this NFR's own still-`UNCONFIRMED` status —
-  neither implemented yet, same inherited-not-newly-created obligation.
+  neither implemented yet, same inherited-not-newly-created obligation. **2026-07-20 delta
+  (`IP-9190`, remediation for `BL-0168`):** the measurement obligation named above is now
+  discharged — see the Status line. Measured honestly, `NOT MET` for the coinciding case; routed
+  to `BL-0185` for the follow-up optimization decision, not resolved here.
 
 ## Reliability
 

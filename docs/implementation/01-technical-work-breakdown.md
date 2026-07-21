@@ -2215,3 +2215,95 @@ independently reconstructable is kept inline rather than removed. Link integrity
 
 **Authorization:** user directly authorized this approach via `AskUserQuestion` ("Compact to
 current-state + pointer (Recommended)").
+
+## `BL-0168` — Combat sub-mode per-frame cycle budget measurement (`NFR-1500`)
+
+**Verb inventory:** not applicable — no new gameplay verb, a measurement-only remediation
+against an existing per-frame call chain (`inf_mob_move`/`inf_projectile_update`/
+`inf_mob_contact_check`/`inf_invincibility_tick`) that already ships, unconditionally called
+from `st_playing` every frame.
+
+**Supersession sweep:** not applicable — nothing superseded; this package adds a test-only
+Analysis check, mirroring `NFR-1400`/`IP-1102`'s own already-`VERIFIED` T24.e technique
+(PC/SP hijack + `hook_register` entry/return cycle-count) rather than introducing a new one.
+Confirmed the four target routines' current entry points and the `st_playing` call sequence by
+direct read (`asm_game.py:711`-714) — unaffected by the session's refactor tranche
+(`IP-8010`/`IP-8020` extracted internal subroutines from `check_collisions`/`inf_mob_move`/
+`inf_mob_contact_check` but left every entry point and external behavior byte-identical, per
+their own `VERIFIED` equivalence evidence).
+
+**Decomposition, one package:**
+
+| Work unit | Package | Owning peer | Depends on |
+|---|---|---|---|
+| Direct cycle-count of the combat per-frame chain, on a combat-only frame and a frame coinciding with region materialization (reachable — `check_zone_transition` runs immediately after the combat chain in the same `st_playing` tick); record `NFR-1500`'s Status honestly | [IP-9190](packages/IP-9190-combat-cycle-budget-measurement.md) | `08-code-implementation` | none |
+
+**Split rationale:** one package — both measurements share the same technique, the same fixture
+family (`COMBAT_MODE`/`MOB_DATA`/`PROJ_ACTIVE` injection plus `T24.e`'s own `INF_ROW`/`INF_COL`
+boundary fixture), and the same test file (`test_rom.py`); splitting would only duplicate setup
+for no isolation benefit — a failure in one measurement doesn't block the other.
+
+**Authorization:** not yet sought — new scope beyond any standing go-ahead (this is a
+remediation for an already-shipped, `VERIFIED` feature's own unmet Acceptance Criterion, not
+covered by G3's bootstrap carve-out, which is limited to `BL-0001`–`BL-0005`). `IP-9190` is
+test-only (zero runtime-code change, zero ROM-byte impact), materially lower risk than a
+code-touching package, but still requires the user's explicit go-ahead per this project's
+established rule that a package being fully specified is never itself authorization to build.
+
+## `BL-0184` — Weapon fire only shoots diagonally in real play (`FR-11310`/`IP-1128` remediation)
+
+**Verb inventory:** not applicable — no new gameplay verb, a correctness remediation against an
+already-shipped `VERIFIED` feature's own input-handling logic.
+
+**Supersession sweep:** not applicable — nothing superseded. Confirmed by direct read that
+`handle_play_input` (`asm_game.py:1114`-1198) is the *only* site that writes
+`PLAYER_FACING_X`/`PLAYER_FACING_Y` at runtime (the boot-init at `asm_game.py:554`-558 is the
+only other writer, setting the one-time defaults `(1, 0)`) — no other call site needs sweeping.
+
+**Root cause, confirmed by direct code read:** the movement-tracking block only ever *sets*
+`PLAYER_FACING_X`/`Y` inside each direction's own movement-clamp branch (`RIGHT`→`FACING_X=1` at
+`:1159`, `LEFT`→`FACING_X=-1` at `:1168`, `UP`→`FACING_Y=-1` at `:1177`, `DOWN`→`FACING_Y=1` at
+`:1187`) — there is no branch that clears the *opposite* axis when only one axis is held this
+frame. Combined with the boot-default `PLAYER_FACING_X=1`, this makes pure cardinal fire
+effectively unreachable in real play: confirmed live (moving only UP, never touching LEFT/RIGHT,
+then firing produced `(+1, -1)` instead of the expected `(0, -1)`).
+
+**Decomposition, one package:**
+
+| Work unit | Package | Owning peer | Depends on |
+|---|---|---|---|
+| Recompute `PLAYER_FACING_X`/`Y` fresh from `JOY_CUR`'s current held bits whenever any direction is held this frame (clearing the axis not held to 0), preserving the existing "no direction held → keep the last-faced value" behavior (`FR-11310`'s own "moving direction, else last-faced" rule, `T37.e`'s own precedent); extend `T37`'s own fixture so this exact class of bug is caught | [IP-9200](packages/IP-9200-weapon-facing-axis-reset-fix.md) | `08-code-implementation` | none |
+
+**Split rationale:** one package — a single, localized fix to one routine's own facing
+computation, plus the test-fixture correction that lets the suite actually catch it; no seam to
+split along.
+
+**Authorization:** not yet sought — a correctness fix to already-shipped, `VERIFIED` code is new
+scope, not covered by G3's bootstrap carve-out (limited to `BL-0001`-`BL-0005`).
+
+## `FR-11510` revision — Automatic weapon-tier upgrade trigger (`BL-0148`/`ADR-0022`)
+
+**Verb inventory:** not applicable — no new gameplay verb, a trigger-mechanism revision to an
+already-shipped funding economy (fund/spend, not generate/render/navigate/persist/review).
+
+**Supersession sweep:** `inf_tier_spend` is being rewritten in place (its old body retired).
+Direct grep confirms its only call sites anywhere in the tree are `test_rom.py`'s own `T38` suite
+(`ITS_ADDR`, `invoke_no_arg`) — no production call site exists to account for, confirmed clean.
+`treasure_spend_gate_and_decrement` (the shared 1-treasure-per-call helper `inf_heal_spend` also
+uses) is confirmed **not** touched by this delta — `inf_heal_spend`'s own still-unbound input
+gap (`BL-0148`'s other half) is explicitly out of scope.
+
+**Decomposition, one package:**
+
+| Work unit | Package | Owning peer | Depends on |
+|---|---|---|---|
+| Rewrite `inf_tier_spend`'s body to an automatic, threshold-crossing check (1/3 per `ADR-0022`); add one unconditional `CALL` from `st_playing`; rewrite `T38` to test the new automatic/threshold behavior | [IP-9210](packages/IP-9210-automatic-weapon-tier-upgrade.md) | `08-code-implementation` | `IP-1129` (`VERIFIED`) |
+
+**Split rationale:** one package — the trigger rewrite, the new call site, and the test rewrite
+are all one coherent unit of work with a single Definition of Done; splitting the test rewrite
+into a separate package would leave an intermediate state where the shipped code and its own test
+suite disagree about what's being verified.
+
+**Authorization:** not yet sought — new scope beyond any standing go-ahead, and (per this
+project's own established rule) a correctness/behavior change to already-shipped, `VERIFIED`
+code carries no bootstrap carve-out regardless of user request context.

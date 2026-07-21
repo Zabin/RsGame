@@ -126,11 +126,11 @@
 | FR-11200 | Mob presence, materialization, and non-graphic defeat (Implemented — 2026-07-18) | R218, R115 | ADS-002 §System Architecture, §Domain Model | ADR-0007 | `asm_game.py`, `worldgen.py` | FS-112 | IP-1121 | T29.a-f |
 | FR-11210 | Mob movement toward the player (delta 2026-07-19, `BL-0156` — Implemented 2026-07-19) | — | — | — | `asm_game.py` | FS-112 | IP-1126 | T35.a-i |
 | FR-11300 | Ranged weapon fire and hit resolution (Implemented — 2026-07-18) | R115 | ADS-002 §System Architecture | — | `asm_game.py` | FS-112 | IP-1122 | T30.a-e, T30.c2 |
-| FR-11310 | Movement-based multi-directional weapon fire (delta 2026-07-19, `BL-0157` — Should, Implemented `IP-1128` 2026-07-19) | R220 | ADS-002 "Weapon Directionality Delta" | ADR-0021 | `asm_game.py` | FS-112 | IP-1128 | T37.a–i |
+| FR-11310 | Movement-based multi-directional weapon fire (delta 2026-07-19, `BL-0157` — Should, Implemented `IP-1128` 2026-07-19; remediated `IP-9200` 2026-07-20, `BL-0184`) | R220 | ADS-002 "Weapon Directionality Delta" | ADR-0021 | `asm_game.py` | FS-112 | IP-1128 + IP-9200 | T37.a–m |
 | FR-11400 | Player health and non-lethal setback (Implemented — 2026-07-18, region-entry-point ordering fixed 2026-07-19, `BL-0154`) | R218 | ADS-002 §Domain Model | — | `asm_game.py` | FS-112 | IP-1123 | T31.a-c, T31.f-g |
 | FR-11410 | Post-contact player protection: invincibility, knockback, cooldown (delta 2026-07-19, `BL-0158` — Should, direct user decision, Implemented `IP-1127` 2026-07-19) | — | — | — | `asm_game.py` | FS-112 | IP-1127 | T36.a–j |
 | FR-11500 | Treasure-spent healing economy (Implemented — 2026-07-18) | — | ADS-002 §Domain Model | — | `asm_game.py` | FS-112 | IP-1123 | T31.d, T31.d2, T31.e, T31.f |
-| FR-11510 | Treasure-spent weapon-tier funding economy (delta 2026-07-19, `BL-0147`/`BL-0155` — Should, Implemented `IP-1129` 2026-07-19, save/load half now closed by FR-11600/IP-1124) | R219 | ADS-002 §Domain Model | — | `asm_game.py` | FS-112 | IP-1129 | T38.a–e |
+| FR-11510 | Automatic treasure-funded weapon-tier upgrade economy (delta 2026-07-19, `BL-0147`/`BL-0155` — Should, save/load half closed by FR-11600/IP-1124; revised 2026-07-20, `BL-0148`/`ADR-0022` — automatic threshold trigger, Implemented `IP-9210` 2026-07-20) | R219 | ADS-002 §Domain Model | ADR-0022 | `asm_game.py` | FS-112 | IP-9210 (supersedes IP-1129) | T38.a–g |
 | FR-11600 | Combat state save persistence (Must, Implemented `IP-1124` 2026-07-19) | — | ADS-002 (Open Question 7) | — | `asm_game.py` | FS-112 | IP-1124 | T32.a–d |
 
 ## Non-Functional Requirements
@@ -161,7 +161,7 @@
 | NFR-4300 | Infinite Mode materialized-window WRAM headroom (Met, 2026-07-14) | R114 | ADS-001 §System Architecture | ADR-0016 | `asm_game.py` | FS-110 | IP-1102 | GDS-07 §7e inspection — 15 bytes vs. ~3.1 KiB bank-0 headroom |
 | NFR-4400 | Procedural music generation ROM budget (Met, `IP-1110`, 2026-07-16) | R217 | — | ADR-0019 | `music.py`, `build_rom.py` | FS-111 | IP-1110 (VERIFIED) | Inspection — direct build measurement (31362/32768 bytes used) |
 | NFR-5400 | Infinite Mode visited-region-ledger integrity and bounded capacity (Met, 128 entries FIFO-bounded) | R114 | ADS-001 §System Architecture | ADR-0016 | `asm_game.py` | FS-110 | IP-1104 | T27.a, T27.c |
-| NFR-1500 | Combat sub-mode per-frame cycle budget (status UNCONFIRMED — target, not yet implemented) | R115 | ADS-002 §System Architecture (Cycle budget) | ADR-0016 (frame-budget precedent) | `asm_game.py` (prospective) | UNASSIGNED | UNASSIGNED | UNASSIGNED |
+| NFR-1500 | Combat sub-mode per-frame cycle budget (status NOT MET for the coinciding case, MET for combat-only, measured 2026-07-20) | R115 | ADS-002 §System Architecture (Cycle budget) | ADR-0016 (frame-budget precedent) | `test_rom.py` | FS-112 | IP-9190 | T39.a — measured 1,804–3,848 cycles (MET); T39.b — measured 92,648–95,712 cycles vs. 70,224-cycle frame budget (NOT MET) |
 | NFR-4500 | Combat sub-mode ROM and OAM budget (target — not yet implemented) | R115 | ADS-002 §System Architecture (Sprite budget, ROM budget) | ADR-0011, ADR-0020 | `build_rom.py`, `asm_game.py` (prospective) | UNASSIGNED | UNASSIGNED | UNASSIGNED |
 
 ## Notes on this matrix's honesty discipline

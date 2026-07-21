@@ -942,3 +942,43 @@ therefore both immediately `READY`, unlike `IP-1127`. Neither extends the origin
 `IP-1128` shares a named, unresolved WRAM-address collision with `IP-1127` (both unbuilt, both
 prospectively claim `0xC6DF`–`0xC6E0`) — resolved at build time by whichever ships first, not a
 blocker to either package's own `READY` status today.
+
+## Combat sub-mode cycle-budget measurement (`BL-0168`, planned 2026-07-20)
+
+One package — see the
+[TWBS](01-technical-work-breakdown.md#bl-0168--combat-sub-mode-per-frame-cycle-budget-measurement-nfr-1500)
+for the scope decision (test-only measurement, mirroring `NFR-1400`/`IP-1102`'s own T24.e
+technique; no runtime code change).
+
+| Package | Title | Owner (08 peer) | Status | Depends on | Authorized? | Notes |
+|---|---|---|---|---|---|---|
+| [IP-9190](packages/IP-9190-combat-cycle-budget-measurement.md) | Combat Sub-Mode Per-Frame Cycle Budget Measurement (`BL-0168`) | `08-code-implementation` | **COMPLETE** (own `09-package-verification` pass owed, fresh session) | `IP-1120`-`IP-1129` (all `VERIFIED`) | **AUTHORIZED (G3, user "Authorize IP-9190," 2026-07-20)** | **Implemented 2026-07-20.** Added `test_rom.py` suite `T39` (2 checks): `T39.a` measures the four-routine combat chain in isolation via a stack-chained PC/SP hijack (each routine's own real RET pre-loaded to land at the next real ROM label, mirroring T24.e's own single-hijack technique extended to a multi-routine sequence) — **1,804–3,848 T-cycles across a 4-entry `(mob_count, proj_active)` corpus, `MET`** against the 70,224-cycle budget. `T39.b` extends the same chain through a real `check_zone_transition`/`inf_ensure_window` materialization (confirmed firing every corpus entry via `PLAYER_X`'s own real rewrite) — **92,648–95,712 T-cycles across a 12-entry corpus (`T24.e`'s own 3 seed/row/col entries × 4 mob/proj entries), `NOT MET`** (exceeds budget ~32-36%, consistent with `NFR-1400`'s own already-`NOT MET` `inf_ensure_window` cost simply compounding). **Design correction found and fixed during implementation**: a first draft assembled a synthetic CALL-chain trampoline into WRAM scratch and hooked addresses there — this hung PyBoy's own emulation core for hours with no progress (`hook_register` almost certainly only supports real ROM-bank addresses, not arbitrary WRAM); replaced with the stack-chaining technique described above, verified correct and fast in isolation before the full-suite run. **406/406 suite passes** (404 pre-existing + `T39.a`/`T39.b`). ROM unchanged, 32768 bytes/32670 used (test-only, zero runtime-code change). `NFR-1500` → `NOT MET` for the coinciding case / `MET` for combat-only, both recorded with real numbers; RTM row filled (`test_rom.py`, `FS-112`, `IP-9190`, `T39.a`/`T39.b`). Follow-up optimization finding filed as `BL-0185` (Medium-High, `SCHEDULED` — shares `BL-0118`'s own root cause and likely follow-up package). Diff scope: `test_rom.py` only. |
+
+No critical-path interaction — independent of every other package in the tree (measurement-only,
+zero WRAM/interface footprint).
+
+## Weapon-facing axis reset fix (`BL-0184`, planned 2026-07-20)
+
+One package — see the
+[TWBS](01-technical-work-breakdown.md#bl-0184--weapon-fire-only-shoots-diagonally-in-real-play-fr-11310ip-1128-remediation)
+for the root cause and scope decision.
+
+| Package | Title | Owner (08 peer) | Status | Depends on | Authorized? | Notes |
+|---|---|---|---|---|---|---|
+| [IP-9200](packages/IP-9200-weapon-facing-axis-reset-fix.md) | Weapon-Facing Axis Reset Fix (`BL-0184`) | `08-code-implementation` | **COMPLETE** (own `09-package-verification` pass owed, fresh session) | `IP-1128` (`VERIFIED`) | **AUTHORIZED (G3, user "Authorize IP-9200," 2026-07-20)** | **Implemented 2026-07-20.** Replaced the four embedded per-direction `PLAYER_FACING_X`/`Y` writes with a single upfront block: if any of RIGHT/LEFT/UP/DOWN is held this frame, both axes are recomputed fresh (`RIGHT`→`+1`/`LEFT`→`-1`/neither→`0` for X; `UP`→`-1`/`DOWN`→`+1`/neither→`0` for Y); if nothing is held, both are left untouched (preserves `FR-11310`'s own "moving direction, else last-faced" rule, `T37.e`'s own precedent — confirmed still passing unmodified). Direct diff confirmed `PLAYER_DIR`'s own two write sites and `TMP1`'s own animation-flag logic byte-for-byte unchanged. **New regression pair `T37.j`/`T37.k`** (drives `handle_play_input` via real successive per-frame invocations, not fixture force-injection — the only way to actually express this bug) directly encodes the reported axis-switch failure and its symmetric case; **`T37.l`/`T37.m`** reconfirm the pre-existing default-facing and last-held-facing behaviors through the new code path. **410/410 suite passes** (406 pre-existing + `T37.j`-`m`). ROM unchanged, 32768 bytes/32670 used (net-zero at the section-total level, alignment-slack absorption). **Independently reproduced live** via the original real-button repro script: moving only UP then firing now yields `(0, -1)`, not the previously-reported `(1, -1)`. `FR-11310`/RTM updated. Diff scope: `asm_game.py` + `test_rom.py` only. |
+
+No critical-path interaction — independent of every other package in the tree (a localized fix
+to one routine, no WRAM/interface change).
+
+## Automatic weapon-tier upgrade trigger (`BL-0148`/`ADR-0022`, planned 2026-07-20)
+
+One package — see the
+[TWBS](01-technical-work-breakdown.md#fr-11510-revision--automatic-weapon-tier-upgrade-trigger-bl-0148adr-0022)
+for the supersession-sweep result and split rationale.
+
+| Package | Title | Owner (08 peer) | Status | Depends on | Authorized? | Notes |
+|---|---|---|---|---|---|---|
+| [IP-9210](packages/IP-9210-automatic-weapon-tier-upgrade.md) | Automatic Weapon-Tier Upgrade Trigger (`BL-0148`/`ADR-0022`) | `08-code-implementation` | **COMPLETE** (own `09-package-verification` pass owed, fresh session) | `IP-1129` (`VERIFIED`) | **AUTHORIZED (G3, user specified the exact 1/3 threshold curve directly, 2026-07-20 — treated as authorization to build with that curve)** | **Implemented 2026-07-20.** `inf_tier_spend` rewritten in place: gated on `COMBAT_MODE` and `WEAPON_TIER < 3` (a true `RET` no-op past that, unlike `inf_heal_spend`'s own spend-even-at-cap shape); branches on the current tier to select its own threshold (1 for tier 1, 3 for tier 2 — a triangular-number curve, per the user's own direct instruction); 16-bit-compares `RUNNING_TREASURE_COUNT` against it; on a match, decrements by that threshold and increments `WEAPON_TIER`, setting `SCORE_DIRTY`. Does not reuse `treasure_spend_gate_and_decrement` (its fixed decrement-by-1 shape doesn't fit a variable threshold) — `inf_heal_spend` itself confirmed byte-for-byte unchanged. New unconditional `CALL('inf_tier_spend')` appended to `st_playing`'s existing combat chain. `T38` suite rewritten (`T38.a`-`g`) — `T38.a` drives the real `st_playing` per-frame path (not a direct invoke) to prove the automatic call site actually fires with no input event (a genuine test-authoring finding along the way: the very next `pb.tick()` after `advance_to_playing`'s own last transition tick doesn't reach as far as `inf_tier_spend`, confirmed via a diagnostic hook script — ticking twice reliably lands on a complete frame); `T38.g` confirms an automatically-earned tier increase survives a real save/load round trip. **413/413 suite passes.** ROM unchanged, 32768 bytes/32670 used (net-zero, alignment-slack absorption). `FR-11510`/RTM/FS-112 updated. **`BL-0148`'s tier-spend half fully closed** — the heal-spend half remains open, out of scope. Diff scope: `asm_game.py` + `test_rom.py` only. |
+
+No critical-path interaction — independent of every other package in the tree (localized to one
+routine + one call site + its own test suite).
